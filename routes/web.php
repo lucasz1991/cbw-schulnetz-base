@@ -27,44 +27,43 @@ use Illuminate\Support\Facades\Mail;
 
 
 
-    // Routen für alle
-    Route::get('/', Welcome::class)->name('home');
-    Route::get('/howto', HowTo::class)->name('howto');
-    Route::get('/aboutus', AboutUs::class)->name('aboutus');
-    Route::get('/faqs', Faqs::class)->name('faqs');
-    Route::get('/termsandconditions', TermsAndConditions::class)->name('terms');
-    Route::get('/imprint', Imprint::class)->name('imprint');
-    Route::get('/privacypolicy', PrivacyPolicy::class)->name('privacypolicy');
-    Route::get('/contact', Contact::class)->name('contact');
-    Route::get('/sitemap', Sitemap::class)->name('sitemap');
 
 
 
 
-    Route::get('/forgot-password', RequestPasswordResetLink::class)->name('password.request');
-    // Route::post('/forgot-password', [RequestPasswordResetLink::class, 'sendResetLink'])->name('password.email');
-    Route::get('/reset-password/{token}', ResetPassword::class)->name('password.reset');
-    // Route::post('/reset-password', [ResetPassword::class, 'reset'])->name('password.update');
-        // Überschreibe die Standard-POST-Routen
-        Route::post('/forgot-password', function () {
-            abort(404);
-        })->name('password.email');
+Route::get('/forgot-password', RequestPasswordResetLink::class)->name('password.request');
+// Route::post('/forgot-password', [RequestPasswordResetLink::class, 'sendResetLink'])->name('password.email');
+Route::get('/reset-password/{token}', ResetPassword::class)->name('password.reset');
+// Route::post('/reset-password', [ResetPassword::class, 'reset'])->name('password.update');
+// Überschreibe die Standard-POST-Routen
+Route::post('/forgot-password', function () {
+    abort(404);
+})->name('password.email');
 
-        Route::post('/reset-password', function () {
-            abort(404);
-        })->name('password.update');
+Route::post('/reset-password', function () {
+    abort(404);
+})->name('password.update');
 
-    // Allgemeine Routes für Gäste
-    Route::middleware('guest')->group(function () {
-        Route::get('/login', Login::class)->name('login');
-        Route::get('/register', Register::class)->name('register');
-    });
+// Allgemeine Routes für Gäste
+Route::middleware('guest')->group(function () {
+    Route::get('/login', Login::class)->name('login');
+    Route::get('/register', Register::class)->name('register');
+});
 
-    Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
-        // Customer Routes
-        Route::middleware(['role:guest'])->group(function () {
-            Route::get('/dashboard', Dashboard::class)->name('dashboard');
-            Route::get('/messages', MessageBox::class)->name('messages');
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
+    // Customer Routes
+    Route::middleware(['role:guest'])->group(function () {
+        Route::get('/dashboard', Dashboard::class)->name('dashboard');
+        Route::get('/messages', MessageBox::class)->name('messages');
+        Route::get('/', Welcome::class)->name('home');
+        Route::get('/howto', HowTo::class)->name('howto');
+        Route::get('/aboutus', AboutUs::class)->name('aboutus');
+        Route::get('/faqs', Faqs::class)->name('faqs');
+        Route::get('/termsandconditions', TermsAndConditions::class)->name('terms');
+        Route::get('/imprint', Imprint::class)->name('imprint');
+        Route::get('/privacypolicy', PrivacyPolicy::class)->name('privacypolicy');
+        Route::get('/contact', Contact::class)->name('contact');
+        Route::get('/sitemap', Sitemap::class)->name('sitemap');
         });
 
     });
