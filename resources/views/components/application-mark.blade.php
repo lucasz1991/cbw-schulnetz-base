@@ -1,4 +1,4 @@
 <img 
-    class="max-h-12 {{ $class ?? '' }}" 
+    class="max-h-18 {{ $class ?? '' }}" 
     src="{{ asset('/site-images/logo-xs.png') }}" 
     alt="Logo">

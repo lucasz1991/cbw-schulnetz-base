@@ -1,11 +1,28 @@
 <div x-data="{ openSearchMenu: @entangle('openSearchMenu') }" @keydown.window.escape="openSearchMenu = false"  class="h-full">
     <!-- Such-Icon -->
-    <div @click.prevent="() => { openSearchMenu = !openSearchMenu; }"  class="flex h-full w-16 transition-all duration-300 ease-in-out" >
-        <div x-cloak class="flex  pt-3 px-3 mr-8 rounded-t-full transition-all duration-300 absolute h-min bottom-[15%] xs:bottom-[20%] bg-gray-100 pb-2"  :class="openSearchMenu ? 'text-secondary bg-gray-200 border-t border-x  border-gray-300 translate-y-[1px] rounded-b-0 !bottom-0 !pb-0' : 'text-gray-500 translate-y-0 rounded-b-full'">
+    <div 
+        x-ref="searchIconContainer"
+        x-data="{ parentheight: 3000 }"
+        @click.prevent="() => { openSearchMenu = !openSearchMenu; }"  
+        class="h-full w-16 relative "
+        x-init="$nextTick(() => { 
+            parentheight = $refs.searchIconContainer.offsetHeight; 
+            })"
+            x-cloak 
+    >
+        <div 
+            x-data="{ iconheight: 200 }"
+            class="flex pt-3 px-3 mr-8 rounded-t-full transition-all duration-300 absolute h-min bg-gray-100 pb-2"
+            :class="openSearchMenu ? 'text-secondary bg-gray-200 border-t border-x border-gray-300 translate-y-[1px] rounded-b-0 !bottom-0 !pb-0' : 'text-gray-500 translate-y-0 rounded-b-full'"
+            x-init="$nextTick(() => { 
+                iconheight = $el.offsetHeight; 
+            })"
+            style="bottom: 200%; opacity: 0;"
+            :style="'bottom: ' + ((parentheight / 2)-(iconheight / 2)) + 'px; opacity:1;'"
+        >
             <svg 
                 xmlns="http://www.w3.org/2000/svg"
-                class="h-6 w-6  hover:text-gray-700 cursor-pointer transition-all duration-300 " 
-                
+                class="h-6 w-6 hover:text-gray-700 cursor-pointer transition-all duration-300" 
                 fill="none"
                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M10 18a8 8 0 100-16 8 8 0 000 16zm8-2l4 4"/>
