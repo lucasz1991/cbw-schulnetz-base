@@ -30,6 +30,7 @@ use Illuminate\Support\Facades\Mail;
 
 
 
+Route::get('/', Welcome::class)->name('home');
 
 Route::get('/forgot-password', RequestPasswordResetLink::class)->name('password.request');
 // Route::post('/forgot-password', [RequestPasswordResetLink::class, 'sendResetLink'])->name('password.email');
@@ -55,7 +56,6 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::middleware(['role:guest'])->group(function () {
         Route::get('/dashboard', Dashboard::class)->name('dashboard');
         Route::get('/messages', MessageBox::class)->name('messages');
-        Route::get('/', Welcome::class)->name('home');
         Route::get('/howto', HowTo::class)->name('howto');
         Route::get('/aboutus', AboutUs::class)->name('aboutus');
         Route::get('/faqs', Faqs::class)->name('faqs');
