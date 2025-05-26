@@ -22,15 +22,7 @@
                     <div x-show="open || screenWidth >= 768" x-collapse.duration.1000ms @click.away="open = false" >
                         <ul class="mt-6 space-y-5">
                             
-                            <li>
-                                <a  href="/insurances" wire:navigate  class='hover:text-gray-400 text-gray-700 text-sm'>Versicherungen</a>
-                            </li>
-                            <li>
-                                <a  href="/reviews" wire:navigate  class='hover:text-gray-400 text-gray-700 text-sm'>Bewertungen</a>
-                            </li>
-                            <li>
-                                <a  href="/ranking" wire:navigate  class='hover:text-gray-400 text-gray-700 text-sm'>Ranking</a>
-                            </li>
+                           
                             
                         </ul>
                     </div>
@@ -68,9 +60,6 @@
                     </h4>
                     <div x-show="open || screenWidth >= 768" x-collapse.duration.1000ms @click.away="open = false"  >
                         <ul class="space-y-5 mt-6 ">
-                            <li>
-                                <a  href="/premium" wire:navigate  class='hover:text-gray-400 text-gray-700 text-sm'>Premium</a>
-                            </li>
                             <li>
                             <a href='/faqs' wire:navigate  class='hover:text-gray-400 text-gray-700 text-sm'>FAQ</a>
                             </li>
@@ -118,7 +107,7 @@
                     </ul>
                 </div>
 
-                <p class='text-gray-700 text-sm md:ml-auto'>&copy; {{ date("Y") }} Regulierungs-Check. Alle Rechte vorbehalten.</p>
+                <p class='text-gray-700 text-sm md:ml-auto'>&copy; {{ date("Y") }} CBW Schulnetz. Alle Rechte vorbehalten.</p>
             </div>
         </div>
     </div>
