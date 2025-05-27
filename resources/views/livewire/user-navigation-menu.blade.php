@@ -53,7 +53,7 @@
 
                  <!-- Primary Navigation Menu 
                  <div class="container mx-auto flex flex-wrap justify-between items-center  ">-->
-                 <div class="container mx-auto grid grid-cols-8 items-center gap-4">
+                 <div class="container mx-auto grid grid-cols-4 items-center gap-4">
 
                          <div class="max-md:order-1  md:order-2 self-stretch" @click="isMobileMenuOpen = false">
                              <livewire:tools.search-modal />
