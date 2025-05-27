@@ -54,15 +54,15 @@
                  <!-- Primary Navigation Menu -->
                  <div class="container mx-auto flex flex-wrap justify-between items-center  ">
                     
-                         <div class="max-md:order-1  md:order-2 flex-none" @click="isMobileMenuOpen = false">
+                         <div class="max-md:order-1  md:order-2 flex-1" @click="isMobileMenuOpen = false">
                              <livewire:tools.search-modal />
                          </div>
-                         <div class="flex-none flex items-center h-full py-2 max-md:order-1" >
+                         <div class="flex-1 flex items-center h-full py-2 max-md:order-1" >
                              <a href="/" wire:navigate   class="h-full flex items-center max-sm:max-w-[120px]">
                                  <x-application-mark />
                              </a>
                          </div>
-                         <div class="flex items-center space-x-4 max-md:order-3 md:order-2  flex-none" >
+                         <div class="flex items-center space-x-4 max-md:order-3 md:order-2  flex-1" >
                              <!-- Likes and Inbox Buttons -->
                              <div class="flex items-center space-x-6 mr-2">
                                  @if (optional(Auth::user())->role === 'guest' && $currentUrl !== url('/messages'))
