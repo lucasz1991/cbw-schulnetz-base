@@ -51,19 +51,18 @@
             >
              <div class="w-full border-b border-gray-300 px-3 md:px-8">
 
-                 <!-- Primary Navigation Menu 
-                 <div class="container mx-auto flex flex-wrap justify-between items-center  ">-->
-                 <div class="container mx-auto grid grid-cols-4 items-center gap-4">
-
-                         <div class="max-md:order-1  md:order-2 self-stretch" @click="isMobileMenuOpen = false">
+                 <!-- Primary Navigation Menu -->
+                 <div class="container mx-auto flex flex-wrap justify-between items-center  ">
+                    
+                         <div class="max-md:order-1  md:order-2 flex-none" @click="isMobileMenuOpen = false">
                              <livewire:tools.search-modal />
                          </div>
-                         <div class="shrink-0 flex items-center h-full py-2 max-md:order-1 " >
+                         <div class="shrink-0 flex-none flex items-center h-full py-2 max-md:order-1" >
                              <a href="/" wire:navigate   class="h-full flex items-center max-sm:max-w-[120px]">
                                  <x-application-mark />
                              </a>
                          </div>
-                         <div class="flex items-center space-x-4 max-md:order-3 md:order-2" >
+                         <div class="flex items-center space-x-4 max-md:order-3 md:order-2  flex-none" >
                              <!-- Likes and Inbox Buttons -->
                              <div class="flex items-center space-x-6 mr-2">
                                  @if (optional(Auth::user())->role === 'guest' && $currentUrl !== url('/messages'))
@@ -277,7 +276,7 @@
                                  :style="isMobile ? 'top: ' + navHeight + 'px; height: calc(100vh - ' + navHeight + 'px);' : ''"
                                  :class="isMobileMenuOpen ? 'max-md:inset-0  max-md:bg-black max-md:bg-opacity-50 max-md:z-30' : ''"   
                                  
-                                 x-cloak   class="max-md:order-3 md:order-1 max-md:fixed  " >
+                                 x-cloak   class="max-md:order-3 md:order-1 max-md:fixed   md:shrink" >
                                  
                                  <div @click.prevent="isMobileMenuOpen = true" 
                                          :class="isMobileMenuOpen ? 'max-md:translate-x-0' : 'max-md:translate-x-full'"    
