@@ -12,7 +12,7 @@
     >
         <div 
             x-data="{ iconheight: 200 }"
-            class="flex pt-3 px-3 mr-8 rounded-t-full transition-all duration-300 absolute h-min bg-gray-100 pb-2"
+            class="flex pt-2 px-2 mr-8 rounded-t-full transition-all duration-300 absolute h-min bg-gray-100 pb-1.5"
             :class="openSearchMenu ? 'text-secondary bg-gray-200 border-t border-x border-gray-300 translate-y-[1px] rounded-b-0 !bottom-0 !pb-0' : 'text-gray-500 translate-y-0 rounded-b-full'"
             x-init="$nextTick(() => { 
                 iconheight = $el.offsetHeight; 

@@ -52,9 +52,9 @@
              <div class="w-full border-b border-gray-300 px-3 md:px-8">
 
                  <!-- Primary Navigation Menu -->
-                 <div class="container mx-auto flex flex-wrap justify-between items-center  ">
+                 <div class="container mx-auto flex justify-between items-center ">
                     
-                         <div class="max-md:order-1  md:order-2 flex-none" @click="isMobileMenuOpen = false">
+                         <div class="max-md:order-1  md:order-2 flex-none self-stretch" @click="isMobileMenuOpen = false">
                              <livewire:tools.search-modal />
                          </div>
                          <div class="flex-none flex items-center h-full py-2 max-md:order-1" >
@@ -276,13 +276,13 @@
                                  :style="isMobile ? 'top: ' + navHeight + 'px; height: calc(100vh - ' + navHeight + 'px);' : ''"
                                  :class="isMobileMenuOpen ? 'max-md:inset-0  max-md:bg-black max-md:bg-opacity-50 max-md:z-30' : ''"   
                                  
-                                 x-cloak   class="max-md:order-3 md:order-1 max-md:fixed  md:grow " >
+                                 x-cloak   class="max-md:order-3 md:order-1 max-md:fixed  md:grow md:flex md:justify-center" >
                                  
                                  <div @click.prevent="isMobileMenuOpen = true" 
                                          :class="isMobileMenuOpen ? 'max-md:translate-x-0' : 'max-md:translate-x-full'"    
                                          :style="isMobile ? 'height: calc(100vh - ' + navHeight + 'px);' : ''"   
                                          x-cloak  class="grid  content-between transition-transform  ease-out duration-400  max-md:bg-white  max-md:right-0 max-md:h-full max-md:fixed max-md:overflow-y-auto max-md:py-5 max-md:px-3  max-md:border-r max-md:border-gray-200">
-                                     <div  class="md:space-x-8 max-md:block   max-md:space-y-4 md:-my-px md:mx-4 max-md:gap-3 md:flex  w-full  " >
+                                     <div  class="md:space-x-8 max-md:block   max-md:space-y-4 md:-my-px md:mx-4 max-md:gap-3 md:flex  w-max  mx-auto" >
                                          <!-- Gäste-Spezifische Navigation -->
                                          <x-nav-link href="/" wire:navigate  :active="request()->is('/')">
                                                  <svg class="w-5 max-md:w-6 aspect-square mr-1 max-md:mr-2 " aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24"  stroke="currentColor" fill="none" viewBox="0 0 24 24">
