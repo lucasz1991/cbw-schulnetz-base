@@ -8,7 +8,7 @@
         CBW Schulnetz
       </h2>
       <p class="text-xl md:text-2xl text-gray-700 pb-8">
-        
+      Hier finden Sie Infos zu Ihrem Qualiprogramm und Kontaktmöglichkeit zur CBW-Verwaltung
       </p>
       <div>
         

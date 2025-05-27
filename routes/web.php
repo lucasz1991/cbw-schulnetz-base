@@ -31,6 +31,11 @@ use Illuminate\Support\Facades\Mail;
 
 
 Route::get('/', Welcome::class)->name('home');
+Route::get('/contact', Contact::class)->name('contact');
+Route::get('/termsandconditions', TermsAndConditions::class)->name('terms');
+Route::get('/imprint', Imprint::class)->name('imprint');
+Route::get('/privacypolicy', PrivacyPolicy::class)->name('privacypolicy');
+Route::get('/sitemap', Sitemap::class)->name('sitemap');
 
 Route::get('/forgot-password', RequestPasswordResetLink::class)->name('password.request');
 // Route::post('/forgot-password', [RequestPasswordResetLink::class, 'sendResetLink'])->name('password.email');
@@ -59,11 +64,6 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/howto', HowTo::class)->name('howto');
         Route::get('/aboutus', AboutUs::class)->name('aboutus');
         Route::get('/faqs', Faqs::class)->name('faqs');
-        Route::get('/termsandconditions', TermsAndConditions::class)->name('terms');
-        Route::get('/imprint', Imprint::class)->name('imprint');
-        Route::get('/privacypolicy', PrivacyPolicy::class)->name('privacypolicy');
-        Route::get('/contact', Contact::class)->name('contact');
-        Route::get('/sitemap', Sitemap::class)->name('sitemap');
         });
 
     });
