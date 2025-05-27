@@ -57,7 +57,7 @@
                          <div class="max-md:order-1  md:order-2 flex-none" @click="isMobileMenuOpen = false">
                              <livewire:tools.search-modal />
                          </div>
-                         <div class="shrink-0 flex-none flex items-center h-full py-2 max-md:order-1" >
+                         <div class="flex-none flex items-center h-full py-2 max-md:order-1" >
                              <a href="/" wire:navigate   class="h-full flex items-center max-sm:max-w-[120px]">
                                  <x-application-mark />
                              </a>
@@ -276,7 +276,7 @@
                                  :style="isMobile ? 'top: ' + navHeight + 'px; height: calc(100vh - ' + navHeight + 'px);' : ''"
                                  :class="isMobileMenuOpen ? 'max-md:inset-0  max-md:bg-black max-md:bg-opacity-50 max-md:z-30' : ''"   
                                  
-                                 x-cloak   class="max-md:order-3 md:order-1 max-md:fixed   md:shrink" >
+                                 x-cloak   class="max-md:order-3 md:order-1 max-md:fixed   shrink-0 " >
                                  
                                  <div @click.prevent="isMobileMenuOpen = true" 
                                          :class="isMobileMenuOpen ? 'max-md:translate-x-0' : 'max-md:translate-x-full'"    
