@@ -7,8 +7,8 @@
         class="h-full w-16 relative "
         x-init="$nextTick(() => { 
             parentheight = $refs.searchIconContainer.offsetHeight; 
-            })"
-            x-cloak 
+        })"
+        x-cloak 
     >
         <div 
             x-data="{ iconheight: 200 }"
