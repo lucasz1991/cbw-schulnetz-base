@@ -1,9 +1,9 @@
 <x-layouts.auth-layout>
     <x-slot name="title">
-        Willkommen!
+    CBW Schulnetz
     </x-slot>
     <x-slot name="description">
-        Noch kein Konto bei Regulierungscheck? Registriere dich jetzt kostenlos und teile deine Erfahrungen mit Versicherungen, bewerte die Schadensregulierung und hilf anderen, die faire Wahl zu treffen. Gemeinsam schaffen wir mehr Transparenz!
+    Hier finden Sie Infos zu Ihrem Qualiprogramm und Kontaktmöglichkeit zur CBW-Verwaltung
     </x-slot>
     <x-slot name="form">
     <div  class="mt-8 grid grid-cols-6 gap-6">

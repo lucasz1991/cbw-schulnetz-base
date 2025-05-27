@@ -1,9 +1,13 @@
 <x-layouts.auth-layout>
     <x-slot name="title">
-    Willkommen zurück!
+    
+    CBW Schulnetz
+      
     </x-slot>
     <x-slot name="description">
-    Willkommen zurück bei Regulierungscheck! Melde dich jetzt an, um auf deine Bewertungen zuzugreifen, neue Erfahrungen mit Versicherungen zu teilen oder den aktuellen Stand deiner Einreichungen zu verfolgen. Transparent, unabhängig und einfach.
+        
+      Hier finden Sie Infos zu Ihrem Qualiprogramm und Kontaktmöglichkeit zur CBW-Verwaltung
+      
     </x-slot>
     <x-slot name="form">
       <div  class="mt-8 ">
