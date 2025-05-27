@@ -48,6 +48,7 @@
     <div>
         <nav x-ref="nav"  :style="(!showNav && !isMobileMenuOpen ) ? 'margin-top: -'+navHeight+'px': 'margin-top:0px;' " class="fixed  w-screen bg-white   z-30 transition-all duration-300 ease-in-out"  
                 wire:loading.class="cursor-wait"
+                
             >
              <div class="w-full border-b border-gray-300 px-3 md:px-8">
 
@@ -57,7 +58,7 @@
                          <div class="max-md:order-1  md:order-2 flex-none self-stretch" @click="isMobileMenuOpen = false">
                              <livewire:tools.search-modal />
                          </div>
-                         <div class="flex-none flex items-center h-full py-2 max-md:order-1" >
+                         <div class="flex-none flex items-center h-full py-2 max-md:order-1" @click="$dispatch('navhide')">
                              <a href="/" wire:navigate   class="h-full flex items-center max-sm:max-w-[120px]">
                                  <x-application-mark />
                              </a>
@@ -306,8 +307,13 @@
                                                          </svg>
              
                                                      </div>
-                                                     <div x-show="openaboutus" x-transition x-cloak class="md:bg-white md:right-0 md:mt-6 mt-3  z-30" :class="isMobile ? 'relative' : 'absolute rounded-lg shadow w-44 z-40 overflow-hidden'">
-                                                         <ul class=" max-md:space-y-4 max-md:pt-4 text-sm text-gray-500 hover:text-gray-700" :class="isMobile ? '' : 'divide-y divide-gray-100'">
+                                                     <div x-show="openaboutus" x-transition 
+                                                            x-cloak 
+                                                            class="md:bg-white   max-md:mt-3" 
+                                                            :class="isMobile ? 'relative   z-30' : 'fixed w-screen z-10 overflow-hidden left-0 right-0 -top-full opacity-0 transition-all duration-300 ease-in-out'"
+                                                            :style="!isMobile && openaboutus ? 'top: ' + navHeight + 'px; opacity:1;' : ''" 
+                                                            >
+                                                         <ul class=" max-md:space-y-4 max-md:pt-4 text-sm text-gray-500 hover:text-gray-700" :class="isMobile ? '' : 'py-4 container mx-auto flex flex-col md:flex-row md:space-x-8'">
                                                             
                                                              <li >
                                                                  <a  href="/faqs" wire:navigate  class='max-md:text-lg max-md:px-3 max-md:rounded-lg flex items-center md:px-4 py-2 hover:bg-gray-100'>

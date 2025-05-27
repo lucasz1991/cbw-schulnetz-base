@@ -2,7 +2,7 @@
     <!-- Such-Icon -->
     <div 
         x-ref="searchIconContainer"
-        x-data="{ parentheight: 3000 }"
+        x-data="{ parentheight: 3000, iconheight: 200 }"
         @click.prevent="() => { openSearchMenu = !openSearchMenu; }"  
         class="h-full w-16 relative "
         x-init="$nextTick(() => { 
@@ -11,7 +11,6 @@
         x-cloak 
     >
         <div 
-            x-data="{ iconheight: 200 }"
             class="flex pt-2 px-2 mr-8 rounded-t-full transition-all duration-300 absolute h-min bg-gray-100 pb-1.5"
             :class="openSearchMenu ? 'text-secondary bg-gray-200 border-t border-x border-gray-300 translate-y-[1px] rounded-b-0 !bottom-0 !pb-0' : 'text-gray-500 translate-y-0 rounded-b-full'"
             x-init="$nextTick(() => { 
@@ -32,6 +31,8 @@
     <template x-teleport="#megamenu">
         <!-- Such-Modal -->
         <div id="Search-menü" class="relative z-20">
+            
+            <!-- Overlay -->
             <div 
                 x-show="openSearchMenu"
                 @click="() => { openSearchMenu = !openSearchMenu; }"
@@ -42,7 +43,7 @@
             <div x-trap.inert.noscroll="openSearchMenu"
                 :class="openSearchMenu ? 'translate-y-0' : 'translate-y-[-200%]'"
                 class="fixed  bg-gray-200 w-full  px-3 py-3 md:py-6 md:px-8 border-b border-gray-300 shadow-lg transition-all duration-300 ease-in-out">
-                    <!-- Overlay -->
+                    
 
 
                 <div class="container mx-auto">
@@ -112,31 +113,9 @@
                             </div>
                         </div>
                     </div>
-                    @if(count($resultsInsurances) || count($resultsTypes) || count($resultsInfos))
+                    @if(count($resultsInfos))
                         <ul class=" max-h-[60vh] overflow-y-auto divide-y transition-all duration-300 ease-in-out divide-gray-200 p-2 mt-4 ">
-                            @if(count($resultsInsurances))
-                                <li class="py-2  mt-4 rounded">
-                                    <h3 class="text-base font-bold uppercase text-gray-400 ">Versicherungen</h3>
-                                </li>
-                                @foreach($resultsInsurances as $insurance)
-                                <li class="pl-3 py-2 cursor-pointer hover:bg-gray-100 px-2 rounded"
-                                    wire:click="selectResult({{ $insurance['id'] }} , 'insurances')">
-                                    {{ $insurance['name'] }}
-                                </li>
-                                @endforeach
-                            @endif
-
-                            @if(count($resultsTypes))
-                                <li class="py-2  mt-4 rounded">
-                                    <h3 class="text-base font-bold uppercase text-gray-400 ">Branchen</h3>
-                                </li>
-                                @foreach($resultsTypes as $type)
-                                    <li class="pl-3 py-2 cursor-pointer hover:bg-gray-100 px-2 rounded"
-                                        wire:click="selectResult({{ $type['id'] }} , 'types')">
-                                        {{ $type['name'] }}
-                                    </li>
-                                @endforeach
-                            @endif
+                            
 
                             @if(count($resultsInfos))
                                 <li class="py-2  mt-4 rounded">
