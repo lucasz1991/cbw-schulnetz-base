@@ -41,7 +41,7 @@
             ></div>
             <div x-trap.inert.noscroll="openSearchMenu"
                 :class="openSearchMenu ? 'translate-y-0' : 'translate-y-[-200%]'"
-                class="fixed  bg-gray-200 w-full  px-3 py-3 md:py-6 md:px-8 border-b ‚border-gray-300 shadow-lg transition-all duration-300 ease-in-out">
+                class="fixed  bg-gray-200 w-full  px-3 py-3 md:py-6 md:px-8 border-b border-gray-300 shadow-lg transition-all duration-300 ease-in-out">
                     <!-- Overlay -->
 
 
