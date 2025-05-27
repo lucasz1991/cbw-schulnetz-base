@@ -51,12 +51,14 @@
             >
              <div class="w-full border-b border-gray-300 px-3 md:px-8">
 
-                 <!-- Primary Navigation Menu -->
-                 <div class="container mx-auto flex flex-wrap justify-between items-center  ">
+                 <!-- Primary Navigation Menu 
+                 <div class="container mx-auto flex flex-wrap justify-between items-center  ">-->
+                 <div class="container mx-auto grid grid-cols-8 items-center gap-4">
+
                          <div class="max-md:order-1  md:order-2 self-stretch" @click="isMobileMenuOpen = false">
                              <livewire:tools.search-modal />
                          </div>
-                         <div class="shrink-0 flex items-center h-full py-2 max-md:order-1" >
+                         <div class="shrink-0 flex items-center h-full py-2 max-md:order-1 " >
                              <a href="/" wire:navigate   class="h-full flex items-center max-sm:max-w-[120px]">
                                  <x-application-mark />
                              </a>
