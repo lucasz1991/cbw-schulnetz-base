@@ -3,8 +3,6 @@
 namespace App\Livewire\Tools;
 
 use Livewire\Component;
-use App\Models\Insurance;
-use App\Models\InsuranceType;
 use App\Models\WebPage;
 
 class SearchModal extends Component
@@ -13,8 +11,7 @@ class SearchModal extends Component
     public $query = '';
     public $searchType = 'all';
 
-    public $resultsInsurances = [];
-    public $resultsTypes = [];
+
     public $resultsInfos = [];
 
     protected $listeners = [
@@ -44,10 +41,7 @@ class SearchModal extends Component
     
         switch ($this->searchType) {
             case 'types':
-                $this->resultsTypes = InsuranceType::where(function ($query) {
-                    $query->where('name', 'like', '%' . $this->query . '%')
-                          ->orWhere('description', 'like', '%' . $this->query . '%');
-                })->limit(10)->get();
+                $this->resultsTypes = [];
                 $this->resultsInsurances = [];
                 $this->resultsInfos = [];
                 break;
@@ -69,19 +63,13 @@ class SearchModal extends Component
                 break;
     
             case 'insurances':
-                $this->resultsInsurances = Insurance::where(function ($query) {
-                    $query->where('name', 'like', '%' . $this->query . '%')
-                          ->orWhere('description', 'like', '%' . $this->query . '%');
-                })->limit(10)->get();
+                $this->resultsInsurances = [];
                 $this->resultsTypes = [];
                 $this->resultsInfos = [];
                 break;
     
             default:
-                $this->resultsInsurances = Insurance::where(function ($query) {
-                    $query->where('name', 'like', '%' . $this->query . '%')
-                          ->orWhere('description', 'like', '%' . $this->query . '%');
-                })->limit(5)->get();
+                $this->resultsInsurances = [];
     
                 //$this->resultsTypes = InsuranceType::where(function ($query) {
                 //    $query->where('name', 'like', '%' . $this->query . '%')
