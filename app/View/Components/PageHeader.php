@@ -25,11 +25,11 @@ class PageHeader extends Component
         $segments = explode('/', Request::path());
             $this->page = end($segments);
             if ($this->page === '') {
-                $this->page = 'start';
+                $this->page = 'qualiprogramm';
             } else {
                 $lastSegment = end($segments);
                 if (is_numeric($lastSegment) || strlen($lastSegment) > 25) {
-                    $this->page = $segments[count($segments) - 2] ?? 'start';
+                    $this->page = $segments[count($segments) - 2] ?? 'qualiprogramm';
                 }
             }
         $webPage = WebPage::where('slug', $this->page)->first();
