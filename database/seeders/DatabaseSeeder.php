@@ -14,15 +14,9 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            InsuranceTypeSeeder::class,
-            InsuranceSeeder::class,
-            InsuranceSubtypeSeeder::class,
-            InsuranceInsuranceTypeSeeder::class,
-            InsuranceTypeInsuranceSubtypeSeeder::class,
-            RatingQuestionSeeder::class,
-            InsuranceSubtypeRatingQuestionSeeder::class,
             SettingsSeeder::class,
-            // WebPagesSeeder::class, 
+            WebPagesSeeder::class, 
+            FaqSeeder::class,
         ]);
     }
 
