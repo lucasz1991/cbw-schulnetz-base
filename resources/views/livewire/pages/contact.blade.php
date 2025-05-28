@@ -9,7 +9,7 @@
                 width: 100%;
                 height: 100%;
                 pointer-events: none; 
-                background: var(--primary-color); opacity:0.4;
+                background: var(--primary-color); opacity:0.2;
             ">
             </div>
             <iframe 

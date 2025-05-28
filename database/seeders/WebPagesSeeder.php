@@ -14,7 +14,7 @@ class WebPagesSeeder extends Seeder
     public function run(): void
     {
         $fixedPages = [
-            ['id' => 1, 'title' => 'Startseite', 'slug' => 'start'],
+            ['id' => 1, 'title' => 'Qualiprogramm', 'slug' => 'start'],
             ['id' => 2, 'title' => 'Login', 'slug' => 'login'],
             ['id' => 3, 'title' => 'Register', 'slug' => 'register'],
             ['id' => 4, 'title' => 'Passwort zurücksetzen', 'slug' => 'passwordreset'],
@@ -23,7 +23,6 @@ class WebPagesSeeder extends Seeder
             ['id' => 6, 'title' => 'Kontakt', 'slug' => 'contact'],
             ['id' => 7, 'title' => 'FAQs', 'slug' => 'faqs'],
             ['id' => 8, 'title' => 'So funktionierts', 'slug' => 'howto'],
-            ['id' => 9, 'title' => 'Qualiprogramm', 'slug' => 'qualiprogramm'],
             ['id' => 10, 'title' => 'Bewertungen', 'slug' => 'bewertungen'],
             ['id' => 11, 'title' => 'Konto', 'slug' => 'dashboard'],
             ['id' => 12, 'title' => 'Fehlzeiten', 'slug' => 'absences-create'],
