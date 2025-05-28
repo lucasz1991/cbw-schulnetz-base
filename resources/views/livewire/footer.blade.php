@@ -8,6 +8,7 @@
                         <x-application-logo  />
                     </a>   
                 </div>
+                @auth
                 <div x-data="{ open: false }">
                     <h4 class="text-white font-semibold text-lg relative max-sm:cursor-pointer" @click="open = !open">
                             Funktionen 
@@ -66,6 +67,7 @@
                         </ul>
                     </div>
                 </div>
+                @endauth  
             </div>
             <hr class="container mx-auto  my-10 border-gray-400" />
             <div class="container mx-auto  flex flex-wrap max-md:flex-col gap-4">
