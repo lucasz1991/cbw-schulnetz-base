@@ -309,7 +309,7 @@
                                                 </svg>
                                              Nachprüfung 
                                          </x-nav-link>
-                                         @endauth
+                                        
                                          @php
                                             $isActive = request()->is('aboutus', 'faqs', 'howto', 'contact');
                                         @endphp
@@ -353,6 +353,7 @@
                                                          </ul>
                                                      </div>
                                              </div>
+                                             @endauth    
                                          <!-- Kunden-Spezifische Navigation -->
                                          @if (optional(Auth::user())->role === 'guest' || optional(Auth::user())->role === 'admin')
                                              <x-nav-link href="/dashboard" wire:navigate  :active="request()->is('dashboard')">
