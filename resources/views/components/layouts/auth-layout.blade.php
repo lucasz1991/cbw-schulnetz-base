@@ -15,10 +15,10 @@
             <x-authentication-card-logo  />
           </div>
         </a>
-        <h2 class="mt-6 text-2xl font-bold  sm:text-3xl md:text-4xl color-primary">
+        <h2 class="mt-6 text-2xl font-bold  sm:text-3xl md:text-4xl text-gray-900">
           {{ $title }}
         </h2>
-        <p class="mt-4 text-xl font-bold leading-relaxed color-primary">
+        <p class="mt-4 text-xl font-bold leading-relaxed text-gray-900">
             {{ $description }}
         </p>
       </div>
@@ -37,7 +37,7 @@
             <h1 class="mt-2 text-2xl font-bold text-gray-900 sm:text-3xl md:text-4xl">
               {{ $title }}
             </h1>
-            <p class="mt-4 text-xl font-bold leading-relaxed color-primary">
+            <p class="mt-4 text-xl font-bold leading-relaxed text-gray-900">
             {{ $description }}                
             </p>
         </div>
