@@ -26,7 +26,8 @@ class WebPagesSeeder extends Seeder
             ['id' => 9, 'title' => 'Qualiprogramm', 'slug' => 'qualiprogramm'],
             ['id' => 10, 'title' => 'Fehlzeiten', 'slug' => 'fehlzeiten'],
             ['id' => 11, 'title' => 'Nachprüfung', 'slug' => 'nachpruefung'],
-            ['id' => 12, 'title' => 'Bewertungen', 'slug' => 'bewertungen']
+            ['id' => 12, 'title' => 'Bewertungen', 'slug' => 'bewertungen'],
+            ['id' => 13, 'title' => 'Konto', 'slug' => 'dashboard'],
         ];
 
         foreach ($fixedPages as $pageData) {
