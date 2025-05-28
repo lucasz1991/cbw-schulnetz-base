@@ -8,17 +8,17 @@
         class="absolute inset-0 h-full w-full object-cover opacity-80"
       />
       <div class="absolute inset-0 bg-blue-50 opacity-60"></div>
-      <div class="hidden lg:relative lg:block lg:p-12">
+      <div class="hidden lg:relative lg:block lg:p-12 md:max-w-3xl" >
         <a class="block text-white" href="/">
           <span class="sr-only">Home</span>
           <div class="w-[150px]  opacity-60">
             <x-authentication-card-logo  />
           </div>
         </a>
-        <h2 class="mt-6 text-2xl font-bold  sm:text-3xl md:text-4xl text-gray-900">
+        <h2 class="mt-6 text-2xl font-bold  sm:text-3xl md:text-4xl text-gray-700">
           {{ $title }}
         </h2>
-        <p class="mt-4 text-xl font-bold leading-relaxed text-gray-900">
+        <p class="mt-4 text-xl font-bold leading-relaxed text-gray-700">
             {{ $description }}
         </p>
       </div>
@@ -34,10 +34,10 @@
                   <x-authentication-card-logo  />
                 </div>
             </a>
-            <h1 class="mt-2 text-2xl font-bold text-gray-900 sm:text-3xl md:text-4xl">
+            <h1 class="mt-2 text-2xl font-bold text-gray-700 sm:text-3xl md:text-4xl">
               {{ $title }}
             </h1>
-            <p class="mt-4 text-xl font-bold leading-relaxed text-gray-900">
+            <p class="mt-4 text-xl font-bold leading-relaxed text-gray-700">
             {{ $description }}                
             </p>
         </div>

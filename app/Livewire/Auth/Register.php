@@ -117,7 +117,7 @@ class Register extends Component
         // Erfolgsmeldung und Weiterleitung
         $this->dispatch('showAlert', 'Registrierung erfolgreich! Bitte überprüfen Sie Ihre E-Mail, um Ihr Konto zu verifizieren.', 'success');
         session()->flash('message', 'Registrierung erfolgreich! Bitte überprüfen Sie Ihre E-Mail, um Ihr Konto zu verifizieren.');
-        return redirect()->route('dashboard');
+        return redirect('dashboard');
     }
 
 
