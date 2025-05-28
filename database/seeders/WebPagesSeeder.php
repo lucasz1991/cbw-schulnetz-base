@@ -24,12 +24,10 @@ class WebPagesSeeder extends Seeder
             ['id' => 7, 'title' => 'FAQs', 'slug' => 'faqs'],
             ['id' => 8, 'title' => 'So funktionierts', 'slug' => 'howto'],
             ['id' => 9, 'title' => 'Qualiprogramm', 'slug' => 'qualiprogramm'],
-            ['id' => 10, 'title' => 'Fehlzeiten', 'slug' => 'fehlzeiten'],
-            ['id' => 11, 'title' => 'Nachprüfung', 'slug' => 'nachpruefung'],
-            ['id' => 12, 'title' => 'Bewertungen', 'slug' => 'bewertungen'],
-            ['id' => 13, 'title' => 'Konto', 'slug' => 'dashboard'],
-            ['id' => 14, 'title' => 'Fehlzeiten', 'slug' => 'absences-create'],
-            ['id' => 15, 'title' => 'Nachprüfung', 'slug' => 'makeup-exam-create'],
+            ['id' => 10, 'title' => 'Bewertungen', 'slug' => 'bewertungen'],
+            ['id' => 11, 'title' => 'Konto', 'slug' => 'dashboard'],
+            ['id' => 12, 'title' => 'Fehlzeiten', 'slug' => 'absences-create'],
+            ['id' => 13, 'title' => 'Nachprüfung', 'slug' => 'makeup-exam-create'],
 
         ];
 
