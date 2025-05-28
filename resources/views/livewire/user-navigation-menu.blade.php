@@ -294,14 +294,14 @@
              
                                              Qualiprogramm
                                          </x-nav-link>
-                                         <x-nav-link href="/" wire:navigate  :active="request()->is('/')">
+                                         <x-nav-link href="/absences" wire:navigate  :active="request()->is('/absences')">
                                                 <svg class="w-5 max-md:w-6 aspect-square mr-1 max-md:mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l2.5 2.5M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18Z"/>
                                                 </svg>
              
                                              Fehlzeiten 
                                          </x-nav-link>
-                                         <x-nav-link href="/" wire:navigate  :active="request()->is('/')">
+                                         <x-nav-link href="/makeup-exam-create" wire:navigate  :active="request()->is('/makeup-exam-create')">
                                                 <svg class="w-5 max-md:w-6 aspect-square mr-1 max-md:mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                                                     <rect x="4" y="3" width="16" height="18" rx="2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                                                     <path d="M8 7h8M8 11h8M8 15h4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>

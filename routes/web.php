@@ -25,6 +25,10 @@ use App\Livewire\Auth\ResetPassword;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
+use Illuminate\Support\Facades\Storage;
+use App\Livewire\User\Absences;
+use App\Livewire\User\MakeupExamRegistration;
+
 
 
 
@@ -63,6 +67,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/messages', MessageBox::class)->name('messages');
         Route::get('/howto', HowTo::class)->name('howto');
         Route::get('/faqs', Faqs::class)->name('faqs');
+        Route::get('/absences-create', Absences::class)->name('user.absences.create');
+        Route::get('/makeup-exam-create', MakeupExamRegistration::class)->name('user.makeup-exam.create');
         });
 
     });

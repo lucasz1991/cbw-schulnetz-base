@@ -28,6 +28,9 @@ class WebPagesSeeder extends Seeder
             ['id' => 11, 'title' => 'Nachprüfung', 'slug' => 'nachpruefung'],
             ['id' => 12, 'title' => 'Bewertungen', 'slug' => 'bewertungen'],
             ['id' => 13, 'title' => 'Konto', 'slug' => 'dashboard'],
+            ['id' => 14, 'title' => 'Fehlzeiten', 'slug' => 'absences-create'],
+            ['id' => 15, 'title' => 'Nachprüfung', 'slug' => 'makeup-exam-create'],
+
         ];
 
         foreach ($fixedPages as $pageData) {
