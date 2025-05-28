@@ -48,7 +48,7 @@
                 </a>
                 <h2 class="text-2xl font-semibold text-gray-800 mb-4">Kontakt</h2>
                 <p class="text-gray-600 leading-relaxed">
-                Vielen Dank für Ihr Interesse an Regulierungscheck! Wenn Sie Fragen zur Bewertung von Versicherungen haben, Unterstützung bei der Nutzung unserer Analysetools benötigen oder weitere Informationen rund um Versicherungsvergleiche wünschen, stehen wir Ihnen gerne zur Verfügung.
+                Vielen Dank für Ihr Interesse an CBW Schulnetz! Wenn Sie Fragen zu unseren Bildungsangeboten haben, Unterstützung bei der Nutzung unserer Plattform benötigen oder weitere Informationen rund um unsere Services wünschen, stehen wir Ihnen gerne zur Verfügung.
                 </p>
             </div>
                 <div class="flex items-center grow-0 basis-auto">
@@ -65,7 +65,7 @@
                                         Support
                                     </p>
                                     <p class="text-sm text-neutral-500">
-                                        info@regulierungs-check.de
+                                        info@cbw-weiterbildung.de
                                     </p>
                                 </div>
                             </div>

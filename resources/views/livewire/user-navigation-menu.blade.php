@@ -63,7 +63,7 @@
                                  <x-application-mark />
                              </a>
                          </div>
-                         <div class="flex items-center space-x-4 max-md:order-3 md:order-2  flex-none" >
+                         <div class="flex items-center space-x-4 max-md:order-3 md:order-2  flex-none" @click="$dispatch('navhide')">
                              <!-- Likes and Inbox Buttons -->
                              <div class="flex items-center space-x-6 mr-2">
                                  @if (optional(Auth::user())->role === 'guest' && $currentUrl !== url('/messages'))
@@ -276,7 +276,7 @@
                                  x-transition:leave-end="opacity-0"
                                  :style="isMobile ? 'top: ' + navHeight + 'px; height: calc(100vh - ' + navHeight + 'px);' : ''"
                                  :class="isMobileMenuOpen ? 'max-md:inset-0  max-md:bg-black max-md:bg-opacity-50 max-md:z-30' : ''"   
-                                 
+                                 @click="$dispatch('navhide')"
                                  x-cloak   class="max-md:order-3 md:order-1 max-md:fixed  md:grow md:flex md:justify-center" >
                                  
                                  <div @click.prevent="isMobileMenuOpen = true" 
@@ -309,11 +309,11 @@
                                                      </div>
                                                      <div x-show="openaboutus" x-transition 
                                                             x-cloak 
-                                                            class="md:bg-white   max-md:mt-3" 
-                                                            :class="isMobile ? 'relative   z-30' : 'fixed w-screen z-10 overflow-hidden left-0 right-0 -top-full opacity-0 transition-all duration-300 ease-in-out'"
+                                                            class=" md:border-b md:border-gray-200 md:bg-white md:shadow-lg  max-md:mt-3 " 
+                                                            :class="isMobile ? 'relative   z-30' : 'fixed w-screen  z-10 overflow-hidden left-0 right-0 -top-[200%] opacity-0 transition-all duration-300 ease-in-out '"
                                                             :style="!isMobile && openaboutus ? 'top: ' + navHeight + 'px; opacity:1;' : ''" 
                                                             >
-                                                         <ul class=" max-md:space-y-4 max-md:pt-4 text-sm text-gray-500 hover:text-gray-700" :class="isMobile ? '' : 'py-4 container mx-auto flex flex-col md:flex-row md:space-x-8'">
+                                                         <ul class=" max-md:space-y-4 max-md:pt-4 text-sm text-gray-500 hover:text-gray-700" :class="isMobile ? '' : 'py-4 container mx-auto flex flex-col md:justify-center md:flex-row md:space-x-8'">
                                                             
                                                              <li >
                                                                  <a  href="/faqs" wire:navigate  class='max-md:text-lg max-md:px-3 max-md:rounded-lg flex items-center md:px-4 py-2 hover:bg-gray-100'>
@@ -323,16 +323,6 @@
              
                                                                      
                                                                  FAQ's
-                                                                 </a>
-                                                             </li>
-                                                             <li >
-                                                                 <a  href="/howto" wire:navigate class='max-md:text-lg max-md:px-3 max-md:rounded-lg flex items-center md:px-4 py-2 hover:bg-gray-100'>
-                                                                     <svg class="w-5 max-md:w-6 aspect-square mr-1 max-md:mr-2 " aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                                                     <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10 11h2v5m-2 0h4m-2.592-8.5h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
-                                                                     </svg>
-             
-             
-                                                                 So funktionierts
                                                                  </a>
                                                              </li>
                                                              <li >

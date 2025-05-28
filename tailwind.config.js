@@ -25,7 +25,7 @@ export default {
             },
             colors: {
                 primary: {
-                    DEFAULT: '#084058',
+                    DEFAULT: '#2ea640',
                     light: '#0b5879',
                     dark: '#084058',
                     50: '#eefaff',
@@ -37,13 +37,13 @@ export default {
                     600: '#1075a0',
                     700: '#0d648a',
                     800: '#0b5879',
-                    900: '#000810',
+                    900: '#2ea640',
                 },
                 secondary: {
-                    DEFAULT: '#0c968e',
+                    DEFAULT: '#1e40af',
                     light: '#10b3aa',
                     dark: '#0c968e',
-                    50: '#b3fffb',
+                    50: '#e6ecff',
                     100: '#b3fffb',
                     200: '#2fcec6', 
                     300: '#2fcec6',
@@ -52,7 +52,7 @@ export default {
                     600: '#2fcec6',
                     700: '#2fcec6',
                     800: '#10b3aa',
-                    900: '#0c968e',
+                    900: '#1e40af',
                 },
                 transparent: {
                     DEFAULT: '#fff0',

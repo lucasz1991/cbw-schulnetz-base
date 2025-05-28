@@ -15,21 +15,18 @@ class WebPagesSeeder extends Seeder
     {
         $fixedPages = [
             ['id' => 1, 'title' => 'Startseite', 'slug' => 'start'],
-            ['id' => 2, 'title' => 'Register', 'slug' => 'register'],
-            ['id' => 3, 'title' => 'Kontakt', 'slug' => 'contact'],
-            ['id' => 4, 'title' => 'Über uns', 'slug' => 'aboutus'],
-            ['id' => 5, 'title' => 'FAQs', 'slug' => 'faqs'],
-            ['id' => 6, 'title' => 'So funktionierts', 'slug' => 'howto'],
-            ['id' => 7, 'title' => 'AGB', 'slug' => 'termsandconditions'],
-            ['id' => 8, 'title' => 'Datenschutzerklärung', 'slug' => 'privacypolicy'],
-            ['id' => 9, 'title' => 'Impressum', 'slug' => 'imprint'],
-            ['id' => 10, 'title' => 'Login', 'slug' => 'login'],
-            ['id' => 11, 'title' => 'Passwort zurücksetzen', 'slug' => 'passwordreset'],
-            ['id' => 12, 'title' => '404 - Seite nicht gefunden', 'slug' => '404'],
-            ['id' => 13, 'title' => 'Versicherungen', 'slug' => 'insurances'],
-            ['id' => 14, 'title' => 'Bewertungen', 'slug' => 'reviews'],
-            ['id' => 15, 'title' => 'Ranking', 'slug' => 'ranking'],
-            ['id' => 16, 'title' => 'Premium', 'slug' => 'premium'],
+            ['id' => 2, 'title' => 'Login', 'slug' => 'login'],
+            ['id' => 3, 'title' => 'Register', 'slug' => 'register'],
+            ['id' => 4, 'title' => 'Passwort zurücksetzen', 'slug' => 'passwordreset'],
+            ['id' => 5, 'title' => '404 - Seite nicht gefunden', 'slug' => '404'],
+            
+            ['id' => 6, 'title' => 'Kontakt', 'slug' => 'contact'],
+            ['id' => 7, 'title' => 'FAQs', 'slug' => 'faqs'],
+            ['id' => 8, 'title' => 'So funktionierts', 'slug' => 'howto'],
+            ['id' => 9, 'title' => 'Qualiprogramm', 'slug' => 'qualiprogramm'],
+            ['id' => 10, 'title' => 'Fehlzeiten', 'slug' => 'fehlzeiten'],
+            ['id' => 11, 'title' => 'Nachprüfung', 'slug' => 'nachpruefung'],
+            ['id' => 12, 'title' => 'Bewertungen', 'slug' => 'bewertungen']
         ];
 
         foreach ($fixedPages as $pageData) {
@@ -51,7 +48,7 @@ class WebPagesSeeder extends Seeder
                 $randomNumber = rand(1000, 9999);
                 $projectName = "{$page->title} Content";
 
-                $projectData = '{"assets":[],"styles":[],"pages":[{"frames":[{"component":{"type":"wrapper","attributes":{"id":"itix"},"components":[{"tagName":"section","classes":["text-gray-600","body-font","relative"],"attributes":{"id":"iyduu"},"components":[{"classes":["container","px-5","py-24","mx-auto"],"attributes":{"id":"i91ng"},"components":[{"classes":["flex","flex-col","text-center","w-full","mb-12"],"attributes":{"id":"in4uu"},"components":[{"type":"heading","classes":["sm:text-3xl","text-2xl","font-medium","title-font","mb-4","text-gray-900"],"attributes":{"id":"igmy6"},"components":[{"type":"textnode","content":"Neues Pagebuilder Project"}]},{"tagName":"p","type":"text","classes":["lg:w-2/3","mx-auto","leading-relaxed","text-base"],"attributes":{"id":"i0w6e"},"components":[{"type":"textnode","content":"Hier kannst du kreativ werden und deine Träume verwirklichen!"}]}]}]}]}],"doctype":"<!DOCTYPE html>","head":{"type":"head","components":[{"tagName":"meta","void":true,"attributes":{"charset":"utf-8"}},{"tagName":"meta","void":true,"attributes":{"name":"viewport","content":"width=device-width,initial-scale=1"}},{"tagName":"meta","void":true,"attributes":{"name":"robots","content":"index,follow"}},{"tagName":"meta","void":true,"attributes":{"name":"generator","content":"LMZ Studio Project"}},{"tagName":"link","type":"link","attributes":{"href":"https://admin850.regulierungs-check.de/adminresources/css/tailwind.min.css","rel":"stylesheet"}}]},"docEl":{"tagName":"html"}},"id":"8uKM3pEMmO8ZbWvE"}],"type":"main","id":"BGeRYNcKhJpNIMjv"}],"symbols":[],"dataSources":[],"custom":{"projectType":"web","id":""}}';
+                $projectData = '{"assets":[],"styles":[],"pages":[{"frames":[{"component":{"type":"wrapper","attributes":{"id":"itix"},"components":[{"tagName":"section","classes":["text-gray-600","body-font","relative"],"attributes":{"id":"iyduu"},"components":[{"classes":["container","px-5","py-24","mx-auto"],"attributes":{"id":"i91ng"},"components":[{"classes":["flex","flex-col","text-center","w-full","mb-12"],"attributes":{"id":"in4uu"},"components":[{"type":"heading","classes":["sm:text-3xl","text-2xl","font-medium","title-font","mb-4","text-gray-900"],"attributes":{"id":"igmy6"},"components":[{"type":"textnode","content":"Neues Pagebuilder Project"}]},{"tagName":"p","type":"text","classes":["lg:w-2/3","mx-auto","leading-relaxed","text-base"],"attributes":{"id":"i0w6e"},"components":[{"type":"textnode","content":"Hier kannst du kreativ werden und deine Träume verwirklichen!"}]}]}]}]}],"doctype":"<!DOCTYPE html>","head":{"type":"head","components":[{"tagName":"meta","void":true,"attributes":{"charset":"utf-8"}},{"tagName":"meta","void":true,"attributes":{"name":"viewport","content":"width=device-width,initial-scale=1"}},{"tagName":"meta","void":true,"attributes":{"name":"robots","content":"index,follow"}},{"tagName":"meta","void":true,"attributes":{"name":"generator","content":"LMZ Studio Project"}},{"tagName":"link","type":"link","attributes":{"href":"https://cbw-weiterbildung-schulnetz.shopspaze.com/adminresources/css/tailwind.min.css","rel":"stylesheet"}}]},"docEl":{"tagName":"html"}},"id":"8uKM3pEMmO8ZbWvE"}],"type":"main","id":"BGeRYNcKhJpNIMjv"}],"symbols":[],"dataSources":[],"custom":{"projectType":"web","id":""}}';
 
                 $maxOrderId = PagebuilderProject::max('order_id') ?? 0;
                 $order = $maxOrderId + 1;

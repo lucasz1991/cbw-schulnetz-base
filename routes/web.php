@@ -62,7 +62,6 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/dashboard', Dashboard::class)->name('dashboard');
         Route::get('/messages', MessageBox::class)->name('messages');
         Route::get('/howto', HowTo::class)->name('howto');
-        Route::get('/aboutus', AboutUs::class)->name('aboutus');
         Route::get('/faqs', Faqs::class)->name('faqs');
         });
 

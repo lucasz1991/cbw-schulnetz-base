@@ -16,17 +16,17 @@ class SettingsSeeder extends Seeder
             [
                 'type' => 'base',
                 'key' => 'company_name',
-                'value' => 'Regulierungscheck',
-            ],
-            [
-                'type' => 'base',
-                'key' => 'shop_name',
-                'value' => 'Regulierungscheck',
+                'value' => 'cbw-weiterbildung',
             ],
             [
                 'type' => 'base',
                 'key' => 'contact_email',
-                'value' => 'kontakt@regulierungscheck.de',
+                'value' => 'test@cbw-weiterbildung.de',
+            ],
+            [
+                'type' => 'base',
+                'key' => 'app_url',
+                'value' => 'https://cbw-weiterbildung-schulnetz.shopspaze.com',
             ],
             [
                 'type' => 'base',

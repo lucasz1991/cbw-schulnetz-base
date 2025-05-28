@@ -32,12 +32,10 @@
             <header class="snap-start">
                 @livewire('user-navigation-menu')
             </header>
-            <!-- Page Heading -->
             <x-page-header />
             <x-pagebuilder-module :position="'top_banner'"/>
             <x-pagebuilder-module :position="'banner'"/>
             <x-pagebuilder-module :position="'bottom_banner'"/>
-            <!-- Page Content -->
             <main  class="snap-start z-0">
                 <x-pagebuilder-module/>
                 <x-pagebuilder-module :position="'above_content'"/>
