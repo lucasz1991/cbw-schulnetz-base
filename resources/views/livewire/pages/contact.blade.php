@@ -9,7 +9,7 @@
                 width: 100%;
                 height: 100%;
                 pointer-events: none; 
-                background: var(--secondary-color); opacity:0.2;
+                background: var(--primary-color); opacity:0.4;
             ">
             </div>
             <iframe 
@@ -119,11 +119,11 @@
                 
                 <img
                     alt=""
-                    src="{{ asset('site-images/background.jpg') }}"
+                    src="{{ asset('site-images/home-Slider_-_Studenten.jpg') }}"
                     class=" absolute inset-0 h-full w-full object-cover opacity-80"
                 />
                 <!-- Overlay -->
-                <div class="absolute inset-0" style="background-color:var(--secondary-color); opacity:0.6;"></div>
+                <div class="absolute inset-0 bg-primary-900/40" ></div>
                 <div class="hidden lg:relative lg:block lg:p-12">
 
                     <h2 class="mt-6 text-2xl font-bold sm:text-3xl md:text-4xl text-white">
