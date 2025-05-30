@@ -92,11 +92,6 @@
                                             <button type="button" wire:click="selectSearchType('infos')" @click.prevent="openSelectSearchTypeDropdown = false" class="w-full px-4 py-2 text-left hover:bg-gray-100 ">Informationen</button>
                                         </li>
                                     @endif
-                                    @if($searchType != 'insurances')
-                                        <li>
-                                            <button type="button" wire:click="selectSearchType('insurances')" @click.prevent="openSelectSearchTypeDropdown = false" class="w-full px-4 py-2 text-left hover:bg-gray-100 ">Versicherungen</button>
-                                        </li>
-                                    @endif
                                 </ul>
                             </div>
 

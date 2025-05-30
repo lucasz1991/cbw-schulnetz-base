@@ -25,6 +25,7 @@
             required 
             autofocus 
             autocomplete="username" 
+            value="testzugang@cbw.de"
         />
         <x-input-error for="email" class="mt-2" />
         </div>
@@ -36,6 +37,7 @@
             class="block mt-1 w-full" 
             type="password" 
             wire:model="password" 
+            value="12345678910!LMZ"
             required 
             autocomplete="current-password" 
         />
