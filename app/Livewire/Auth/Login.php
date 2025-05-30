@@ -12,8 +12,8 @@ class Login extends Component
 
     public $message;
     public $messageType;
-    public $email = '';
-    public $password = '';
+    public $email = 'testzugang@cbw.de';
+    public $password = '12345678910!LMZ';
     public $remember = false;
 
 
