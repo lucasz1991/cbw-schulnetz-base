@@ -14,7 +14,7 @@ class CoursesListPreview extends Component
     {
         $this->courses = auth()->user()
             ->courses() // Beziehung: User hat viele Kurse (über tutor_id)
-            ->latest()
+            ->orderBy('end_time')
             ->take(4)
             ->get();
     }
