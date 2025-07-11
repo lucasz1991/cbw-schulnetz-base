@@ -12,10 +12,11 @@
                 <div class="flex justify-between items-start">
                     <div>
                         <h3 class="text-md font-bold text-blue-700">{{ $course->title }}</h3>
-                        <p class="text-sm text-gray-600 mt-1 line-clamp-2">{{ $course->description }}</p>
                         <p class="text-xs text-gray-500 mt-2">
-                            {{ \Carbon\Carbon::parse($course->start_time)->isoFormat('ll') }} –
-                            {{ \Carbon\Carbon::parse($course->end_time)->isoFormat('ll') }}
+                            <span class="inline-block bg-gray-100 text-gray-700 text-xs font-semibold px-3 py-1 rounded-full">
+                                {{ \Carbon\Carbon::parse($course->start_time)->isoFormat('ll') }} –
+                                {{ \Carbon\Carbon::parse($course->end_time)->isoFormat('ll') }}
+                            </span>
                         </p>
                     </div>
                     <div class="text-sm text-gray-400">
