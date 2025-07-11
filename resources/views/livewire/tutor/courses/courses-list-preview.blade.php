@@ -12,10 +12,16 @@
                 <div class="flex justify-between items-start">
                     <div>
                         <h3 class="text-md font-bold text-blue-700">{{ $course->title }}</h3>
+                        @php
+                            $now = \Carbon\Carbon::now();
+                            $start = \Carbon\Carbon::parse($course->start_time);
+                            $end = \Carbon\Carbon::parse($course->end_time);
+                            $isRunning = $now->between($start, $end);
+                        @endphp
                         <p class="text-xs text-gray-500 mt-2">
-                            <span class="inline-block bg-gray-100 text-gray-700 text-xs font-semibold px-3 py-1 rounded-full">
-                                {{ \Carbon\Carbon::parse($course->start_time)->isoFormat('ll') }} –
-                                {{ \Carbon\Carbon::parse($course->end_time)->isoFormat('ll') }}
+                            <span class="inline-block {{ $isRunning ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-700' }} text-xs font-semibold px-3 py-1 rounded-full">
+                                {{ $start->isoFormat('ll') }} –
+                                {{ $end->isoFormat('ll') }}
                             </span>
                         </p>
                     </div>
