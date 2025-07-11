@@ -39,7 +39,7 @@ class ContactFormSubmitted extends Notification
             ->line('Betreff: ' . $this->subject)
             ->line('Nachricht: ' . $this->message)
             ->line('Antworten Sie bitte auf diese Nachricht, um mit dem Kunden in Kontakt zu treten.')
-            ->salutation('Mit freundlichen Grüßen, Regulierungs-Check Team');
+            ->salutation('Mit freundlichen Grüßen, CBW Schulnetz Team');
     }
 
     // Optionale Methode für die Datenbankbenachrichtigung (falls gewünscht)

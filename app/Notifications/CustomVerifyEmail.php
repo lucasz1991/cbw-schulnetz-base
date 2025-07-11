@@ -40,12 +40,12 @@ class CustomVerifyEmail extends Notification
     
         return (new MailMessage)
             ->subject('Bestätige deine E-Mail-Adresse')
-            ->greeting('Willkommen bei Regulierungs-Check!')
-            ->line('Vielen Dank, dass du dich bei Regulierungs-Check registriert hast.')
+            ->greeting('Willkommen bei CBW Schulnetz!')
+            ->line('Vielen Dank, dass du dich bei CBW Schulnetz registriert hast.')
             ->line('Bitte klicke auf den folgenden Button, um deine E-Mail-Adresse zu bestätigen:')
             ->action('E-Mail bestätigen', $verificationUrl)
             ->line('Falls du diese Aktion nicht angefordert hast, ignoriere bitte diese Nachricht.')
-            ->salutation('Liebe Grüße, dein Regulierungs-Check Team');
+            ->salutation('Liebe Grüße, dein CBW Schulnetz Team');
     }
 
     /**

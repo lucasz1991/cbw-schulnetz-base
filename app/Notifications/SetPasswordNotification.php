@@ -26,14 +26,14 @@ class SetPasswordNotification extends Notification
     public function toMail($notifiable)
     {
         return (new MailMessage)
-            ->subject('Herzlich willkommen bei Regulierungs-Check! Setze dein Passwort')
+            ->subject('Herzlich willkommen bei CBW Schulnetz! Setze dein Passwort')
             ->greeting('Hallo ' . $this->user->name . '!')
             ->line('Um dein Konto zu vervollständigen, setze bitte ein Passwort.')
             ->action('Passwort setzen', $this->resetUrl($notifiable))
             ->line('Der Link ist 60 Minuten gültig.')
             ->line('Falls der Link abgelaufen ist oder nicht funktioniert, kannst du jederzeit einen neuen Passwort-Setzen-Link anfordern.')
             ->salutation('Mit freundlichen Grüßen,')
-            ->salutation('dein Regulierungs-Check Team');
+            ->salutation('dein CBW Schulnetz Team');
     }
 
     protected function resetUrl($notifiable)

@@ -32,7 +32,7 @@ class CustomResetPasswordNotification extends Notification
             ->line('Du hast eine Anfrage gestellt, dein Passwort zurückzusetzen.')
             ->action('Passwort zurücksetzen', $this->resetUrl($notifiable))
             ->line('Der Link ist 60 Minuten gültig.')
-            ->salutation('Mit freundlichen Grüßen, Regulierungs-Check Team');
+            ->salutation('Mit freundlichen Grüßen, CBW Schulnetz Team');
     }
 
     protected function resetUrl($notifiable)

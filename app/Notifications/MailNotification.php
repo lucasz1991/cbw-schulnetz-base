@@ -46,7 +46,7 @@ class MailNotification extends Notification implements ShouldQueue
             ->subject($this->content['subject'])
             ->greeting($this->content['header'])
             ->line($this->content['body'])
-            ->salutation('Mit freundlichen Grüßen,dein Regulierungs-Check Team'); 
+            ->salutation('Mit freundlichen Grüßen,dein CBW Schulnetz Team'); 
 
         if (!empty($this->content['link'])) {
             $mailMessage->action('weiter', $this->content['link']);
