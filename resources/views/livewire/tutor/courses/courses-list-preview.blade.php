@@ -2,7 +2,7 @@
     @if($courses->count())
         <div class="mb-4">
             <span class="inline-block bg-blue-100 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full">
-                {{ $courses->count() }} Kurs{{ $courses->count() === 1 ? '' : 'e' }} gefunden
+                {{ $courses->count() }} Kurs{{ $courses->count() === 1 ? '' : 'e' }}
             </span>
         </div>
     @endif
