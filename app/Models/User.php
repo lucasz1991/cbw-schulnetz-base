@@ -16,6 +16,7 @@ use App\Notifications\CustomVerifyEmail;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use App\Notifications\CustomResetPasswordNotification;
+use App\Models\Course;
 
 
 
@@ -110,6 +111,12 @@ class User extends Authenticatable
     {
         return $this->status;
     }
+
+    public function courses()
+    {
+        return $this->hasMany(Course::class, 'tutor_id');
+    }
+
 
     public function followers()
     {

@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Livewire\Dashboard;
 use App\Livewire\Tutor\TutorDashboard;
 use App\Livewire\Tutor\CourseList;
+use App\Livewire\Tutor\Courses\CourseShow;
 use App\Livewire\MessageBox;
 
 
@@ -79,6 +80,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::middleware(['role:tutor'])->group(function () {
         Route::get('/tutor-dashboard', TutorDashboard::class)->name('tutor.dashboard');
         Route::get('/tutor-courses', CourseList::class)->name('tutor.courses');
+        Route::get('/tutor-course/{courseId}', CourseShow::class)->name('tutor.courses.show');
     });
 
 });
