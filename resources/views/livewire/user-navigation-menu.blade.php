@@ -54,19 +54,20 @@
 
                  <!-- Primary Navigation Menu -->
                  <div class="container mx-auto flex justify-between items-center ">
-                    
+                    @if (optional(Auth::user())->role === 'guest')
                          <div class="max-md:order-1  md:order-2 flex-none self-stretch" @click="isMobileMenuOpen = false">
                              <livewire:tools.search-modal />
                          </div>
+                    @endif
                          <div class="flex-none flex items-center h-full py-2 max-md:order-1" @click="$dispatch('navhide')">
                              <a href="/" wire:navigate   class="h-full flex items-center max-sm:max-w-[120px]">
                                  <x-application-mark />
                              </a>
                          </div>
                          <div class="flex items-center space-x-4 max-md:order-3 md:order-2  flex-none" @click="$dispatch('navhide')">
-                             <!-- Likes and Inbox Buttons -->
+                             <!-- Inbox Buttons -->
                              <div class="flex items-center space-x-6 mr-2">
-                                 @if (optional(Auth::user())->role === 'guest' && $currentUrl !== url('/messages'))
+                                 @if (Auth::check() && $currentUrl !== url('/messages'))
                                  <div class="relative" x-data="{ open: false, modalOpen: false, selectedMessage: null  }">
                                      <!-- Button zum Öffnen des Popups -->
                                      <button @click="open = !open" class="block">
@@ -284,126 +285,47 @@
                                          :style="isMobile ? 'height: calc(100vh - ' + navHeight + 'px);' : ''"   
                                          x-cloak  class="grid  content-between transition-transform  ease-out duration-400  max-md:bg-white  max-md:right-0 max-md:h-full max-md:fixed max-md:overflow-y-auto max-md:py-5 max-md:px-3  max-md:border-r max-md:border-gray-200">
                                      <div  class="md:space-x-8 max-md:block   max-md:space-y-4 md:-my-px md:mx-4 max-md:gap-3 md:flex  w-max  mx-auto" >
-                                         <!-- Gäste-Spezifische Navigation -->
-                                            @auth
-                                         <x-nav-link href="/" wire:navigate  :active="request()->is('/')">
-                                                <svg class="w-5 max-md:w-6 aspect-square mr-1 max-md:mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                                                    <rect x="4" y="4" width="16" height="16" rx="2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                                    <path d="M8 8h8M8 12h8M8 16h4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                                </svg>
-             
-                                             Qualiprogramm
-                                         </x-nav-link>
-                                         <x-nav-link href="/absences-create" wire:navigate  :active="request()->is('/absences-create')">
-                                                <svg class="w-5 max-md:w-6 aspect-square mr-1 max-md:mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l2.5 2.5M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18Z"/>
-                                                </svg>
-             
-                                             Fehlzeiten 
-                                         </x-nav-link>
-                                         <x-nav-link href="/makeup-exam-create" wire:navigate  :active="request()->is('/makeup-exam-create')">
-                                                <svg class="w-5 max-md:w-6 aspect-square mr-1 max-md:mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                                                    <rect x="4" y="3" width="16" height="18" rx="2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                                    <path d="M8 7h8M8 11h8M8 15h4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                                    <path d="M16 3v2M8 3v2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                                </svg>
-                                             Nachprüfung 
-                                         </x-nav-link>
-                                        
-                                         @php
-                                            $isActive = request()->is('aboutus', 'faqs', 'howto', 'contact');
-                                        @endphp
-                                             <div x-data="{ openaboutus: false }" @click.away="openaboutus = false"   class="relative md:px-1 pt-1 border-b  text-sm font-medium leading-5  focus:outline-none focus:text-gray-700 focus:border-gray-300 transition duration-150 ease-in-out {{ $isActive ? 'md:border-primary-500 text-gray-900' : 'text-gray-500 hover:text-gray-700 border-transparent' }}" >
-                                                     <div class="flex items-center cursor-pointer max-md:text-lg max-md:px-3" @click="openaboutus = !openaboutus">
-                                                         <svg class="w-5 max-md:w-6 aspect-square mr-1 max-md:mr-2 " aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                                             <path stroke="currentColor" stroke-linecap="round" stroke-width="1.5" d="M16 19h4a1 1 0 0 0 1-1v-1a3 3 0 0 0-3-3h-2m-2.236-4a3 3 0 1 0 0-4M3 18v-1a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v1a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Zm8-10a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
-                                                         </svg>
-                                                             {{ __('Informationen') }}
-                                                         <svg class="w-4 h-4 ml-2  transition-all ease-in duration-200" :class="openaboutus ? 'transform rotate-180' : ''" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                                         <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m19 9-7 7-7-7"/>
-                                                         </svg>
-             
-                                                     </div>
-                                                     <div x-show="openaboutus" x-transition 
-                                                            x-cloak 
-                                                            class=" md:border-b md:border-gray-200 md:bg-white md:shadow-lg  max-md:mt-3 " 
-                                                            :class="isMobile ? 'relative   z-30' : 'fixed w-screen  z-10 overflow-hidden left-0 right-0 -top-[200%] opacity-0 transition-all duration-300 ease-in-out '"
-                                                            :style="!isMobile && openaboutus ? 'top: ' + navHeight + 'px; opacity:1;' : ''" 
-                                                            >
-                                                         <ul class=" max-md:space-y-4 max-md:pt-4 text-sm text-gray-500 hover:text-gray-700" :class="isMobile ? '' : 'py-4 container mx-auto flex flex-col md:justify-center md:flex-row md:space-x-8'">
-                                                            
-                                                             <li >
-                                                                 <a  href="/faqs" wire:navigate  class='max-md:text-lg max-md:px-3 max-md:rounded-lg flex items-center md:px-4 py-2 hover:bg-gray-100'>
-                                                                     <svg class="w-5 max-md:w-6 aspect-square mr-1 max-md:mr-2 " aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                                                         <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.529 9.988a2.502 2.502 0 1 1 5 .191A2.441 2.441 0 0 1 12 12.582V14m-.01 3.008H12M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
-                                                                     </svg>
-             
-                                                                     
-                                                                 FAQ's
-                                                                 </a>
-                                                             </li>
-                                                             <li >
-                                                                 <a  href="/contact" wire:navigate  class='max-md:text-lg max-md:px-3 max-md:rounded-lg flex items-center md:px-4 py-2 hover:bg-gray-100'>
-                                                                     <svg class="w-5 max-md:w-6 aspect-square mr-1 max-md:mr-2 " aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                                                         <path stroke="currentColor" stroke-linecap="round" stroke-width="1.5" d="m3.5 5.5 7.893 6.036a1 1 0 0 0 1.214 0L20.5 5.5M4 19h16a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1Z"/>
-                                                                     </svg>
-                                                                 Kontakt
-                                                                 </a>
-                                                             </li>
-                                                         </ul>
-                                                     </div>
-                                             </div>
-                                             @endauth    
-                                         <!-- Kunden-Spezifische Navigation -->
-                                         @if (optional(Auth::user())->role === 'guest' || optional(Auth::user())->role === 'admin')
-                                             <x-nav-link href="/dashboard" wire:navigate  :active="request()->is('dashboard')">
-                                                 <svg class="w-5 max-md:w-6 aspect-square mr-1 max-md:mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                                     <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 4h3a1 1 0 0 1 1 1v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3m0 3h6m-3 5h3m-6 0h.01M12 16h3m-6 0h.01M10 3v4h4V3h-4Z"/>
-                                                     </svg>
-                                                 {{ __('Mein Konto') }}
-                                             </x-nav-link>
-                                         @endif  
-                                         <div class="md:hidden block mt-6">
-                                             <div class="border-t border-gray-200 mb-6"></div>
-                                             @auth
-                                             <div class="block px-4 py-2 text-xs text-gray-400">
-                                                 {{ __('Konto verwalten') }}
-                                             </div>
-                                             <x-nav-link href="{{ route('profile.show') }}">
-                                                 <svg class="w-5 h-5  mr-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                                     <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 9h3m-3 3h3m-3 3h3m-6 1c-.306-.613-.933-1-1.618-1H7.618c-.685 0-1.312.387-1.618 1M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm7 5a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z"/>
-                                                 </svg>
-             
-                                                 {{ __('Profil') }}
-                                             </x-nav-link>
-                                             
-                                             <form method="POST" action="{{ route('logout') }}" x-data>
-                                                 @csrf
-                                                 <x-nav-link href="{{ route('logout') }}" @click.prevent="$root.submit();">
-                                                     <svg class="w-5 h-5  mr-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                                         <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m15 9-6 6m0-6 6 6m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
-                                                     </svg>
-             
-                                                     {{ __('Abmelden') }}
-                                                 </x-nav-link>
-                                             </form>
-                                             @else
-                                                 <x-nav-link href="/login" wire:navigate >
-                                                     <svg class="w-5 h-5  mr-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                                         <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10 14v3m4-6V7a3 3 0 1 1 6 0v4M5 11h10a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1Z"/>
-                                                     </svg>
-             
-                                                     {{ __('Anmelden') }}
-                                                 </x-nav-link>
-                                                 <x-nav-link href="/register" wire:navigate >
-                                                     <svg class="w-5 h-5  mr-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                                         <path stroke="currentColor" stroke-linecap="square" stroke-linejoin="round" stroke-width="1.5" d="M7 19H5a1 1 0 0 1-1-1v-1a3 3 0 0 1 3-3h1m4-6a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm7.441 1.559a1.907 1.907 0 0 1 0 2.698l-6.069 6.069L10 19l.674-3.372 6.07-6.07a1.907 1.907 0 0 1 2.697 0Z"/>
-                                                     </svg>
-                                                     {{ __('Registrieren') }}
-                                                 </x-nav-link>
-                                             @endauth
-             
-                                         </div>
+                                        @if (optional(Auth::user())->role === 'guest')
+                                            <x-navigation.user-navigation-menu-links />   
+                                        @elseif (optional(Auth::user())->role === 'tutor')
+                                            <x-navigation.tutor-navigation-menu-links />
+                                        @endif
+                                            <div class="md:hidden block mt-6">
+                                                <div class="border-t border-gray-200 mb-6"></div>
+                                                @auth
+                                                    <div class="block px-4 py-2 text-xs text-gray-400">
+                                                        {{ __('Konto verwalten') }}
+                                                    </div>
+                                                    <x-nav-link href="{{ route('profile.show') }}">
+                                                        <svg class="w-5 h-5  mr-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 9h3m-3 3h3m-3 3h3m-6 1c-.306-.613-.933-1-1.618-1H7.618c-.685 0-1.312.387-1.618 1M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm7 5a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z"/>
+                                                        </svg>
+                                                        {{ __('Profil') }}
+                                                    </x-nav-link>
+                                                    <form method="POST" action="{{ route('logout') }}" x-data>
+                                                        @csrf
+                                                        <x-nav-link href="{{ route('logout') }}" @click.prevent="$root.submit();">
+                                                            <svg class="w-5 h-5  mr-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m15 9-6 6m0-6 6 6m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                                                            </svg>
+                                                            {{ __('Abmelden') }}
+                                                        </x-nav-link>
+                                                    </form>
+                                                @else
+                                                    <x-nav-link href="/login" wire:navigate >
+                                                        <svg class="w-5 h-5  mr-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10 14v3m4-6V7a3 3 0 1 1 6 0v4M5 11h10a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1Z"/>
+                                                        </svg>
+                                                        {{ __('Anmelden') }}
+                                                    </x-nav-link>
+                                                    <x-nav-link href="/register" wire:navigate >
+                                                        <svg class="w-5 h-5  mr-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                                            <path stroke="currentColor" stroke-linecap="square" stroke-linejoin="round" stroke-width="1.5" d="M7 19H5a1 1 0 0 1-1-1v-1a3 3 0 0 1 3-3h1m4-6a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm7.441 1.559a1.907 1.907 0 0 1 0 2.698l-6.069 6.069L10 19l.674-3.372 6.07-6.07a1.907 1.907 0 0 1 2.697 0Z"/>
+                                                        </svg>
+                                                        {{ __('Registrieren') }}
+                                                    </x-nav-link>
+                                                @endauth
+                                            </div>
                                      </div>
                                      <div class="md:hidden max-md:flex self-end  bottom-0 left-0 justify-center p-4 pb-0 space-x-4 w-full bg-white  z-20 border-t border-gray-200">
                                          <ul class=" flex space-x-5">

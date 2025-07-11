@@ -21,7 +21,16 @@ class RouteServiceProvider extends ServiceProvider
 
      public static function home()
      {
-         return '/dashboard';
+        if (Auth::check()) {
+            $user = Auth::user();
+            if ($user->role === 'guest') {
+                return '/dashboard';
+            } elseif ($user->role === 'tutor') {
+                return '/tutor-dashboard';
+            }
+        }else {
+            return '/login';
+        }
      }
 
     /**

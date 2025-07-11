@@ -3,7 +3,7 @@
     Passwort vergessen
     </x-slot>
     <x-slot name="description">
-    Passwort vergessen? Kein Problem! Gib einfach deine E-Mail-Adresse ein, und wir senden dir einen Link zum Zurücksetzen deines Passworts. So kannst du schnell wieder auf deine Bewertungen zugreifen und weiterhin die Regulierungserfahrungen mit deiner Versicherung verfolgen oder aktualisieren.
+    Du bist nur noch einen Schritt entfernt! Erstelle jetzt ein neues Passwort, um wieder vollen Zugriff auf dein Konto bei CBW Schulnetz zu erhalten. Schnell, sicher und unkompliziert – so kannst du direkt weitermachen und alle Funktionen der Plattform nutzen.
     </x-slot>
     <x-slot name="form">
              <div  class="mt-8 w-xl shrink-0">

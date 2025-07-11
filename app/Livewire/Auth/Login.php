@@ -3,6 +3,9 @@
 namespace App\Livewire\Auth;
 
 use Livewire\Component;
+use App\Models\User;
+use App\Models\Person;
+
 
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -12,14 +15,14 @@ class Login extends Component
 
     public $message;
     public $messageType;
-    public $email = 'testzugang@cbw.de';
+    public $email = 'test-teilnehmer@example.com';
     public $password = '12345678910!LMZ';
     public $remember = false;
 
 
 
     protected $rules = [
-        'email' => 'required|email|max:255|exists:users,email',
+        'email' => 'required|email|max:255',
         'password' => 'required|min:6|max:255',
     ];
     
@@ -38,13 +41,53 @@ class Login extends Component
         $this->validate();
 
         if (!Auth::attempt(['email' => $this->email, 'password' => $this->password], $this->remember)) {
-            throw ValidationException::withMessages([
-                'email' => 'Die eingegebene E-Mail-Adresse oder das Passwort ist falsch.',
-            ]);
+            // Wenn die Authentifizierung fehlschlägt, Person-Tabelle überprüfen
+            $person = Person::where('email_priv', $this->email)->first();
+
+            if ($person) {
+                // Prüfen, ob bereits ein User-Eintrag mit dieser E-Mail existiert, aber noch nicht aktiviert wurde
+                $existingUser = User::where('email', $person->email_priv)
+                                    ->whereNull('current_team_id')
+                                    ->first();
+
+                if ($existingUser) {
+                    // Bestehender unvollständiger Benutzer – Hinweis zur E-Mail-Aktivierung
+                    $existingUser->sendEmailVerificationNotification(); // falls erneut versendet werden soll
+                    $this->dispatch(
+                        'showAlert',
+                        'Dein Konto wurde bereits erstellt, ist aber noch nicht aktiviert. Bitte prüfe deine E-Mails zur Aktivierung.',
+                        'info'
+                    );
+                } else {
+                    // Neuer Benutzer wird erstellt
+                    $randomPassword = \Illuminate\Support\Str::random(12);
+                    $newUser = User::create([
+                        'name' => $person->vorname . ' ' . $person->nachname,
+                        'email' => $person->email_priv,
+                        'status' => 1,
+                        'role' => 'guest',
+                        'password' => bcrypt($randomPassword),
+                    ]);
+
+                    $newUser->sendEmailVerificationNotification();
+                    $this->dispatch(
+                        'showAlert',
+                        'Dies war dein erster Login-Versuch. Dein Konto wurde erstellt. Bitte prüfe deine E-Mails, um dein Passwort zu setzen und dein Konto zu aktivieren.',
+                        'info'
+                    );
+                }
+
+            } else {
+                throw ValidationException::withMessages([
+                    'email' => 'Die eingegebene E-Mail-Adresse oder das Passwort ist falsch.',
+                ]);
+            }
+        } else {
+            $this->dispatch('showAlert', 'Willkommen zurück!', 'success');
+            return redirect()->route('dashboard');
         }
-        $this->dispatch('showAlert','Willkommen zurück!', 'success');
-        return redirect()->route('dashboard');
     }
+
 
     public function mount()
     {

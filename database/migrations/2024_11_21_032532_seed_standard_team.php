@@ -39,7 +39,14 @@ return new class extends Migration
             ],
             [
                 'user_id' => 1,
-                'name' => 'Benutzer',
+                'name' => 'Tutoren',
+                'personal_team' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'user_id' => 1,
+                'name' => 'Teilnehmer',
                 'personal_team' => false,
                 'created_at' => now(),
                 'updated_at' => now(),
