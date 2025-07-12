@@ -24,7 +24,7 @@
         <div class="space-y-6">
             <!-- Nachrichten -->
             <div class="bg-white shadow-md rounded-lg p-6 border border-gray-200">
-                <h3 class="text-lg font-bold text-blue-700 mb-2">📩 Nachrichten</h3>
+                <h3 class="text-lg font-bold text-blue-700 mb-2">Nachrichten</h3>
                 <!-- Nachrichtenliste -->
 
                 @php
@@ -60,7 +60,7 @@
 
             <!-- News -->
             <div class="bg-white shadow-md rounded-lg p-6 border border-gray-200">
-                <h3 class="text-lg font-bold text-blue-700 mb-2">📰 News</h3>
+                <h3 class="text-lg font-bold text-blue-700 mb-2">News</h3>
                 <ul class="text-sm text-gray-700 space-y-1">
                     <li><strong>Neue Kursplattform</strong> startet im August</li>
                     <li><strong>Update:</strong> Uploads jetzt möglich</li>
@@ -71,11 +71,11 @@
 
             <!-- Termine -->
             <div class="bg-white shadow-md rounded-lg p-6 border border-gray-200">
-                <h3 class="text-lg font-bold text-green-700 mb-2">📅 Nächste Termine</h3>
+                <h3 class="text-lg  text-gray-700 mb-2">Nächste Termine</h3>
                 <ul class="text-sm text-gray-700 space-y-1">
-                    <li>🗓️ <strong>15.07.:</strong> Mathe – Trigonometrie</li>
-                    <li>🗓️ <strong>17.07.:</strong> Englisch B1 – Speaking</li>
-                    <li>🗓️ <strong>18.07.:</strong> Physik – Prüfungsvorbereitung</li>
+                    <li><strong>15.07.:</strong> Mathe – Trigonometrie</li>
+                    <li><strong>17.07.:</strong> Englisch B1 – Speaking</li>
+                    <li><strong>18.07.:</strong> Physik – Prüfungsvorbereitung</li>
                 </ul>
                 <a href="#" class="block text-sm text-green-600 hover:underline mt-3">Zum Kalender →</a>
             </div>

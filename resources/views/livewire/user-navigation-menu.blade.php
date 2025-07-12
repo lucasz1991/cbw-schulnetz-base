@@ -2,7 +2,7 @@
     x-data="{ 
         isMobileMenuOpen: false, 
         screenWidth: window.innerWidth, 
-        navHeight: 0,
+        navHeight: $persist(0),
         isMobile: false,
         isScrolled: false,
         scrollTop: 0,
