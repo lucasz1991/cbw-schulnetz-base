@@ -18,37 +18,48 @@
         <script src="{{ URL::asset('adminresources/choices.js/public/assets/scripts/choices.min.js') }}"></script>
         <script src="{{ URL::asset('adminresources/flatpickr/flatpickr.min.js') }}"></script>
         <script src="{{ URL::asset('adminresources/flatpickr/l10n/de.js') }}"></script>
+        <link rel="stylesheet" href="{{ URL::asset('adminresources/metismenujs/metismenujs.min.css') }}">
 
         
         <!-- Styles -->
-        @vite(['resources/css/app.css'])
+        @vite(['resources/css/app.css','resources/scss/sidebar.scss'])
 
         <!-- Styles -->
         @livewireStyles
     </head>
-    <body class=" antialiased bg-gray-100 ">
-        <div id="main" class="snap-y">
-            @livewire('user-alert')
-            <header class="snap-start">
-                @livewire('user-navigation-menu')
-            </header>
-            <x-page-header />
-            <x-pagebuilder-module :position="'top_banner'"/>
-            <x-pagebuilder-module :position="'banner'"/>
-            <x-pagebuilder-module :position="'bottom_banner'"/>
-            <main  class="snap-start z-0">
-                <x-pagebuilder-module/>
-                <x-pagebuilder-module :position="'above_content'"/>
-                {{ $slot }}
-                <x-pagebuilder-module :position="'content'"/>
+    
+        <body data-mode="light" data-sidebar-size="lg" class="group font-notosans">
+        <!-- sidebar -->
+        @include('layouts.sidebar')
+        <!-- topbar -->
+        @include('layouts.topbar')
+        <!-- content -->
+        @yield('content')
+        <!-- Page Content -->
+        @if(isset($slot))
+            <main class="bg-gray-100">
+                <div class="main-content group-data-[sidebar-size=sm]:ml-[70px]">
+                    <div class="min-h-screen page-content px-1" style="box-shadow: inset 0px 80px 30px -10px rgba(0, 0, 0, 0.2);">
+                        <div class="container-fluid px-0 md:px-5">
+                            <!-- Page header -->
+                            @if (isset($header))
+                                <header class=" mb-4">
+                                        {{ $header }}
+                                </header>
+                            @endif
+                            <div class=" @if(Route::currentRouteName() !== 'tutor.dashboard') bg-white rounded-md border border-gray-200 p-4  @endif ">
+                                {{ $slot }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </main>
-        </div>
-        
-        @stack('modals')
-        
-        
+        @endif
+        <!-- script -->
+        @include('layouts.vendor-scripts')
         <!-- Scripts -->
         @vite(['resources/js/app.js'])
         @livewireScripts
+        @yield('js')
     </body>
 </html>

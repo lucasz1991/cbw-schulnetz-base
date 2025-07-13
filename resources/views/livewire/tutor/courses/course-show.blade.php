@@ -1,5 +1,5 @@
-<div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
-    <div class="p-6 space-y-8 bg-white shadow rounded-lg">
+<div class="">
+    <div class=" space-y-8 ">
 
         <!-- Titel und Zeitraum -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">

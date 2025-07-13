@@ -11,7 +11,7 @@
             <a href="{{ route('tutor.courses.show', ['courseId' => $course->id]) }}" class="block bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition hover:bg-gray-50">
                 <div class="flex justify-between items-start">
                     <div>
-                        <h3 class="text-md font-bold text-blue-700">{{ $course->title }}</h3>
+                        <h3 class="text-md  text-blue-700">{{ $course->title }}</h3>
                         @php
                             $now = \Carbon\Carbon::now();
                             $start = \Carbon\Carbon::parse($course->start_time);

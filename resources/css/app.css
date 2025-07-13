@@ -2,11 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+
 :root {
   /* Eigene Farben */
   --primary-color: #1e40af; 
   --secondary-color: #2fad43; 
   --primary-font-color: #414141;
+
+  --tw-sidebar-width: 250px;
+   --tw-sidebar-bg: #fafcff;
+   --tw-email-leftbar: 236px;
 }
 
 @font-face {
@@ -143,15 +148,15 @@ body:hover::-webkit-scrollbar {
 }
 
 /* When container is open */
-.burger-container.open .bar1,.burger-container.is-open .bar1  {
+body.sidebar-enable .burger-container .bar1 , .burger-container.open .bar1,.burger-container.is-open .bar1  {
   transform: rotate(45deg);
 }
 
-.burger-container.open .bar2 ,.burger-container.is-open .bar2 {
+body.sidebar-enable .burger-container .bar2 ,.burger-container.open .bar2 ,.burger-container.is-open .bar2 {
   transform: scale(0);
 }
 
-.burger-container.open .bar3,.burger-container.is-open .bar3  {
+body.sidebar-enable .burger-container .bar3 , .burger-container.open .bar3,.burger-container.is-open .bar3  {
   transform: rotate(-45deg);
 }
 

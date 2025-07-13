@@ -1,7 +1,7 @@
-<div class="container mx-auto px-4 py-6">
+<div class="">
     <!-- Begrüßung als Card -->
     <div class="bg-white shadow-md rounded-lg p-6 border border-gray-200">
-        <h1 class="text-xl font-bold text-gray-800">Willkommen, Max Mustermann!</h1>
+        <h1 class="text-xl  text-gray-800">Willkommen, Max Mustermann!</h1>
         <p class="text-gray-600 mt-1">Dein persönliches Dashboard mit allen Kursen und Teilnehmern.</p>
     </div>
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
@@ -12,7 +12,7 @@
 
             <!-- Kursliste als Card -->
             <div class="bg-white shadow-md rounded-lg p-6 border border-gray-200">
-                <h2 class="text-xl font-semibold text-gray-700 mb-4">Aktuelle Kurse</h2>
+                <h2 class="text-xl  text-gray-700 mb-4">Aktuelle Kurse</h2>
                 <livewire:tutor.courses.courses-list-preview />
                 <div class="mt-4">
                     <a href="{{ route('tutor.courses') }}" wire:navigate class="text-blue-600 text-sm hover:underline">Alle Kurse ansehen →</a>
@@ -24,7 +24,7 @@
         <div class="space-y-6">
             <!-- Nachrichten -->
             <div class="bg-white shadow-md rounded-lg p-6 border border-gray-200">
-                <h3 class="text-lg font-bold text-blue-700 mb-2">Nachrichten</h3>
+                <h3 class="text-lg  text-gray-700 mb-2">Nachrichten</h3>
                 <!-- Nachrichtenliste -->
 
                 @php
@@ -45,22 +45,16 @@
                         </div>
                     </div>
                 @empty
-                    <div class="p-4 text-center text-slate-700">
+                    <div class="p-4 text-center text-gray-400">
                         Keine  Nachrichten
                     </div>
                 @endforelse
-                    <!-- "Alle ansehen"-Button -->
-                    <div class="mt-4">
-                        <a href="{{ route('messages') }}" 
-                            class="pointer-events-auto rounded-md px-4 py-2 text-center text-sm ring-1 shadow-xs ring-slate-700/10 hover:bg-slate-50 block">
-                            Alle Nachrichten ansehen
-                        </a>
-                    </div>
+                    <a href="{{ route('messages') }}" class="block text-sm text-blue-600 hover:underline mt-3">Alle Nachrichten ansehen →</a>
             </div>
 
             <!-- News -->
             <div class="bg-white shadow-md rounded-lg p-6 border border-gray-200">
-                <h3 class="text-lg font-bold text-blue-700 mb-2">News</h3>
+                <h3 class="text-lg  text-gray-700 mb-2">News</h3>
                 <ul class="text-sm text-gray-700 space-y-1">
                     <li><strong>Neue Kursplattform</strong> startet im August</li>
                     <li><strong>Update:</strong> Uploads jetzt möglich</li>

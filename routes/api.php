@@ -2,7 +2,6 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\CashRegisterController;
 use App\Http\Controllers\Api\PagebuilderProjectController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Artisan;
@@ -18,7 +17,6 @@ use Illuminate\Support\Facades\Artisan;
 */
 
 
-Route::post('/cash-register/sale', [CashRegisterController::class, 'registerSale']);
 
 
 Route::post('/pagebuilder/upload', [PagebuilderProjectController::class, 'uploadImage']);
