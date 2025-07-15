@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Providers\RouteServiceProvider;
 use App\Livewire\Welcome;
 use App\Livewire\Auth\Login;
 use App\Livewire\Auth\Register;
@@ -37,6 +38,7 @@ use App\Livewire\User\MakeupExamRegistration;
 
 
 
+
 // Allgemeine Routes für Gäste
 Route::middleware('guest')->group(function () {
 
@@ -60,10 +62,12 @@ Route::middleware('guest')->group(function () {
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
 
     // Authentifizierte Benutzer können auf die folgenden Routen zugreifen
-    
+    Route::get('/', function () {
+        return redirect(RouteServiceProvider::home());
+    })->name('welcome');
+
     // Teilnehmer Routes
-    Route::middleware(['role:guest'])->group(function () {
-        Route::get('/', Welcome::class)->name('home');
+    Route::middleware(['role:guest'])->prefix('user')->group(function () {
         Route::get('/dashboard', Dashboard::class)->name('dashboard');
         Route::get('/messages', MessageBox::class)->name('messages');
         Route::get('/contact', Contact::class)->name('contact');
@@ -77,8 +81,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/makeup-exam-create', MakeupExamRegistration::class)->name('user.makeup-exam.create');
     });
     // Tutor Routes
-    Route::middleware(['role:tutor'])->group(function () {
-        Route::get('/tutor-dashboard', TutorDashboard::class)->name('tutor.dashboard');
+    Route::middleware(['role:tutor'])->prefix('tutor')->group(function () {
+        Route::get('/dashboard', TutorDashboard::class)->name('dashboard');
         Route::get('/tutor-courses', CourseList::class)->name('tutor.courses');
         Route::get('/tutor-course/{courseId}', CourseShow::class)->name('tutor.courses.show');
     });

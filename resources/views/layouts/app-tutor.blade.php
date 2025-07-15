@@ -47,7 +47,7 @@
                                         {{ $header }}
                                 </header>
                             @endif
-                            <div class=" @if(Route::currentRouteName() !== 'tutor.dashboard') bg-white rounded-md border border-gray-200 p-4  @endif ">
+                            <div class=" @if(Route::currentRouteName() !== 'dashboard') bg-white rounded-md border border-gray-200 p-4  @endif ">
                                 {{ $slot }}
                             </div>
                         </div>

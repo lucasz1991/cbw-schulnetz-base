@@ -24,9 +24,9 @@ class RouteServiceProvider extends ServiceProvider
         if (Auth::check()) {
             $user = Auth::user();
             if ($user->role === 'guest') {
-                return '/dashboard';
+                return '/user/dashboard';
             } elseif ($user->role === 'tutor') {
-                return '/tutor-dashboard';
+                return '/user/tutor/dashboard';
             }
         }else {
             return '/login';
