@@ -1,12 +1,11 @@
-<div x-data="{ openSearchMenu: @entangle('openSearchMenu') }" @keydown.window.escape="openSearchMenu = false"  class="h-full">
+<div x-data="{ openSearchMenu: @entangle('openSearchMenu') , parentheight: $persist(112).using(sessionStorage), iconheight: $persist(38).using(sessionStorage) }" @keydown.window.escape="openSearchMenu = false"  class="h-full">
     <!-- Such-Icon -->
     <div 
         x-ref="searchIconContainer"
-        x-data="{ parentheight: 3000, iconheight: 200 }"
         @click.prevent="() => { openSearchMenu = !openSearchMenu; }"  
         class="h-full w-16 relative "
         x-init="$nextTick(() => { 
-            parentheight = $refs.searchIconContainer.offsetHeight; 
+            parentheight = $el.offsetHeight;
         })"
         x-cloak 
     >
@@ -16,7 +15,7 @@
             x-init="$nextTick(() => { 
                 iconheight = $el.offsetHeight; 
             })"
-            style="bottom: 200%; opacity: 0;"
+            style="bottom: 50px; opacity: 0;"
             :style="'bottom: ' + ((parentheight / 2)-(iconheight / 2)) + 'px; opacity:1;'"
         >
             <svg 
@@ -48,7 +47,7 @@
 
                 <div class="container mx-auto">
                     <div class=""> 
-                        <div class="flex relative" x-data="{ openSelectSearchTypeDropdown: false }" @click.away="openSelectSearchTypeDropdown = false">
+                        <div class="flex relative" x-data="{ openSelectSearchTypeDropdown: $persist(false).using(sessionStorage) }" @click.away="openSelectSearchTypeDropdown = false">
                             <!-- Dropdown-Button -->
                             <button 
                                 type="button" 
