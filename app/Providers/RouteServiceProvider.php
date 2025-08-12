@@ -26,7 +26,7 @@ class RouteServiceProvider extends ServiceProvider
             if ($user->role === 'guest') {
                 return '/user/dashboard';
             } elseif ($user->role === 'tutor') {
-                return '/user/tutor/dashboard';
+                return '/tutor/dashboard';
             }
         }else {
             return '/login';

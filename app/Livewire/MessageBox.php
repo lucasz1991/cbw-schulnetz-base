@@ -5,6 +5,7 @@ namespace App\Livewire;
 use Livewire\Component;
 use App\Models\Message;
 use Livewire\WithPagination;
+use Illuminate\Support\Facades\Auth;
 
 
 class MessageBox extends Component
@@ -46,8 +47,11 @@ class MessageBox extends Component
        
         $messages = auth()->user()->receivedMessages()
             ->orderBy('created_at', 'desc')
-            ->paginate(12 * $this->loadedPages);  
-
-        return view('livewire.message-box', compact('messages'))->layout("layouts/app");
+            ->paginate(12 * $this->loadedPages);
+        if(Auth::check() && Auth::user()->role == 'tutor') {
+            return view('livewire.message-box', compact('messages'))->layout("layouts/app-tutor");
+        }else {
+            return view('livewire.message-box', compact('messages'))->layout("layouts/app");
+        }
     }
 }

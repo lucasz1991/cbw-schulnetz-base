@@ -32,6 +32,6 @@ class CourseList extends Component
 
     public function render()
     {
-        return view('livewire.tutor.course-list')->layout("layouts.app-tutor");
+        return view('livewire.tutor.course-list') 
     }
 }

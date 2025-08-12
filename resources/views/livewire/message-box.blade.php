@@ -29,14 +29,12 @@
                      </svg>
                 </h1>
         </x-slot>
-    <div class="max-w-7xl mx-auto px-5">
-        <div class="bg-white  shadow-lg rounded-lg p-6">
-                    
-            
-        <div class="p-4 mb-4 text-sm text-green-800 rounded-lg bg-green-50" role="alert">
-        <p><span class="text-lg font-medium">Du wirst hier über alle wichtigen Nachrichten informiert.</span><br> Jede neue Nachricht, die dich betrifft, wird dir direkt angezeigt, damit du immer auf dem neuesten Stand bist. Schau regelmäßig in dein Postfach, um keine wichtigen Updates zu verpassen.</p>
-</div>
-            <div class="mt-10 space-y-5">
+    <div class="">
+        <div class="bg-white  shadow-lg rounded-lg p-6"> 
+            <div class="p-4 mb-4 text-sm text-green-800 rounded-lg bg-green-50" role="alert">
+                <p><span class="text-lg font-medium">Du wirst hier über alle wichtigen Nachrichten informiert.</span><br> Jede neue Nachricht, die dich betrifft, wird dir direkt angezeigt, damit du immer auf dem neuesten Stand bist. Schau regelmäßig in dein Postfach, um keine wichtigen Updates zu verpassen.</p>
+            </div>
+        <div class="mt-10 space-y-5">
             <div class="flex flex-col md:flex-row items-center justify-between space-y-3 md:space-y-0 ">
                 <div class="w-full md:w-1/2">
                     <form class="flex items-center">
@@ -64,7 +62,6 @@
                     </thead>
                     <tbody>
                         @forelse($messages as $message)
-
                             <tr class="border-b hover:bg-blue-50 cursor-pointer @if($message->status == 1) bg-blue-200 @endif" wire:click="showMessage({{ $message->id }})"  wire:key="{{ $message->id }}">
                                 <th scope="row" class="px-4 py-3 font-medium text-gray-900 whitespace-nowrap  truncate">{{ $message->subject }}</th>
                                     <td class="px-4 py-3"
@@ -99,10 +96,7 @@
                             <tr class=" " >
                                 <td class="border-b border-gray-200 px-6 py-4 truncate">Keine Nachrichten gefunden.</td>
                             </tr>
-                        @endforelse
-
-
-                       
+                        @endforelse    
                     </tbody>
                 </table>
             </div>
@@ -115,20 +109,8 @@
                         </button>
                     </div>
                 @endif
-            </div>
-
-
-
-
-
-
-
-
-
-            
+            </div> 
         </div>
-
-
         <!-- Modal zum ansehen der Nachricht-->
         <div 
             x-show="showMessageModal" x-cloak 
@@ -166,6 +148,5 @@
                 </div>
             </div>
         </div>
-        
     </div>
 </div>

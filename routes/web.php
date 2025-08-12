@@ -10,6 +10,9 @@ use App\Livewire\Dashboard;
 use App\Livewire\Tutor\TutorDashboard;
 use App\Livewire\Tutor\CourseList;
 use App\Livewire\Tutor\Courses\CourseShow;
+use App\Livewire\Tutor\Participants\Show as ParticipantShow;
+
+
 use App\Livewire\MessageBox;
 
 
@@ -85,6 +88,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/dashboard', TutorDashboard::class)->name('dashboard');
         Route::get('/tutor-courses', CourseList::class)->name('tutor.courses');
         Route::get('/tutor-course/{courseId}', CourseShow::class)->name('tutor.courses.show');
+        Route::get('/messages', MessageBox::class)->name('tutor.messages');
+        Route::get('/participants/{participant}', ParticipantShow::class)->name('tutor.participants.show');
     });
 
 });

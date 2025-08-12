@@ -11,7 +11,11 @@
     </x-slot>
     <x-slot name="form">
       <div  class="mt-8 ">
-
+        <div class="mb-4 text-sm text-gray-600">
+            <x-button wire:click="changeAccount">
+                Testzugang wechseln
+            </x-button>
+        </div>
         <form wire:submit.prevent="login">
         @csrf
 
