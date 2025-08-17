@@ -37,7 +37,7 @@
         previewsContainer: el.querySelector('.dz-previews') || el,
         addRemoveLinks: true,
         maxFiles: 20,
-        maxFilesize: 50,
+        maxFilesize: 3202,
       });
       // Mehrere Dateien hinzufügen → bestehende + neue mergen, dann CHANGE feuern
       this.dz.on('addedfile', (file) => {
