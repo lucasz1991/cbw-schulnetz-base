@@ -1,6 +1,6 @@
 <div x-data="{ openFileForm: @entangle('openFileForm') ,  }">
   <div class="flex items-center justify-between mb-4">
-    <span>Material-Pool für {{ $modelType::find($modelId)->title }}</span>
+    <span></span>
     <button wire:click="$toggle('openFileForm')" class="mb-4 px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block" viewBox="0 0 20 20" fill="currentColor"><path d="M10 3a1 1 0 011 1v4h4a1 1 0 110 2h-4v4a1 1 0 11-2 0v-4H6a1 1 0 110-2h4V4a1 1 0 011-1z"/></svg>
     </button>

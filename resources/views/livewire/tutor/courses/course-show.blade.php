@@ -13,7 +13,7 @@
             </div>
         </div>
         <x-ui.accordion.tabs
-                :tabs="['termine' => 'Termine', 'teilnehmer' => 'Teilnehmer', 'materialien' => 'Materialien']"
+                :tabs="['termine' => 'Termine', 'teilnehmer' => 'Teilnehmer', 'medien' => 'Medien']"
                 default="termine"
                 class="mt-4"
             >
@@ -32,7 +32,7 @@
 
                     </div>
                 </x-ui.accordion.tab-panel>
-                <x-ui.accordion.tab-panel for="materialien">
+                <x-ui.accordion.tab-panel for="medien">
                     <div>
                         <livewire:tools.file-pools.manage-file-pools
                             :modelType="\App\Models\Course::class"
