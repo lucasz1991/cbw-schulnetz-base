@@ -75,7 +75,7 @@
   x-init="init()"
 >
   <!-- Dropzone-UI: Livewire darf hier NICHT reinfunken -->
-  <form x-ref="dzForm" class="dropzone pointer-events-auto min-h-[140px]" wire:ignore>
+  <form x-ref="dzForm" class="dropzone pointer-events-auto min-h-[140px] rounded-xl border-2 border-dashed border-gray-300 bg-gray-50" wire:ignore>
     <div class="dz-message needsclick">
       <h5 class="text-gray-600 dark:text-gray-100">Dateien hier ablegen oder klicken.</h5>
     </div>

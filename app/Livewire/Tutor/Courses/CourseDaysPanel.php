@@ -175,8 +175,7 @@ class CourseDaysPanel extends Component
             ->where('date', '<', $this->selectedDay->date)
             ->orderByDesc('date')
             ->first();
-
-        $this->selectedDayId = $this->selectedDay?->id;
+        $this->selectDay($this->selectedDay->id);
     }
 
     public function selectNextDay()
@@ -188,8 +187,7 @@ class CourseDaysPanel extends Component
             ->where('date', '>', $this->selectedDay->date)
             ->orderBy('date')
             ->first();
-
-        $this->selectedDayId = $this->selectedDay?->id;
+        $this->selectDay($this->selectedDay->id);
     }
 
 
