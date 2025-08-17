@@ -125,7 +125,7 @@ return [
     'key' => env('APP_KEY'),
 
     'cipher' => 'AES-256-CBC',
-    'max_upload_size' => env('MAX_UPLOAD_SIZE', 1000), // Standardmäßig 10 MB
+    'max_upload_size' => env('MAX_UPLOAD_SIZE', 10000), // Standardmäßig 10 MB
 
     /*
     |--------------------------------------------------------------------------
