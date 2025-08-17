@@ -19,6 +19,8 @@
         <script src="{{ URL::asset('adminresources/flatpickr/flatpickr.min.js') }}"></script>
         <script src="{{ URL::asset('adminresources/flatpickr/l10n/de.js') }}"></script>
         <link rel="stylesheet" href="{{ URL::asset('adminresources/metismenujs/metismenujs.min.css') }}">
+<link rel="stylesheet" href="https://unpkg.com/trix@2.0.8/dist/trix.css">
+<script src="https://unpkg.com/trix@2.0.8/dist/trix.umd.min.js" defer></script>
 
         
         <!-- Styles -->

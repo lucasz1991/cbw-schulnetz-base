@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\User;
 use App\Models\CourseDay;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
+
 
 class Course extends Model
 {
@@ -23,17 +25,32 @@ class Course extends Model
         'start_time' => 'datetime',
         'end_time' => 'datetime',
     ];
+    protected $appends = ['participants_count', 'dates_count'];
+
+    public function getParticipantsCountAttribute()
+    {
+        return $this->participants()->count();
+    }
+
+    public function getDatesCountAttribute()
+    {
+        return $this->dates()->count();
+    }
 
     public function tutor()
     {
         return $this->belongsTo(User::class, 'tutor_id');
     }
-    public function days()
+    public function dates()
     {
         return $this->hasMany(CourseDay::class);
     }
     public function participants()
     {
         return $this->belongsToMany(User::class, 'course_user', 'course_id', 'user_id');
+    }
+    public function filePool(): MorphOne
+    {
+        return $this->morphOne(FilePool::class, 'filepoolable');
     }
 }

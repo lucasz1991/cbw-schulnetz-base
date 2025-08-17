@@ -3,51 +3,29 @@
 namespace App\Livewire\Tutor\Courses;
 
 use App\Models\Course;
-use App\Models\CourseDay;
-
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\WithoutUrlPagination;
-use Livewire\Attributes\On;
 
-class CourseShow extends Component
+class ParticipantsTable extends Component
 {
     use WithPagination, WithoutUrlPagination;
 
-    public Course $course;
-
-    public $selectedDate;
-
+    public int $courseId;
     public string $search = '';
     public string $sortBy = 'name';
     public string $sortDir = 'asc';
     public int $perPage = 10;
 
-    protected $listeners = [
-        'calendarEventClick' => 'handleCalendarEventClick',
-    ];
-
-    public function mount($courseId)
+    public function mount(int $courseId)
     {
-        $this->course = Course::with(['tutor', 'dates'])->findOrFail($courseId);
+        $this->courseId = $courseId;
     }
 
-    public function updatingSearch()
-    {
-        $this->resetPage();
-    }
+    public function updatingSearch() { $this->resetPage(); }
+    public function updatedPerPage() { $this->resetPage(); }
 
-    public function updatedPerPage()
-    {
-        $this->resetPage();
-    }
-
-    public function handleCalendarEventClick($id)
-    {
-        $this->selectedDate = CourseDay::findOrFail($id);
-    }
-
-    public function sort(string $key): void
+    public function sort(string $key)
     {
         if ($this->sortBy === $key) {
             $this->sortDir = $this->sortDir === 'asc' ? 'desc' : 'asc';
@@ -60,7 +38,8 @@ class CourseShow extends Component
 
     public function getParticipantsProperty()
     {
-        return $this->course->participants()
+        return Course::findOrFail($this->courseId)
+            ->participants()
             ->when($this->search, function ($q) {
                 $q->where(function ($q) {
                     $q->where('name', 'like', "%{$this->search}%")
@@ -73,8 +52,8 @@ class CourseShow extends Component
 
     public function render()
     {
-        return view('livewire.tutor.courses.course-show', [
+        return view('livewire.tutor.courses.participants-table', [
             'participants' => $this->participants,
-        ])->layout('layouts.app-tutor');
+        ]);
     }
 }

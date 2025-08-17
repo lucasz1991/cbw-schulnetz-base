@@ -17,6 +17,8 @@ return new class extends Migration
             $table->date('date');
             $table->time('start_time')->nullable();
             $table->time('end_time')->nullable();
+            $table->json('day_sessions')->nullable();
+            $table->json('attendance_data')->nullable();
             $table->string('topic')->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();

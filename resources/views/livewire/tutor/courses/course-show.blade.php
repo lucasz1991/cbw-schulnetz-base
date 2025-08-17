@@ -12,35 +12,36 @@
                 <p class="text-sm text-gray-600 mt-1">{{ $course->description ?: '—' }}</p>
             </div>
         </div>
-        <div>
-            <h2 class="text-lg font-semibold text-gray-800 mb-2">Teilnehmer ({{ $course->participants->count() }})</h2>
-            <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                @if($course->participants->count())
-                    <ul class=" text-sm text-gray-700 space-y-1">
-                        @foreach($course->participants as $participant)
-                            <li class="hover:text-blue-500">
-                                <a href="{{ route('tutor.participants.show', $participant) }}"><x-user.public-info :user="$participant" /></a>
-                            </li>
-                        @endforeach
-                    </ul>
-                @else
-                    <p class="text-sm text-gray-500">Keine Teilnehmer zugewiesen.</p>
-                @endif
-            </div>
-        </div>
-        <div>
-            <h2 class="text-lg font-semibold text-gray-800 mb-2">Unterrichtstage</h2>
-            <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                @if($course->days->count())
-                    <ul class="list-disc list-inside text-sm text-gray-700 space-y-1">
-                        @foreach($course->days as $day)
-                            <li>{{ \Carbon\Carbon::parse($day->date)->format('d.m.Y') }}</li>
-                        @endforeach
-                    </ul>
-                @else
-                    <p class="text-sm text-gray-500">Keine Termine vorhanden.</p>
-                @endif
-            </div>
-        </div>
+        <x-ui.accordion.tabs
+                :tabs="['termine' => 'Termine', 'teilnehmer' => 'Teilnehmer', 'materialien' => 'Materialien']"
+                default="termine"
+                class="mt-4"
+            >
+                <x-ui.accordion.tab-panel for="termine">
+                    <div>
+                        
+                        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css">
+                        <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js" defer></script>
+                        <livewire:tutor.courses.course-days-panel :courseId="$course->id" lazy />
+
+                    </div>
+                </x-ui.accordion.tab-panel>
+                <x-ui.accordion.tab-panel for="teilnehmer">
+                    <div wire:key="participants-list">
+                        <h2 class="text-lg font-semibold text-gray-800 mb-4">Teilnehmer ({{ $course->participants->count() }})</h2>
+                        <livewire:tutor.courses.participants-table :courseId="$course->id" lazy />
+
+                    </div>
+                </x-ui.accordion.tab-panel>
+                <x-ui.accordion.tab-panel for="materialien">
+                    <div>
+                        <livewire:tools.file-pools.manage-file-pools
+                            :modelType="\App\Models\Course::class"
+                            :modelId="$course->id"
+                             lazy
+                        />
+                    </div>
+                </x-ui.accordion.tab-panel>
+            </x-ui.accordion.tabs>
     </div>
 </div>

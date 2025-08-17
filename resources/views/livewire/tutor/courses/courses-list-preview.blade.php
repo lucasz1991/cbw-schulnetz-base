@@ -25,6 +25,14 @@
                             </span>
                         </p>
                     </div>
+                    <div class="text-sm text-gray-500">
+                        <span class="inline-block bg-green-100 text-green-700 px-3 py-1 rounded-full">
+                            {{ $course->dates_count }} Termin{{ $course->dates_count === 1 ? '' : 'e' }}
+                        </span>
+                        <span class="inline-block bg-purple-100 text-purple-700 px-3 py-1 rounded-full ml-2">
+                            {{ $course->participants_count }} Teilnehmer{{ $course->participants_count === 1 ? '' : 'en' }}
+                        </span>
+                    </div>
                     <div class="text-sm text-gray-400">
                         <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full">#{{ $course->id }}</span>
                     </div>

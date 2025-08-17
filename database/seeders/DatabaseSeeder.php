@@ -17,6 +17,9 @@ class DatabaseSeeder extends Seeder
             SettingsSeeder::class,
             WebPagesSeeder::class, 
             FaqSeeder::class,
+            TestParticipantsSeeder::class,
+            TestCoursesSeeder::class,
+
         ]);
     }
 

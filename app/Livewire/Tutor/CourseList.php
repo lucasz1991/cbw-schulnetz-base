@@ -25,7 +25,8 @@ class CourseList extends Component
     {
         $this->courses = Course::where('tutor_id', Auth::id())
             ->where('title', 'like', '%' . $this->search . '%')
-            ->withCount('days') // wenn du course_days hast
+            ->withCount('dates') // wenn du course_dates hast
+            ->withCount('participants') // wenn du course_user hast
             ->orderBy('start_time', 'desc')
             ->get();
     }
