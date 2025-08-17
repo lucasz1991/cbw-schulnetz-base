@@ -46,8 +46,8 @@ class ManageFilePools extends Component
     public function uploadFile(int $filePoolId)
     {
         $this->validate([
-            "fileUploads.$filePoolId"     => ['required','array','min:1'],
-            "fileUploads.$filePoolId.*"   => ['file','max:30240'], // 20 MB je Datei
+            "fileUploads.$filePoolId"     => ['required','array','min:1','max:302400'],
+            "fileUploads.$filePoolId.*"   => ['file','max:302400'], // 300 MB je Datei
             "expires.$filePoolId"         => ['nullable','date','after:today'],
         ]);
 
