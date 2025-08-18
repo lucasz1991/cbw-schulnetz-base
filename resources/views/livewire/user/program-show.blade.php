@@ -122,7 +122,7 @@
             </div>
         </div>
         <div class="bg-white shadow rounded-lg p-5 text-left col-span-1">
-          <p class=" text-gray-700">Endergebnis (Schnitt)</p>
+          <p class=" text-gray-700">Endergebnis&nbsp;Ø</p>
             <div
             x-data="{
                 chart: null,
@@ -200,7 +200,7 @@
 
                     </div>
                     <div class="bg-white shadow rounded-lg p-5 text-left col-span-1">
-                    <p class="text-gray-700">Gesamt-Fortschritt</p>
+                    <p class="text-gray-700">Fortschritt</p>
                     <div
             x-data="{
                 chart: null,
