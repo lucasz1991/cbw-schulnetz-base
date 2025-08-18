@@ -193,7 +193,7 @@
             }"
             x-init="nextTick(init)"
             id="invested-overview"
-            class="apex-charts max-h-20 !min-h-10"
+            class="apex-charts max-h-28 md:max-h-20 !min-h-10"
             wire:ignore
             ></div>
 
@@ -260,7 +260,7 @@
             }"
             x-init="nextTick(init)"
             id="overall-progress"
-            class="apex-charts  max-h-20 !min-h-10"
+            class="apex-charts   max-h-28 md:max-h-20 !min-h-10"
             ></div>
 
         </div>
