@@ -19,6 +19,15 @@ switch ($align) {
 }
 
 switch ($width) {
+    case 'auto':
+        $width = 'w-auto';
+        break;
+    case 'min':
+        $width = 'w-min';
+        break;
+    case 'max':
+        $width = 'w-max';
+        break;
     case '48':
         $width = 'w-48';
         break;

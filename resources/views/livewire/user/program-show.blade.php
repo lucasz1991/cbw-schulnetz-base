@@ -1,4 +1,10 @@
-<div wire:loading.class="cursor-wait" class="">
+<div wire:loading.class="cursor-wait opacity-50 animate-pulse" class="transition">
+  
+
+
+
+
+
   <section class="relative space-y-10">
 
 
@@ -23,10 +29,10 @@
     @endphp
 
 
-    <div>
+    <div class="mt-4">
       <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
         <div class="bg-white shadow rounded-lg text-center col-span-2 md:col-span-1">
-            <div class="card-body pr-2">
+            <div class="card-body pr-2  grid place-content-stretch h-full">
                 <div>
                     <div class="grid items-center grid-cols-12 gap-6">
                         <div class="col-span-6 text-left pt-5 pl-5">
@@ -61,14 +67,13 @@
 
                                     }
                                 }"
-                                x-init="nextTick(init)"
                                 class="apex-charts"
                                 wire:ignore
                                 ></div>
                         </div>
                     </div>
                 </div>
-                <div class="flex items-center space-x-2 mt-1  pb-5 pl-5">
+                <div class="flex items-center space-x-2 mt-1  pb-2 pl-5">
                     <span
                         class="text-sm py-[1px] px-1 bg-green-500/30 text-green-700 rounded font-medium ">{{ $bestandenBausteine }}</span>
                     <span class="ml-1.5 text-gray-700 text-[11px]">bestanden</span>
@@ -191,9 +196,9 @@
                 this.$el.addEventListener('alpine:destroy', () => { this.chart?.destroy(); });
                 }
             }"
-            x-init="nextTick(init)"
+
             id="invested-overview"
-            class="apex-charts max-h-28 md:max-h-20 !min-h-10"
+            class="apex-charts max-h-28 md:max-h-24 !min-h-10"
             wire:ignore
             ></div>
 
@@ -258,9 +263,9 @@
                 this.$el.addEventListener('alpine:destroy', () => { this.chart?.destroy(); });
                 }
             }"
-            x-init="nextTick(init)"
+
             id="overall-progress"
-            class="apex-charts   max-h-28 md:max-h-20 !min-h-10"
+            class="apex-charts   max-h-28 md:max-h-24 !min-h-10"
             ></div>
 
         </div>
@@ -287,7 +292,7 @@
                   $statusClass = 'text-blue-600 bg-blue-50';
               }
             @endphp
-            <li class="py-3 px-2 even:bg-gray-50 odd:bg-gray-100 hover:bg-blue-100 cursor-pointer">
+            <li class="py-3 px-4 even:bg-gray-50 odd:bg-gray-100 hover:bg-blue-100 cursor-pointer">
               <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
                 <div class="font-medium text-gray-800">
                   {{ $b['baustein'] }}<br>

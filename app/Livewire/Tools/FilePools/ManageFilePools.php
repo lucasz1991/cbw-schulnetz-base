@@ -80,6 +80,19 @@ class ManageFilePools extends Component
         $file->delete();
     }
 
+    public function placeholder()
+    {
+        return <<<'HTML'
+            <div role="status" class="space-y-8 py-8 animate-pulse md:flex md:items-center md:space-x-8 w-full">
+                <div class="w-full space-y-2">
+                    <div class="h-2.5 bg-gray-300 rounded-full w-48 mb-4"></div>
+                    <div class="h-2 bg-gray-300 rounded-full max-w-[480px] mb-2.5"></div>
+                    <div class="h-2 bg-gray-300 rounded-full mb-2.5"></div>
+                </div>
+            </div>
+        HTML;
+    }
+
 
     public function render()
     {

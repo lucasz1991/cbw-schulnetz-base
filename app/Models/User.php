@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use App\Notifications\CustomResetPasswordNotification;
 use App\Models\Course;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 
 
@@ -199,5 +200,10 @@ class User extends Authenticatable
         }
 
         return false; // Zugriff verweigern, wenn der Dateiname nicht das richtige Format hat
+    }
+
+    public function filePool(): MorphOne
+    {
+        return $this->morphOne(FilePool::class, 'filepoolable');
     }
 }

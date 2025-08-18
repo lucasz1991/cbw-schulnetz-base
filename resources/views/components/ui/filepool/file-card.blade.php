@@ -1,8 +1,8 @@
 <div    x-data="{ isHovered: false }" 
-        class="relative border rounded-lg overflow-hidden bg-white shadow-sm mb-2 w-1/2 sm:w-1/4 lg:w-[10%]"
+        class="relative border border-gray-300 rounded-lg overflow-hidden bg-white shadow mb-2 "
         @mouseenter="isHovered = true" @mouseleave="isHovered = false">
-    <div class="mb-2">
-            <img src="{{ $file->icon_or_thumbnail }}" alt="{{ $file->name }}" class="w-24 mx-auto aspect-square object-contain">
+    <div class="mb-2 p-1">
+            <img src="{{ $file->icon_or_thumbnail }}" alt="{{ $file->name }}" class="w-full max:w-24 mx-auto aspect-video object-cover">
     </div>
     <div class="p-4 space-y-2">
         <div class="text-sm text-gray-800 truncate ">{{ $file->name }}</div>
