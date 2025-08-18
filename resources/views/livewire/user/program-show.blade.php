@@ -24,14 +24,14 @@
 
 
     <div>
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div class="bg-white shadow rounded-lg text-center">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div class="bg-white shadow rounded-lg text-center col-span-2 md:col-span-1">
             <div class="card-body pr-2">
                 <div>
                     <div class="grid items-center grid-cols-12 gap-6">
                         <div class="col-span-6 text-left pt-5 pl-5">
                             <span class="text-gray-700 ">Bausteine</span>
-                            <h4 class="my-4 font-medium text-gray-800 text-21 ">
+                            <h4 class="my-2 font-medium text-gray-800 text-21 ">
                                 <span class="counter-value" data-target="{{ $anzahlBausteine }}">{{ $anzahlBausteine }}</span>
                                 
                             </h4>
@@ -76,9 +76,9 @@
             </div>
 
         </div>
-        <div class="bg-white shadow rounded-lg p-5 text-left grid place-content-between">
+        <div class="bg-white shadow rounded-lg p-5 text-left grid place-content-between  col-span-2 md:col-span-1">
           <p class=" text-gray-700 w-full block">Anwesenheit</p>
-              <div class="flex flex-wrap  cursor-pointer mx-auto justify-self-center">
+              <div class="grid grid-cols-[auto_auto_auto_auto_auto] justify-stretch  cursor-pointer mx-auto mt-4 mb-2">
                 <span class="inline-flex items-center bg-green-100 text-green-800 px-2 py-0.5">
                     <!-- Anwesend (Check im Kreis) -->
                     <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" class="w-5 mr-1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -105,163 +105,163 @@
                 </span>
                 <span class="inline-flex items-center  bg-red-100 text-red-800 px-2 py-0.5">
                   <!-- Fehlend (X im Kreis) -->
-<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" class="w-5 mr-1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-  <circle cx="12" cy="12" r="9"></circle>
-  <path d="M15 9l-6 6m0-6l6 6"></path>
-</svg>
+                    <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" class="w-5 mr-1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="9"></circle>
+                    <path d="M15 9l-6 6m0-6l6 6"></path>
+                    </svg>
                     3
                 </span>
                 <span class="inline-flex items-center  bg-gray-100 text-gray-800 px-2 py-0.5">
                   <!-- Insgesamt (Σ im Kreis als „Summe“) -->
-<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" class="w-5 mr-1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-  <circle cx="12" cy="12" r="9"></circle>
-  <path d="M15 7H9l3 5-3 5h6"></path>
-</svg>
+                    <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" class="w-5 mr-1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="9"></circle>
+                    <path d="M15 7H9l3 5-3 5h6"></path>
+                    </svg>
                    56
                 </span>
             </div>
         </div>
-        <div class="bg-white shadow rounded-lg p-5 text-center">
-          <p class="text-sm text-gray-500">Endergebnis (Schnitt)</p>
-<div
-  x-data="{
-    chart: null,
-    // deine Werte / Props (unverändert, nur bereitgehalten)
-    value: 85,
-    size: 140,
-    start: -130,
-    end: 130,
-    trackBg: '#f3f4f6',
-    dashed: true,
-    gradient: ['red','green'],
+        <div class="bg-white shadow rounded-lg p-5 text-left col-span-1">
+          <p class=" text-gray-700">Endergebnis (Schnitt)</p>
+            <div
+            x-data="{
+                chart: null,
+                // deine Werte / Props (unverändert, nur bereitgehalten)
+                value: 85,
+                size: 140,
+                start: -130,
+                end: 130,
+                trackBg: '#f3f4f6',
+                dashed: true,
+                gradient: ['red','green'],
 
 
-    init() {
+                init() {
 
-      var options = {
-          chart: {
-              height: 140,
-              type: 'radialBar',
-              offsetY: -10
-          },
-          plotOptions: {
-              radialBar: {
-                  startAngle: -130,
-                  endAngle: 130,
-                  dataLabels: {
-                      name: { show: false },
-                      value: {
-                          offsetY: 10,
-                          fontSize: '16px',
-                          color: undefined,
-                          formatter: function (val) { return val + '%'; }
-                      }
-                  }
-              }
-          },
-          colors: ['red'],
-          fill: {
-              type: 'gradient',
-              gradient: {
-                  shade: 'dark',
-                  type: 'horizontal',
-                  gradientToColors: ['green'],
-                  shadeIntensity: 0.15,
-                  inverseColors: false,
-                  opacityFrom: 1,
-                  opacityTo: 1,
-                  stops: [20, 60]
-              },
-          },
-          stroke: { dashArray: 4 },
-          legend: { show: false },
-          series: [85],
-          labels: ['Series A'],
-      };
+                var options = {
+                    chart: {
+                        height: 140,
+                        type: 'radialBar',
+                        offsetY: -10
+                    },
+                    plotOptions: {
+                        radialBar: {
+                            startAngle: -130,
+                            endAngle: 130,
+                            dataLabels: {
+                                name: { show: false },
+                                value: {
+                                    offsetY: 10,
+                                    fontSize: '16px',
+                                    color: undefined,
+                                    formatter: function (val) { return val + '%'; }
+                                }
+                            }
+                        }
+                    },
+                    colors: ['red'],
+                    fill: {
+                        type: 'gradient',
+                        gradient: {
+                            shade: 'dark',
+                            type: 'horizontal',
+                            gradientToColors: ['green'],
+                            shadeIntensity: 0.15,
+                            inverseColors: false,
+                            opacityFrom: 1,
+                            opacityTo: 1,
+                            stops: [20, 60]
+                        },
+                    },
+                    stroke: { dashArray: 4 },
+                    legend: { show: false },
+                    series: [85],
+                    labels: ['Series A'],
+                };
 
-      // Render (wie bei dir, mit ID-Selector)
-      this.chart = new ApexCharts(
-        document.querySelector('#invested-overview'),
-        options
-      );
-      this.chart.render();
-      // ================================================
+                // Render (wie bei dir, mit ID-Selector)
+                this.chart = new ApexCharts(
+                    document.querySelector('#invested-overview'),
+                    options
+                );
+                this.chart.render();
+                // ================================================
 
-      // Cleanup ohne Einfluss auf Darstellung
-      this.$el.addEventListener('alpine:destroy', () => { this.chart?.destroy(); });
-    }
-  }"
-  x-init="nextTick(init)"
-  id="invested-overview"
-  class="apex-charts max-h-20 !min-h-10"
-  wire:ignore
-></div>
-
-
-        </div>
-        <div class="bg-white shadow rounded-lg p-5 text-center">
-          <p class="text-sm text-gray-500">Gesamt-Fortschritt</p>
-          <div
-  x-data="{
-    chart: null,
-    init() {
-      // ====== deine Einstellungen (unverändert) ======
-      var overallOptions = {
-        chart: {
-          height: 140,
-          type: 'radialBar',
-          offsetY: -10
-        },
-        series: [{{ $progress }}], // 0–100
-        labels: ['Fortschritt'],
-        colors: ['#2563eb'],
-        plotOptions: {
-          radialBar: {
-            startAngle: -130,
-            endAngle: 130,
-            hollow: { size: '55%' },
-            track: { background: '#f3f4f6' },
-            dataLabels: {
-              name: { show: false },
-              value: {
-                offsetY: 5,
-                fontSize: '16px',
-                formatter: function (val) {
-                  return Math.round(val) + '%';
+                // Cleanup ohne Einfluss auf Darstellung
+                this.$el.addEventListener('alpine:destroy', () => { this.chart?.destroy(); });
                 }
-              }
-            }
-          }
-        },
-        fill: {
-          type: 'gradient',
-          gradient: {
-            shade: 'light',
-            type: 'horizontal',
-            gradientToColors: ['#60a5fa'],
-            stops: [0, 100],
-            opacityFrom: 1,
-            opacityTo: 1
-          }
-        },
-        stroke: { lineCap: 'round' }
-      };
+            }"
+            x-init="nextTick(init)"
+            id="invested-overview"
+            class="apex-charts max-h-20 !min-h-10"
+            wire:ignore
+            ></div>
 
-      this.chart = new ApexCharts(
-        document.querySelector('#overall-progress'),
-        overallOptions
-      );
-      this.chart.render();
-      // ================================================
 
-      // Cleanup für Alpine
-      this.$el.addEventListener('alpine:destroy', () => { this.chart?.destroy(); });
-    }
-  }"
-  x-init="nextTick(init)"
-  id="overall-progress"
-  class="apex-charts  max-h-20 !min-h-10"
-></div>
+                    </div>
+                    <div class="bg-white shadow rounded-lg p-5 text-left col-span-1">
+                    <p class="text-gray-700">Gesamt-Fortschritt</p>
+                    <div
+            x-data="{
+                chart: null,
+                init() {
+                // ====== deine Einstellungen (unverändert) ======
+                var overallOptions = {
+                    chart: {
+                    height: 140,
+                    type: 'radialBar',
+                    offsetY: -10
+                    },
+                    series: [{{ $progress }}], // 0–100
+                    labels: ['Fortschritt'],
+                    colors: ['#2563eb'],
+                    plotOptions: {
+                    radialBar: {
+                        startAngle: -130,
+                        endAngle: 130,
+                        hollow: { size: '55%' },
+                        track: { background: '#f3f4f6' },
+                        dataLabels: {
+                        name: { show: false },
+                        value: {
+                            offsetY: 5,
+                            fontSize: '16px',
+                            formatter: function (val) {
+                            return Math.round(val) + '%';
+                            }
+                        }
+                        }
+                    }
+                    },
+                    fill: {
+                    type: 'gradient',
+                    gradient: {
+                        shade: 'light',
+                        type: 'horizontal',
+                        gradientToColors: ['#60a5fa'],
+                        stops: [0, 100],
+                        opacityFrom: 1,
+                        opacityTo: 1
+                    }
+                    },
+                    stroke: { lineCap: 'round' }
+                };
+
+                this.chart = new ApexCharts(
+                    document.querySelector('#overall-progress'),
+                    overallOptions
+                );
+                this.chart.render();
+                // ================================================
+
+                // Cleanup für Alpine
+                this.$el.addEventListener('alpine:destroy', () => { this.chart?.destroy(); });
+                }
+            }"
+            x-init="nextTick(init)"
+            id="overall-progress"
+            class="apex-charts  max-h-20 !min-h-10"
+            ></div>
 
         </div>
 
