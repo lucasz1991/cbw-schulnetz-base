@@ -18,7 +18,10 @@
         <script src="{{ URL::asset('adminresources/choices.js/public/assets/scripts/choices.min.js') }}"></script>
         <script src="{{ URL::asset('adminresources/flatpickr/flatpickr.min.js') }}"></script>
         <script src="{{ URL::asset('adminresources/flatpickr/l10n/de.js') }}"></script>
-
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"
+        integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+    <!-- apexcharts -->
+    <script src="{{ URL::asset('adminresources/apexcharts/apexcharts.min.js') }}"></script>
         
         <!-- Styles -->
         @vite(['resources/css/app.css'])
@@ -71,5 +74,6 @@
         ct('Please '), a, ct(` to view this ${sp} content.`));div.append(p);e.parentNode
         .insertBefore(div, e);})})(document, 'iframe[data-cookieblock-src]', 'marketing')
         </script> -->
+        
     </body>
 </html>

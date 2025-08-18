@@ -1,29 +1,29 @@
-<div class="space-y-4">
+<div class="space-y-4 transition-opacity duration-300" wire:loading.class="opacity-30">
     {{-- kompakte Kopf-Stats (außerhalb des Modals) --}}
-    <div class="flex items-center justify-center gap-2">
+    <div class="flex rounded-md border border-gray-300 overflow-hidden w-max">
         @if($day)
-            <div class="flex flex-wrap gap-2 text-xs">
-                <span class="inline-flex items-center rounded bg-green-100 text-green-800 px-2 py-0.5">
-                    Anwesend: {{ $stats['present'] }}
+            <div class="flex flex-wrap text-xs cursor-pointer" wire:click="$set('showManageAttendanceModal', true)">
+                <span class="inline-flex items-center bg-green-100 text-green-800 px-2 py-0.5">
+                     {{ $stats['present'] }}
                 </span>
-                <span class="inline-flex items-center rounded bg-yellow-100 text-yellow-800 px-2 py-0.5">
-                    Verspätet: {{ $stats['late'] }}
+                <span class="inline-flex items-center bg-yellow-100 text-yellow-800 px-2 py-0.5">
+                      {{ $stats['late'] }}
                 </span>
-                <span class="inline-flex items-center rounded bg-blue-100 text-blue-800 px-2 py-0.5">
-                    Entschuldigt: {{ $stats['excused'] }}
+                <span class="inline-flex items-center  bg-blue-100 text-blue-800 px-2 py-0.5">
+                     {{ $stats['excused'] }}
                 </span>
-                <span class="inline-flex items-center rounded bg-red-100 text-red-800 px-2 py-0.5">
-                    Fehlend: {{ $stats['absent'] }}
+                <span class="inline-flex items-center  bg-red-100 text-red-800 px-2 py-0.5">
+                    {{ $stats['absent'] }}
                 </span>
-                <span class="inline-flex items-center rounded bg-gray-100 text-gray-800 px-2 py-0.5">
-                    Gesamt: {{ $stats['total'] }}
+                <span class="inline-flex items-center  bg-gray-100 text-gray-800 px-2 py-0.5">
+                   {{ $stats['total'] }}
                 </span>
             </div>
         @endif
 
         <button type="button"
             wire:click="$set('showManageAttendanceModal', true)"
-            class="text-sm text-gray-600 border rounded-md p-2 bg-white hover:bg-gray-100 shadow-sm"
+            class="text-sm text-gray-600  p-2 bg-white hover:bg-gray-100 shadow-sm"
             title="Anwesenheit verwalten"
         >
             <svg class="w-4 h-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">

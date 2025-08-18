@@ -1,9 +1,13 @@
 <div x-data="{ openFileForm: @entangle('openFileForm') ,  }">
   <div class="flex items-center justify-between mb-4">
-    <span></span>
-    <button wire:click="$toggle('openFileForm')" class="mb-4 px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block" viewBox="0 0 20 20" fill="currentColor"><path d="M10 3a1 1 0 011 1v4h4a1 1 0 110 2h-4v4a1 1 0 11-2 0v-4H6a1 1 0 110-2h4V4a1 1 0 011-1z"/></svg>
-    </button>
+    <div>
+        <button wire:click="$toggle('openFileForm')" class="mb-4 px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block" viewBox="0 0 20 20" fill="currentColor"><path d="M10 3a1 1 0 011 1v4h4a1 1 0 110 2h-4v4a1 1 0 11-2 0v-4H6a1 1 0 110-2h4V4a1 1 0 011-1z"/></svg>
+        </button>
+        
+    </div>
+    <div>
+    </div>
   </div>
 
   <x-dialog-modal wire:model="openFileForm">
@@ -11,7 +15,9 @@
 
     <x-slot name="content">
       <x-ui.filepool.drop-zone :model="'fileUploads.'.$filePool->id" />
-
+        @error('fileUploads.'.$filePool->id)
+          <span class="text-sm text-red-600">{{ $message }}</span>
+        @enderror
 
       <div class="mt-4">
         <label class="block text-sm font-medium text-gray-700">Ablaufdatum (optional)</label>
@@ -20,8 +26,10 @@
     </x-slot>
 
     <x-slot name="footer">
-      <x-button wire:click="uploadFile({{ $filePool->id }})">Hochladen</x-button>
-      <x-button wire:click="$toggle('openFileForm')" class="mr-2">Abbrechen</x-button>
+        <div class="flex justify-end space-x-2">
+            <x-button wire:click="uploadFile({{ $filePool->id }})">Hochladen</x-button>
+            <x-button wire:click="$toggle('openFileForm')" class="mr-2">Abbrechen</x-button>
+        </div>
     </x-slot>
   </x-dialog-modal>
 
