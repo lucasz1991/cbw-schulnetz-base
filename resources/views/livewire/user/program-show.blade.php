@@ -127,7 +127,7 @@
                 </span>
                 <span class="grid grid-col-1 grid-rows-2 justify-center bg-gray-100 text-gray-800 px-2 py-1 pt-2">
                   <!-- Insgesamt (Σ im Kreis als „Summe“) -->
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5" fill="none" stroke="currentColor"  stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
                       <circle cx="12" cy="12" r="9"></circle>
                     </svg>
                                       <span class="text-center">
