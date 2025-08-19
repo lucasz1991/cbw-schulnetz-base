@@ -9,9 +9,8 @@ class MediaPool extends Component
 
     public function mount()
     {
-       sleep(1);
+      
     }
-
 
 
     public function render()

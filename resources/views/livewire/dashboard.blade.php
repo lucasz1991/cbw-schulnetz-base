@@ -12,7 +12,7 @@
                         <livewire:user.program-show lazy />
                     </div>
                     <div x-cloak x-show="selectedTab === 'media'"  x-collapse id="tabpanelmedia" role="tabpanel" aria-label="media">
-                        <livewire:user.media-pool lazy />
+                        <livewire:user.media-pool />
                     </div>
                     <div x-cloak x-show="selectedTab === 'claims'" x-collapse id="tabpanelclaims" role="tabpanel" aria-label="claims">
                         <livewire:user.absences lazy />

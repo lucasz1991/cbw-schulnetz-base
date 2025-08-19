@@ -30,8 +30,8 @@
 
 
     <div class="mt-4">
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-        <div class="bg-white shadow rounded-lg text-center col-span-2 md:col-span-1">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-6 ">
+        <div class="bg-white shadow rounded-lg text-center col-span-2 md:col-span-1 max-md:order-4">
             <div class="card-body pr-2  grid place-content-stretch h-full">
                 <div>
                     <div class="grid items-center grid-cols-12 gap-6">
@@ -46,8 +46,8 @@
                             <div
                                 x-data="{
                                     chart: null,
-                                    series: [75,65,55,0,0,0,0,0,0],
-                                    colors: ['#5156be','#5156be','#333333','#333333','#333333','#333333','#333333','#333333','#333333'],
+                                    series: [75,65,55,65,65,75,55,75,55],
+                                    colors: ['#5156be','#5156be','#5156be','#5156be','#5156be','#5156be','#5156be','#5156be','#5156be'],
                                     pickColor(val){ if(!val) return null; const v=String(val).trim(); return v.startsWith('--') ? (getComputedStyle(document.documentElement).getPropertyValue(v).trim() || v) : v; },
                                     init(){
                                     const options = {
@@ -81,52 +81,62 @@
             </div>
 
         </div>
-        <div class="bg-white shadow rounded-lg p-5 text-left grid place-content-between  col-span-2 md:col-span-1">
+        <div class="bg-white shadow rounded-lg p-5 text-left grid place-content-between justify-stretch  col-span-2 md:col-span-1 max-md:order-3">
           <p class=" text-gray-700 w-full block">Anwesenheit</p>
-              <div class="grid grid-cols-[auto_auto_auto_auto_auto] justify-stretch  cursor-pointer mx-auto mt-4 mb-2">
-                <span class="inline-flex items-center bg-green-100 text-green-800 px-2 py-0.5">
+          <div></div>
+              <div class="w-full grid grid-cols-[1fr_1fr_1fr_1fr_1fr]  cursor-pointer mx-auto mt-4 mb-2">
+                <span class="grid grid-col-1 grid-rows-2 justify-center bg-green-100 text-green-800 px-2 py-1 pt-2">
                     <!-- Anwesend (Check im Kreis) -->
-                    <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" class="w-5 mr-1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" class="w-5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="9"></circle>
                         <path d="M8 12l2.5 2.5L16 9"></path>
                     </svg>
-                     48
+                    <span class="text-center">
+                      48
+                    </span> 
                 </span>
-                <span class="inline-flex items-center bg-yellow-100 text-yellow-800 px-2 py-0.5">
+                <span class="grid grid-col-1 grid-rows-2 justify-center bg-yellow-100 text-yellow-800 px-2 py-1 pt-2">
                   <!-- Verspätet (Uhr) -->
-                        <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" class="w-5 mr-1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" class="w-5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="9"></circle>
                             <path d="M12 7v5l3 2"></path>
                         </svg>
-                      5
+                        <span class="text-center">
+                          5
+                        </span>
                 </span>
-                <span class="inline-flex items-center  bg-blue-100 text-blue-800 px-2 py-0.5">
+                <span class="grid grid-col-1 grid-rows-2 justify-center bg-blue-100 text-blue-800 px-2 py-1 pt-2">
                   <!-- Entschuldigt (Schild mit Check) -->
-                    <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" class="w-5 mr-1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 3l7 4v5c0 5-4.5 7.5-7 9-2.5-1.5-7-4-7-9V7l7-4z"></path>
-                    <path d="M9 12l2 2 4-4"></path>
+                    <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" class="w-5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 3l7 4v5c0 5-4.5 7.5-7 9-2.5-1.5-7-4-7-9V7l7-4z"></path>
+                      <path d="M9 12l2 2 4-4"></path>
                     </svg>
-                     1
+                    <span class="text-center">
+                      1
+                    </span>
                 </span>
-                <span class="inline-flex items-center  bg-red-100 text-red-800 px-2 py-0.5">
+                <span class="grid grid-col-1 grid-rows-2 justify-center bg-red-100 text-red-800 px-2 py-1 pt-2">
                   <!-- Fehlend (X im Kreis) -->
-                    <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" class="w-5 mr-1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="9"></circle>
-                    <path d="M15 9l-6 6m0-6l6 6"></path>
+                    <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" class="w-5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="9"></circle>
+                      <path d="M15 9l-6 6m0-6l6 6"></path>
                     </svg>
-                    3
+                    <span class="text-center">
+                      3
+                    </span>
                 </span>
-                <span class="inline-flex items-center  bg-gray-100 text-gray-800 px-2 py-0.5">
+                <span class="grid grid-col-1 grid-rows-2 justify-center bg-gray-100 text-gray-800 px-2 py-1 pt-2">
                   <!-- Insgesamt (Σ im Kreis als „Summe“) -->
-                    <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" class="w-5 mr-1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="9"></circle>
-                    <path d="M15 7H9l3 5-3 5h6"></path>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <circle cx="12" cy="12" r="9"></circle>
                     </svg>
-                   56
+                                      <span class="text-center">
+                      56
+                    </span>
                 </span>
             </div>
         </div>
-        <div class="bg-white shadow rounded-lg p-5 text-left col-span-1">
+        <div class="bg-white shadow rounded-lg p-5 text-left col-span-1 max-md:order-1">
           <p class=" text-gray-700">Endergebnis&nbsp;Ø</p>
             <div
             x-data="{
@@ -204,7 +214,7 @@
 
 
                     </div>
-                    <div class="bg-white shadow rounded-lg p-5 text-left col-span-1">
+                    <div class="bg-white shadow rounded-lg p-5 text-left col-span-1 max-md:order-2">
                     <p class="text-gray-700">Fortschritt</p>
                     <div
             x-data="{
