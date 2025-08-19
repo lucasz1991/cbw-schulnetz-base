@@ -31,33 +31,38 @@
 
     <div class="mt-4">
       <div class="grid grid-cols-2 md:grid-cols-4 gap-6 ">
-        <div class="bg-white shadow rounded-lg text-center col-span-2 md:col-span-1 max-md:order-4">
+        <div class="bg-white shadow rounded-lg text-center col-span-2 md:col-span-1 max-md:order-3">
             <div class="card-body pr-2  grid place-content-stretch h-full">
                 <div>
-                    <div class="grid items-center grid-cols-12 gap-6">
-                        <div class="col-span-6 text-left pt-5 pl-5">
+                    <div class="relative h-full grid place-content-stretch grid-cols-12">
+                        <div class="col-span-12 text-left pt-5 pl-5  grid place-content-stretch">
                             <span class="text-gray-700 ">Bausteine</span>
                             <h4 class="my-2 font-medium text-gray-800 text-21 ">
                                 <span class="counter-value" data-target="{{ $anzahlBausteine }}">{{ $anzahlBausteine }}</span>
                                 
                             </h4>
+                            <div class="flex items-center space-x-2 mt-1  pb-2 ">
+                              <span
+                                  class="text-sm py-[1px] px-1 bg-green-500/30 text-green-700 rounded font-medium ">{{ $bestandenBausteine }}</span>
+                              <span class="ml-1.5 text-gray-700 text-[11px]">bestanden</span>
+                          </div>
                         </div>
-                        <div class="col-span-6">
+                        <div class="absolute inset-y-0  right-1 left-10 flex justify-center  items-center h-full">
                             <div
                                 x-data="{
                                     chart: null,
                                     series: [75,65,55,65,65,75,55,75,55],
-                                    colors: ['#5156be','#5156be','#5156be','#5156be','#5156be','#5156be','#5156be','#5156be','#5156be'],
+                                    colors: ['#2b5c9e','#2b5c9e','#2b5c9e','#2b5c9e','#2b5c9e','#2b5c9e','#2b5c9e','#2b5c9e','#2b5c9e'],
                                     pickColor(val){ if(!val) return null; const v=String(val).trim(); return v.startsWith('--') ? (getComputedStyle(document.documentElement).getPropertyValue(v).trim() || v) : v; },
                                     init(){
                                     const options = {
                                         series: [{ data: this.series }],
-                                        chart: { type: 'line', height: 50, sparkline: { enabled: true } },
+                                        chart: { type: 'bar', height: 60, width: 120, sparkline: { enabled: true } },
                                         colors: this.colors.map(this.pickColor),
                                         stroke: { curve: 'smooth', width: 2 },
                                         tooltip: {
                                         fixed: { enabled: false },
-                                        x: { show: false },
+                                        x: { title: { formatter: () => 'Baustein' } },
                                         y: { title: { formatter: () => 'Punkte' } },
                                         marker: { show: true }
                                         }
@@ -67,25 +72,20 @@
 
                                     }
                                 }"
-                                class="apex-charts"
+                                class="apex-charts flex justify-center items-center"
                                 wire:ignore
                                 ></div>
                         </div>
                     </div>
                 </div>
-                <div class="flex items-center space-x-2 mt-1  pb-2 pl-5">
-                    <span
-                        class="text-sm py-[1px] px-1 bg-green-500/30 text-green-700 rounded font-medium ">{{ $bestandenBausteine }}</span>
-                    <span class="ml-1.5 text-gray-700 text-[11px]">bestanden</span>
-                </div>
             </div>
 
         </div>
-        <div class="bg-white shadow rounded-lg p-5 text-left grid place-content-between justify-stretch  col-span-2 md:col-span-1 max-md:order-3">
+        <div class="bg-white shadow rounded-lg p-5 text-left grid place-content-between justify-stretch  col-span-2 md:col-span-1 max-md:order-4">
           <p class=" text-gray-700 w-full block">Anwesenheit</p>
           <div></div>
-              <div class="w-full grid grid-cols-[1fr_1fr_1fr_1fr_1fr]  cursor-pointer mx-auto mt-4 mb-2">
-                <span class="grid grid-col-1 grid-rows-2 justify-center bg-green-100 text-green-800 px-2 py-1 pt-2">
+              <div class="w-full grid grid-cols-[1fr_1fr_1fr_1fr_1fr] gap-2 cursor-pointer mx-auto mt-4 mb-2">
+                <span class="grid grid-col-1 grid-rows-2 justify-center bg-green-100 text-green-800 px-2 py-1 pt-2" title="Anwesend">
                     <!-- Anwesend (Check im Kreis) -->
                     <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" class="w-5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="9"></circle>
@@ -95,7 +95,7 @@
                       48
                     </span> 
                 </span>
-                <span class="grid grid-col-1 grid-rows-2 justify-center bg-yellow-100 text-yellow-800 px-2 py-1 pt-2">
+                <span class="grid grid-col-1 grid-rows-2 justify-center bg-yellow-100 text-yellow-800 px-2 py-1 pt-2" title="Verspätet">
                   <!-- Verspätet (Uhr) -->
                         <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" class="w-5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="9"></circle>
@@ -105,7 +105,7 @@
                           5
                         </span>
                 </span>
-                <span class="grid grid-col-1 grid-rows-2 justify-center bg-blue-100 text-blue-800 px-2 py-1 pt-2">
+                <span class="grid grid-col-1 grid-rows-2 justify-center bg-blue-100 text-blue-800 px-2 py-1 pt-2" title="Entschuldigt">
                   <!-- Entschuldigt (Schild mit Check) -->
                     <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" class="w-5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M12 3l7 4v5c0 5-4.5 7.5-7 9-2.5-1.5-7-4-7-9V7l7-4z"></path>
@@ -115,7 +115,7 @@
                       1
                     </span>
                 </span>
-                <span class="grid grid-col-1 grid-rows-2 justify-center bg-red-100 text-red-800 px-2 py-1 pt-2">
+                <span class="grid grid-col-1 grid-rows-2 justify-center bg-red-100 text-red-800 px-2 py-1 pt-2" title="Fehlend">
                   <!-- Fehlend (X im Kreis) -->
                     <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" class="w-5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                       <circle cx="12" cy="12" r="9"></circle>
@@ -125,7 +125,7 @@
                       3
                     </span>
                 </span>
-                <span class="grid grid-col-1 grid-rows-2 justify-center bg-gray-100 text-gray-800 px-2 py-1 pt-2">
+                <span class="grid grid-col-1 grid-rows-2 justify-center bg-gray-100 text-gray-800 px-2 py-1 pt-2"   title="Insgesamt">
                   <!-- Insgesamt (Σ im Kreis als „Summe“) -->
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-5" fill="none" stroke="currentColor"  stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
                       <circle cx="12" cy="12" r="9"></circle>
@@ -174,13 +174,13 @@
                             }
                         }
                     },
-                    colors: ['red'],
+                    colors: ['#f8b8b8'],
                     fill: {
                         type: 'gradient',
                         gradient: {
                             shade: 'dark',
                             type: 'horizontal',
-                            gradientToColors: ['green'],
+                            gradientToColors: ['#2fa541'],
                             shadeIntensity: 0.15,
                             inverseColors: false,
                             opacityFrom: 1,
@@ -208,7 +208,7 @@
             }"
 
             id="invested-overview"
-            class="apex-charts max-h-28 md:max-h-24 !min-h-10"
+            class="apex-charts max-h-28 md:max-h-24 !min-h-10 overflow-hidden"
             wire:ignore
             ></div>
 
@@ -253,7 +253,7 @@
                     gradient: {
                         shade: 'light',
                         type: 'horizontal',
-                        gradientToColors: ['#60a5fa'],
+                        gradientToColors: ['#60a5fa' , '#2b5c9e'],
                         stops: [0, 100],
                         opacityFrom: 1,
                         opacityTo: 1
@@ -275,7 +275,7 @@
             }"
 
             id="overall-progress"
-            class="apex-charts   max-h-28 md:max-h-24 !min-h-10"
+            class="apex-charts   max-h-28 md:max-h-24 !min-h-10 overflow-hidden"
             ></div>
 
         </div>

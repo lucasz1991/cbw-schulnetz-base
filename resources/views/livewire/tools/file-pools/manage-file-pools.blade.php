@@ -32,7 +32,7 @@
     </div>
   </div>
   <div>
-    <span>Dateien</span>
+    <span>Medien</span>
     <span class="text-gray-500">({{ $filePool->files->count() }})</span>
   </div>
 
