@@ -10,6 +10,7 @@ class CreateMailsTable extends Migration
     {
         Schema::create('mails', function (Blueprint $table) {
             $table->id();
+            $table->string('type')->default('message'); 
             $table->boolean('status')->default(false); 
             $table->json('content'); 
             $table->json('recipients'); 

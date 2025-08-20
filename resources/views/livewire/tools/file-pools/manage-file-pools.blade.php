@@ -53,30 +53,6 @@
     <span>Medien</span>
     <span class="text-gray-500">({{ $filePool->files->count() }})</span>
   </div>
-
-  <x-dialog-modal wire:model="openFileForm">
-    <x-slot name="title">Datei-Upload</x-slot>
-
-    <x-slot name="content">
-      <x-ui.filepool.drop-zone :model="'fileUploads.'.$filePool->id" />
-        @error('fileUploads.'.$filePool->id)
-          <span class="text-sm text-red-600">{{ $message }}</span>
-        @enderror
-
-      <div class="mt-4">
-        <label class="block text-sm font-medium text-gray-700">Ablaufdatum (optional)</label>
-        <input type="date" wire:model="expires.{{ $filePool->id }}" class="mt-1 block w-full rounded border-gray-300 shadow-sm">
-      </div>
-    </x-slot>
-
-    <x-slot name="footer">
-        <div class="flex justify-end space-x-2">
-            <x-button wire:click="uploadFile({{ $filePool->id }})">Hochladen</x-button>
-            <x-button wire:click="$toggle('openFileForm')" class="mr-2">Abbrechen</x-button>
-        </div>
-    </x-slot>
-  </x-dialog-modal>
-
   <div class="my-8 mx-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
     @forelse($filePool->files as $file)
       <x-ui.filepool.file-card :file="$file" />
@@ -84,4 +60,44 @@
       <div class="text-sm text-gray-500">Keine Dateien vorhanden.</div>
     @endforelse
   </div>
+  {{-- FileForm Modal --}}
+  <x-dialog-modal wire:model="openFileForm">
+    <x-slot name="title">Datei-Upload</x-slot>
+    <x-slot name="content">
+      <x-ui.filepool.drop-zone :model="'fileUploads.'.$filePool->id" />
+        @error('fileUploads.'.$filePool->id)
+          <span class="text-sm text-red-600">{{ $message }}</span>
+        @enderror
+      <div class="mt-4">
+        <label class="block text-sm font-medium text-gray-700">Ablaufdatum</label>
+        <input type="date" wire:model="expires.{{ $filePool->id }}" class="mt-1 block w-full rounded border-gray-300 shadow-sm">
+      </div>
+    </x-slot>
+    <x-slot name="footer">
+        <div class="flex justify-end space-x-2">
+            <x-button wire:click="uploadFile({{ $filePool->id }})">Hochladen</x-button>
+            <x-button wire:click="$toggle('openFileForm')" class="mr-2">Abbrechen</x-button>
+        </div>
+    </x-slot>
+  </x-dialog-modal>
+  {{-- EditFileForm Modal --}}
+  <x-dialog-modal wire:model="openEditFileForm">
+    <x-slot name="title">Datei bearbeiten </x-slot>
+    <x-slot name="content">
+      <div class="mt-4">
+        <label class="block text-sm font-medium text-gray-700">Dateiname</label>
+        <input type="text" wire:model="selectedFileName" class="mt-1 block w-full rounded border-gray-300 shadow-sm">
+      </div>
+      <div class="mt-4">
+        <label class="block text-sm font-medium text-gray-700">Ablaufdatum</label>
+        <input type="date" wire:model="selectedFileExpiresDate" class="mt-1 block w-full rounded border-gray-300 shadow-sm">
+      </div>
+    </x-slot>
+    <x-slot name="footer">
+        <div class="flex justify-end space-x-2">
+            <x-button wire:click="safeFile()">speichern</x-button>
+            <x-button wire:click="$toggle('openEditFileForm')" class="mr-2">Abbrechen</x-button>
+        </div>
+    </x-slot>
+  </x-dialog-modal>
 </div>

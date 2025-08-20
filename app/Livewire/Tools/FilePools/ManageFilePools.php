@@ -8,6 +8,9 @@ use App\Models\File;
 use Livewire\WithPagination;
 use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use Illuminate\Support\Facades\Response;
+use ZipArchive;
 
 class ManageFilePools extends Component
 {
@@ -24,7 +27,12 @@ class ManageFilePools extends Component
     public array $selectedFiles = [];
     public array $expires = [];
 
+    public ?File $file = null;
+    public string $selectedFileName;
+    public string $selectedFileExpiresDate;
+
     public bool $openFileForm = false;
+    public bool $openEditFileForm = false;
 
 
 
@@ -42,6 +50,7 @@ class ManageFilePools extends Component
         $this->fileUploads = [$this->filePool->id => []];
 
         $this->openFileForm = false;
+        $this->openEditFileForm = false;
     }
 
     public function uploadFile(int $filePoolId)
@@ -74,9 +83,64 @@ class ManageFilePools extends Component
         $this->dispatch('filepool:saved', model: "fileUploads.$filePoolId");
     }
 
-    public function downloadFiles() 
+    public function downloadFiles(): \Symfony\Component\HttpFoundation\BinaryFileResponse
     {
-        
+        $zipFileName = 'CBW_Schulnetz_downloads_' . now()->format('Ymd_His') . '.zip';
+        $zipPath = storage_path("app/public/zips/{$zipFileName}");
+
+        if (!file_exists(dirname($zipPath))) {
+            mkdir(dirname($zipPath), 0755, true);
+        }
+
+        $zip = new ZipArchive;
+        if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) === true) {
+            foreach ($this->filePool->files as $file) {
+                $filePath = Storage::disk('public')->path($file->path);
+                if (file_exists($filePath)) {
+                    $zip->addFile($filePath, $file->name);
+                }
+            }
+            $zip->close();
+        }
+
+        return response()->download($zipPath)->deleteFileAfterSend(true);
+    }
+
+
+    public function downloadFile(int $fileId): StreamedResponse
+    {
+        $file = File::findOrFail($fileId);
+        return Storage::disk('public')->download($file->path, $file->name);
+    }
+
+
+    public function editFile($id)
+    {
+        $this->file = File::findOrFail($id);
+        $this->selectedFileName = $this->file->name;
+        $this->selectedFileExpiresDate = $this->file->expires_at ?? '';
+        $this->openEditFileForm = true;
+    }
+
+    public function safeFile()
+    {
+        $this->validate([
+            'selectedFileName' => 'required|string|max:255',
+            'selectedFileExpiresDate' => 'nullable|date|after_or_equal:today',
+        ]);
+
+        if (!$this->file) {
+            $this->addError('file', 'Keine Datei ausgewählt.');
+            return;
+        }
+
+        $this->file->update([
+            'name' => $this->selectedFileName,
+            'expires_at' => $this->selectedFileExpiresDate ?: null,
+        ]);
+
+        $this->reset(['file', 'selectedFileName', 'selectedFileExpiresDate', 'openEditFileForm']);
+        $this->filePool->refresh();
     }
 
 
