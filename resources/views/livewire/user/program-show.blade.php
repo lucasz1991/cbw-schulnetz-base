@@ -1,14 +1,5 @@
 <div wire:loading.class="cursor-wait opacity-50 animate-pulse" class="transition">
-  
-
-
-
-
-
-  <section class="relative space-y-10">
-
-
-
+  <section class="relative space-y-6">
     {{-- Kennzahlen Qualifizierungsprogramm --}}
     @php
       $bausteine = collect($teilnehmerDaten['bausteine'] ?? []);
@@ -47,7 +38,7 @@
                               <span class="ml-1.5 text-gray-700 text-[11px]">bestanden</span>
                           </div>
                         </div>
-                        <div class="absolute inset-y-0  right-1 left-10 flex justify-center  items-center h-full">
+                        <div class="absolute inset-y-0  right-1 left-10 flex justify-end  items-center h-full">
                             <div
                                 x-data="{
                                     chart: null,
@@ -72,7 +63,7 @@
 
                                     }
                                 }"
-                                class="apex-charts flex justify-center items-center"
+                                class="apex-charts flex justify-end items-center"
                                 wire:ignore
                                 ></div>
                         </div>
@@ -130,7 +121,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-5" fill="none" stroke="currentColor"  stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
                       <circle cx="12" cy="12" r="9"></circle>
                     </svg>
-                                      <span class="text-center">
+                    <span class="text-center">
                       56
                     </span>
                 </span>
@@ -286,9 +277,10 @@
     {{-- Ergebnisse + Aktuelles Modul --}}
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       {{-- Ergebnisse nach Kurs (Bausteine) --}}
-      <div class="bg-white shadow rounded-lg">
-        <h3 class="text-lg font-semibold  p-5">Bausteine</h3>
-        <ul class="divide-y divide-gray-200 max-h-64 overflow-y-auto scroll-container border border-gray-300 rounded-b-lg overflow-hidden bg-white" style="scrollbar-width: none;">
+      <div class="bg-white shadow rounded-lg  overflow-hidden border border-gray-300">
+        <h3 class="text-lg font-semibold bg-sky-100 p-5">Bausteine</h3>
+        <ul class="divide-y divide-gray-200 max-h-[280px] overflow-y-auto scroll-container border border-gray-300 rounded-b-lg overflow-hidden bg-white snap-y touch-pan-y scroll-smooth" 
+        >
           {{-- Bausteine --}}
           @forelse($bausteine as $b)
             @php
@@ -302,16 +294,25 @@
                   $statusClass = 'text-blue-600 bg-blue-50';
               }
             @endphp
-            <li class="py-3 px-4 even:bg-gray-50 odd:bg-gray-100 hover:bg-blue-100 cursor-pointer">
-              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-                <div class="font-medium text-gray-800">
-                  {{ $b['baustein'] }}<br>
+            <li class="relative h-[70px] py-3 px-4 even:bg-white odd:bg-gray-100 hover:bg-blue-100 cursor-pointer hover:pr-[45px] transition-all  delay-50 duration-500 group snap-start ">
+              <div class="grid grid-cols-12 gap-1 ">
+                <div class="col-span-8 font-medium text-gray-800">
+                  <div class="truncate ">{{ $b['baustein'] }}</div>
+                </div>
+                <div class="col-span-4 text-right">
+                  <span class="px-2 py-1 text-xs font-medium rounded badge  {{ $statusClass }}">{{ $status }}</span>
+                </div>
+              </div>
+              <div class="grid grid-cols-12 gap-1 ">
+                <div class="col-span-6 font-medium text-gray-800">
                   <span class="px-2 py-1 text-xs font-medium rounded badge bg-gray-50 text-gray-500">Block {{ $b['block'] }} · Abschnitt {{ $b['abschnitt'] }}</span>
                 </div>
-                <div class="text-right">
-                  <span class="px-2 py-1 text-xs font-medium rounded badge  {{ $statusClass }}">{{ $status }}</span><br>
+                <div class="col-span-6 text-right">
                   <span class="text-xs text-gray-500 w-max">{{ $b['beginn'] }}&nbsp;–&nbsp;{{ $b['ende'] }}</span>
                 </div>
+              </div>
+              <div class="absolute h-[70px] right-2 top-0 flex items-center opacity-0 translate-x-5 group-hover:opacity-100 group-hover:translate-x-0 transition-all  delay-50 duration-500 text-gray-500">
+                <svg xmlns="http://www.w3.org/2000/svg"  class="h-6   mr-1 max-md:mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
               </div>
             </li>
           @empty
@@ -321,32 +322,33 @@
       </div>
 
       {{-- Aktueller Baustein --}}
-      <div class="bg-white shadow rounded-lg p-5 grid place-content-stretch">
-        <h3 class="text-lg font-semibold mb-4">Aktueller Baustein</h3>
-
-        @if($aktuellesModul)
-            <p class="font-medium text-gray-800">{{ $aktuellesModul['baustein'] }}</p>
-            <p class="text-sm text-gray-600">{{ $aktuellesModul['beginn'] }} – {{ $aktuellesModul['ende'] }} · {{ $aktuellesModul['tage'] }} Tage</p>
-
-            {{-- Gesamt-Fortschritt über alle Bausteine --}}
-            <div class="mt-2">
-              <div class="w-full bg-gray-200 rounded-full h-3">
-                <div class="bg-blue-600 h-3 rounded-full" style="width: {{ $progress }}%"></div>
+      <div class="bg-white shadow rounded-lg overflow-hidden border border-gray-300 grid  grid-flow-row auto-rows-max">
+        <h3 class="text-lg font-semibold bg-sky-100 p-5">Aktueller Baustein</h3>
+              <div class="p-5  border-t border-t-gray-300 place-self-stretch">
+                @if($aktuellesModul)
+                    <p class="font-medium text-gray-800">{{ $aktuellesModul['baustein'] }}</p>
+                    <p class="text-sm text-gray-600">{{ $aktuellesModul['beginn'] }} – {{ $aktuellesModul['ende'] }} · {{ $aktuellesModul['tage'] }} Tage</p>
+        
+                    {{-- Gesamt-Fortschritt über alle Bausteine --}}
+                    <div class="mt-2">
+                      <div class="w-full bg-gray-200 rounded-full h-3">
+                        <div class="bg-blue-600 h-3 rounded-full" style="width: {{ $progress }}%"></div>
+                      </div>
+                      <p class="text-sm text-gray-600 mt-1">Fortschritt: {{ $progress }}%</p>
+                    </div>
+                    <div>
+                      <button class="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg">Details</button>
+                    </div>
+                    @if($naechstesModul)
+                      <p class="text-sm text-gray-600">
+                        <strong>Nächster Baustein:</strong> {{ $naechstesModul['baustein'] }}
+                        <span class="text-xs text-gray-500">({{ $naechstesModul['beginn'] }} – {{ $naechstesModul['ende'] }})</span>
+                      </p>
+                    @endif
+                @else
+                  <p class="text-gray-500">Kein aktuelles Modul ermittelbar.</p>
+                @endif
               </div>
-              <p class="text-sm text-gray-600 mt-1">Fortschritt: {{ $progress }}%</p>
-            </div>
-            <div>
-              <button class="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg">Details</button>
-            </div>
-            @if($naechstesModul)
-              <p class="text-sm text-gray-600">
-                <strong>Nächster Baustein:</strong> {{ $naechstesModul['baustein'] }}
-                <span class="text-xs text-gray-500">({{ $naechstesModul['beginn'] }} – {{ $naechstesModul['ende'] }})</span>
-              </p>
-            @endif
-        @else
-          <p class="text-gray-500">Kein aktuelles Modul ermittelbar.</p>
-        @endif
       </div>
     </div>
 

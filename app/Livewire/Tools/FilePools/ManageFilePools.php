@@ -21,6 +21,7 @@ class ManageFilePools extends Component
     public ?FilePool $filePool = null;
 
     public array $fileUploads = [];
+    public array $selectedFiles = [];
     public array $expires = [];
 
     public bool $openFileForm = false;
@@ -72,6 +73,12 @@ class ManageFilePools extends Component
         // >>> Dropzone-Reset anstoßen (model-Pfad mitgeben!)
         $this->dispatch('filepool:saved', model: "fileUploads.$filePoolId");
     }
+
+    public function downloadFiles() 
+    {
+        
+    }
+
 
     public function deleteFile(int $fileId)
     {
