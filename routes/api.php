@@ -5,6 +5,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\PagebuilderProjectController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Artisan;
+use App\Http\Controllers\Api\AdminStorageController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -17,6 +19,8 @@ use Illuminate\Support\Facades\Artisan;
 */
 
 
+Route::post('/admin/upload', [AdminStorageController::class, 'store']);
+Route::delete('/admin/delete', [AdminStorageController::class, 'destroy']);
 
 
 Route::post('/pagebuilder/upload', [PagebuilderProjectController::class, 'uploadImage']);

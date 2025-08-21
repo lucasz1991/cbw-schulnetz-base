@@ -28,7 +28,7 @@ class AdminStorageController extends Controller
             'file' => 'required|file|max:8192',
         ]);
         $extension = strtolower($request->file('file')->getClientOriginalExtension());
-        $allowedExtensions = ['jpg', 'jpeg', 'png', 'svg', 'webp', 'pdf', 'docx', 'xlsx', 'mp4'];
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'svg', 'webp', 'pdf', 'docx', 'xlsx', 'txt', 'zip', 'rar'];
         if (!in_array($extension, $allowedExtensions)) {
             return response()->json(['error' => 'Dateityp nicht erlaubt.'], 422);
         }

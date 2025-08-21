@@ -10,6 +10,8 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use App\Models\User;
+
 
 class ProcessMailJob implements ShouldQueue
 {
@@ -31,14 +33,25 @@ class ProcessMailJob implements ShouldQueue
     public function handle(): void
     {
         $recipients = $this->mail->recipients;
+        $sendMailTo = $this->mail->type == 'message' ? false : true;
+        $files = $this->mail->files ?? []; 
 
         foreach ($recipients as &$recipient) {
             try {
                 // Lade den Benutzer anhand der Empfänger-ID
-                $user = \App\Models\User::find($recipient['user_id']);
+                $user = User::find($recipient['user_id']);
                 if ($user) {
-                    // Sende die Notification
-                    $user->notify(new MailNotification($this->mail->content));
+                    // Sende die Message
+                    $user->receiveMessage(
+                        $this->mail->content['subject'],
+                        $this->mail->content['body'],
+                        $this->mail->from_user_id ?? 1,
+                        $files
+                    );
+
+                    if ($sendMailTo) {
+                        $user->notify(new MailNotification($this->mail));
+                    }
 
                     // Markiere den Empfänger als erfolgreich
                     $recipient['status'] = true;

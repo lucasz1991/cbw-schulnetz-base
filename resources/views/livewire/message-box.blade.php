@@ -1,4 +1,4 @@
-<div  class="w-full relative bg-cover bg-center py-20"  wire:loading.class="cursor-wait">
+<div  class="w-full relative bg-gray-100 py-20"  wire:loading.class="cursor-wait">
     @section('title')
         {{ __('Nachrichten') }}
     @endsection
@@ -29,7 +29,7 @@
                      </svg>
                 </h1>
         </x-slot>
-    <div class="">
+    <div class="container mx-auto">
         <div class="bg-white  shadow-lg rounded-lg p-6"> 
             <div class="p-4 mb-4 text-sm text-green-800 rounded-lg bg-green-50" role="alert">
                 <p><span class="text-lg font-medium">Du wirst hier über alle wichtigen Nachrichten informiert.</span><br> Jede neue Nachricht, die dich betrifft, wird dir direkt angezeigt, damit du immer auf dem neuesten Stand bist. Schau regelmäßig in dein Postfach, um keine wichtigen Updates zu verpassen.</p>
@@ -50,10 +50,11 @@
                     </form>
                 </div>
             </div>
-            <div class="overflow-x-scroll">
-                <table class="min-w-md text-sm text-left text-gray-500 table-fixed">
+            <div class="">
+                <table class="w-full text-sm text-left text-gray-500 table-fixed">
                     <thead class="text-xs text-gray-700 uppercase bg-gray-50">
                         <tr>
+                            <th scope="col" class="py-3 px-6 w-4/12">Von</th>
                             <th scope="col" class="py-3 px-6 w-4/12">Betreff</th>
                             <th scope="col" class="py-3 px-6 w-5/12">Nachricht</th>
                             <th scope="col" class="py-3 px-6 w-2/12">Datum</th>
@@ -63,13 +64,13 @@
                     <tbody>
                         @forelse($messages as $message)
                             <tr class="border-b hover:bg-blue-50 cursor-pointer @if($message->status == 1) bg-blue-200 @endif" wire:click="showMessage({{ $message->id }})"  wire:key="{{ $message->id }}">
-                                <th scope="row" class="px-4 py-3 font-medium text-gray-900 whitespace-nowrap  truncate">{{ $message->subject }}</th>
-                                    <td class="px-4 py-3"
-                                        x-data="{ 
-                                            screenWidth: window.innerWidth ,
-                                            maxLength: Math.max(40, Math.min(100, Math.floor( this.screenWidth / 10)))}"
-                                            x-resize="screenWidth = $width">
+                                    <td class="px-4 py-3 font-medium text-gray-900 whitespace-nowrap  truncate">{{ $message->sender->name }}</td>
+                                    <td  class="px-4 py-3 font-medium text-gray-900 whitespace-nowrap  truncate">{{ $message->subject }}</td>
+                                    <td class="px-4 py-3 ">
                                         <span class="block truncate" >{{ mb_substr(strip_tags($message->message), 0, 100) }}</span>
+                                        @if($message->files()->count() > 0)
+                                            <span class="text-xs text-gray-500">({{ $message->files()->count() }} Datei{{ $message->files()->count() > 1 ? 'en' : '' }})</span>
+                                        @endif
                                     </td>
                                     <td class="px-4 py-3">{{ $message->created_at->diffForHumans() }}</td>
                                     <td x-data="{ open: false }" @click.away="open = false"
@@ -84,7 +85,6 @@
                                                 <li>
                                                     <button @click.prevent="$wire.showMessage({{ $message->id }})" class="block py-2 px-4 hover:bg-gray-100">anzeigen</button>
                                                 </li>
-                                                
                                             </ul>
                                             <div class="py-1">
                                                 <button @click.prevent="open = false"  class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100">Löschen</button>
@@ -125,7 +125,7 @@
             </div>
 
             <div x-show="showMessageModal" class="bg-white rounded-lg overflow-hidden transform sm:w-full sm:mx-auto max-w-2xl ">
-                <div class="border border-gray-300 rounded-lg p-4 relative">
+                <div class=" p-4 relative">
                     <button type="button" @click="showMessageModal = false; $selectedMessage = null;" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -140,6 +140,18 @@
                     <h3 class="text-xl font-semibold mb-4 border-b pb-2">{{ $selectedMessage ? $selectedMessage->subject : '' }}</h3>
                     <div class="my-6">
                         <p class="text-gray-800">{!! $selectedMessage ? $selectedMessage->message  : '' !!}</p>
+                    </div>
+                    <div class="mt-4">
+                        @if($selectedMessage && $selectedMessage->files()->count() > 0)
+                            <h4 class="text-lg font-semibold mb-2">Anhänge</h4>
+                            <ul class="space-y-2">
+                                @foreach($selectedMessage->files as $file)
+                                    <li>
+                                        <a href="{{ Storage::url($file->path) }}" target="_blank" class="text-blue-600 hover:underline">{{ $file->name }}</a>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
                     </div>
                 </div>
 
