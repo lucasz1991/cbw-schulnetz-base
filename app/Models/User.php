@@ -11,7 +11,7 @@ use Laravel\Jetstream\HasProfilePhoto;
 use Laravel\Jetstream\HasTeams;
 use Laravel\Sanctum\HasApiTokens;
 use App\Models\Message;
-use App\Models\Customer;
+use App\Models\Person;
 use App\Notifications\CustomVerifyEmail;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -69,9 +69,9 @@ class User extends Authenticatable
         'profile_photo_url',
     ];
 
-    public function customer()
+    public function person()
     {
-        return $this->hasOne(Customer::class, 'user_id');
+        return $this->hasOne(Person::class, 'user_id');
     }
     
     public function receivedMessages()
@@ -142,25 +142,6 @@ class User extends Authenticatable
     }
 
 
-    public function followers()
-    {
-        return $this->belongsToMany(
-            User::class, // Der Typ der Benutzer, die folgen
-            'customer_followers', // Pivot-Tabelle
-            'customer_id', // Spalte in der Pivot-Tabelle, die den aktuellen Benutzer repräsentiert
-            'follower_id' // Spalte in der Pivot-Tabelle, die die Follower repräsentiert
-        )->withPivot('date')->withTimestamps(); // Zusätzliche Pivot-Daten
-    }
-
-    public function followedCustomers()
-    {
-        return $this->belongsToMany(
-            User::class, // Der Typ der Benutzer, denen gefolgt wird
-            'customer_followers', // Pivot-Tabelle
-            'follower_id', // Spalte in der Pivot-Tabelle, die den aktuellen Benutzer als Follower repräsentiert
-            'customer_id' // Spalte in der Pivot-Tabelle, die die Benutzer repräsentiert, denen gefolgt wird
-        )->withPivot('date')->withTimestamps(); // Zusätzliche Pivot-Daten
-    }
 
  
     

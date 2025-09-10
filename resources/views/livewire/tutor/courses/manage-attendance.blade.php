@@ -137,7 +137,7 @@
                 </x-dropdown>
             </div>
 
-<div class="overflow-x-auto rounded border border-gray-200 bg-white max-h-[40vh] scroll-container">
+<div class=" rounded border border-gray-200 bg-white scroll-container">
   <table class="min-w-full text-sm">
     <thead>
       <tr class="bg-gray-50 text-left">

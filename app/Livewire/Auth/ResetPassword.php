@@ -74,6 +74,9 @@ class ResetPassword extends Component
                     'password_confirmation' => $this->password_confirmation, // Passwortbestätigung
                 ]
             );
+
+           $user->email_verified_at = now();
+           $user->save(); 
     
             session()->flash('status', 'Dein Passwort wurde erfolgreich zurückgesetzt!');
             return redirect()->route('login'); // Weiterleitung zur Login-Seite

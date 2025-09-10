@@ -2,8 +2,7 @@
     @section('title')
         {{ __('Nachrichten') }}
     @endsection
-    <x-slot name="header">
-                    
+    <x-slot name="header">   
                 <h1 class="font-semibold text-2xl text-gray-800 leading-tight flex items-center">
                      Nachrichten 
                      <svg xmlns="http://www.w3.org/2000/svg" width="80px" class="fill-[#000] ml-10 stroke-2 inline opacity-30" viewBox="0 0 512 512" stroke-width="106">
@@ -117,7 +116,7 @@
             x-data="{
                 showMessageModal: @entangle('showMessageModal')
             }"
-            x-init="() => { $watch('showMessageModal', value => { document.getElementById('main').classList.toggle('overflow-hidden', value); });}"
+            
             class="fixed inset-0 p-6 flex items-center justify-center z-50 modal-container ">
 
             <div x-show="showMessageModal" class="fixed inset-0 transform" x-on:click="showMessageModal = false">
