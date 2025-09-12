@@ -1,23 +1,129 @@
 <div wire:loading.class="cursor-wait opacity-50 animate-pulse" class="transition">
   <section class="relative space-y-6">
-    {{-- Kennzahlen Qualifizierungsprogramm --}}
-    @php
-      $bausteine = collect($teilnehmerDaten['bausteine'] ?? []);
-      $anzahlBausteine = $bausteine->count();
-      $bestandenBausteine = $bausteine
-          ->filter(fn($b) => !is_null($b['schnitt'] ?? null) && ($b['schnitt'] ?? 0) >= 50)
-          ->count();
-      $endergebnis = $teilnehmerDaten['unterricht']['schnitt'] ?? null; // Gesamt-Schnitt Unterricht
-      $anzahlBloecke = $bausteine->pluck('block')->unique()->count();
+  @php
+    // ----- Rohdaten (direkt aus deinem JSON) -----
+    $raw = $teilnehmerDaten ?? [];
 
-      // aktuelles Modul = erstes ohne Schnitt, ansonsten letztes
-      $aktuellesModul = $bausteine->firstWhere('schnitt', null) ?? $bausteine->last();
-      // Nächstes Modul = das Element nach aktuellem
-      $nextIdx = $aktuellesModul ? $bausteine->search($aktuellesModul) + 1 : null;
-      $naechstesModul = ($nextIdx && $nextIdx < $anzahlBausteine) ? $bausteine[$nextIdx] : null;
+    // Utility: Numeric or null
+    $num = function ($v) {
+        if (is_numeric($v)) return $v + 0;
+        if (is_string($v)) {
+            $v = trim($v);
+            if ($v === 'passed') return 100;   // treat "passed" as 100%
+            if ($v === 'not att' || $v === '---' || $v === '-') return null;
+            if (is_numeric($v)) return $v + 0;
+        }
+        return null;
+    };
 
-      $progress = $anzahlBausteine ? round(($bestandenBausteine / $anzahlBausteine) * 100) : 0;
-    @endphp
+    // Bausteine normalisieren (FERI aus Fortschritt rausnehmen)
+    $bausteine = collect($raw['tn_baust'] ?? [])
+        ->map(function ($b) use ($num) {
+            return [
+                'block'    => null, // nicht vorhanden in Rohdaten
+                'abschnitt'=> null, // nicht vorhanden in Rohdaten
+                'beginn'   => $b['beginn_baustein'] ?? null,
+                'ende'     => $b['ende_baustein'] ?? null,
+                'tage'     => $num($b['baustein_tage'] ?? null),
+                'unterrichtsklasse' => $b['klassen_co_ks'] ?? null,
+                'baustein' => $b['langbez'] ?? ($b['kurzbez'] ?? '—'),
+                'kurzbez'  => $b['kurzbez'] ?? null,
+                // "schnitt" in deinem alten View => wir nehmen TN-Punkte
+                'schnitt'  => $num($b['tn_punkte'] ?? null),
+                'punkte'   => $num($b['tn_punkte'] ?? null),
+                'fehltage' => $num($b['fehltage'] ?? null),
+                'klassenschnitt' => $num($b['klassenschnitt'] ?? null),
+            ];
+        });
+
+    // Für Fortschritt FERI/PRUE/PRAK ausklammern
+    $isZaehlbar = fn ($k) => !in_array($k, ['FERI','PRAK']);
+    $bausteineProgress = $bausteine->filter(fn ($b) => $isZaehlbar($b['kurzbez'] ?? ''));
+
+    $anzahlBausteine = $bausteineProgress->count();
+    $bestandenBausteine = $bausteineProgress->filter(function ($b) {
+        $v = $b['schnitt'];
+        return is_numeric($v) ? $v >= 50 : false;
+    })->count();
+
+    // Aktuelles Modul = erstes ohne Ergebnis (kein numerischer "schnitt"), sonst letztes
+    $aktuellesModul = $bausteineProgress->first(fn ($b) => !is_numeric($b['schnitt'])) ?? $bausteineProgress->last();
+
+    // Nächstes Modul
+    $nextIdx = $aktuellesModul ? $bausteineProgress->search($aktuellesModul) + 1 : null;
+    $naechstesModul = ($nextIdx && $nextIdx < $anzahlBausteine) ? $bausteineProgress->values()->get($nextIdx) : null;
+
+    $progress = $anzahlBausteine ? round(($bestandenBausteine / $anzahlBausteine) * 100) : 0;
+
+    // Unterrichts-Summen aus $raw['summen']
+    $summen = $raw['summen'] ?? [];
+    $unterricht = [
+        'tage'      => $summen['u_tage']      ?? null,
+        'einheiten' => $summen['u_std']       ?? null,
+        'fehltage'  => $summen['fehltage']    ?? null,
+        'note'      => $summen['note_lang']   ?? null,
+        'schnitt'   => $summen['tn_schnitt']  ?? null,
+        'punkte'    => null, // nicht vorhanden – Feld im View kann bleiben, zeigt "—"
+    ];
+
+    // Maßnahme / Vertrag / Träger aus Top-Level ableiten
+    $massnahme = [
+        'titel'    => ($raw['langbez_m'] ?? $raw['langbez_w'] ?? '—')
+                    . ' · ' . ($raw['massn_kurz'] ?? '—'),
+        'zeitraum' => [
+            'von' => $raw['vertrag_beginn'] ?? '—',
+            'bis' => $raw['vertrag_ende']   ?? '—',
+        ],
+        'bausteine'=> $raw['vertrag_baust'] ?? count($bausteineProgress),
+        'inhalte'  => ($raw['uform'] ?? $raw['uform_kurz'] ?? '—') . ' · ' . ($raw['vtz_lang'] ?? $raw['vtz'] ?? '—'),
+    ];
+
+    $vertrag = [
+        'vertrag'        => $raw['vtz']           ?? '—',
+        'kennung'        => $raw['massn_kurz']    ?? '—',
+        'von'            => $raw['vertrag_beginn']?? '—',
+        'bis'            => $raw['vertrag_ende']  ?? '—',
+        'rechnungsnummer'=> $raw['rechnung_nr']   ?? '—',
+        'abschlussdatum' => $raw['vertrag_datum'] ?? '—',
+    ];
+
+    $traeger = [
+        'institution'   => $raw['mp_langbez'] ?? '—',
+        'ansprechpartner'=> trim(($raw['mp_vorname'] ?? '') . ' ' . ($raw['mp_nachname'] ?? '')) ?: '—',
+        'adresse'       => trim(($raw['mp_plz'] ?? '') . ' ' . ($raw['mp_ort'] ?? '')) ?: '—',
+    ];
+
+    $teilnehmerVm = [
+        'name'          => $raw['name']          ?? '—',
+        'geburt_datum'  => $raw['geburt_datum']  ?? '—',
+        'teilnehmer_nr' => $raw['teilnehmer_nr'] ?? '—',
+        'kunden_nr'     => $raw['kunden_nr']     ?? '—',
+        'stammklasse'   => $raw['stammklasse']   ?? '—',
+        'test_punkte'   => $raw['test_punkte']   ?? '—',
+        'email_priv'    => $raw['email_priv']    ?? null,
+      // weitere Felder bei Bedarf…
+    ];
+
+    // ===== Werte an das bestehende View binden =====
+    // Dein View greift aktuell auf $teilnehmerDaten['…'] zu – wir überschreiben dafür lokal:
+    $teilnehmerDaten = [
+        'teilnehmer' => $teilnehmerVm,
+        'massnahme'  => $massnahme,
+        'vertrag'    => $vertrag,
+        'traeger'    => $traeger,
+        'bausteine'  => $bausteine->all(), // für die Liste
+        'unterricht' => $unterricht,
+        'praktikum'  => [
+            'tage'    => $summen['prak_tage'] ?? null,
+            'stunden' => $summen['prak_std']  ?? null,
+            'bemerkung' => null,
+        ],
+    ];
+
+    // Variablen, die du später im View nutzt:
+    $anzahlBloecke = null; // nicht vorhanden in Daten
+  @endphp
+
 
 
     <div class="mt-4">
@@ -372,11 +478,12 @@
   <div x-show="open === 'teilnehmer'" x-collapse>
     <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm px-6 pb-6">
       <div><dt class="text-gray-600">Name</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['teilnehmer']['name'] }}</dd></div>
-      <div><dt class="text-gray-600">Geburtsdatum</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['teilnehmer']['geburtsdatum'] }}</dd></div>
-      <div><dt class="text-gray-600">Teilnehmer-Nr</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['teilnehmer']['teilnehmerNr'] }}</dd></div>
-      <div><dt class="text-gray-600">Kunden-Nr</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['teilnehmer']['kundenNr'] }}</dd></div>
+      <div><dt class="text-gray-600">Geburtsdatum</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['teilnehmer']['geburt_datum'] }}</dd></div>
+      <div><dt class="text-gray-600">Teilnehmer-Nr</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['teilnehmer']['teilnehmer_nr'] }}</dd></div>
+      <div><dt class="text-gray-600">Kunden-Nr</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['teilnehmer']['kunden_nr'] }}</dd></div>
       <div><dt class="text-gray-600">Stammklasse</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['teilnehmer']['stammklasse'] }}</dd></div>
-      <div><dt class="text-gray-600">Eignungstest</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['teilnehmer']['eignungstest'] }}</dd></div>
+      <div><dt class="text-gray-600">Eignungstest</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['teilnehmer']['test_punkte'] }}</dd></div>
+
     </dl>
   </div>
 </section>

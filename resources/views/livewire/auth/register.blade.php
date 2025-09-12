@@ -8,13 +8,17 @@
     <x-slot name="form">
     <div  class="mt-8 grid grid-cols-6 gap-6">
                
-
-
-               <!-- E-Mail und Benutzername -->
-               <div class="col-span-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                   <!-- E-Mail -->
-                   <div>
-                       <label for="email" class="block text-sm font-medium text-gray-700">E-Mail</label>
+            <x-alert class="col-span-6" type="info">
+                <h3 class="text-lg font-medium text-gray-900">Willkommen im CBW Schulnetz!</h3>
+                <p class="mt-2 text-sm text-gray-700">
+                    Bitte füllen Sie das folgende Formular aus, um ein neues Konto zu erstellen. Alle Felder sind erforderlich.
+                </p>
+            </x-alert>
+            <!-- E-Mail und Benutzername -->
+            <div class="col-span-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- E-Mail -->
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700">E-Mail</label>
                        <input 
                            type="email" 
                            id="email" 
@@ -47,164 +51,9 @@
                    </div>
                </div>
 
-               <div class="col-span-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                   <!-- Passwort -->
-                   <div class="">
-                       <label for="password" class="block text-sm font-medium text-gray-700">Passwort</label>
-                       <input 
-                           type="password" 
-                           id="password" 
-                           name="password" 
-                           wire:model="password"
-                           class="w-full rounded-lg border-gray-300 p-3 mt-1 text-sm"
-                           placeholder="Passwort" 
-                         
-                       />
-                       <x-input-error for="password" class="mt-2" />
 
-                   </div>
-   
-                   <!-- Passwort bestätigen -->
-                   <div class="">
-                       <label for="password_confirmation" class="block text-sm font-medium text-gray-700">Passwort bestätigen</label>
-                       <input 
-                           type="password" 
-                           id="password_confirmation" 
-                           name="password_confirmation" 
-                           wire:model="password_confirmation"
-                           class="w-full rounded-lg border-gray-300 p-3 mt-1 text-sm"
-                           placeholder="Passwort bestätigen" 
-                          
-                       />
-                       <x-input-error for="password_confirmation" class="mt-2" />
 
-                   </div>
-               </div>
-                   </hr>
-               <!-- Persönliche Daten -->
-               <div class="col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                   <!-- Vorname -->
-                   <div>
-                       <label for="first_name" class="block text-sm font-medium text-gray-700">Vorname</label>
-                       <input 
-                           type="text" 
-                           id="first_name" 
-                           name="first_name" 
-                           wire:model="first_name"
-                           value="{{ old('first_name') }}" 
-                           class="w-full rounded-lg border-gray-300 p-3 mt-1 text-sm"
-                           placeholder="Vorname" 
-                         
-                       />
-                       <x-input-error for="first_name" class="mt-2" />
 
-                   </div>
-
-                   <!-- Nachname -->
-                   <div>
-                       <label for="last_name" class="block text-sm font-medium text-gray-700">Nachname</label>
-                       <input 
-                           type="text" 
-                           id="last_name" 
-                           name="last_name" 
-                           wire:model="last_name"
-                           value="{{ old('last_name') }}" 
-                           class="w-full rounded-lg border-gray-300 p-3 mt-1 text-sm"
-                           placeholder="Nachname" 
-                          
-                       />
-                       <x-input-error for="last_name" class="mt-2" />
-
-                   </div>
-               </div>
-
-               <!-- Kontaktinformationen -->
-               <div class="col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                   <!-- Telefonnummer -->
-                   <div>
-                       <label for="phone_number" class="block text-sm font-medium text-gray-700">Telefonnummer</label>
-                       <input 
-                           type="tel" 
-                           id="phone_number" 
-                           name="phone_number"
-                           wire:model="phone_number" 
-                           value="{{ old('phone_number') }}" 
-                           class="w-full rounded-lg border-gray-300 p-3 mt-1 text-sm"
-                           placeholder="Telefonnummer" 
-                          
-                       />
-                       <x-input-error for="phone_number" class="mt-2" />
-
-                   </div>
-
-                   <!-- Straße -->
-                   <div>
-                       <label for="street" class="block text-sm font-medium text-gray-700">Straße</label>
-                       <input 
-                           type="text" 
-                           id="street" 
-                           name="street" 
-                           wire:model="street"
-                           value="{{ old('street') }}" 
-                           class="w-full rounded-lg border-gray-300 p-3 mt-1 text-sm"
-                           placeholder="Straße" 
-                         
-                       />
-                       <x-input-error for="street" class="mt-2" />
-
-                   </div>
-               </div>
-
-               <!-- Stadt & Postleitzahl -->
-               <div class="col-span-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                   <!-- Stadt -->
-                   <div>
-                       <label for="city" class="block text-sm font-medium text-gray-700">Stadt</label>
-                       <input 
-                           type="text" 
-                           id="city" 
-                           name="city" 
-                           wire:model="city"
-                           value="{{ old('city') }}" 
-                           class="w-full rounded-lg border-gray-300 p-3 mt-1 text-sm"
-                           placeholder="Stadt" 
-                         
-                       />
-                       <x-input-error for="city" class="mt-2" />
-
-                   </div>
-
-                   <!-- Postleitzahl -->
-                   <div>
-                       <label for="postal_code" class="block text-sm font-medium text-gray-700">Postleitzahl</label>
-                       <input 
-                           type="text" 
-                           id="postal_code" 
-                           name="postal_code" 
-                           wire:model="postal_code"
-                           value="{{ old('postal_code') }}" 
-                           class="w-full rounded-lg border-gray-300 p-3 mt-1 text-sm"
-                           placeholder="Postleitzahl" 
-                         
-                       />
-                       <x-input-error for="postal_code" class="mt-2" />
-                   </div>
-                   <!-- Land -->
-                   <div class="">
-                       <label for="country" class="block text-sm font-medium text-gray-700">Land</label>
-                       <input 
-                           type="text" 
-                           id="country" 
-                           name="country" 
-                           wire:model="country"
-                           value="{{ old('country') }}" 
-                           class="w-full rounded-lg border-gray-300 p-3 mt-1 text-sm"
-                           placeholder="Land" 
-                         
-                       />
-                       <x-input-error for="country" class="mt-2" />
-                   </div>
-               </div>
 
 
                <!-- Datenschutz -->
