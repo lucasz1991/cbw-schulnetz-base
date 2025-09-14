@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use App\Jobs\DeleteTempFile;
 
 class File extends Model
 {
@@ -28,10 +30,10 @@ class File extends Model
     public function getIconOrThumbnailAttribute(): string
     {
         $mime = $this->mime_type ?? '';
-        $path = $this->path ?? '';
+        $path = $this->getEphemeralPublicUrl(3) ?? '';
 
         return match (true) {
-            str_starts_with($mime, 'image/') => Storage::url($path),
+            str_starts_with($mime, 'image/') => '/storage/'.$path,
             str_starts_with($mime, 'video/') => asset('site-images/fileicons/file-video.png'),
             str_starts_with($mime, 'audio/') => asset('site-images/fileicons/file-audio.png'),
             str_contains($mime, 'pdf')       => asset('site-images/fileicons/file-pdf.png'),
@@ -41,6 +43,35 @@ class File extends Model
             str_contains($mime, 'text')      => asset('site-images/fileicons/file-text.png'),
             default                          => asset('site-images/fileicons/file-default.png'),
         };
+    }
+
+    /**
+     * Path des Files im Storage zu temporären datei zum anzeigen im Browser
+     */
+
+    public function getEphemeralPublicUrl(int $minutes = 10): string
+    {
+        $sourceDisk = $this->disk ?? config('filesystems.default');
+        $publicDisk = 'public';
+
+        // Ziel: /temp/<uuid>-<basename>
+        $tmpName = Str::uuid()->toString() . '-' . basename($this->path);
+        $tmpPath = 'temp/' . $tmpName;
+
+        // Stream-basiert kopieren (funktioniert zwischen Disks)
+        $read = Storage::disk('public')->readStream($this->path);
+        if (! $read) {
+            throw new \RuntimeException('Quelle nicht lesbar: ' . $this->path);
+        }
+        Storage::disk('public')->writeStream($tmpPath, $read);
+        if (is_resource($read)) { fclose($read); }
+
+        // Auto-Delete Job planen
+        DeleteTempFile::dispatch($publicDisk, $tmpPath)
+            ->delay(now()->addMinutes($minutes));
+
+        // Öffentliche URL (direkt nutzbar in <img>, <iframe>, …)
+        return $tmpPath;
     }
 
 

@@ -21,21 +21,7 @@ class ProgramShow extends Component
     public function mount(): void
     {
         $this->userData = Auth::user();
-
-        // 1) Versuche programdata zu laden
-        $raw = $this->userData?->person?->programdata ?? null;
-
-        // 2) In Array wandeln oder Fallback
-        if (is_array($raw)) {
-            $this->teilnehmerDaten = $raw;
-        } elseif (is_string($raw)) {
-            $decoded = json_decode($raw, true);
-            $this->teilnehmerDaten = (json_last_error() === JSON_ERROR_NONE && is_array($decoded))
-                ? $decoded
-                : [];
-        } else {
-            $this->teilnehmerDaten = [];
-        }
+        $this->teilnehmerDaten = $this->userData?->person?->programdata ?? [];
     }
 
     public function render()
