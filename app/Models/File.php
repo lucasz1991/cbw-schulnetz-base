@@ -33,7 +33,7 @@ class File extends Model
         $path = $this->getEphemeralPublicUrl(3) ?? '';
 
         return match (true) {
-            str_starts_with($mime, 'image/') => '/storage/'.$path,
+            str_starts_with($mime, 'image/') => '/'.$path,
             str_starts_with($mime, 'video/') => asset('site-images/fileicons/file-video.png'),
             str_starts_with($mime, 'audio/') => asset('site-images/fileicons/file-audio.png'),
             str_contains($mime, 'pdf')       => asset('site-images/fileicons/file-pdf.png'),

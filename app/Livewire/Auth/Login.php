@@ -36,9 +36,7 @@ class Login extends Component
         'email.max' => 'Die E-Mail-Adresse darf maximal 255 Zeichen lang sein.',
         'email.exists' => 'Diese E-Mail-Adresse ist nicht registriert.',
         'password.required' => 'Bitte gib dein Passwort ein.',
-        'password.min' => 'Das Passwort muss mindestens 6 Zeichen l
-        
-        ang sein.',
+        'password.min' => 'Das Passwort muss mindestens 6 Zeichen lang sein.',
         'password.max' => 'Das Passwort darf maximal 255 Zeichen lang sein.',
     ];
 
