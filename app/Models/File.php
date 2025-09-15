@@ -89,11 +89,14 @@ class File extends Model
                 $tmpPath = 'temp/' . $tmpName;
 
                 // Quelle lesen (private → public kopieren), mit Fallback auf public
-                $read = Storage::disk($sourceDisk)->readStream($this->path) ?: Storage::disk('public')->readStream($this->path);
+                $read = Storage::disk($sourceDisk)->readStream($this->path);
                 if (! $read) {
                     throw new \RuntimeException("Quelle nicht lesbar: {$this->path}");
                 }
                 Storage::disk($publicDisk)->writeStream($tmpPath, $read);
+                if(Storage::disk($publicDisk)->exists($tmpPath) === false) {
+                    throw new \RuntimeException("Ziel nicht schreibbar: {$tmpPath}");
+                }
                 if (is_resource($read)) { fclose($read); }
 
                 // 4) Auto-Delete planen NACH Ablauf
@@ -128,6 +131,9 @@ class File extends Model
             throw new \RuntimeException("Quelle nicht lesbar: {$this->path}");
         }
         Storage::disk($publicDisk)->writeStream($tmpPath, $read);
+        if(Storage::disk($publicDisk)->exists($tmpPath) === false) {
+                    throw new \RuntimeException("Ziel nicht schreibbar: {$tmpPath}");
+                }
         if (is_resource($read)) { fclose($read); }
 
         DeleteTempFile::dispatch($publicDisk, $tmpPath)
