@@ -29,7 +29,7 @@ class File extends Model
     ];
 
     public function getIconOrThumbnailAttribute(): string
-    {
+    { 
         $mime = $this->mime_type ?? '';
 
         if (str_starts_with($mime, 'image/')) {
