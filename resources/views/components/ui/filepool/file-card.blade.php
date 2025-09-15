@@ -5,7 +5,7 @@
         @touchstart="isHovered = true"
         >
     <div class="transition group-hover:blur-sm">
-            <img src="{{ $file->icon_or_thumbnail }}" alt="{{ $file->name }}" class="w-full max:w-24 mx-auto aspect-square object-cover">
+            <img src="{{ $file->icon_or_thumbnail }}"  class="w-full max:w-24 mx-auto aspect-square object-cover">
     </div>
     <div class="p-2 space-y-2 bg-gray-100 transition group-hover:blur-sm"  >
         <div class="text-sm text-gray-800 truncate ">{{ $file->name }}</div>
