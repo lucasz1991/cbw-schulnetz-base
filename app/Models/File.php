@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Carbon;
 use App\Jobs\DeleteTempFile;
+use Illuminate\Support\Facades\Log;
+
 
 class File extends Model
 {
