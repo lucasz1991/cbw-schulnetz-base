@@ -57,7 +57,7 @@ class File extends Model
     public function getEphemeralPublicUrl(int $minutes = 10): string
     {
         $publicDisk = 'public';
-        $sourceDisk = $this->disk ?? 'private'; // falls du pro Datei 'disk' speicherst; sonst 'private'
+        $sourceDisk = 'private'; // falls du pro Datei 'disk' speicherst; sonst 'private'
         $cacheKey   = "file:{$this->getKey()}:temp_url";
 
         // 1) Cache lesen
