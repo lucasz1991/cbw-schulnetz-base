@@ -63,8 +63,8 @@ class ManageFilePools extends Component
 
         foreach ($this->fileUploads[$filePoolId] as $uploadedFile) {
             $filename = $uploadedFile->getClientOriginalName();
-            $path     = $uploadedFile->store('uploads/files', 'public');
-            $mime     = Storage::disk('public')->mimeType($path) ?? $uploadedFile->getClientMimeType();
+            $path     = $uploadedFile->store('uploads/files', 'private');
+            $mime     = Storage::disk('private')->mimeType($path) ?? $uploadedFile->getClientMimeType();
 
             $this->filePool->files()->create([
                 'name'       => $filename,
@@ -110,7 +110,7 @@ class ManageFilePools extends Component
     public function downloadFile(int $fileId): StreamedResponse
     {
         $file = File::findOrFail($fileId);
-        return Storage::disk('public')->download($file->path, $file->name);
+        return Storage::disk('private')->download($file->path, $file->name);
     }
 
 
@@ -147,7 +147,7 @@ class ManageFilePools extends Component
     public function deleteFile(int $fileId)
     {
         $file = File::findOrFail($fileId);
-        Storage::delete($file->path);
+        Storage::disk('private')->delete($file->path);
         $file->delete();
     }
 

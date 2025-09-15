@@ -33,7 +33,7 @@ class AdminStorageController extends Controller
             return response()->json(['error' => 'Dateityp nicht erlaubt.'], 422);
         }
         $folder = $request->input('folder', 'uploads/files');
-        $path = $request->file('file')->store($folder, 'public');
+        $path = $request->file('file')->store($folder, 'private');
             Log::info('Media gespeichert', ['path' => $path]);
         return response()->json([
             'url' => Storage::url($path),
@@ -51,8 +51,8 @@ class AdminStorageController extends Controller
         $request->validate([
             'path' => 'required|string',
         ]);
-        if (Storage::disk('public')->exists($request->path)) {
-            Storage::disk('public')->delete($request->path);
+        if (Storage::disk('private')->exists($request->path)) {
+            Storage::disk('private')->delete($request->path);
             return response()->json(['message' => 'Datei gelöscht.']);
         }
         return response()->json(['error' => 'Datei nicht gefunden.'], 404);

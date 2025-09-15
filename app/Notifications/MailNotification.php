@@ -57,8 +57,8 @@ class MailNotification extends Notification implements ShouldQueue
 
         // Anhänge aus der Relation anhängen
         foreach ($this->mail->files as $file) {
-            // Falls du keine 'disk'-Spalte hast, Standard 'public'
-            $disk = $file->disk ?? 'public';
+            // Falls du keine 'disk'-Spalte hast, Standard 'private'
+            $disk = $file->disk ?? 'private';
             $path = $file->path;
 
             // Prefer attachFromStorageDisk, fällt zurück auf attach bei Bedarf
