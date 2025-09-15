@@ -123,7 +123,7 @@ class File extends Model
         $tmpName = Str::uuid()->toString() . '-' . basename($this->path);
         $tmpPath = 'temp/' . $tmpName;
 
-        $read = Storage::disk($sourceDisk)->readStream($this->path) ?: Storage::disk('public')->readStream($this->path);
+        $read = Storage::disk($sourceDisk)->readStream($this->path);
         if (! $read) {
             throw new \RuntimeException("Quelle nicht lesbar: {$this->path}");
         }
