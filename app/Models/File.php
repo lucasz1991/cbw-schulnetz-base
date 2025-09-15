@@ -95,6 +95,7 @@ class File extends Model
                 }
                 Storage::disk($publicDisk)->writeStream($tmpPath, $read);
                 if(Storage::disk($publicDisk)->exists($tmpPath) === false) {
+                    Log::error("Fehler beim Schreiben der temporären Datei: {$tmpPath}");
                     throw new \RuntimeException("Ziel nicht schreibbar: {$tmpPath}");
                 }
                 if (is_resource($read)) { fclose($read); }
@@ -132,8 +133,9 @@ class File extends Model
         }
         Storage::disk($publicDisk)->writeStream($tmpPath, $read);
         if(Storage::disk($publicDisk)->exists($tmpPath) === false) {
-                    throw new \RuntimeException("Ziel nicht schreibbar: {$tmpPath}");
-                }
+            Log::error("Fehler beim Schreiben der temporären Datei: {$tmpPath}");
+            throw new \RuntimeException("Ziel nicht schreibbar: {$tmpPath}");
+        }
         if (is_resource($read)) { fclose($read); }
 
         DeleteTempFile::dispatch($publicDisk, $tmpPath)
