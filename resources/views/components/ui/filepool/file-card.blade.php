@@ -21,7 +21,7 @@
         @endif
     </div>
     <div class="absolute inset-0 flex items-center justify-center  flex-wrap  bg-white bg-opacity-65 rounded-lg " x-show="isHovered" x-collapse>
-        <a href="{{ $file->getEphemeralPublicUrl() }}" target="_blank" class="text-gray-600 hover:text-blue-600 underline text-sm bg-gray-300 rounded-full p-2  m-2 ">
+        <a href="{{ $file->getEphemeralPublicUrl(10) }}" target="_blank" class="text-gray-600 hover:text-blue-600 underline text-sm bg-gray-300 rounded-full p-2  m-2 ">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 aspect-square " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
         </a>
         <button wire:click="downloadFile({{ $file->id }})" class="text-gray-600 hover:text-blue-600 text-sm bg-gray-300 rounded-full p-2 m-2    ">
