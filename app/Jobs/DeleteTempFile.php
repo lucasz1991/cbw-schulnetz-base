@@ -8,6 +8,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class DeleteTempFile implements ShouldQueue
 {
@@ -33,6 +34,7 @@ class DeleteTempFile implements ShouldQueue
     {
         if (Storage::disk($this->disk)->exists($this->path)) {
             Storage::disk($this->disk)->delete($this->path);
+            Log::info("Temporäre Datei gelöscht: {$this->path}");
         }
     }
 }
