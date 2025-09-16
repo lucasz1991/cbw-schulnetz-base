@@ -422,7 +422,7 @@
               </div>
             </li>
           @empty
-            <li class="py-3 text-gray-500">Keine Bausteine vorhanden.</li>
+            <li class="p-5 text-gray-500">Keine Bausteine vorhanden.</li>
           @endforelse
         </ul>
       </div>
