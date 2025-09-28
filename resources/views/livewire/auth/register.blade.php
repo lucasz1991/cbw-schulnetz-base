@@ -6,7 +6,7 @@
         Hier finden Sie Infos zu Ihrem Qualiprogramm und Kontaktmöglichkeit zur CBW-Verwaltung
     </x-slot>
     <x-slot name="form">
-        <div class="mt-8 grid grid-cols-6 gap-6"> 
+        <div  class="mt-8 grid grid-cols-6 gap-6"  wire:loading.class="cursor-wait opacity-50 animate-pulse"> 
             <x-alert class="col-span-6 mb-4" type="info">
                 <h3 class="text-lg font-medium text-gray-900">Willkommen im CBW Schulnetz!</h3>
                 <p class="mt-2 text-sm text-gray-700">
@@ -65,7 +65,7 @@
                </div>
             <!-- Buttons -->
             <div class="col-span-6 sm:flex sm:items-center sm:gap-4">
-                <x-button wire:click="register"  wire:navigate >
+                <x-button wire:click="register"  wire:loading.class="cursor-progress pointer-events-none " wire:navigate >
                     Registrieren
                 </x-button>
                 <p class="mt-4 text-sm text-gray-500 sm:mt-0">

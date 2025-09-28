@@ -19,7 +19,7 @@ return new class extends Migration {
             $table->string('institut_id');
             $table->string('person_nr');
             $table->string('status')->nullable();
-            $table->date('upd_date')->nullable();
+            $table->dateTime('upd_date')->nullable();
             $table->string('nachname');
             $table->string('vorname');
             $table->string('geschlecht', 10)->nullable();
@@ -59,11 +59,11 @@ return new class extends Migration {
             $table->string('org_zeichen')->nullable();
             $table->string('personal_nr')->nullable();
             $table->string('kred_nr')->nullable();
-            $table->date('angestellt_von')->nullable();
-            $table->date('angestellt_bis')->nullable();
+            $table->dateTime('angestellt_von')->nullable();
+            $table->dateTime('angestellt_bis')->nullable();
             $table->string('leer')->nullable();
             $table->json('programdata')->nullable();
-
+            $table->json('statusdata')->nullable();
             $table->timestamp('last_api_update')->nullable();
             $table->timestamps(); // created_at & updated_at
         });

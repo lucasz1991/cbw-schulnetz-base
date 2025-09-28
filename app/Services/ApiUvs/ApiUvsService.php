@@ -34,12 +34,26 @@ class ApiUvsService
         return $this->request('GET', '/api/participants', [], ['mail' => $mail]);
     }
 
-
-
     /** Teilnehmer-Daten mit Qualiprogram-Daten holen */
     public function getParticipantAndQualiprogrambyId($id): array
     {
         return $this->request('GET', "/api/participants/{$id}/qualiprogram");
+    }
+
+    /** Person-Status holen (person_id = "{institut_id}-{person_nr}") */
+    public function getPersonStatus(string $personId): array
+    {
+        return $this->request('GET', '/api/person/status', [], [
+            'person_id' => $personId,
+        ]);
+    }
+
+    /** Tutor-Programm-Daten holen (person_id = "{institut_id}-{person_nr}") */
+    public function getTutorProgramDataByPersonId(string $personId): array
+    {
+        return $this->request('GET', '/api/tutorprogram/person', [], [
+            'person_id' => $personId,
+        ]);
     }
 
 

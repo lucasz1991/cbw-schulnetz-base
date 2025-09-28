@@ -6,7 +6,7 @@
       Hier finden Sie Infos zu Ihrem Qualiprogramm und Kontaktmöglichkeit zur CBW-Verwaltung
     </x-slot>
     <x-slot name="form">
-        <div  class="mt-8 ">
+        <div  wire:loading.class=" cursor-wait opacity-50 animate-pulse " class="mt-8 ">
             <x-alert class="col-span-6 mb-8" type="info">
                 <h3 class="text-lg font-medium text-gray-900">Willkommen im CBW Schulnetz!</h3>
                 <div class="mt-4 text-gray-600">

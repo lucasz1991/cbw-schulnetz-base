@@ -26,7 +26,6 @@ class ProgramShow extends Component
 
     public function render()
     {
-        // Kein State-Ändern hier!
         return view('livewire.user.program-show', [
             'user' => $this->userData,
             'data' => $this->teilnehmerDaten,

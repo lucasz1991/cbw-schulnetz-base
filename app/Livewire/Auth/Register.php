@@ -10,16 +10,18 @@ use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Illuminate\Validation\ValidationException;
 use App\Services\ApiUvs\ApiUvsService;
+use Illuminate\Support\Carbon;
 
 use Illuminate\Support\Facades\Password;
-use App\Notifications\CustomResetPasswordNotification;
+use App\Notifications\SetPasswordNotification;
 
 class Register extends Component
 {
     public $email, $username, $terms = false;
     public $message;
     public $messageType;
-    
+    protected ApiUvsService $apiService;
+    public $personStatus;
 
     public function register()
     {
@@ -59,7 +61,7 @@ class Register extends Component
 
                 if ($existingUser) {
                     // Bestehender unvollständiger Benutzer – Hinweis zur E-Mail-Aktivierung
-                    $existingUser->notify(new CustomResetPasswordNotification($existingUser, $this->generateResetToken($existingUser)));
+                    $existingUser->notify(new SetPasswordNotification($existingUser, $this->generateResetToken($existingUser)));
                     $this->dispatch(
                         'showAlert',
                         'Dein Konto wurde bereits erstellt, ist aber noch nicht aktiviert. Bitte prüfe deine E-Mails zur Aktivierung. Es wurde ein Link zum Setzen deines Passworts erneut gesendet.',
@@ -67,12 +69,27 @@ class Register extends Component
                     );
                 } else {
                     // Neuer Benutzer wird erstellt
+                    $this->apiService = app(ApiUvsService::class);
+                    $this->personStatus = $this->apiService->getPersonStatus($person->person_id) ?? null;
+                    if (! $this->personStatus) {
+                        throw ValidationException::withMessages([
+                            'email' => 'Es gab ein Problem beim Abrufen des Status der Person. Bitte versuchen Sie es später erneut oder kontaktieren Sie den Support.',
+                        ]);
+                    }
+                    if (! array_key_exists('data', $this->personStatus) || ! array_key_exists('data', $this->personStatus['data']) || ! array_key_exists('mitarbeiter_nr', $this->personStatus['data']['data'])) {
+                        throw ValidationException::withMessages([
+                            'email' => 'Der Status der Person ist ungültig. Bitte versuchen Sie es später erneut oder kontaktieren Sie den Support.',
+                        ]);
+                    }
+                    // Bestimme Rolle basierend auf personStatus
+                    $role = $this->personStatus['data']['data']['mitarbeiter_nr']  != null ? 'tutor' : 'guest';
+
                     $randomPassword = \Illuminate\Support\Str::random(12);
                     $newUser = User::create([
                         'name' => $this->username,
                         'email' => $person->email_priv,
                         'status' => 1,
-                        'role' => 'guest',
+                        'role' => $role,
                         'password' => bcrypt($randomPassword),
                     ]);
 
@@ -83,14 +100,14 @@ class Register extends Component
                         'institut_id' => $person->institut_id ?? null,
                         'person_nr' => $person->person_nr ?? null,
                         'status' => $person->status ?? null,
-                        'upd_date' => $person->upd_date ?? null,
+                        'upd_date' => Carbon::parse($person->upd_date ?? null)->toDateTimeString(),
                         'nachname' => $person->nachname ?? null,
                         'vorname' => $person->vorname ?? null,
                         'geschlecht' => $person->geschlecht ?? null,
                         'titel_kennz' => $person->titel_kennz ?? null,
                         'nationalitaet' => $person->nationalitaet ?? null,
                         'familien_stand' => $person->familien_stand ?? null,
-                        'geburt_datum' => $person->geburt_datum ?? null,
+                        'geburt_datum' => Carbon::parse($person->geburt_datum ?? null)->toDateString(),
                         'geburt_name' => $person->geburt_name ?? null,
                         'geburt_land' => $person->geburt_land ?? null,
                         'geburt_ort' => $person->geburt_ort ?? null,
@@ -123,13 +140,13 @@ class Register extends Component
                         'org_zeichen' => $person->org_zeichen ?? null,
                         'personal_nr' => $person->personal_nr ?? null,
                         'kred_nr' => $person->kred_nr ?? null,
-                        'angestellt_von' => $person->angestellt_von ?? null,
-                        'angestellt_bis' => $person->angestellt_bis ?? null,
+                        'angestellt_von' => Carbon::parse($person->angestellt_von ?? null)->toDateTimeString(),
+                        'angestellt_bis' => Carbon::parse($person->angestellt_bis ?? null)->toDateTimeString(),
                         'leer' => $person->leer ?? null,
                         'last_api_update' => now(),
                     ]);
 
-                    $newUser->notify(new CustomResetPasswordNotification($newUser, $this->generateResetToken($newUser)));
+                    $newUser->notify(new SetPasswordNotification($newUser, $this->generateResetToken($newUser)));
                     $this->dispatch(
                         'showAlert',
                         'Du hast dein Konto erfolgreich erstellt. Bitte prüfe deine E-Mails, um dein Passwort zu setzen und dein Konto zu aktivieren.',

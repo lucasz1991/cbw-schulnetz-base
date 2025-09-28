@@ -64,15 +64,17 @@ class Person extends Model
         'angestellt_bis',
         'leer',
         'programdata',
+        'statusdata',
         'last_api_update',
     ];
 
     protected $casts = [
-        'upd_date' => 'date',
+        'upd_date' => 'datetime',
         'geburt_datum' => 'date',
-        'angestellt_von' => 'date',
-        'angestellt_bis' => 'date',
+        'angestellt_von' => 'datetime',
+        'angestellt_bis' => 'datetime',
         'programdata' => 'array',
+        'statusdata' => 'array',
         'last_api_update' => 'datetime',
     ];
 
@@ -87,19 +89,50 @@ class Person extends Model
 
     public function apiupdate()
     {
-        $apiResponse = app(ApiUvsService::class)->getParticipantAndQualiprogrambyId($this->person_id);
-        if ($apiResponse['ok']) {
-            $data = $apiResponse['data'] ? $apiResponse['data'] : null;
-            $quali_data = !empty($data['quali_data']) ? $data['quali_data'] : null;
-        } else {
-            $quali_data = null;
+        $apiService = app(ApiUvsService::class);
+        $personStatus = $apiService->getPersonStatus($this->person_id) ?? null;
+        if (! $personStatus) {
+            Log::warning("Failed to fetch person status for person_id {$this->person_id }.");
         }
-        if ($quali_data) {
-            $this->programdata = $quali_data;
-            $this->last_api_update = now();
-            $this->save();
-        } else {
-            Log::warning("No Qualiprogram data found for person_id {$this->person_id }. API response: " . json_encode($apiResponse));
+        if (! array_key_exists('data', $personStatus) || ! array_key_exists('data', $personStatus['data'])) {
+            Log::warning("Invalid person status structure for person_id {$this->person_id }.");
+        }
+        // Bestimme Rolle basierend auf personStatus
+        $this->statusData = $personStatus['data']['data'] ?? null;
+
+        if($this->user && $this->user->role === 'guest') {
+            $apiResponse = app(ApiUvsService::class)->getParticipantAndQualiprogrambyId($this->person_id);
+            if ($apiResponse['ok']) {
+                $data = $apiResponse['data'] ? $apiResponse['data'] : null;
+                $quali_data = !empty($data['quali_data']) ? $data['quali_data'] : null;
+            } else {
+                $quali_data = null;
+            }
+            if ($quali_data) {
+                $this->programdata = $quali_data;
+            } else {
+                Log::warning("No Qualiprogram data found for person_id {$this->person_id }. API response: " . json_encode($apiResponse));
+            }
+        }else{
+            $apiResponse = app(ApiUvsService::class)->getTutorProgramDataByPersonId($this->person_id);
+            if ($apiResponse['ok']) {
+                $data = $apiResponse['data'] ? $apiResponse['data'] : null;
+                $program_data = !empty($data['program_data']) ? $data['program_data'] : null;
+            } else {
+                $program_data = null;
+            }
+            if ($program_data) {
+                $this->programdata = $program_data;
+            } else {
+                Log::warning("No Tutor program data found for person_id {$this->person_id }. API response: " . json_encode($apiResponse));
+            }
+        }
+        $this->last_api_update = now();
+        $this->save();
+
+        if (empty($this->person_id)) {
+            Log::warning("Cannot update Person API data: person_id is empty for Person ID {$this->id}");
+            return;
         }
     }
 
