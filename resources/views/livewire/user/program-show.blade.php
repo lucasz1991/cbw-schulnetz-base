@@ -414,7 +414,7 @@
                   <span class="px-2 py-1 text-xs font-medium rounded badge bg-gray-50 text-gray-500">Block {{ $b['block'] }} · Abschnitt {{ $b['abschnitt'] }}</span>
                 </div>
                 <div class="col-span-6 text-right">
-                  <span class="text-xs text-gray-500 w-max">{{ $b['beginn'] }}&nbsp;–&nbsp;{{ $b['ende'] }}</span>
+                  <span class="text-xs text-gray-500 w-max">{{ \Illuminate\Support\Carbon::parse($b['beginn'])->locale('de')->isoFormat('DD.MM.YYYY') }}&nbsp;–&nbsp;{{ \Illuminate\Support\Carbon::parse($b['ende'])->locale('de')->isoFormat('DD.MM.YYYY') }}</span>
                 </div>
               </div>
               <div class="absolute h-[70px] right-2 top-0 flex items-center opacity-0 translate-x-5 group-hover:opacity-100 group-hover:translate-x-0 transition-all  delay-50 duration-500 text-gray-500">
@@ -428,33 +428,36 @@
       </div>
 
       {{-- Aktueller Baustein --}}
-      <div class="bg-white shadow rounded-lg overflow-hidden border border-gray-300 grid  grid-flow-row auto-rows-max">
-        <h3 class="text-lg font-semibold bg-sky-100 p-5">Aktueller Baustein</h3>
-              <div class="p-5  border-t border-t-gray-300 place-self-stretch">
-                @if($aktuellesModul)
-                    <p class="font-medium text-gray-800">{{ $aktuellesModul['baustein'] }}</p>
-                    <p class="text-sm text-gray-600">{{ $aktuellesModul['beginn'] }} – {{ $aktuellesModul['ende'] }} · {{ $aktuellesModul['tage'] }} Tage</p>
-        
-                    {{-- Gesamt-Fortschritt über alle Bausteine --}}
-                    <div class="mt-2">
-                      <div class="w-full bg-gray-200 rounded-full h-3">
-                        <div class="bg-blue-600 h-3 rounded-full" style="width: {{ $progress }}%"></div>
-                      </div>
-                      <p class="text-sm text-gray-600 mt-1">Fortschritt: {{ $progress }}%</p>
-                    </div>
-                    <div>
-                      <button class="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg">Details</button>
-                    </div>
-                    @if($naechstesModul)
-                      <p class="text-sm text-gray-600">
-                        <strong>Nächster Baustein:</strong> {{ $naechstesModul['baustein'] }}
-                        <span class="text-xs text-gray-500">({{ $naechstesModul['beginn'] }} – {{ $naechstesModul['ende'] }})</span>
-                      </p>
-                    @endif
-                @else
-                  <p class="text-gray-500">Kein aktuelles Modul ermittelbar.</p>
-                @endif
+      <div class="bg-white shadow rounded-lg overflow-hidden border border-gray-300 grid grid-rows-[auto_1fr]">
+        <h3 class="text-lg font-semibold bg-sky-100 p-5 h-max border-b border-gray-300">Aktueller Baustein</h3>
+        <div class="p-5  flex flex-col justify-between place-self-stretch">
+          {{-- Aktuelles Modul --}}
+          @if($aktuellesModul)
+              <p class="font-medium text-gray-800">{{ $aktuellesModul['baustein'] }}</p>
+<p class="text-sm text-gray-600">
+    {{ \Illuminate\Support\Carbon::parse($aktuellesModul['beginn'])->locale('de')->isoFormat('DD.MM.YYYY') }}
+    –
+    {{ \Illuminate\Support\Carbon::parse($aktuellesModul['ende'])->locale('de')->isoFormat('DD.MM.YYYY') }}
+    · {{ $aktuellesModul['tage'] }} Tage
+</p>
+  
+              {{-- Gesamt-Fortschritt über alle Bausteine --}}
+              <div class="mt-2">
+                <div class="w-full bg-gray-200 rounded-full h-3">
+                  <div class="bg-blue-600 h-3 rounded-full" style="width: {{ $progress }}%"></div>
+                </div>
+                <p class="text-sm text-gray-600 mt-1">Fortschritt: {{ $progress }}%</p>
               </div>
+              <div>
+                <x-button class="">
+                  Details
+                  <svg xmlns="http://www.w3.org/2000/svg"  class="h-4   ml-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                </x-button>
+              </div>
+          @else
+            <p class="text-gray-500">Kein aktuelles Modul ermittelbar.</p>
+          @endif
+        </div>
       </div>
     </div>
 
