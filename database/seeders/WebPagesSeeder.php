@@ -19,7 +19,6 @@ class WebPagesSeeder extends Seeder
             ['id' => 3, 'title' => 'Register', 'slug' => 'register'],
             ['id' => 4, 'title' => 'Passwort zurücksetzen', 'slug' => 'passwordreset'],
             ['id' => 5, 'title' => '404 - Seite nicht gefunden', 'slug' => '404'],
-            
             ['id' => 6, 'title' => 'Kontakt', 'slug' => 'contact'],
             ['id' => 7, 'title' => 'FAQs', 'slug' => 'faqs'],
             ['id' => 8, 'title' => 'So funktionierts', 'slug' => 'howto'],
@@ -27,7 +26,6 @@ class WebPagesSeeder extends Seeder
             ['id' => 11, 'title' => 'Konto', 'slug' => 'dashboard'],
             ['id' => 12, 'title' => 'Fehlzeiten', 'slug' => 'absences-create'],
             ['id' => 13, 'title' => 'Nachprüfung', 'slug' => 'makeup-exam-create'],
-
         ];
 
         foreach ($fixedPages as $pageData) {

@@ -19,6 +19,8 @@
         "paypal/paypal-server-sdk": "^0.6.1",
         "picqer/php-barcode-generator": "^2.4",
         "plesk/ext-laravel-integration": "^7.0",
+        "setasign/fpdf": "^1.8",
+        "setasign/fpdi": "^2.6",
         "spatie/laravel-activitylog": "^4.9"
     },
     "require-dev": {
