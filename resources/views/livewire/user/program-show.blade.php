@@ -348,19 +348,31 @@
                     </p>
                     <x-buttons.button-basic :size="'sm'" :mode="'primary'" @click="$dispatch('open-program-pdf');isClicked = true; setTimeout(() => isClicked = false, 100)" class="w-full">
                       Programm als PDF
-                    </x-button-basic>
+                    </x-buttons.button-basic>
                   </div>
                 </div>
 
                 <div class="swiper-slide">
                   <div class="h-full w-full">
                     <h3 class="text-gray-800 font-semibold mb-1">Fehlzeiten</h3>
+                    <p class="text-xs text-gray-600 mb-2">
+                      Übersicht über deine Fehlzeiten im Programm.
+                    </p>
+                    <x-buttons.button-basic :size="'sm'" :mode="'primary'" @click="$dispatch('open-program-attendance');isClicked = true; setTimeout(() => isClicked = false, 100)" class="w-full">
+                      Fehlzeiten anzeigen
+                    </x-buttons.button-basic>
                   </div>
                 </div>
 
                 <div class="swiper-slide">
                   <div class="h-full w-full">
                     <h3 class="text-gray-800 font-semibold mb-1">Kurs Bewerten</h3>
+                    <p class="text-xs text-gray-600 mb-2">
+                      Teile uns dein Feedback zum Kurs mit.
+                    </p>
+                    <x-buttons.button-basic :size="'sm'" :mode="'primary'" @click="$dispatch('open-program-feedback');isClicked = true; setTimeout(() => isClicked = false, 100)" class="w-full">
+                      Kurs bewerten
+                    </x-buttons.button-basic>
                   </div>
                 </div>
 
