@@ -353,7 +353,7 @@
                 </div>
 
                 <div class="swiper-slide">
-                  <div class="h-full w-full">
+                  <div class="grid h-full grid-cols-1 place-content-stretch">
                     <h3 class="text-gray-800 font-semibold mb-1">Fehlzeiten</h3>
                     <p class="text-xs text-gray-600 mb-2">
                       Übersicht über deine Fehlzeiten im Programm.
@@ -365,7 +365,7 @@
                 </div>
 
                 <div class="swiper-slide">
-                  <div class="h-full w-full">
+                  <div class="grid h-full grid-cols-1 place-content-stretch">
                     <h3 class="text-gray-800 font-semibold mb-1">Kurs Bewerten</h3>
                     <p class="text-xs text-gray-600 mb-2">
                       Teile uns dein Feedback zum Kurs mit.
