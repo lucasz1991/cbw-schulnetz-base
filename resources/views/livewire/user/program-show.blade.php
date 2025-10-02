@@ -337,9 +337,6 @@
           }"
           x-init="$nextTick(() => initSwiper())"
         >
-          {{-- Livewire Modals / Components --}}
-          
-
           <div class="relative h-full pb-2">
             <div class="swiper h-full" x-ref="swiper">
               <div class="swiper-wrapper h-full">
