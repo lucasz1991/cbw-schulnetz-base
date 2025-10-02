@@ -357,13 +357,13 @@
 
                 <div class="swiper-slide">
                   <div class="h-full w-full">
-                    <h3 class="text-white font-semibold mb-1">Nächstes Modul</h3>
+                    <h3 class="text-gray-800 font-semibold mb-1">Fehlzeiten</h3>
                   </div>
                 </div>
 
                 <div class="swiper-slide">
                   <div class="h-full w-full">
-                    <h3 class="text-white font-semibold mb-1">Nächstes Modul</h3>
+                    <h3 class="text-gray-800 font-semibold mb-1">Kurs Bewerten</h3>
                   </div>
                 </div>
 
