@@ -2,7 +2,7 @@
 @php
 
 $modeClasses = match ($mode) {
-    'primary' => ' text-white bg-blue-500 hover:bg-blue-600 focus:ring-blue-300 border-blue-600',  
+    'primary' => ' text-white bg-blue-500 hover:bg-blue-600  border-blue-600',  
     'secondary' => ' text-gray-700 bg-gray-200 hover:bg-gray-300 focus:ring-gray-400 border-gray-300',
     'danger' => ' text-white bg-red-600 hover:bg-red-700 focus:ring-red-300 border-red-600',
     'success' => ' text-white bg-green-600 hover:bg-green-700 focus:ring-green-300 border-green-600',
@@ -23,7 +23,7 @@ $sizeClasses = match ($size) {
 };
 
  $classes = $modeClasses . ' ' . $sizeClasses;
- $classes .=  ' transition-all duration-100 inline-flex items-center justify-center text-center border rounded-lg focus:ring-4 ';
+ $classes .=  ' transition-all duration-100 inline-flex items-center justify-center text-center border rounded-lg  ';
 
 @endphp
 

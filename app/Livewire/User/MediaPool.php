@@ -6,12 +6,10 @@ use Livewire\Component;
 
 class MediaPool extends Component
 {
-
     public function mount()
     {
       
     }
-
 
     public function render()
     {

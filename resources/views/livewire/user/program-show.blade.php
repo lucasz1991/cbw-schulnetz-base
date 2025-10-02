@@ -1,4 +1,5 @@
 <div wire:loading.class="cursor-wait opacity-50 animate-pulse" class="transition">
+  <livewire:user.program.program-pdf-modal />
   <section class="relative space-y-6">
   @php
     // ----- Rohdaten (direkt aus deinem JSON) -----
@@ -136,7 +137,6 @@
                             <span class="text-gray-700 ">Bausteine</span>
                             <h4 class="my-2 font-medium text-gray-800 text-21 ">
                                 <span class="counter-value" data-target="{{ $anzahlBausteine }}">{{ $anzahlBausteine }}</span>
-                                
                             </h4>
                             <div class="flex items-center space-x-2 mt-1  pb-2 ">
                               <span
@@ -166,7 +166,6 @@
                                     };
                                     this.chart = new ApexCharts(this.$el, options);
                                     this.chart.render();
-
                                     }
                                 }"
                                 class="apex-charts flex justify-end items-center"
@@ -176,9 +175,7 @@
                     </div>
                 </div>
             </div>
-
         </div>
-      
         <div class="bg-white shadow rounded-lg p-5 text-left col-span-1 max-md:order-1">
           <p class=" text-gray-700">Endergebnis&nbsp;Ø</p>
             <div
@@ -192,10 +189,7 @@
                 trackBg: '#f3f4f6',
                 dashed: true,
                 gradient: ['red','green'],
-
-
                 init() {
-
                 var options = {
                     chart: {
                         height: 140,
@@ -236,7 +230,6 @@
                     series: [85],
                     labels: ['Series A'],
                 };
-
                 // Render (wie bei dir, mit ID-Selector)
                 this.chart = new ApexCharts(
                     document.querySelector('#invested-overview'),
@@ -244,21 +237,16 @@
                 );
                 this.chart.render();
                 // ================================================
-
                 // Cleanup ohne Einfluss auf Darstellung
                 this.$el.addEventListener('alpine:destroy', () => { this.chart?.destroy(); });
                 }
             }"
-
             id="invested-overview"
             class="apex-charts max-h-28 md:max-h-24 !min-h-10 overflow-hidden"
             wire:ignore
             ></div>
-
-
                     </div>
                     <div class="bg-white shadow rounded-lg p-5 text-left col-span-1 max-md:order-2">
-                     
                     <p class="text-gray-700">Fortschritt</p>
                     <div
             x-data="{
@@ -323,14 +311,67 @@
             ></div>
 
         </div>
-        <div class="bg-primary shadow rounded-lg p-5 text-left col-span-1 max-md:order-2">
-                      <livewire:user.program.program-pdf-modal />
+        <div
+          class="bg-white shadow rounded-lg p-5 text-left col-span-1 max-md:order-2"
+          x-data="{
+            initSwiper() {
+              const el = this.$refs.swiper
+              const opts = {
+                slidesPerView: 1,
+                spaceBetween: 12,
+                loop: true,
+                autoHeight: false,
+                keyboard: { enabled: true },
+                pagination: { el: '.swiper-pagination', clickable: true },
+              }
+              const boot = () => new Swiper(el, opts)
+              // Swiper ist von CDN geladen? -> sofort starten, sonst nach window load
+              if (window.Swiper) {
+                boot()
+              } else {
+                window.addEventListener('load', () => {
+                  if (window.Swiper) boot()
+                }, { once: true })
+              }
+            }
+          }"
+          x-init="$nextTick(() => initSwiper())"
+        >
+          {{-- Livewire Modals / Components --}}
+          
 
-                      <x-button x-data @click="$dispatch('open-program-pdf')">
-                          Programm als PDF
-                      </x-button>
-                    
+          <div class="relative h-full pb-2">
+            <div class="swiper h-full" x-ref="swiper">
+              <div class="swiper-wrapper h-full">
+                <div class="swiper-slide">
+                  <div class="grid h-full grid-cols-1 place-content-stretch">
+                    <h3 class="text-gray-800 font-semibold mb-1">Programm als PDF</h3>
+                    <p class="text-xs text-gray-600 mb-2">
+                      Lade dein aktuelles Qualifizierungsprogramm als PDF herunter.
+                    </p>
+                    <x-buttons.button-basic :size="'sm'" :mode="'primary'" @click="$dispatch('open-program-pdf');isClicked = true; setTimeout(() => isClicked = false, 100)" class="w-full">
+                      Programm als PDF
+                    </x-button-basic>
+                  </div>
+                </div>
 
+                <div class="swiper-slide">
+                  <div class="h-full w-full">
+                    <h3 class="text-white font-semibold mb-1">Nächstes Modul</h3>
+                  </div>
+                </div>
+
+                <div class="swiper-slide">
+                  <div class="h-full w-full">
+                    <h3 class="text-white font-semibold mb-1">Nächstes Modul</h3>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+            <!-- If we need pagination -->
+            <div class="swiper-pagination !-bottom-4"></div>
+          </div>
         </div>
       </div>
     </div>
