@@ -6,64 +6,67 @@ use Illuminate\View\Component;
 use App\Models\PagebuilderProject;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Request;
+use App\Services\WebPages\CurrentPageService;
 
 class PagebuilderModule extends Component
 {
-    public $page;
-    public $position;
+    public string $page;        // "primärer" Slug (Top-Kandidat)
+    public string $position;
     public $modules;
 
-    public function __construct($page = null, $position = 'page')    
-    {
-        if(!$page){
-            $segments = explode('/', Request::path());
-                $page = end($segments);
-                if ($page === '') {
-                    $page = 'start';
-                } else {
-                    $lastSegment = end($segments);
-                    if (is_numeric($lastSegment) || strlen($lastSegment) > 25) {
-                        $page = $segments[count($segments) - 2] ?? 'start';
-                    }
-                }
-        }
-        $this->page = $page;
-
+    public function __construct(
+        CurrentPageService $currentPage,
+        ?string $page = null,
+        string $position = 'page'
+    ) {
         $this->position = $position;
 
-        // Aktuelles Datum/Zeit für die Prüfung
+        // Kandidaten aus explizitem $page (falls gesetzt) ODER aus Request
+        $candidates = $currentPage->candidates(null, $page);
+        $this->page = $candidates[0] ?? 'start';
+
         $now = Carbon::now();
+        $locale = app()->getLocale();
 
-        // Cache-Schlüssel generieren
-        $cacheKey = "pagebuilder_modules_{$page}_{$position}_" . app()->getLocale();
+        // Cache-Key inkl. Kandidaten (damit Query & Cache konsistent sind)
+        $cacheKey = sprintf(
+            'pagebuilder_modules_%s_%s_%s',
+            sha1(implode('|', $candidates)),
+            $position,
+            $locale
+        );
 
-        $this->modules = Cache::remember($cacheKey, 60, function () use ($page, $position, $now) {
-            return PagebuilderProject::where(function ($query) use ($page) {
-                        $query->whereJsonContains('page', $page) 
-                              ->orWhereJsonContains('page', 'all'); // Sucht nach "all" innerhalb des JSON-Arrays
-                    })
-                    ->whereJsonContains('position', $position)
-                    ->whereIn('status', [1, 3])
-                    ->where(function ($query) use ($now) {
-                        $query->whereNull('published_from')->orWhere('published_from', '<=', $now);
-                    })
-                    ->where(function ($query) use ($now) {
-                        $query->whereNull('published_until')->orWhere('published_until', '>=', $now);
-                    })
-                    ->where(function ($query) {
-                        $query->where('lang', app()->getLocale()) // Prüft auf die aktuelle Sprache
-                            ->orWhereNull('lang') // Optional: Erlaubt Module ohne Sprache
-                            ->orWhere('lang', '');
-                    })
-                    ->orderBy('order_id', 'asc') // Falls du eine Reihenfolge hast
-                    ->get();
+        $this->modules = Cache::remember($cacheKey, 60, function () use ($candidates, $position, $now, $locale) {
+            return PagebuilderProject::query()
+                // Position (JSON enthält den String)
+                ->whereJsonContains('position', $position)
+                // Status
+                ->whereIn('status', [1, 3])
+                // Veröffentlichungsfenster
+                ->where(function ($q) use ($now) {
+                    $q->whereNull('published_from')->orWhere('published_from', '<=', $now);
+                })
+                ->where(function ($q) use ($now) {
+                    $q->whereNull('published_until')->orWhere('published_until', '>=', $now);
+                })
+                // Sprache
+                ->where(function ($q) use ($locale) {
+                    $q->where('lang', $locale)
+                      ->orWhereNull('lang')
+                      ->orWhere('lang', '');
+                })
+                // Seite: irgendein Kandidat ODER "all"
+                ->where(function ($q) use ($candidates) {
+                    $q->whereJsonContains('page', 'all');
+                    foreach ($candidates as $slug) {
+                        $q->orWhereJsonContains('page', $slug);
+                    }
+                })
+                ->orderBy('order_id', 'asc')
+                ->get();
         });
     }
 
-    /**
-     * Gibt die Blade-View zurück.
-     */
     public function render()
     {
         return view('components.pagebuilder-module');

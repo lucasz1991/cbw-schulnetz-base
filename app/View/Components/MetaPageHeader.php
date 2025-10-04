@@ -5,6 +5,7 @@ namespace App\View\Components;
 use Illuminate\View\Component;
 use Illuminate\Support\Facades\Request;
 use App\Models\WebPage;
+use App\Services\WebPages\CurrentPageService;
 
 class MetaPageHeader extends Component
 {
@@ -24,13 +25,7 @@ class MetaPageHeader extends Component
 
     public function __construct()
     {
-        $currentSlug = trim(Request::path(), '/') ?: 'start';
-        if (strlen($currentSlug) > 25 || is_numeric($currentSlug)) {
-            $segments = explode('/', Request::path());
-            $currentSlug = $segments[count($segments) - 2] ?? 'start';
-        }
-        // Versuchen, eine passende WebPage aus der Datenbank zu laden
-        $webPage = WebPage::where('slug', $currentSlug)->first();
+        $webPage = app(CurrentPageService::class)->findWebPage();
 
         // Prüfen, ob eine passende WebPage existiert
         $this->isWebPage = $webPage !== null;

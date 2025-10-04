@@ -7,6 +7,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\View\Component;
 use Illuminate\Support\Facades\Request;
 use App\Models\WebPage;
+use App\Services\WebPages\CurrentPageService;
 
 class PageHeader extends Component
 {
@@ -22,17 +23,7 @@ class PageHeader extends Component
      */
     public function __construct()
     {
-        $segments = explode('/', Request::path());
-            $this->page = end($segments);
-            if ($this->page === '') {
-                $this->page = 'start';
-            } else {
-                $lastSegment = end($segments);
-                if (is_numeric($lastSegment) || strlen($lastSegment) > 25) {
-                    $this->page = $segments[count($segments) - 2] ?? 'start';
-                }
-            }
-        $webPage = WebPage::where('slug', $this->page)->first();
+        $webPage = app(CurrentPageService::class)->findWebPage();
         $this->isWebPage = $webPage !== null;
         if ($webPage) {
             // Falls eine WebPage existiert, verwende deren Daten, ansonsten Standardwerte
