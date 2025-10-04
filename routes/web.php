@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Livewire\Dashboard;
 use App\Livewire\Tutor\TutorDashboard;
 use App\Livewire\Tutor\CourseList;
-use App\Livewire\Tutor\Courses\CourseShow;
+use App\Livewire\Tutor\Courses\CourseShow as TutorCourseShow;
 use App\Livewire\Tutor\Participants\Show as ParticipantShow;
 
 
@@ -35,6 +35,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use App\Livewire\User\Absences;
 use App\Livewire\User\MakeupExamRegistration;
+use App\Livewire\User\Program\Course\CourseShow as GuestCourseShow;
 
 
 
@@ -82,12 +83,14 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/faqs', Faqs::class)->name('faqs');
         Route::get('/absences-create', Absences::class)->name('user.absences.create');
         Route::get('/makeup-exam-create', MakeupExamRegistration::class)->name('user.makeup-exam.create');
+        Route::get('/program/course/{courseId}', GuestCourseShow::class)->name('user.program.course.show');
+
     });
     // Tutor Routes
     Route::middleware(['role:tutor'])->prefix('tutor')->group(function () {
         Route::get('/dashboard', TutorDashboard::class)->name('dashboard');
         Route::get('/tutor-courses', CourseList::class)->name('tutor.courses');
-        Route::get('/tutor-course/{courseId}', CourseShow::class)->name('tutor.courses.show');
+        Route::get('/tutor-course/{courseId}', TutorCourseShow::class)->name('tutor.courses.show');
         Route::get('/messages', MessageBox::class)->name('tutor.messages');
         Route::get('/participants/{participant}', ParticipantShow::class)->name('tutor.participants.show');
     });

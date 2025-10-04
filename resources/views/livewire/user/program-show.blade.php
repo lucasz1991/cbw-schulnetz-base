@@ -21,6 +21,7 @@
     $bausteine = collect($raw['tn_baust'] ?? [])
         ->map(function ($b) use ($num) {
             return [
+                'baustein_id'       => $b['baustein_id'] ?? null,
                 'block'    => null, // nicht vorhanden in Rohdaten
                 'abschnitt'=> null, // nicht vorhanden in Rohdaten
                 'beginn'   => $b['beginn_baustein'] ?? null,
@@ -439,13 +440,12 @@
           {{-- Aktuelles Modul --}}
           @if($aktuellesModul)
               <p class="font-medium text-gray-800">{{ $aktuellesModul['baustein'] }}</p>
-<p class="text-sm text-gray-600">
-    {{ \Illuminate\Support\Carbon::parse($aktuellesModul['beginn'])->locale('de')->isoFormat('DD.MM.YYYY') }}
-    –
-    {{ \Illuminate\Support\Carbon::parse($aktuellesModul['ende'])->locale('de')->isoFormat('DD.MM.YYYY') }}
-    · {{ $aktuellesModul['tage'] }} Tage
-</p>
-  
+              <p class="text-sm text-gray-600">
+                  {{ \Illuminate\Support\Carbon::parse($aktuellesModul['beginn'])->locale('de')->isoFormat('DD.MM.YYYY') }}
+                  –
+                  {{ \Illuminate\Support\Carbon::parse($aktuellesModul['ende'])->locale('de')->isoFormat('DD.MM.YYYY') }}
+                  · {{ $aktuellesModul['tage'] }} Tage
+              </p>
               {{-- Gesamt-Fortschritt über alle Bausteine --}}
               <div class="mt-2">
                 <div class="w-full bg-gray-200 rounded-full h-3">
@@ -454,10 +454,10 @@
                 <p class="text-sm text-gray-600 mt-1">Fortschritt: {{ $progress }}%</p>
               </div>
               <div>
-                <x-button class="">
+                <x-buttons.button-basic href="{{ route('user.program.course.show', $aktuellesModul['baustein_id']) }}" class="">
                   Details
                   <svg xmlns="http://www.w3.org/2000/svg"  class="h-4   ml-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
-                </x-button>
+                </x-buttons.button-basic>
               </div>
           @else
             <p class="text-gray-500">Kein aktuelles Modul ermittelbar.</p>
