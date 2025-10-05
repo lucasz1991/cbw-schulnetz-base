@@ -60,8 +60,9 @@
                          </div>
                     @endif
                          <div class="flex-none flex items-center h-full py-2 max-md:order-1" @click="$dispatch('navhide')">
-                             <a href="{{ \App\Providers\RouteServiceProvider::home() }}" wire:navigate   class="h-full flex items-center max-sm:max-w-[120px]">
-                                 <x-application-mark />
+                             <a href="{{ \App\Providers\RouteServiceProvider::home() }}" wire:navigate   class="h-full flex items-center max-sm:max-w-[160px]">
+                                 <x-logo.site-logo-horizontal  />
+
                              </a>
                          </div>
                          <div class="flex items-center space-x-4 max-md:order-3 md:order-2  flex-none" @click="$dispatch('navhide')">
