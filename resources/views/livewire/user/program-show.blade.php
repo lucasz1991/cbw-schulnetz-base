@@ -283,7 +283,8 @@
                   $statusClass = 'text-blue-600 bg-blue-50';
               }
             @endphp
-            <li class="relative h-[70px] py-3 px-4 even:bg-white odd:bg-gray-100 hover:bg-blue-100 cursor-pointer hover:pr-[45px] transition-all  delay-50 duration-500 group snap-start ">
+            <li  class="relative h-[70px] py-3 px-4 even:bg-white odd:bg-gray-100 hover:bg-blue-100  hover:pr-[45px] transition-all  delay-50 duration-500 group snap-start ">
+
               <div class="grid grid-cols-12 gap-1 ">
                 <div class="col-span-8 font-medium text-gray-800">
                   <div class="truncate ">{{ $b['baustein'] }}</div>
@@ -301,7 +302,9 @@
                 </div>
               </div>
               <div class="absolute h-[70px] right-2 top-0 flex items-center opacity-0 translate-x-5 group-hover:opacity-100 group-hover:translate-x-0 transition-all  delay-50 duration-500 text-gray-500">
+              <a href="{{ route('user.program.course.show', $aktuellesModul['baustein_id']) }}" wire:navigate>
                 <svg xmlns="http://www.w3.org/2000/svg"  class="h-6   mr-1 max-md:mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+              </a>
               </div>
             </li>
           @empty
