@@ -31,6 +31,9 @@ class ProgramShow extends Component
     public function mount(): void
     {
         $this->userData = Auth::user();
+        if (! $this->userData?->person?->last_api_update || $this->userData?->person?->last_api_update->lt(now()->subHours(1))) {
+            $this->userData?->person?->apiupdate();
+        }
         $this->raw = $this->userData?->person?->programdata ?? [];
 
         $this->buildViewModelFromRaw($this->raw);

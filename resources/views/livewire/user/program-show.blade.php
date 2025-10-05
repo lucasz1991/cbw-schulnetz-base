@@ -1,10 +1,6 @@
 <div wire:loading.class="cursor-wait opacity-50 animate-pulse" class="transition">
   <livewire:user.program.program-pdf-modal />
   <section class="relative space-y-6">
-
-
-
-
     <div class="mt-4">
       <div class="grid grid-cols-2 md:grid-cols-4 gap-6 ">
         <div class="bg-white shadow rounded-lg text-center col-span-2 md:col-span-1 max-md:order-3">
@@ -22,7 +18,7 @@
                               <span class="ml-1.5 text-gray-700 text-[11px]">bestanden</span>
                           </div>
                         </div>
-                        <div class="absolute inset-y-0  right-1 left-10 flex justify-end  items-center h-full">
+                        <div class="absolute inset-y-0  right-1 left-10 flex justify-end  items-center h-full" >
                             <div
                                 x-data="{
                                     chart: null,
@@ -34,20 +30,23 @@
                                         series: [{ data: this.series }],
                                         chart: { type: 'bar', height: 60, width: 120, sparkline: { enabled: true } },
                                         colors: this.colors.map(this.pickColor),
-                                        stroke: { curve: 'smooth', width: 2 },
+                                        stroke: { curve: 'smooth', width: 2, colors: ['#2563eb'] },
                                         tooltip: {
-                                        fixed: { enabled: false },
+                                        fixed: { enabled: true, position: 'topRight', offsetY: 30, offsetX: 0 },
                                         x: { title: { formatter: () => 'Baustein' } },
                                         y: { title: { formatter: () => 'Punkte' } },
                                         marker: { show: true }
                                         }
                                     };
+                                    if (this.chart) { this.chart.destroy(); this.chart = null; }
                                     this.chart = new ApexCharts(this.$el, options);
                                     this.chart.render();
                                     }
                                 }"
-                                class="apex-charts flex justify-end items-center"
+                                x-init="init()"
                                 wire:ignore
+                                class="apex-charts flex justify-end items-center"
+                                
                                 ></div>
                         </div>
                     </div>
@@ -108,6 +107,8 @@
                     series: [85],
                     labels: ['Series A'],
                 };
+                // Cleanup (wie bei dir, ohne Einfluss auf Darstellung)
+                if (this.chart) { this.chart.destroy(); this.chart = null; }
                 // Render (wie bei dir, mit ID-Selector)
                 this.chart = new ApexCharts(
                     document.querySelector('#invested-overview'),
@@ -121,6 +122,7 @@
             }"
             id="invested-overview"
             class="apex-charts max-h-28 md:max-h-24 !min-h-10 overflow-hidden"
+            x-init="init()"
             wire:ignore
             ></div>
                     </div>
@@ -171,7 +173,8 @@
                     },
                     stroke: { lineCap: 'round' }
                 };
-
+                // Cleanup (wie bei dir, ohne Einfluss auf Darstellung)
+                if (this.chart) { this.chart.destroy(); this.chart = null; }
                 this.chart = new ApexCharts(
                     document.querySelector('#overall-progress'),
                     overallOptions
@@ -183,7 +186,7 @@
                 this.$el.addEventListener('alpine:destroy', () => { this.chart?.destroy(); });
                 }
             }"
-
+            x-init="init()"
             id="overall-progress"
             class="apex-charts   max-h-28 md:max-h-24 !min-h-10 overflow-hidden"
             ></div>
