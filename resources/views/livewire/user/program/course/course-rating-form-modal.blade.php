@@ -45,7 +45,7 @@
 
                 @if($currentStep === 1)
                 {{-- Anonym-Checkbox (global) --}}
-                <label class="inline-flex items-center space-x-2 my-6">
+                <label class="inline-flex items-center space-x-2 mt-6">
                     <input type="checkbox" wire:model="is_anonymous" class="rounded border-gray-300">
                     <span>Ich möchte anonym bewerten (ohne Personen-Daten).</span>
                 </label>
@@ -80,7 +80,7 @@
 
                 {{-- Schritte 1-4: Bewertungsblöcke --}}
                 @foreach($blocks as $idx => $block)
-                    <div x-show="step === {{ $idx }}" x-collapse class="rounded-lg border overflow-hidden">
+                    <div x-show="step === {{ $idx }}" x-collapse class="rounded-lg border overflow-hidden  mt-6">
                         <div class="bg-gray-100 px-4 py-2 font-semibold">{{ $block['title'] }}</div>
                         <div class="divide-y">
                             @foreach($block['rows'] as $fieldName => $label)
