@@ -1,5 +1,7 @@
 <div wire:loading.class="cursor-wait opacity-50 animate-pulse" class="transition">
   <livewire:user.program.program-pdf-modal />
+  <livewire:user.program.course.course-rating-form-modal />
+
   <section class="relative space-y-6">
     <div class="mt-4">
       <div class="grid grid-cols-2 md:grid-cols-4 gap-6 ">
@@ -245,17 +247,7 @@
                   </div>
                 </div>
 
-                <div class="swiper-slide">
-                  <div class="grid h-full grid-cols-1 place-content-stretch">
-                    <h3 class="text-gray-800 font-semibold mb-1">Kurs Bewerten</h3>
-                    <p class="text-xs text-gray-600 mb-2">
-                      Teile uns dein Feedback zum Kurs mit.
-                    </p>
-                    <x-buttons.button-basic :size="'sm'" :mode="'primary'" @click="$dispatch('open-program-feedback');isClicked = true; setTimeout(() => isClicked = false, 100)" class="w-full">
-                      Kurs bewerten
-                    </x-buttons.button-basic>
-                  </div>
-                </div>
+
 
               </div>
             </div>
@@ -317,8 +309,27 @@
       </div>
 
       {{-- Aktueller Baustein --}}
-      <div class="bg-white shadow rounded-lg overflow-hidden border border-gray-300 grid grid-rows-[auto_1fr]">
-        <h3 class="text-lg font-semibold bg-sky-100 p-5 h-max border-b border-gray-300">Aktueller Baustein</h3>
+      <div class="bg-white shadow rounded-lg  border border-gray-300 grid grid-rows-[auto_1fr]">
+        <div class="p-5 h-max bg-sky-100 border-b border-gray-300 relative">
+          <h3 class="text-lg font-semibold ">Aktueller Baustein</h3>
+          <div class="absolute top-1 right-1 text-gray-500">
+            <button
+              x-data="{ tooltip: false }"
+              @mouseenter="tooltip = true"
+              @mouseleave="tooltip = false"
+              class="relative p-1 rounded-full hover:bg-gray-200 transition"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg"  class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              <div
+                x-show="tooltip"
+                x-transition
+                class="absolute z-10 w-48 p-2 text-xs text-white bg-gray-800 rounded-lg shadow-lg -top-12 right-1/2 transform translate-x-1/2 whitespace-normal"
+                style="display: none;"
+              >
+                Hier findest du Informationen zu deinem aktuellen Baustein, inklusive Zeitraum und Fortschritt. Klicke auf "Details", um mehr zu erfahren.
+              </div>
+          </div>
+        </div>
         <div class="p-5  flex flex-col justify-between place-self-stretch">
           {{-- Aktuelles Modul --}}
           @if($aktuellesModul)
@@ -337,10 +348,16 @@
                 <p class="text-sm text-gray-600 mt-1">Fortschritt: {{ $progress }}%</p>
               </div>
               <div>
-                <x-buttons.button-basic href="{{ route('user.program.course.show', $aktuellesModul['baustein_id']) }}" class="">
-                  Details
-                  <svg xmlns="http://www.w3.org/2000/svg"  class="h-4   ml-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
-                </x-buttons.button-basic>
+                <div class="flex items-center justify-between ">
+                  <x-buttons.button-basic :size="'sm'" href="{{ route('user.program.course.show', $aktuellesModul['baustein_id']) }}" class="">
+                    Details
+                    <svg xmlns="http://www.w3.org/2000/svg"  class="h-4   ml-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                  </x-buttons.button-basic>
+                  <x-buttons.button-basic :size="'sm'" @click="$dispatch('open-course-rating-modal', { course_id: '{{ $aktuellesModul['baustein_id'] }}' });isClicked = true; setTimeout(() => isClicked = false, 100)"   >
+                    Bewerten
+                    <svg xmlns="http://www.w3.org/2000/svg"  class="h-4   ml-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                  </x-buttons.button-basic>
+                </div>
               </div>
           @else
             <p class="text-gray-500">Kein aktuelles Modul ermittelbar.</p>

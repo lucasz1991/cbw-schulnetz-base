@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\User;
 use App\Models\CourseDay;
+use App\Models\CourseRating;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 
@@ -49,6 +50,12 @@ class Course extends Model
     {
         return $this->belongsToMany(User::class, 'course_user', 'course_id', 'user_id');
     }
+
+    public function ratings()
+    {
+        return $this->hasMany(CourseRating::class);
+    }
+
     public function filePool(): MorphOne
     {
         return $this->morphOne(FilePool::class, 'filepoolable');

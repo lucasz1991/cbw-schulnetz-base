@@ -117,7 +117,7 @@ class Person extends Model
             $apiResponse = app(ApiUvsService::class)->getTutorProgramDataByPersonId($this->person_id);
             if ($apiResponse['ok']) {
                 $data = $apiResponse['data'] ? $apiResponse['data'] : null;
-                $program_data = !empty($data['program_data']) ? $data['program_data'] : null;
+                $program_data = !empty($data['tutor']) ? $data['tutor'] : null;
             } else {
                 $program_data = null;
             }

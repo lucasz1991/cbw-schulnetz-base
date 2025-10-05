@@ -14,10 +14,10 @@
     <div x-show="show" x-transition.opacity class="fixed inset-0 z-[60] bg-black/60"></div>
 
     <div x-show="show" x-transition class="fixed inset-0 z-[70] flex items-center justify-center p-4">
-        <div class="w-full max-w-6xl bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-neutral-200 dark:border-neutral-800 overflow-hidden flex flex-col">
-            <div class="flex items-center justify-between px-5 py-3 border-b border-neutral-200 dark:border-neutral-800">
+        <div class="w-full max-w-6xl bg-white  rounded-2xl shadow-2xl border border-neutral-200  overflow-hidden flex flex-col">
+            <div class="flex items-center justify-between px-5 py-3 border-b border-neutral-200 ">
                 <h3 class="text-lg font-semibold">{{ $title }}</h3>
-                <button type="button" class="w-9 h-9 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800" @click="$wire.close()">✕</button>
+                <button type="button" class="w-9 h-9 rounded-full hover:bg-neutral-100 " @click="$wire.close()">✕</button>
             </div>
 
             <div class="relative">
@@ -28,8 +28,8 @@
                 @endif
             </div>
 
-            <div class="flex items-center justify-end gap-2 px-5 py-3 border-t border-neutral-200 dark:border-neutral-800">
-                <button type="button" class="px-4 py-2 text-sm rounded-lg border border-neutral-300 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800" @click="$wire.close()">Schließen</button>
+            <div class="flex items-center justify-end gap-2 px-5 py-3 border-t border-neutral-200 ">
+                <button type="button" class="px-4 py-2 text-sm rounded-lg border border-neutral-300 hover:bg-neutral-50 " @click="$wire.close()">Schließen</button>
             </div>
         </div>
     </div>

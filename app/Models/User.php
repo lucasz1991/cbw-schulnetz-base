@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Storage;
 use App\Notifications\CustomResetPasswordNotification;
 use App\Models\Course;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
-
+use App\Models\CourseRating;
 
 
 class User extends Authenticatable
@@ -204,6 +204,11 @@ class User extends Authenticatable
         }
 
         return false; // Zugriff verweigern, wenn der Dateiname nicht das richtige Format hat
+    }
+
+    public function ratings()
+    {
+        return $this->hasMany(CourseRating::class, 'user_id');
     }
 
     public function filePool(): MorphOne
