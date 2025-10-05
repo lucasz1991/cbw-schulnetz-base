@@ -78,67 +78,71 @@
                     ];
                 @endphp
 
-                {{-- Schritte 1-4: Bewertungsblöcke --}}
-                @foreach($blocks as $idx => $block)
-                    <div x-show="step === {{ $idx }}" x-collapse class="rounded-lg border overflow-hidden  mt-6">
-                        <div class="bg-gray-100 px-4 py-2 font-semibold">{{ $block['title'] }}</div>
-                        <div class="divide-y">
-                            @foreach($block['rows'] as $fieldName => $label)
-                                <div class="p-4">
-                                    <div class="text-sm mb-2">{{ $label }}</div>
 
-                                    {{-- Sterne-Eingabe (Hover via Alpine) --}}
-                                    <div class="flex justify-center" x-data="{ hovered: 0 }">
-                                        <div class="flex justify-center space-x-1 rating-group">
-                                            @for ($i = 1; $i <= 5; $i++)
-                                                <label class="cursor-pointer relative"
-                                                    @mouseover="hovered = {{ $i }}"
-                                                    @mouseleave="hovered = 0">
-                                                    <input
-                                                        type="radio"
-                                                        wire:model.live="{{ $fieldName }}"
-                                                        value="{{ $i }}"
-                                                        class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                                    >
-                                                    <span class="text-xl transition-colors duration-150 text-gray-300">
-                                                        <svg
-                                                            class="w-10 h-10 transition-colors duration-150"
-                                                            :class="{
-                                                                'text-yellow-400': hovered >= {{ $i }} || {{ (int) (data_get($this, $fieldName, 0) ?? 0) }} >= {{ $i }},
-                                                                'text-gray-300': hovered < {{ $i }} && {{ (int) (data_get($this, $fieldName, 0) ?? 0) }} < {{ $i }}
-                                                            }"
-                                                            fill="currentColor" viewBox="0 0 20 20">
-                                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.204 3.698a1 1 0 00.95.69h3.894c.969 0 1.371 1.24.588 1.81l-3.15 2.286a1 1 0 00-.364 1.118l1.204 3.698c.3.921-.755 1.688-1.54 1.118l-3.15-2.286a1 1 0 00-1.176 0l-3.15 2.286c-.784.57-1.838-.197-1.539-1.118l1.203-3.698a1 1 0 00-.364-1.118L2.414 9.125c-.783-.57-.38-1.81.588-1.81h3.894a1 1 0 00.951-.69l1.202-3.698z"/>
-                                                        </svg>
-                                                    </span>
-                                                </label>
-                                            @endfor
+                <div class="my-6">
+
+                    {{-- Schritte 1-4: Bewertungsblöcke --}}
+                    @foreach($blocks as $idx => $block)
+                        <div x-show="step === {{ $idx }}" x-collapse class="rounded-lg border overflow-hidden ">
+                            <div class="bg-gray-100 px-4 py-2 font-semibold">{{ $block['title'] }}</div>
+                            <div class="divide-y">
+                                @foreach($block['rows'] as $fieldName => $label)
+                                    <div class="p-4">
+                                        <div class="text-sm mb-2">{{ $label }}</div>
+    
+                                        {{-- Sterne-Eingabe (Hover via Alpine) --}}
+                                        <div class="flex justify-center" x-data="{ hovered: 0 }">
+                                            <div class="flex justify-center space-x-1 rating-group">
+                                                @for ($i = 1; $i <= 5; $i++)
+                                                    <label class="cursor-pointer relative"
+                                                        @mouseover="hovered = {{ $i }}"
+                                                        @mouseleave="hovered = 0">
+                                                        <input
+                                                            type="radio"
+                                                            wire:model.live="{{ $fieldName }}"
+                                                            value="{{ $i }}"
+                                                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                        >
+                                                        <span class="text-xl transition-colors duration-150 text-gray-300">
+                                                            <svg
+                                                                class="w-10 h-10 transition-colors duration-150"
+                                                                :class="{
+                                                                    'text-yellow-400': hovered >= {{ $i }} || {{ (int) (data_get($this, $fieldName, 0) ?? 0) }} >= {{ $i }},
+                                                                    'text-gray-300': hovered < {{ $i }} && {{ (int) (data_get($this, $fieldName, 0) ?? 0) }} < {{ $i }}
+                                                                }"
+                                                                fill="currentColor" viewBox="0 0 20 20">
+                                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.204 3.698a1 1 0 00.95.69h3.894c.969 0 1.371 1.24.588 1.81l-3.15 2.286a1 1 0 00-.364 1.118l1.204 3.698c.3.921-.755 1.688-1.54 1.118l-3.15-2.286a1 1 0 00-1.176 0l-3.15 2.286c-.784.57-1.838-.197-1.539-1.118l1.203-3.698a1 1 0 00-.364-1.118L2.414 9.125c-.783-.57-.38-1.81.588-1.81h3.894a1 1 0 00.951-.69l1.202-3.698z"/>
+                                                            </svg>
+                                                        </span>
+                                                    </label>
+                                                @endfor
+                                            </div>
                                         </div>
+    
+                                        @error($fieldName)
+                                            <div class="text-xs text-red-600 mt-2">{{ $message }}</div>
+                                        @enderror
                                     </div>
-
-                                    @error($fieldName)
-                                        <div class="text-xs text-red-600 mt-2">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                            @endforeach
+                                @endforeach
+                            </div>
                         </div>
-                    </div>
-                @endforeach
-
-                {{-- Schritt 5: Nachricht & Absenden --}}
-                <div x-show="step === 5" x-collapse>
-                    <div class="rounded-lg border overflow-hidden">
-                        <div class="bg-gray-100 px-4 py-2 font-semibold">Ihre Nachricht (optional)</div>
-                        <div class="p-4">
-                            <label class="block text-sm font-medium mb-1">Ihre Nachricht an uns</label>
-                            <textarea
-                                wire:model.defer="message"
-                                maxlength="500"
-                                rows="5"
-                                class="mt-1 w-full rounded border-gray-300"
-                                placeholder="Nachricht max. 500 Zeichen"
-                            ></textarea>
-                            @error('message') <div class="text-xs text-red-600 mt-1">{{ $message }}</div> @enderror
+                    @endforeach
+    
+                    {{-- Schritt 5: Nachricht & Absenden --}}
+                    <div x-show="step === 5" x-collapse>
+                        <div class="rounded-lg border overflow-hidden ">
+                            <div class="bg-gray-100 px-4 py-2 font-semibold">Ihre Nachricht (optional)</div>
+                            <div class="p-4">
+                                <label class="block text-sm font-medium mb-1">Ihre Nachricht an uns</label>
+                                <textarea
+                                    wire:model.defer="message"
+                                    maxlength="500"
+                                    rows="5"
+                                    class="mt-1 w-full rounded border-gray-300"
+                                    placeholder="Nachricht max. 500 Zeichen"
+                                ></textarea>
+                                @error('message') <div class="text-xs text-red-600 mt-1">{{ $message }}</div> @enderror
+                            </div>
                         </div>
                     </div>
                 </div>
