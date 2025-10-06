@@ -19,7 +19,7 @@ use App\Notifications\CustomResetPasswordNotification;
 use App\Models\Course;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use App\Models\CourseRating;
-
+use App\Models\UserRequest;
 
 class User extends Authenticatable
 {
@@ -209,6 +209,12 @@ class User extends Authenticatable
     public function ratings()
     {
         return $this->hasMany(CourseRating::class, 'user_id');
+    }
+
+
+    public function userRequests()
+    {
+        return $this->hasMany(UserRequest::class);
     }
 
     public function filePool(): MorphOne

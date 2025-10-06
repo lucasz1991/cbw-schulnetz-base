@@ -1,6 +1,14 @@
     <!-- Gäste-Spezifische Navigation -->
     @auth
-        
+            <!-- Kunden-Spezifische Navigation -->
+    @if (optional(Auth::user())->role === 'guest' || optional(Auth::user())->role === 'admin')
+        <x-nav-link href="/user/dashboard" wire:navigate  :active="request()->is('user/dashboard')">
+            <svg class="w-5 max-md:w-6 aspect-square mr-1 max-md:mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 4h3a1 1 0 0 1 1 1v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3m0 3h6m-3 5h3m-6 0h.01M12 16h3m-6 0h.01M10 3v4h4V3h-4Z"/>
+                </svg>
+            {{ __('Mein Konto') }}
+        </x-nav-link>
+    @endif  
         <x-nav-link href="/news" wire:navigate  :active="request()->is('news')">
                 <svg class="w-5 max-md:w-6 aspect-square mr-1 max-md:mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                     <rect x="4" y="3" width="16" height="18" rx="2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -50,13 +58,5 @@
             </div>
         </div>
     @endauth    
-    <!-- Kunden-Spezifische Navigation -->
-    @if (optional(Auth::user())->role === 'guest' || optional(Auth::user())->role === 'admin')
-        <x-nav-link href="/user/dashboard" wire:navigate  :active="request()->is('user/dashboard')">
-            <svg class="w-5 max-md:w-6 aspect-square mr-1 max-md:mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 4h3a1 1 0 0 1 1 1v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3m0 3h6m-3 5h3m-6 0h.01M12 16h3m-6 0h.01M10 3v4h4V3h-4Z"/>
-                </svg>
-            {{ __('Mein Konto') }}
-        </x-nav-link>
-    @endif  
+
 
