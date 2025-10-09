@@ -197,28 +197,47 @@
         <div
           class="bg-white shadow rounded-lg p-5 text-left col-span-1 max-md:order-2"
           x-data="{
+            swiper: null,
             initSwiper() {
-              const el = this.$refs.swiper
+              const el = this.$refs.swiper;
               const opts = {
                 slidesPerView: 1,
                 spaceBetween: 12,
                 loop: true,
+                speed: 500,
                 autoHeight: false,
                 keyboard: { enabled: true },
-                pagination: { el: '.swiper-pagination', clickable: true },
-              }
-              const boot = () => new Swiper(el, opts)
-              // Swiper ist von CDN geladen? -> sofort starten, sonst nach window load
-              if (window.Swiper) {
-                boot()
-              } else {
-                window.addEventListener('load', () => {
-                  if (window.Swiper) boot()
-                }, { once: true })
-              }
-            }
+                autoplay: {
+                  delay: 5000,
+                  disableOnInteraction: false   // wichtig: nicht dauerhaft stoppen
+                },
+                pagination: {
+                  el: this.$refs.pagination,
+                  clickable: true
+                },
+                // in Livewire/Alpine-Umgebungen hilfreich:
+                observer: true,
+                observeParents: true
+              };
+
+              const boot = () => { this.swiper = new Swiper(el, opts); };
+
+              // Falls das CDN noch nicht geladen ist, warten wir einmal auf window.load
+              if (window.Swiper) boot();
+              else window.addEventListener('load', () => window.Swiper && boot(), { once: true });
+
+              // Aufräumen, wenn der Knoten entfernt wird (z.B. durch Livewire-Updates)
+              this.$el.addEventListener('alpine:destroy', () => { this.swiper?.destroy(true, true); });
+            },
+            stopSwiper() { this.swiper?.autoplay?.stop(); },
+            startSwiper() { this.swiper?.autoplay?.start(); }
           }"
-          x-init="$nextTick(() => initSwiper())"
+          x-init="initSwiper()"
+          x-on:mouseenter="stopSwiper()"
+          x-on:mouseleave="startSwiper()"
+          class="relative w-full"
+          wire:ignore
+          wire:loading.class="hidden"
         >
           <div class="relative h-full pb-2">
             <div class="swiper h-full" x-ref="swiper">
@@ -237,12 +256,24 @@
 
                 <div class="swiper-slide">
                   <div class="grid h-full grid-cols-1 place-content-stretch">
-                    <h3 class="text-gray-800 font-semibold mb-1">Fehlzeiten</h3>
+                    <h3 class="text-gray-800 font-semibold mb-1">Anträge stellen</h3>
                     <p class="text-xs text-gray-600 mb-2">
-                      Übersicht über deine Fehlzeiten im Programm.
+                      Übersicht über deine Anträge im Programm.
                     </p>
                     <x-buttons.button-basic :size="'sm'" :mode="'primary'" @click="$dispatch('open-program-attendance');isClicked = true; setTimeout(() => isClicked = false, 100)" class="w-full">
-                      Fehlzeiten anzeigen
+                      Anträge anzeigen
+                    </x-buttons.button-basic>
+                  </div>
+                </div>
+
+                <div class="swiper-slide">
+                  <div class="grid h-full grid-cols-1 place-content-stretch">
+                    <h3 class="text-gray-800 font-semibold mb-1">Program Dokumentation</h3>
+                    <p class="text-xs text-gray-600 mb-2">
+                      Übersicht über dein Programm exportieren.
+                    </p>
+                    <x-buttons.button-basic :size="'sm'" :mode="'primary'" @click="$dispatch('open-program-attendance');isClicked = true; setTimeout(() => isClicked = false, 100)" class="w-full">
+                      anzeigen
                     </x-buttons.button-basic>
                   </div>
                 </div>
@@ -252,7 +283,7 @@
               </div>
             </div>
             <!-- If we need pagination -->
-            <div class="swiper-pagination !-bottom-4"></div>
+            <div class="swiper-pagination !-bottom-4" x-ref="pagination"></div>
           </div>
         </div>
       </div>
@@ -268,43 +299,107 @@
           {{-- Bausteine --}}
           @forelse($bausteine as $b)
             @php
-              $status = '—';
-              $statusClass = 'text-gray-500';
-              if (!is_null($b['schnitt'] ?? null)) {
-                  if (($b['schnitt'] ?? 0) >= 50) { $status = 'Bestanden'; $statusClass = 'text-green-600 bg-green-50'; }
-                  else { $status = 'Nicht bestanden'; $statusClass = 'text-red-600 bg-red-50'; }
-              } else {
-                  $status = 'offen';
-                  $statusClass = 'text-blue-600 bg-blue-50';
-              }
-            @endphp
-            <li  class="relative h-[70px] py-3 px-4 even:bg-white odd:bg-gray-100 hover:bg-blue-100  hover:pr-[45px] transition-all  delay-50 duration-500 group snap-start ">
+              $typ      = $b['typ'] ?? 'kurs';
+              $hasLink  = !empty($b['klassen_id']);
+              $isCurrent = isset($aktuellesModul['baustein_id']) 
+                          && $aktuellesModul['baustein_id'] === ($b['baustein_id'] ?? null);
 
-              <div class="grid grid-cols-12 gap-1 ">
-                <div class="col-span-8 font-medium text-gray-800">
-                  <div class="truncate ">{{ $b['baustein'] }}</div>
+              // Zeitvergleich – KEIN use im Blade, stattdessen voll qualifiziert:
+              $start = !empty($b['beginn']) ? \Illuminate\Support\Carbon::parse($b['beginn']) : null;
+              $ende  = !empty($b['ende'])   ? \Illuminate\Support\Carbon::parse($b['ende'])   : null;
+              $today = \Illuminate\Support\Carbon::now('Europe/Berlin');
+
+              // Statuslogik
+              $status = null;
+              $statusClass = '';
+
+              if ($typ === 'kurs') {
+                  if ($start && $start->isFuture()) {
+                      $status = 'Geplant';
+                      $statusClass = 'text-yellow-700 bg-yellow-100';
+                  } elseif ($start && $ende && $start->lte($today) && $ende->gte($today)) {
+                      $status = 'Laufend';
+                      $statusClass = 'text-blue-700 bg-blue-100';
+                  } elseif (!is_null($b['schnitt'] ?? null)) {
+                      if (($b['schnitt'] ?? 0) >= 50) {
+                          $status = 'Bestanden';
+                          $statusClass = 'text-green-700 bg-green-100';
+                      } else {
+                          $status = 'Nicht bestanden';
+                          $statusClass = 'text-red-700 bg-red-100';
+                      }
+                  } else {
+                      $status = 'offen';
+                      $statusClass = 'text-gray-600 bg-gray-100';
+                  }
+              }
+
+              // Zeilenstile
+              $rowBase   = 'relative h-[70px] py-3 px-4 transition-all delay-50 duration-500 snap-start ';
+              $rowBgs    = $isCurrent 
+                            ? 'bg-emerald-50 ring-1 ring-emerald-200' 
+                            : 'even:bg-white odd:bg-gray-100';
+              $rowHover  = $hasLink 
+                            ? 'group hover:bg-blue-100 hover:pr-[45px] cursor-pointer' 
+                            : 'cursor-default opacity-70';
+            @endphp
+
+            <li class="{{ $rowBase }} {{ $rowBgs }} {{ $rowHover }}">
+              <div class="grid grid-cols-12 gap-1">
+                <div class="col-span-8 font-medium text-gray-800 flex items-center gap-2">
+                  <div class="truncate">{{ $b['baustein'] }}</div>
+                  @if($isCurrent)
+                    <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800">
+                      Aktuell
+                    </span>
+                  @endif
                 </div>
-                <div class="col-span-4 text-right">
-                  <span class="px-2 py-1 text-xs font-medium rounded badge  {{ $statusClass }}">{{ $status }}</span>
-                </div>
+
+                {{-- Status nur bei echten Kursen --}}
+                @if($typ === 'kurs' && $status)
+                  <div class="col-span-4 text-right">
+                    <span class="px-2 py-1 text-xs font-medium rounded badge {{ $statusClass }}">{{ $status }}</span>
+                  </div>
+                @else
+                  <div class="col-span-4"></div>
+                @endif
               </div>
-              <div class="grid grid-cols-12 gap-1 ">
+
+              <div class="grid grid-cols-12 gap-1">
                 <div class="col-span-6 font-medium text-gray-800">
-                  <span class="px-2 py-1 text-xs font-medium rounded badge bg-gray-50 text-gray-500">Block {{ $b['block'] }} · Abschnitt {{ $b['abschnitt'] }}</span>
+                  <span class="px-2 py-1 text-xs font-medium rounded badge bg-gray-50 text-gray-500">
+                    {{ strtoupper($typ) }}
+                  </span>
                 </div>
                 <div class="col-span-6 text-right">
-                  <span class="text-xs text-gray-500 w-max">{{ \Illuminate\Support\Carbon::parse($b['beginn'])->locale('de')->isoFormat('DD.MM.YYYY') }}&nbsp;–&nbsp;{{ \Illuminate\Support\Carbon::parse($b['ende'])->locale('de')->isoFormat('DD.MM.YYYY') }}</span>
+                  <span class="text-xs text-gray-500 w-max">
+                    {{ $start?->locale('de')->isoFormat('DD.MM.YYYY') }}
+                    &nbsp;–&nbsp;
+                    {{ $ende?->locale('de')->isoFormat('DD.MM.YYYY') }}
+                  </span>
                 </div>
               </div>
-              <div class="absolute h-[70px] right-2 top-0 flex items-center opacity-0 translate-x-5 group-hover:opacity-100 group-hover:translate-x-0 transition-all  delay-50 duration-500 text-gray-500">
-              <a href="{{ route('user.program.course.show', $aktuellesModul['baustein_id']) }}" wire:navigate>
-                <svg xmlns="http://www.w3.org/2000/svg"  class="h-6   mr-1 max-md:mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
-              </a>
-              </div>
+
+              @if($hasLink)
+                <div class="absolute h-[70px] right-2 top-0 flex items-center opacity-0 translate-x-5 
+                            group-hover:opacity-100 group-hover:translate-x-0 transition-all delay-50 duration-500 text-gray-500">
+                  <a href="{{ route('user.program.course.show', $b['klassen_id']) }}" wire:navigate aria-label="Baustein öffnen">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 mr-1 max-md:mr-2" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                      <polyline points="10 17 15 12 10 7"/>
+                      <line x1="15" y1="12" x2="3" y2="12"/>
+                    </svg>
+                  </a>
+                </div>
+              @endif
             </li>
           @empty
             <li class="p-5 text-gray-500">Keine Bausteine vorhanden.</li>
           @endforelse
+
+
+
         </ul>
       </div>
 
@@ -349,11 +444,12 @@
               </div>
               <div>
                 <div class="flex items-center justify-between ">
-                  <x-buttons.button-basic :size="'sm'" href="{{ route('user.program.course.show', $aktuellesModul['baustein_id']) }}" class="">
+                  @if($aktuellesModul['klassen_id'] != null)
+                  <x-buttons.button-basic :size="'sm'" href="{{ route('user.program.course.show', $aktuellesModul['klassen_id']) }}" class="">
                     Details
                     <svg xmlns="http://www.w3.org/2000/svg"  class="h-4 text-gray-400  ml-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
                   </x-buttons.button-basic>
-                  <x-buttons.button-basic :size="'sm'" @click="$dispatch('open-course-rating-modal', { course_id: '{{ $aktuellesModul['baustein_id'] }}' });isClicked = true; setTimeout(() => isClicked = false, 100)"   >
+                  <x-buttons.button-basic :size="'sm'" @click="$dispatch('open-course-rating-modal', { course_id: '{{ $aktuellesModul['klassen_id'] }}' });isClicked = true; setTimeout(() => isClicked = false, 100)"   >
                     Bewerten
                     <svg
                         class="ml-2 w-5 transition-colors duration-150 text-gray-400 hover:text-yellow-400"
@@ -361,6 +457,7 @@
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.204 3.698a1 1 0 00.95.69h3.894c.969 0 1.371 1.24.588 1.81l-3.15 2.286a1 1 0 00-.364 1.118l1.204 3.698c.3.921-.755 1.688-1.54 1.118l-3.15-2.286a1 1 0 00-1.176 0l-3.15 2.286c-.784.57-1.838-.197-1.539-1.118l1.203-3.698a1 1 0 00-.364-1.118L2.414 9.125c-.783-.57-.38-1.81.588-1.81h3.894a1 1 0 00.951-.69l1.202-3.698z"/>
                     </svg>                  
                   </x-buttons.button-basic>
+                  @endif
                 </div>
               </div>
           @else

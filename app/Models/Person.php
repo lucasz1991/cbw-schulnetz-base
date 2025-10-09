@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Services\ApiUvs\ApiUvsService;
 use Illuminate\Support\Facades\Log;
+use App\Jobs\ApiUpdates\PersonApiUpdate;
+use Illuminate\Support\Carbon;
+
 
 
 class Person extends Model
@@ -19,6 +22,7 @@ class Person extends Model
         'person_id',
         'institut_id',
         'person_nr',
+        'role',
         'status',
         'upd_date',
         'nachname',
@@ -82,62 +86,62 @@ class Person extends Model
     {
         parent::boot();
 
-        static::created(function ($person) {
-            $person->apiupdate();
+        static::created(function (Person $person) {
+            // nur wenn mit User verknüpft
+            if (empty($person->user_id)) {
+                return;
+            }
+
+            // Referenzzeit: bevorzugt updated_at, sonst created_at
+            $ref = $person->updated_at ?? $person->created_at ?? now();
+
+            $thresholdSec = 10 * 60;
+            $ageSec = now()->diffInSeconds($ref);
+
+            if ($ageSec >= $thresholdSec) {
+                // älter als 10 Min -> sofort
+                $person->apiupdate();
+            }
         });
     }
 
     public function apiupdate()
     {
-        $apiService = app(ApiUvsService::class);
-        $personStatus = $apiService->getPersonStatus($this->person_id) ?? null;
-        if (! $personStatus) {
-            Log::warning("Failed to fetch person status for person_id {$this->person_id }.");
-        }
-        if (! array_key_exists('data', $personStatus) || ! array_key_exists('data', $personStatus['data'])) {
-            Log::warning("Invalid person status structure for person_id {$this->person_id }.");
-        }
-        // Bestimme Rolle basierend auf personStatus
-        $this->statusData = $personStatus['data']['data'] ?? null;
-
-        if($this->user && $this->user->role === 'guest') {
-            $apiResponse = app(ApiUvsService::class)->getParticipantAndQualiprogrambyId($this->person_id);
-            if ($apiResponse['ok']) {
-                $data = $apiResponse['data'] ? $apiResponse['data'] : null;
-                $quali_data = !empty($data['quali_data']) ? $data['quali_data'] : null;
-            } else {
-                $quali_data = null;
-            }
-            if ($quali_data) {
-                $this->programdata = $quali_data;
-            } else {
-                Log::warning("No Qualiprogram data found for person_id {$this->person_id }. API response: " . json_encode($apiResponse));
-            }
-        }else{
-            $apiResponse = app(ApiUvsService::class)->getTutorProgramDataByPersonId($this->person_id);
-            if ($apiResponse['ok']) {
-                $data = $apiResponse['data'] ? $apiResponse['data'] : null;
-                $program_data = !empty($data['tutor']) ? $data['tutor'] : null;
-            } else {
-                $program_data = null;
-            }
-            if ($program_data) {
-                $this->programdata = $program_data;
-            } else {
-                Log::warning("No Tutor program data found for person_id {$this->person_id }. API response: " . json_encode($apiResponse));
-            }
-        }
-        $this->last_api_update = now();
-        $this->save();
-
-        if (empty($this->person_id)) {
-            Log::warning("Cannot update Person API data: person_id is empty for Person ID {$this->id}");
-            return;
-        }
+        PersonApiUpdate::dispatch($this->id);
     }
 
     public function user()
     {
         return $this->belongsTo(User::class);
     }
+    public function enrollments()
+    {
+        return $this->hasMany(CourseParticipantEnrollment::class);
+    }
+
+    public function tutorCourses()
+    {
+        return $this->hasMany(Course::class, 'primary_tutor_person_id');
+    }
+
+    public function courses()
+    {
+        return $this->belongsToMany(Course::class, 'course_participant_enrollments', 'person_id', 'course_id')
+            ->withPivot([
+                'id','teilnehmer_id','tn_baustein_id','baustein_id',
+                'klassen_id','termin_id','vtz','kurzbez_ba',
+                'status','is_active','results','notes',
+                'source_snapshot','source_last_upd','last_synced_at','deleted_at'
+            ])
+            ->as('enrollment')
+            ->wherePivotNull('deleted_at')
+            ->wherePivot('is_active', true);
+    }
+
+    /** Kurse, in denen die Person primärer Tutor ist */
+    public function taughtCourses()
+    {
+        return $this->hasMany(Course::class, 'primary_tutor_person_id');
+    }
+
 }

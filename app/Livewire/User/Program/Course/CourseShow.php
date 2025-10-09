@@ -4,142 +4,137 @@ namespace App\Livewire\User\Program\Course;
 
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
 use Illuminate\Support\Carbon;
+use App\Models\Course;
+use App\Models\CourseDay;
+use App\Models\CourseParticipantEnrollment;
 
 class CourseShow extends Component
 {
-    public string $courseId;         // von der Route
-    public array $raw = [];          // komplette Rohdaten
-    public array $bausteine = [];    // normalisiert (wie in ProgramShow)
-    public ?array $course = null;    // der ausgewählte Baustein
-    public ?array $prev = null;      // vorheriger Baustein (optional)
-    public ?array $next = null;      // nächster Baustein (optional)
-    public int $index = -1;          // Position in Liste
-    public int $total = 0;           // Anzahl Bausteine (zählbar)
+    public string $klassenId;
 
-    public function mount(string $courseId): void
+    /** Kurs + Days als Arrays fürs Blade */
+    public array $course = [];
+    public array $days = [];
+
+    /** Navigation innerhalb der eingeschriebenen Kurse der Person */
+    public ?array $prev = null;
+    public ?array $next = null;
+    public int $index = -1;
+    public int $total = 0;
+
+    public function mount(string $klassenId): void
     {
-        $this->courseId = $courseId;
+        $this->klassenId = $klassenId;
 
-        $user = Auth::user();
+        $user   = Auth::user();
+        $person = $user?->person;
 
-        // optionaler API-Refresh wie in ProgramShow
-        if (! $user?->person?->last_api_update || $user?->person?->last_api_update->lt(now()->subHours(1))) {
-            $user?->person?->apiupdate();
+        if (! $person) {
+            abort(404);
         }
 
-        $this->raw = $user?->person?->programdata ?? [];
-        $this->bausteine = $this->normalizeBausteine($this->raw);
+        // 1) Kurs laden
+        $course = Course::query()
+            ->where('klassen_id', $klassenId)
+            ->first();
 
-        // Kurs anhand ID finden (Fallbacks: slug/kurzbez)
-        $selected = collect($this->bausteine)->first(function ($b) {
-            // exakte ID?
-            if (isset($b['baustein_id']) && (string)$b['baustein_id'] === (string)$this->courseId) {
-                return true;
-            }
-            // slug aus kurzbez/langbez als Alternativen erlauben (z. B. /kurs/FERI oder /kurs/webentwicklung-1)
-            $slug = Str::slug(($b['kurzbez'] ?? '') . ' ' . ($b['baustein'] ?? ''));
-            return $slug === $this->courseId;
-        });
-
-        // Falls nicht gefunden: 404
-        if (! $selected) {
-            abort(404, 'Baustein nicht gefunden.');
+        if (! $course) {
+            abort(404, 'Kurs nicht gefunden.');
         }
 
-        // Index/Prev/Next bestimmen (nur zählbare Bausteine für die Navigation)
-        $zaehlbar = array_values(array_filter($this->bausteine, fn ($b) => !in_array($b['kurzbez'] ?? '', ['FERI', 'PRAK'], true)));
-        $this->total = count($zaehlbar);
+        // 2) Einschreibung prüfen (existiert eine Enrollment-Zeile?)
+        $enrolled = CourseParticipantEnrollment::query()
+            ->where('course_id', $course->id)
+            ->where('person_id', $person->id)
+            ->exists();
 
-        $this->index = collect($zaehlbar)->search(fn ($b) => $b['baustein_id'] === ($selected['baustein_id'] ?? null));
-        if ($this->index === false) {
-            // falls ID nicht matcht (z. B. über slug gefunden), via strict equals auf Objektvergleich
-            $this->index = collect($zaehlbar)->search(fn ($b) => $b == $selected);
+        if (! $enrolled) {
+            abort(404, 'Nicht eingeschrieben.');
         }
 
-        $this->course = (array)$selected;
-        $this->prev   = ($this->index > 0)                 ? (array)$zaehlbar[$this->index - 1] : null;
-        $this->next   = ($this->index !== false && $this->index + 1 < $this->total)
-                        ? (array)$zaehlbar[$this->index + 1] : null;
+        // 3) Kurs → ViewModel
+        $this->course = $this->mapCourse($course);
+        $this->days   = $course->days->map(fn ($d) => $this->mapDay($d))->all();
 
-        // kleine Zusatzinfos: Status, Datum hübsch formatiert
-        $this->course['status'] = $this->deriveStatus($this->course);
-        $this->course['zeitraum_fmt'] = $this->formatZeitraum($this->course);
+        // 4) Prev/Nächster Kurs innerhalb der eigenen Einschreibungen
+        $enrolledCourses = Course::query()
+            ->join('course_participant_enrollments as cpe', 'cpe.course_id', '=', 'courses.id')
+            ->where('cpe.person_id', $person->id)
+            ->orderBy('courses.planned_start_date')
+            ->get([
+                'courses.id as course_id',              // eindeutiger Alias
+                'courses.klassen_id',
+                'courses.title',
+                'courses.planned_start_date',
+                'courses.planned_end_date',
+            ])
+            ->map(fn ($c) => [
+                'klassen_id' => $c->klassen_id,
+                'title'      => $c->title,
+                'start'      => $c->planned_start_date,
+                'end'        => $c->planned_end_date,
+                // 'course_id' => $c->course_id, // optional, falls du’s brauchst
+            ])
+            ->values();
+
+        $this->total = $enrolledCourses->count();
+        $this->index = $enrolledCourses->search(fn ($c) => $c['klassen_id'] === $this->klassenId);
+
+        $this->prev = ($this->index > 0) ? $enrolledCourses[$this->index - 1] : null;
+        $this->next = ($this->index !== false && $this->index + 1 < $this->total) ? $enrolledCourses[$this->index + 1] : null;
     }
 
-    private function num(mixed $v): ?float
+    private function mapCourse(Course $c): array
     {
-        if (is_numeric($v)) return $v + 0;
-        if (is_string($v)) {
-            $v = trim($v);
-            if ($v === 'passed') return 100.0;
-            if (in_array($v, ['not att', '---', '-'], true)) return null;
-            if (is_numeric($v)) return $v + 0;
-        }
-        return null;
+        $start = $c->planned_start_date ? Carbon::parse($c->planned_start_date) : null;
+        $end   = $c->planned_end_date   ? Carbon::parse($c->planned_end_date)   : null;
+
+        return [
+            'id'          => $c->id,
+            'klassen_id'  => $c->klassen_id,
+            'title'       => $c->title,
+            'description' => $c->description,
+            'room'        => $c->room,
+            'start'       => $start?->toDateString(),
+            'end'         => $end?->toDateString(),
+            'zeitraum_fmt'=> ($start && $end)
+                                ? $start->locale('de')->isoFormat('ll') . ' – ' . $end->locale('de')->isoFormat('ll')
+                                : '—',
+            'status'      => $this->deriveCourseStatus($start, $end),
+            'tutor'       => optional($c->primaryTutorPerson)->only(['vorname', 'nachname']),
+        ];
     }
 
-    /** Bausteine wie in ProgramShow normalisieren */
-    private function normalizeBausteine(array $raw): array
+    private function mapDay(CourseDay $d): array
     {
-        return collect($raw['tn_baust'] ?? [])->map(function ($b) {
-            return [
-                'baustein_id'        => $b['baustein_id'] ?? null,
-                'block'              => null,
-                'abschnitt'          => null,
-                'beginn'             => $b['beginn_baustein'] ?? null,
-                'ende'               => $b['ende_baustein'] ?? null,
-                'tage'               => $this->num($b['baustein_tage'] ?? null),
-                'unterrichtsklasse'  => $b['klassen_co_ks'] ?? null,
-                'baustein'           => $b['langbez'] ?? ($b['kurzbez'] ?? '—'),
-                'kurzbez'            => $b['kurzbez'] ?? null,
-                'schnitt'            => $this->num($b['tn_punkte'] ?? null),
-                'punkte'             => $this->num($b['tn_punkte'] ?? null),
-                'fehltage'           => $this->num($b['fehltage'] ?? null),
-                'klassenschnitt'     => $this->num($b['klassenschnitt'] ?? null),
-                'slug'               => Str::slug(($b['kurzbez'] ?? '') . ' ' . ($b['langbez'] ?? '')),
-            ];
-        })->values()->all();
+        return [
+            'id'     => $d->id,
+            'date'   => $d->date ? Carbon::parse($d->date)->locale('de')->isoFormat('DD.MM.YYYY') : '—',
+            'units'  => $d->units ?? null,
+            'topic'  => $d->topic ?? null,
+            'notes'  => $d->notes ?? null,
+        ];
     }
 
-    private function deriveStatus(array $b): string
+    private function deriveCourseStatus(?Carbon $start, ?Carbon $end): string
     {
-        $now   = Carbon::now();
-        $start = !empty($b['beginn']) ? Carbon::parse($b['beginn']) : null;
-        $end   = !empty($b['ende'])   ? Carbon::parse($b['ende'])   : null;
-
-        if (is_numeric($b['schnitt'])) {
-            return ($b['schnitt'] >= 50) ? 'bestanden' : 'abgeschlossen';
-        }
-        if ($start && $end) {
-            if ($now->lt($start)) return 'geplant';
-            if ($now->between($start, $end)) return 'aktiv';
-            if ($now->gt($end)) return 'abgeschlossen';
-        }
+        $now = Carbon::now('Europe/Berlin');
+        if ($start && $now->lt($start)) return 'geplant';
+        if ($start && $end && $now->between($start, $end)) return 'aktiv';
+        if ($end && $now->gt($end)) return 'abgeschlossen';
         return 'offen';
-    }
-
-    private function formatZeitraum(array $b): string
-    {
-        try {
-            $start = !empty($b['beginn']) ? Carbon::parse($b['beginn'])->locale('de')->isoFormat('ll') : '—';
-            $end   = !empty($b['ende'])   ? Carbon::parse($b['ende'])->locale('de')->isoFormat('ll')   : '—';
-            return "{$start} – {$end}";
-        } catch (\Throwable $e) {
-            return '—';
-        }
     }
 
     public function render()
     {
         return view('livewire.user.program.course.course-show', [
-            'course'   => $this->course,
-            'prev'     => $this->prev,
-            'next'     => $this->next,
-            'index'    => $this->index,
-            'total'    => $this->total,
-            'bausteine'=> $this->bausteine, // falls du eine Seitenleiste willst
+            'course' => $this->course,
+            'days'   => $this->days,
+            'prev'   => $this->prev,
+            'next'   => $this->next,
+            'index'  => $this->index,
+            'total'  => $this->total,
         ])->layout('layouts.app');
     }
 }

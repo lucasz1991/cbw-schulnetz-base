@@ -184,7 +184,7 @@
           {{-- Teilnehmer --}}
           <td class="p-2">
             @if($r['user'])
-              <x-user.public-info :user="$r['user']" />
+              <x-user.public-info :person="$r['user']" />
             @else
               <div class="font-medium">Teilnehmer #{{ $r['id'] }}</div>
             @endif

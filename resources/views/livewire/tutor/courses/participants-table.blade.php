@@ -42,8 +42,8 @@
             <tbody class="divide-y">
                 @forelse($participants as $p)
                     <tr>
-                        <td class="px-4 py-2"><x-user.public-info :user="$p" /></td>
-                        <td class="px-4 py-2">{{ $p->email }}</td>
+                        <td class="px-4 py-2"><x-user.public-info :person="$p" /></td>
+                        <td class="px-4 py-2">{{ $p->email_priv }}</td>
                         <td class="px-4 py-2">
                             <a href="{{ route('tutor.participants.show', $p) }}"  class="text-blue-600 hover:underline" wire:navigate>
                                 Öffnen

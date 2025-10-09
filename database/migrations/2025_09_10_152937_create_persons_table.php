@@ -18,6 +18,7 @@ return new class extends Migration {
             $table->string('person_id')->unique();
             $table->string('institut_id');
             $table->string('person_nr');
+            $table->string('role')->nullable();
             $table->string('status')->nullable();
             $table->dateTime('upd_date')->nullable();
             $table->string('nachname');
@@ -64,6 +65,7 @@ return new class extends Migration {
             $table->string('leer')->nullable();
             $table->json('programdata')->nullable();
             $table->json('statusdata')->nullable();
+
             $table->timestamp('last_api_update')->nullable();
             $table->timestamps(); // created_at & updated_at
         });

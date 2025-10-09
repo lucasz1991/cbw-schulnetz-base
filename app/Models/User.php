@@ -136,10 +136,7 @@ class User extends Authenticatable
         return $this->status;
     }
 
-    public function courses()
-    {
-        return $this->hasMany(Course::class, 'tutor_id');
-    }
+
 
 
 
@@ -192,7 +189,6 @@ class User extends Authenticatable
         }
     }
 
-    
     public function hasAccessToInvoice($filename)
     {
         // Extrahiere die Benutzer-ID aus dem Dateinamen (z. B. "1_Doe_rental_bill_12345_date_2024_12_15.pdf")
@@ -210,7 +206,6 @@ class User extends Authenticatable
     {
         return $this->hasMany(CourseRating::class, 'user_id');
     }
-
 
     public function userRequests()
     {

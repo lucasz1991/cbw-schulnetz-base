@@ -4,23 +4,27 @@ namespace App\Livewire\Tutor\Courses;
 
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
-use App\Models\Course;
 
 class CoursesListPreview extends Component
 {
-        public $courses;
+    public $courses;
 
-    public function mount()
+    public function mount(): void
     {
-        $this->courses = auth()->user()
-            ->courses() // Beziehung: User hat viele Kurse (über tutor_id)
-            ->orderBy('end_time')
-            ->take(4)
-            ->get();
+        $person = Auth::user()?->person; // <-- Model, nicht Relation
+
+        $this->courses = $person
+            ? $person->taughtCourses()   // Relation auf Person -> Course
+                ->orderBy('planned_start_date', 'desc')
+                ->take(8)
+                ->get()
+            : collect(); // falls (noch) keine Person verknüpft ist
     }
 
     public function render()
     {
-        return view('livewire.tutor.courses.courses-list-preview');
+        return view('livewire.tutor.courses.courses-list-preview', [
+            'courses' => $this->courses,
+        ]);
     }
 }

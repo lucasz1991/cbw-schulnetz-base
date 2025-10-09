@@ -6,7 +6,7 @@
             </div>
         </div>
     </x-slot>
-    <div class="container mx-auto">
+    <div class="">
         <livewire:tutor.courses.courses-list-preview />
     </div>
 </div>

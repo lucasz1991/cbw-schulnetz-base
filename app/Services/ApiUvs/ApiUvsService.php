@@ -56,6 +56,59 @@ class ApiUvsService
         ]);
     }
 
+        /** Kurse/Klassen suchen (entspricht GET /api/course-classes) */
+    public function getCourseClasses(
+        ?string $search = null,
+        ?int $limit = null,
+        ?string $from = null,   // Format: Y-m-d
+        ?string $to   = null,    // Format: Y-m-d (>= from)
+        ?string $sort = null,  // z.B. 'bezeichnung'
+        ?string $order = null   // 'asc' oder 'desc'
+    ): array {
+        $query = [];
+
+        if (!is_null($search) && trim($search) !== '') {
+            $query['search'] = $search;
+        }
+
+        if (!is_null($limit)) {
+            $query['limit'] = max(1, min(100, $limit));
+        }
+
+        if (!is_null($from)) {
+            $query['from'] = $from;
+        }
+
+        if (!is_null($to)) {
+            $query['to'] = $to;
+        }
+
+        if (!is_null($sort)) {
+            $query['sort'] = $sort;
+        }
+
+        if (!is_null($order) && in_array(strtolower($order), ['asc', 'desc'], true)) {
+            $query['order'] = strtolower($order);
+        }
+
+        return $this->request('GET', '/api/course-classes', [], $query);
+    }
+
+
+    /** Teilnehmer einer Klasse laden (entspricht GET /api/course-classes/participants) */
+    public function getCourseClassParticipants(string $courseClassId): array
+    {
+        return $this->request('GET', '/api/course-classes/participants', [], [
+            'course_class_id' => $courseClassId,
+        ]);
+    }
+
+    public function getCourseByKlassenId(string $klassenId): array
+    {
+        return $this->request('GET', '/api/course/coursebyklassenid', [], [
+            'klassen_id' => $klassenId,
+        ]);
+    }
 
     // =========================
     //   HTTP Helper

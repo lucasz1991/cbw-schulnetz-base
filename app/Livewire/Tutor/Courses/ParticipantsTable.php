@@ -12,6 +12,7 @@ class ParticipantsTable extends Component
     use WithPagination, WithoutUrlPagination;
 
     public int $courseId;
+    public Course $course;
     public string $search = '';
     public string $sortBy = 'name';
     public string $sortDir = 'asc';
@@ -20,6 +21,7 @@ class ParticipantsTable extends Component
     public function mount(int $courseId)
     {
         $this->courseId = $courseId;
+        $this->course = Course::with(['tutor', 'dates'])->findOrFail($courseId);
     }
 
     public function updatingSearch() { $this->resetPage(); }
@@ -38,15 +40,42 @@ class ParticipantsTable extends Component
 
     public function getParticipantsProperty()
     {
-        return Course::findOrFail($this->courseId)
-            ->participants()
+        // Whitelist akzeptierter Sortierfelder (existierende DB-Spalten!)
+        $allowedSorts = ['vorname', 'nachname', 'email', 'created_at'];
+
+        return $this->course->participants()
             ->when($this->search, function ($q) {
-                $q->where(function ($q) {
-                    $q->where('name', 'like', "%{$this->search}%")
-                      ->orWhere('email', 'like', "%{$this->search}%");
+                $term = "%{$this->search}%";
+                $q->where(function ($qq) use ($term) {
+                    // nachname / vorname
+                    $qq->where('vorname', 'like', $term)
+                       ->orWhere('nachname', 'like', $term)
+                       // vollständiger Name "Vorname Nachname"
+                       ->orWhereRaw("CONCAT_WS(' ', vorname, nachname) LIKE ?", [$term])
+                       // häufig vorhandenes E-Mail-Feld
+                       ->orWhere('email', 'like', $term)
+                       // falls du email_priv nutzt, kommentier die nächste Zeile rein:
+                       //->orWhere('email_priv', 'like', $term)
+                       ;
                 });
             })
-            ->orderBy($this->sortBy, $this->sortDir)
+            ->when(true, function ($q) use ($allowedSorts) {
+                // Spezialfall: „name“ → nachname, vorname
+                if ($this->sortBy === 'name') {
+                    $q->orderBy('nachname', $this->sortDir)
+                      ->orderBy('vorname', $this->sortDir);
+                    return;
+                }
+
+                // Nur zulässige Spalten sortieren, sonst Fallback
+                $sort = in_array($this->sortBy, $allowedSorts, true) ? $this->sortBy : 'nachname';
+                $q->orderBy($sort, $this->sortDir);
+
+                // Bei Sortierung nach Nachname zusätzlich Vorname als Tiebreaker
+                if ($sort === 'nachname') {
+                    $q->orderBy('vorname', $this->sortDir);
+                }
+            })
             ->paginate($this->perPage);
     }
 

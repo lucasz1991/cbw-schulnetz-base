@@ -5,6 +5,8 @@ namespace App\Livewire\User;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Carbon;
+
 
 class ProgramShow extends Component
 {
@@ -24,6 +26,9 @@ class ProgramShow extends Component
     public int $anzahlBausteine = 0;
     public int $bestandenBausteine = 0;
     public int $progress = 0;
+
+    public array $excludeFromProgress = ['FERI', 'PRAK', 'PRUE']; // alles, was nicht als Kurs zählt
+
 
     /** Listener */
     protected $listeners = ['refreshParent' => '$refresh'];
@@ -56,6 +61,17 @@ class ProgramShow extends Component
         return null;
     }
 
+    private function toCarbon(null|string $v): ?Carbon
+    {
+        if (!$v) return null;
+        try {
+            // Rohdaten kommen als "YYYY/MM/DD" → für parse robuster machen
+            return Carbon::parse(str_replace('/', '-', trim($v)));
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
     /**
      * ViewModel aufbauen (entspricht deinem @php-Block)
      */
@@ -63,49 +79,92 @@ class ProgramShow extends Component
     {
         // ---------- Bausteine normalisieren ----------
         $bausteine = collect($raw['tn_baust'] ?? [])->map(function ($b) {
+            $kurz = $b['kurzbez'] ?? null;
+            $typ  = $this->detectBausteinTyp($kurz);
+
             return [
+                'klassen_id'         => $b['klassen_id'] ?? null,
                 'baustein_id'        => $b['baustein_id'] ?? null,
-                'block'              => null, // nicht vorhanden in Rohdaten
-                'abschnitt'          => null, // nicht vorhanden in Rohdaten
+                'block'              => null,
+                'abschnitt'          => null,
                 'beginn'             => $b['beginn_baustein'] ?? null,
                 'ende'               => $b['ende_baustein'] ?? null,
                 'tage'               => $this->num($b['baustein_tage'] ?? null),
                 'unterrichtsklasse'  => $b['klassen_co_ks'] ?? null,
                 'baustein'           => $b['langbez'] ?? ($b['kurzbez'] ?? '—'),
-                'kurzbez'            => $b['kurzbez'] ?? null,
-                // "schnitt" in deinem alten View => wir nehmen TN-Punkte
+                'kurzbez'            => $kurz,
                 'schnitt'            => $this->num($b['tn_punkte'] ?? null),
                 'punkte'             => $this->num($b['tn_punkte'] ?? null),
                 'fehltage'           => $this->num($b['fehltage'] ?? null),
                 'klassenschnitt'     => $this->num($b['klassenschnitt'] ?? null),
+
+                // NEU:
+                'typ'                => $typ,                       // 'kurs' | 'ferien' | 'praktikum' | 'pruefung'
+                'is_non_course'      => $typ !== 'kurs',            // true = NICHT als Kurs werten
             ];
         });
 
-        // Für Fortschritt FERI/PRUE/PRAK ausklammern (du hattest FERI & PRAK; PRUE war nur im Kommentar)
-        $isZaehlbar = fn (?string $k) => !in_array($k, ['FERI', 'PRAK'], true);
-        $bausteineProgress = $bausteine->filter(fn ($b) => $isZaehlbar($b['kurzbez'] ?? ''));
 
-        $anzahlBausteine = $bausteineProgress->count();
+        // statt FERI/PRAK hart zu prüfen:
+        $bausteineProgress = $bausteine->reject(function ($b) {
+            $k = strtoupper((string) ($b['kurzbez'] ?? ''));
+            return in_array($k, $this->excludeFromProgress, true) || ($b['typ'] !== 'kurs');
+        });
+
+        $anzahlBausteine    = $bausteineProgress->count();
         $bestandenBausteine = $bausteineProgress
-            ->filter(function ($b) {
-                $v = $b['schnitt'];
-                return is_numeric($v) ? $v >= 50 : false;
-            })
+            ->filter(fn ($b) => is_numeric($b['schnitt']) && $b['schnitt'] >= 50)
             ->count();
 
-        // Aktuelles Modul = erstes ohne numerischen "schnitt", sonst letztes
-        $aktuellesModul = $bausteineProgress->first(fn ($b) => !is_numeric($b['schnitt'])) ?? $bausteineProgress->last();
+        // Nur echte Kurse (typ === 'kurs'), mit gültigen Daten und sortiert
+        $kurseMitDatum = collect($bausteine)
+            ->filter(fn ($b) => ($b['typ'] ?? null) === 'kurs')
+            ->map(function ($b) {
+                $b['_start'] = $this->toCarbon($b['beginn'] ?? null);
+                $b['_end']   = $this->toCarbon($b['ende']   ?? null);
+                return $b;
+            })
+            ->filter(fn ($b) => $b['_start'] && $b['_end'])
+            ->sortBy('_start')
+            ->values();
 
-        // Nächstes Modul
+        $heute = Carbon::now('Europe/Berlin')->startOfDay();
+
+        // Laufender Kurs: start <= heute <= end
+        $aktuellesModul = $kurseMitDatum->first(
+            fn ($b) => $b['_start']->lte($heute) && $b['_end']->gte($heute)
+        );
+
+        // Falls keiner läuft: nächster zukünftiger Kurs
+        if (!$aktuellesModul) {
+            $aktuellesModul = $kurseMitDatum->first(
+                fn ($b) => $b['_start']->gt($heute)
+            );
+        }
+
+        // Nächstes Modul: direkt nach dem aktuellen in der Timeline
         $naechstesModul = null;
         if ($aktuellesModul) {
-            $nextIdx = $bausteineProgress->search($aktuellesModul) + 1;
-            if ($nextIdx && $nextIdx < $anzahlBausteine) {
-                $naechstesModul = $bausteineProgress->values()->get($nextIdx);
+            $idx = $kurseMitDatum->search(
+                fn ($x) => ($x['baustein_id'] ?? null) === ($aktuellesModul['baustein_id'] ?? null)
+            );
+            if ($idx !== false && $idx + 1 < $kurseMitDatum->count()) {
+                $naechstesModul = $kurseMitDatum->get($idx + 1);
             }
         }
 
+        // Aufräumen der internen Felder und setzen der Public Props
+        $strip = function (?array $b) {
+            if (!$b) return null;
+            unset($b['_start'], $b['_end']);
+            return $b;
+        };
+
+        $this->aktuellesModul = $strip($aktuellesModul ? (array) $aktuellesModul : null);
+        $this->naechstesModul = $strip($naechstesModul ? (array) $naechstesModul : null);
+
         $progress = $anzahlBausteine ? (int) round(($bestandenBausteine / $anzahlBausteine) * 100) : 0;
+
 
         // ---------- Summen ----------
         $summen = $raw['summen'] ?? [];
@@ -180,6 +239,18 @@ class ProgramShow extends Component
             'praktikum'  => $praktikum,
         ];
     }
+
+    private function detectBausteinTyp(?string $kurzbez): string
+    {
+        $k = strtoupper((string) $kurzbez);
+        return match (true) {
+            $k === 'FERI'                         => 'ferien',
+            $k === 'PRAK'                         => 'praktikum',
+            $k === 'PRUE' || str_starts_with($k, 'PRUE') => 'pruefung',
+            default                               => 'kurs',
+        };
+    }
+
 
     public function placeholder()
     {

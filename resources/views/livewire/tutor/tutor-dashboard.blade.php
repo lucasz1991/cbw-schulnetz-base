@@ -1,7 +1,7 @@
 <div class="">
     <!-- Begrüßung als Card -->
     <div class="bg-white shadow-md rounded-lg p-6 border border-gray-200">
-        <h1 class="text-xl  text-gray-800">Willkommen, Max Mustermann!</h1>
+        <h1 class="text-xl  text-gray-800">Willkommen, {{ Auth::user()->name }}!</h1>
         <p class="text-gray-600 mt-1">Dein persönliches Dashboard mit allen Kursen und Teilnehmern.</p>
     </div>
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">

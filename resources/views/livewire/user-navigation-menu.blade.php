@@ -68,7 +68,7 @@
                          <div class="flex items-center space-x-4 max-md:order-3 md:order-2  flex-none" @click="$dispatch('navhide')">
                              <!-- Inbox Buttons -->
                              <div class="flex items-center space-x-6 mr-2">
-                                 @if (Auth::check() && $currentUrl !== url('/messages'))
+                                 @if (Auth::check() && $currentUrl !== url('/user/messages'))
                                  <div class="relative" x-data="{ open: false, modalOpen: false, selectedMessage: null  }">
                                      <!-- Button zum Öffnen des Popups -->
                                      <button @click="open = !open" class="block">

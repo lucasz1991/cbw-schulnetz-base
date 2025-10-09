@@ -83,7 +83,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/faqs', Faqs::class)->name('faqs');
         Route::get('/absences-create', Absences::class)->name('user.absences.create');
         Route::get('/makeup-exam-create', MakeupExamRegistration::class)->name('user.makeup-exam.create');
-        Route::get('/program/course/{courseId}', GuestCourseShow::class)->name('user.program.course.show');
+        Route::get('/program/course/{klassenId}', GuestCourseShow::class)->name('user.program.course.show');
 
     });
     // Tutor Routes

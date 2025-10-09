@@ -7,22 +7,25 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\Course;
 use Carbon\Carbon;
 use Illuminate\Support\Fluent;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 
 
 class CourseDay extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'course_id',
         'date',
         'start_time',
         'end_time',
+        'std',
         'day_sessions',
         'attendance_data',
         'topic',
         'notes',
+        'type',
     ];
 
     protected $casts = [

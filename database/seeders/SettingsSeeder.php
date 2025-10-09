@@ -39,9 +39,19 @@ class SettingsSeeder extends Seeder
                 'value' => false,
             ],
             [
-                'type' => 'api-grapejs',
-                'key' => 'grapejs',
-                'value' => 'a15cafec95f0407b8d6ed899618f792c8a45f41b505c4736a22acb54236e8b15',
+                'type' => 'grapesjs',
+                'key' => 'api_key',
+                'value' => '383e561443ac4c5bbd775fb883f9ba8ec54273cccb864567a3eb5ff3bf42206f',
+            ],
+            [
+                'type' => 'api',
+                'key' => 'uvs_api_url',
+                'value' => 'https:\/\/uvs.cbw-weiterbildung.de:50123',
+            ],
+            [
+                'type' => 'api',
+                'key' => 'uvs_api_key',
+                'value' => '6Flw8C00p49gFbOLjZka2Hj85gbxTncibEJeGlQXoKyjyp2NtMCzr3zrMoeDDO0O',
             ],
         ];
 
