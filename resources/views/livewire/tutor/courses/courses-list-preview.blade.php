@@ -51,7 +51,7 @@
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     {{-- Linke Seite: Titel + Badges --}}
                     <div class="min-w-0">
-                        <h3 class="text-base sm:text-md font-semibold text-blue-700 truncate">
+                        <h3 class="text-base sm:text-md font-semibold text-gray-600 truncate">
                             {{ $course->title ?: 'Ohne Titel' }}
                         </h3>
 
@@ -74,7 +74,7 @@
                                     {{ $course->dates_count ?? 0 }} Termin{{ ($course->dates_count ?? 0) === 1 ? '' : 'e' }}
                                 </span>
                                 <span class="inline-flex items-center bg-purple-100 text-purple-700 text-xs px-2.5 py-1 rounded-full">
-                                    {{ $course->participants_count ?? 0 }} Teilnehmer{{ ($course->participants_count ?? 0) === 1 ? '' : 'en' }}
+                                    {{ $course->participants_count ?? 0 }} Teilnehmer
                                 </span>
                             </div>
                             
