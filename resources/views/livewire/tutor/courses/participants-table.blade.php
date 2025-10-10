@@ -1,68 +1,42 @@
-
-<div class="space-y-4">
-    {{-- Filter + PerPage --}}
-    <div class="flex items-center justify-between">
-            <x-ui.lists.search-field 
-                resultsCount="{{ $participants->count() }}"
-                wire:model.live="search"
-            />
-
-        <select wire:model.live="perPage" class="border rounded px-2 py-1 pr-8 text-sm ">
-            <option value="10">10 / Seite</option>
-            <option value="15">15 / Seite</option>
-            <option value="25">25 / Seite</option>
-            <option value="50">50 / Seite</option>
-        </select>
-    </div>
-
-    {{-- Tabelle --}}
-    <div class="overflow-x-auto border rounded">
-        <table class="bg-white min-w-full text-sm">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-4 py-2 text-left">
-                        <button wire:click="sort('name')" class="font-semibold">
-                            Name
-                            @if($sortBy === 'name')
-                                {{ $sortDir === 'asc' ? '▲' : '▼' }}
-                            @endif
-                        </button>
-                    </th>
-                    <th class="px-4 py-2 text-left">
-                        <button wire:click="sort('email')" class="font-semibold">
-                            Email
-                            @if($sortBy === 'email')
-                                {{ $sortDir === 'asc' ? '▲' : '▼' }}
-                            @endif
-                        </button>
-                    </th>
-                    <th class="w-6"></th>
-                </tr>
-            </thead>
-            <tbody class="divide-y">
-                @forelse($participants as $p)
-                    <tr>
-                        <td class="px-4 py-2"><x-user.public-info :person="$p" /></td>
-                        <td class="px-4 py-2">{{ $p->email_priv }}</td>
-                        <td class="px-4 py-2">
-                            <a href="{{ route('tutor.participants.show', $p) }}"  class="text-blue-600 hover:underline" wire:navigate>
-                                Öffnen
-                            </a>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="3" class="px-4 py-4 text-center text-gray-500">
-                            Keine Teilnehmer gefunden.
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
-
-    {{-- Pagination --}}
-    <div>
-        {{ $participants->onEachSide(1)->links() }}
-    </div>
+<div x-data="{ showSelectDayCalendar: false }" class="">
+    @if($course->dates->count() > 0)
+        <div class="flex space-x-8">
+            <div class="mt-2 w-full transition-all duration-300 ease-in-out"
+                :class="{
+                    ' md:w-2/3 xl:w-4/5 ': showSelectDayCalendar
+                }"
+            >
+                @if($selectedDayId)
+                    <x-ui.tutor.course.show-date-attendance
+                        :participants="$participants"
+                        :selectedDay="$selectedDay"
+                        :stats="$stats"
+                        :rows="$rows"
+                        :selectPreviousDayPossible="$selectPreviousDayPossible"
+                        :selectNextDayPossible="$selectNextDayPossible"
+                    />
+                @else
+                    <p class="text-sm text-gray-500">Kein Datum ausgewählt.</p>
+                @endif
+            </div>
+            <div class="hidden md:block  w-full mt-2"
+                :class="{
+                    'md:w-1/3 xl:w-1/5': showSelectDayCalendar
+                }"
+                x-show="showSelectDayCalendar"
+                x-transition:enter="transition ease-out duration-300"
+            >
+                <x-calendar.select-date
+                    :dates="$course->dates"
+                    :eventTitle="$course->title"
+                    :selectedDayId="$selectedDayId"
+                    dateField="date"
+                    startTimeField="start_time"
+                    endTimeField="end_time"
+                />
+            </div>
+        </div>
+    @else
+        <p class="text-sm text-gray-500">Keine Termine vorhanden.</p>
+    @endif
 </div>
