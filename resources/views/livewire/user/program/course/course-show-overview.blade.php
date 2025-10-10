@@ -1,5 +1,5 @@
-<div class="bg-white/60">
-  <header class="container mx-auto px-5 py-6 flex items-start justify-between">
+<div class="">
+  <header class="container mx-auto md:px-5 py-6 flex items-start justify-between">
     <div>
       <h1 class="text-2xl font-semibold">{{ $course['title'] ?? '—' }}</h1>
       <p class="text-gray-600">{{ $course['room'] ?? '—' }} · {{ $course['zeitraum_fmt'] ?? '—' }}</p>
@@ -32,7 +32,7 @@
     </div>
   </header>
 
-  <section class="container mx-auto px-5 pb-6">
+  <section class="container mx-auto md:px-5 pb-6">
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <div class="bg-white rounded-lg border shadow p-4">
         <p class="text-xs text-gray-500">Tage</p>

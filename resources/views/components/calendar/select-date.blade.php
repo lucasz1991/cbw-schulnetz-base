@@ -42,7 +42,7 @@ $events = collect($dates)->map(function ($item, $idx) use ($eventTitle, $dateFie
 @endphp
 <div x-data="{ width: 0 }">
     <div
-        {{ $attributes->merge(['class' => 'show-dates-calendar bg-blue-100 p-4 rounded-lg ']) }}
+        {{ $attributes->merge(['class' => 'show-dates-calendar  ']) }}
         x-data="(() => {
             const eventsFromServer = @js($events);
     

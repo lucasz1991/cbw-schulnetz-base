@@ -96,6 +96,52 @@ class CourseShowOverview extends Component
         return 'Offen';
     }
 
+    public function placeholder()
+    {
+        return <<<'HTML'
+            <div role="status" class=" animate-pulse">
+                <div class="">
+                    <header class="container mx-auto px-5 py-6 flex items-start justify-between">
+                        <div>
+                        <h1 class="text-2xl font-semibold"><div class="h-2.5 bg-gray-300 rounded-full w-48 mb-4"></div></h1>
+                        <p class="text-gray-600"><div class="h-2 bg-gray-300 rounded-full max-w-[480px] mb-2.5"></div></p>
+                        <span class="inline-block mt-1 px-2 py-0.5 rounded bg-gray-100 text-gray-800"></span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                        <x-buttons.button-basic :size="'sm'">
+                            Bewerten
+                        </x-buttons.button-basic>
+                            <x-buttons.button-basic :size="'sm'"
+                            wire:navigate>← Vorheriger</x-buttons.button-basic>
+                            <x-buttons.button-basic :size="'sm'"
+                            wire:navigate>Nächster →</x-buttons.button-basic>
+                        </div>
+                    </header>
+                    <section class="container mx-auto px-5 pb-6">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="bg-white rounded-lg border shadow p-4">
+                            <p class="text-xs text-gray-500 mb-4">Tage</p>
+                            <p class="text-2xl font-semibold"><div class="h-2.5 bg-gray-300 rounded-full w-48 my-4"></div></p>
+                        </div>
+                        <div class="bg-white rounded-lg border shadow p-4">
+                            <p class="text-xs text-gray-500 mb-4">Einheiten (gesamt)</p>
+                            <p class="text-2xl font-semibold"><div class="h-2.5 bg-gray-300 rounded-full w-48 my-4"></div></p>
+                        </div>
+                        <div class="bg-white rounded-lg border shadow p-4">
+                            <p class="text-xs text-gray-500 mb-4">Beginn</p>
+                            <p class="text-2xl font-semibold"><div class="h-2.5 bg-gray-300 rounded-full w-48 my-4"></div></p>
+                        </div>
+                        <div class="bg-white rounded-lg border shadow p-4">
+                            <p class="text-xs text-gray-500 mb-4">Ende</p>
+                            <p class="text-2xl font-semibold"><div class="h-2.5 bg-gray-300 rounded-full w-48 my-4"></div></p>
+                        </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        HTML;
+    }
+
     public function render()
     {
         return view('livewire.user.program.course.course-show-overview');

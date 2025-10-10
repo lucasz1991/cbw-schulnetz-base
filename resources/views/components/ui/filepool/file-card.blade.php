@@ -1,22 +1,22 @@
 <div    x-data="{ isHovered: false }" 
-        class="relative border border-gray-300 rounded-lg overflow-hidden bg-white shadow mb-2 group"
+        class="relative border border-gray-300 rounded-lg overflow-hidden bg-white shadow mb-2 cardgroup"
         @mouseenter="isHovered = true"
         @mouseleave="isHovered = false"
         @touchstart="isHovered = true"
         >
-    <div class="transition group-hover:blur-sm">
+    <div class="transition " :class="{ 'blur-sm': isHovered }">
             <img src="{{ $file->icon_or_thumbnail }}"  class="w-full max:w-24 mx-auto aspect-square object-cover">
     </div>
-    <div class="p-2 space-y-2 bg-gray-100 transition group-hover:blur-sm"  >
+    <div class="p-2 space-y-2 bg-gray-100 transition " :class="{ 'blur-sm': isHovered }">
         <div class="text-sm text-gray-800 truncate ">{{ $file->name }}</div>
         <div class="text-xs text-gray-500 ">
             <span>{{ number_format($file->size / 1024, 1) }} KB</span>
         </div>
         @if($file->expires_at)
             @if(!$file->isExpired())
-                <span class="text-gray-500 text-xs p-1 bg-gray-100 rounded border absolute top-2 group-hover:hidden">läuft ab am {{ $file->expires_at->format('d.m.Y') }}</span>
+                <span class="text-gray-500 text-xs p-1 bg-gray-100 rounded border absolute top-2 " :class="{ 'hidden': isHovered }">läuft ab am {{ $file->expires_at->format('d.m.Y') }}</span>
             @else
-                <span class="text-red-500 text-xs  p-1 bg-red-100 rounded border absolute top-2 group-hover:hidden">abgelaufen</span>
+                <span class="text-red-500 text-xs  p-1 bg-red-100 rounded border absolute top-2 " :class="{ 'hidden': isHovered }">abgelaufen</span>
             @endif
         @endif
     </div>
