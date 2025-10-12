@@ -122,8 +122,7 @@
       body .fc .fc-dayGridMonth-view { border-radius: .5rem; overflow: hidden; }
       body .fc-scroller .fc-day { background-color: #fff;pointer-events:none; }
       body .fc .fc-daygrid-body-natural .fc-daygrid-day-frame{
-        min-height:3rem;
-
+        aspect-ratio: 1 / 1;
       }
       body .fc .fc-daygrid-body-natural .fc-daygrid-day-top{
             z-index: 10;
@@ -152,6 +151,9 @@
             width: 100%;
             height: 100%;
             margin:0px; 
+        }
+        body .fc .fc-col-header-cell-cushion{
+          font-size: smaller;
         }
     </style>
     <div class="fc-container" x-ref="calendar"></div>

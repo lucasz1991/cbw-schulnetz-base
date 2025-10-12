@@ -18,12 +18,15 @@
 @endphp
 <div class="">
         <x-slot name="header"> 
-            <div class="px-4">
-
-                <x-back-button /> 
+            <div class="px-4 flex items-center gap-3">
+                <x-back-button />
+                <span>
+                    Kurs im Detail 
+                </span>
             </div> 
         </x-slot>
     <div class=" space-y-8 ">
+        <div class="bg-white p-4 border border-gray-300 rounded-lg shadow space-y-8 ">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div class="flex items-center  gap-2">
                     
@@ -54,25 +57,26 @@
                 {{ $course->participants_count ?? 0 }} Teilnehmer{{ ($course->participants_count ?? 0) === 1 ? '' : 'en' }}
             </span>
         </div>
+    </div>
         <x-ui.accordion.tabs
-                :tabs="['anwesenheit' => 'Anwesenheit', 'doku' => 'Dokumentation', 'medien' => 'Materialien']"
+                :tabs="['anwesenheit' => 'Anwesenheit', 'doku' => 'Dokumentation', 'medien' => 'Materialien', 'results' => 'Ergebnisse', 'invoice' => 'Rechnung']"
                 default="doku"
                 class="mt-4"
         >
-        <x-ui.accordion.tab-panel for="anwesenheit">
-            <div wire:key="participants-list">
+            <x-ui.accordion.tab-panel for="anwesenheit">
                 <livewire:tutor.courses.participants-table :courseId="$course->id" />
-            </div>
-        </x-ui.accordion.tab-panel>
+            </x-ui.accordion.tab-panel>
             <x-ui.accordion.tab-panel for="doku">
-                <div>
-                    
-                    <livewire:tutor.courses.course-documentation-panel :courseId="$course->id" />
-                </div>
+                <livewire:tutor.courses.course-documentation-panel :courseId="$course->id" />
             </x-ui.accordion.tab-panel>
             <x-ui.accordion.tab-panel for="medien">
                 <livewire:tutor.courses.manage-course-media :course="$course" lazy />
-
+            </x-ui.accordion.tab-panel>
+            <x-ui.accordion.tab-panel for="results">
+                {{-- livewire:tutor.courses.manage-course-results course="$course" lazy /> --}}
+            </x-ui.accordion.tab-panel>
+            <x-ui.accordion.tab-panel for="invoice">
+                <livewire:tutor.courses.manage-course-invoice :course="$course" lazy />
             </x-ui.accordion.tab-panel>
         </x-ui.accordion.tabs>
     </div>

@@ -54,7 +54,19 @@ class File extends Model
         };
     }
 
+    public function getSizeFormattedAttribute(): string
+    {
+        $bytes = (int) $this->size;
 
+        if ($bytes < 1024) {
+            return $bytes . ' B';
+        } elseif ($bytes < 1048576) {
+            return number_format($bytes / 1024, 1, ',', '.') . ' KB';
+        } else {
+            return number_format($bytes / 1048576, 2, ',', '.') . ' MB';
+        }
+    }
+    
     /**
      * Path des Files im Storage zu temporären datei zum anzeigen im Browser
      */

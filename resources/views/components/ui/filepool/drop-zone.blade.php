@@ -1,28 +1,23 @@
 @props([
-  // exakter Livewire-Pfad, z. B. "fileUploads.123" oder "roterFadenUpload"
   'model',
-
-  // "multi" (Default) | "single"
   'mode' => 'multi',
-
-  // optionale DZ-Optionen
   'label' => 'Dateien hier ablegen oder klicken.',
-  'acceptedFiles' => null,   // z. B. ".pdf,.png,.jpg"
-  'maxFiles' => null,        // z. B. 20  (wird bei single auf 1 gesetzt)
-  'maxFilesize' => null,     // z. B. 50 (MB)
+  'acceptedFiles' => null,
+  'maxFiles' => null,
+  'maxFilesize' => null,
 ])
 
 @php
-  // robustes Single-Flag (erlaubt :mode="single" od. "single")
-  $isSingle = ($mode === 'single' || $mode === true || $mode === 1 || $mode === '1');
-  $dzMaxFiles = $isSingle ? 1 : ($maxFiles ?? 20);
+  $isSingle      = ($mode === 'single' || $mode === true || $mode === 1 || $mode === '1');
+  $dzMaxFiles    = $isSingle ? 1 : ($maxFiles ?? 20);
   $dzMaxFilesize = $maxFilesize ?? 15;
-  $dzAccepted = $acceptedFiles; // kann null sein
+  $dzAccepted    = $acceptedFiles; // z. B. ".pdf,.png,.jpg"
 @endphp
 
 <div
   x-data="{
     dz: null,
+    active: false, // Upload-Scope nur für DIESES Input
     single: @js($isSingle),
     opts: {
       maxFiles: @js($dzMaxFiles),
@@ -31,17 +26,17 @@
     },
 
     init() {
-      // Nach Server-Save (optional) UI resetten
+      // optionales externes Reset (z. B. nach Server-Save)
       window.addEventListener('filepool:saved', (e) => {
         if (e?.detail?.model === @js($model)) this.resetDZ();
       });
 
-      // multiple-Attribut am Input entsprechend Modus setzen
+      // multiple-Attribut am Input setzen + active-Scope setzen, wenn dieses Input benutzt wird
       this.$nextTick(() => {
         const input = this.$refs.fileInput;
         if (!input) return;
-        if (this.single) input.removeAttribute('multiple');
-        else input.setAttribute('multiple', 'multiple');
+        if (this.single) input.removeAttribute('multiple'); else input.setAttribute('multiple', 'multiple');
+        input.addEventListener('change', () => { this.active = true; }, { once:false });
       });
 
       this.$nextTick(() => this.mountDZ());
@@ -59,7 +54,7 @@
       const previews = el.querySelector('.dz-previews') || el;
 
       this.dz = new Dropzone(el, {
-        url: '#',                   // nur UI
+        url: '#', // nur UI – Upload macht Livewire
         autoProcessQueue: false,
         clickable: el,
         previewsContainer: previews,
@@ -68,60 +63,92 @@
         maxFilesize: this.opts.maxFilesize,
         acceptedFiles: this.opts.acceptedFiles ?? undefined,
         chunking: true,
-        chunkSize: 1000000, // 1 MB pro Chunk
+        chunkSize: 1000000, // rein visuell
       });
 
-      // SINGLE: wenn mehr als 1 Datei gewählt → neue ersetzt alte
+      // SINGLE: neue Datei ersetzt alte
       this.dz.on('maxfilesexceeded', (file) => {
         if (!this.single) return;
         this.dz.removeAllFiles();
         this.dz.addFile(file);
       });
 
-      // Datei hinzugefügt → verstecktes Input aktualisieren
+      // Datei hinzugefügt → verstecktes Input aktualisieren (Livewire-Upload anstoßen)
       this.dz.on('addedfile', (file) => {
         const dt = new DataTransfer();
-
         if (this.single) {
-          // exakt 1 Datei im Input
           dt.items.add(file);
         } else {
-          // Multi: bestehende + neue mergen
           for (const f of input.files) dt.items.add(f);
           dt.items.add(file);
         }
-
         input.files = dt.files;
-        input.dispatchEvent(new Event('change', { bubbles: true })); // wichtig für Livewire
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+
+        // Sofort visuell als 'processing' markieren (bis Livewire Progress liefert)
+        this.dz.emit('processing', file);
+        this.dz.emit('uploadprogress', file, 0, 0);
       });
 
       // Datei entfernt → auch aus dem Input entfernen
       this.dz.on('removedfile', (file) => {
         const dt = new DataTransfer();
-
-        if (this.single) {
-          // alles leeren
-          // (Dropzone hat bereits Preview entfernt, wir leeren Input)
-        } else {
+        if (!this.single) {
           for (const f of input.files) {
             const same = f.name === file.name && f.size === file.size && f.lastModified === file.lastModified;
             if (!same) dt.items.add(f);
           }
-        }
-
+        } // bei single leeren wir einfach
         input.files = dt.files;
         input.dispatchEvent(new Event('change', { bubbles: true }));
       });
+
+      // ---- Livewire-Upload-Events → auf Dropzone spiegeln ----
+      const markAllAsProcessing = () => {
+        if (!this.active) return;
+        this.dz.files.forEach(f => {
+          if (f.status !== Dropzone.SUCCESS && f.status !== Dropzone.ERROR) {
+            this.dz.emit('processing', f);
+            this.dz.emit('uploadprogress', f, 0, 0);
+          }
+        });
+      };
+
+      const updateAllProgress = (percent) => {
+        if (!this.active) return;
+        this.dz.files.forEach(f => {
+          if (f.status === Dropzone.UPLOADING || f.status === Dropzone.PROCESSING || f.status === Dropzone.QUEUED) {
+            const bytesSent = Math.round((percent / 100) * (f.size || 0));
+            this.dz.emit('uploadprogress', f, percent, bytesSent);
+          }
+        });
+      };
+
+      const finishAll = (ok = true) => {
+        if (!this.active) return;
+        this.dz.files.forEach(f => {
+          if (ok) this.dz.emit('success', f, {});
+          else    this.dz.emit('error',   f, 'Upload fehlgeschlagen');
+          this.dz.emit('complete', f);
+          f.previewElement?.classList.toggle('dz-success', ok);
+          f.previewElement?.classList.toggle('dz-error', !ok);
+        });
+        // Entfernen-Link nach Erfolg ausblenden? (optional)
+        // this.dz.files.forEach(f => f.previewElement?.querySelector('.dz-remove')?.classList.add('hidden'));
+        this.active = false; // Scope zurücksetzen
+      };
+
+      // Globale Livewire-Browser-Events hooken (lokal filtern via this.active)
+      document.addEventListener('livewire-upload-start',   () => markAllAsProcessing());
+      document.addEventListener('livewire-upload-progress',e => updateAllProgress(e.detail.progress));
+      document.addEventListener('livewire-upload-error',   () => finishAll(false));
+      document.addEventListener('livewire-upload-finish',  () => finishAll(true));
     },
 
     resetDZ() {
-      // Dropzone leeren (inkl. Previews)
       if (this.dz) this.dz.removeAllFiles(true);
-
-      // verstecktes Input leeren + CHANGE, damit Livewire den Reset merkt
       const input = this.$refs.fileInput;
       if (!input) return;
-
       const empty = new DataTransfer();
       input.files = empty.files;
       input.dispatchEvent(new Event('change', { bubbles: true }));
@@ -129,15 +156,17 @@
   }"
   x-init="init()"
 >
-  <!-- Dropzone-UI -->
-  <form x-ref="dzForm" class="dropzone pointer-events-auto min-h-[140px] rounded-xl border-2 border-dashed border-gray-300 bg-gray-50" wire:ignore>
+  <!-- Dropzone-UI (vor Livewire geschützt) -->
+  <form x-ref="dzForm"
+        class="dropzone pointer-events-auto min-h-[140px] rounded-xl border-2 border-dashed border-gray-300 bg-gray-50"
+        wire:ignore>
     <div class="dz-message needsclick">
       <h5 class="text-gray-600 dark:text-gray-100">{{ $label }}</h5>
       @if($isSingle)
         <p class="text-xs text-gray-400">Max. 1 Datei</p>
       @endif
     </div>
-    <div class="dz-previews"></div>
+    <div class="dz-previews flex items-center justify-around gap-2"></div>
   </form>
 
   <!-- Livewire-Input (Modus-abhängig multiple) -->

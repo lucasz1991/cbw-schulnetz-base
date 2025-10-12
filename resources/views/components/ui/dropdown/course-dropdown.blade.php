@@ -1,7 +1,7 @@
 @props(['group','itemId'])
 
 <div x-data>
-  <div class="rounded-lg overflow-hidden">
+  <div class="rounded-lg overflow-hidden border border-sky-600">
     <button
       @click="$dispatch('accordion-toggle', { group: '{{ $group }}', id: '{{ $itemId }}' })"
       class="w-full px-4 py-2 flex justify-start items-center space-x-3 bg-sky-600 text-white"
@@ -15,7 +15,7 @@
     </button>
 
     <div x-show="activeId === '{{ $itemId }}'" x-cloak x-collapse.duration.400ms class="overflow-hidden">
-      <div class="p-3 pt-6 bg-white px-4 py-2 border rounded-b-lg border-sky-600">
+      <div class="p-3 pt-6 bg-white px-4 py-2 ">
         {{ $content }}
       </div>
     </div>

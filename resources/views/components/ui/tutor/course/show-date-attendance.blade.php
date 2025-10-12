@@ -1,4 +1,4 @@
-<div class="space-y-4">
+<div class="space-y-4 transition-opacity duration-300" wire:loading.class="opacity-30">
     <div class="flex  max-md:flex-wrap  items-center space-x-3  justify-between mb-8">
         <div class="flex  justify-between items-center space-x-3 w-full">
           <div>
@@ -89,7 +89,7 @@
     <div class="flex items-center gap-2">
       <x-dropdown>
         <x-slot name="trigger">
-          <button class="px-2 py-1 rounded border text-xs">Weitere Aktionen</button>
+          <button class="px-2 py-1 rounded border text-xs bg-white">Weitere Aktionen</button>
         </x-slot>
         <x-slot name="content">
           <x-dropdown-link wire:click="bulk('all_present')">Alle anwesend</x-dropdown-link>
