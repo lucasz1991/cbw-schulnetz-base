@@ -6,7 +6,7 @@
      @accordion-toggle.window="
         if ($event.detail.group === group) activeId = (activeId === $event.detail.id ? null : $event.detail.id)
      ">
-
+ 
   <div class="mb-8">
     <x-ui.dropdown.course-dropdown
       group="course-{{ $course->id }}"
