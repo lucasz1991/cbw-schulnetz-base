@@ -23,17 +23,17 @@
     class="w-full"
     role="tablist"
      wire:key="tutor-course-tabs"
-      wire:ignore
+     wire:ignore
 >
     <div class="flex -mb-[1px] space-x-2">
         @foreach($tabs as $k => $label)
             <button
                 type="button"
-                @click="openTab = '{{ $k }}'"
+                @click.prevent="openTab = '{{ $k }}'"
                 :class="openTab === '{{ $k }}'
-                    ? 'text-blue-600 border-blue-600 bg-gray-100 border-b-0'
+                    ? 'text-blue-600 border-sky-300 bg-sky-50 border-b-0'
                     : 'text-gray-500 bg-white'"
-                class="px-4 py-2 text-sm font-medium transition-all border border-gray-300 rounded-t-lg"
+                class="px-4 py-2 text-sm font-medium transition-all border border-gray-300 border-b-sky-300 rounded-t-lg"
                 role="tab"
                 :aria-selected="openTab === '{{ $k }}'"
                 :tabindex="openTab === '{{ $k }}' ? 0 : -1"

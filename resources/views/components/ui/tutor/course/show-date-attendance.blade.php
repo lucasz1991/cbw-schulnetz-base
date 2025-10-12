@@ -1,48 +1,78 @@
 <div class="space-y-4">
-  {{-- Kopfzeile: Day-Navigation (dein bestehender Block bleibt unverändert) --}}
-  <div class="flex max-md:flex-wrap justify-between mb-4">
-    <div class="flex space-x-3">
-      <div class="flex items-stretch rounded-md border border-gray-200 shadow-sm overflow-hidden h-max w-max max-md:mb-4">
-        @if($selectPreviousDayPossible)
-          <button type="button" wire:click="selectPreviousDay"
-                  class="px-4 py-2 text-sm text-white bg-blue-400 hover:bg-blue-700">
-            <svg class="h-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 8 14">
-              <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M7 1 1.3 6.326a.91.91 0 0 0 0 1.348L7 13"/>
-            </svg>
-          </button>
-        @endif
+    <div class="flex  max-md:flex-wrap  items-center space-x-3  justify-between mb-8">
+        <div class="flex  justify-between items-center space-x-3 w-full">
+          <div>
+            <div class="flex   items-stretch rounded-md border border-gray-200 shadow-sm overflow-hidden h-max w-max max-md:mb-4">
+                <!-- zurück (minus) -->
+                 @if($selectPreviousDayPossible)
+                <button
+                    type="button"
+                    wire:click="selectPreviousDay"
+                    class="px-4 py-2  text-sm text-white   bg-blue-400 hover:bg-blue-700 "
+                >
+                    <svg class="h-3 text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 8 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 1 1.3 6.326a.91.91 0 0 0 0 1.348L7 13"></path>
+                    </svg>
+                </button>
+                @endif
+  
+                      <span class="bg-blue-200 text-blue-800 text-lg font-medium px-2.5 py-0.5 ">
+                          {{ $selectedDay?->date?->format('d.m.Y') }}
+                      </span>
+  
+    
+                <!-- vorwärts (plus) -->
+                @if($selectNextDayPossible)
+                <button
+                    type="button"
+                    wire:click="selectNextDay"
+                    class="px-4 py-2 bg-blue-400 text-sm text-white hover:bg-blue-700"
+                >
+                    <svg class="h-3 text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 8 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 13 5.7-5.326a.909.909 0 0 0 0-1.348L1 1"></path>
+                    </svg>
+                </button>
+                @endif
+            </div>
+                @php
+                    use Illuminate\Support\Carbon;
+                    $isToday = $selectedDay?->date
+                        ? Carbon::parse($selectedDay->date)->isToday()
+                        : false;
+                @endphp
+                @if($isToday)
+                  <span
+                    class="h-max rounded-lg bg-green-100 border border-green-700 text-green-700 text-xs px-1.5 py-0.5 shadow"
+                    title="Heutiger Tag"
+                  >
+                    Heute
+                  </span>
+                @endif
+          </div>
+          <div>
+            <button
+                type="button"
+                @click="showSelectDayCalendar = !showSelectDayCalendar"
+                class="inline-flex items-center gap-2 text-sm border rounded-md px-2 py-1 bg-white shadow-sm transition"
+                :class="showSelectDayCalendar
+                    ? 'hover:bg-blue-100 hover:text-gray-600 border-blue-200'
+                    : 'hover:bg-blue-100 hover:text-blue-600 border-blue-200'">
 
-        <span class="bg-blue-200 text-blue-800 text-lg font-medium px-2.5 py-0.5">
-          {{ $selectedDay?->date?->format('d.m.Y') ?? '–' }}
-        </span>
+              <!-- Kalender-Icon -->
+              <svg class="h-5 w-5 text-gray-500" fill="currentColor" viewBox="0 0 640 640" aria-hidden="true">
+                <path d="M224 64C241.7 64 256 78.3 256 96L256 128L384 128L384 96C384 78.3 398.3 64 416 64C433.7 64 448 78.3 448 96L448 128L480 128C515.3 128 544 156.7 544 192L544 480C544 515.3 515.3 544 480 544L160 544C124.7 544 96 515.3 96 480L96 192C96 156.7 124.7 128 160 128L192 128L192 96C192 78.3 206.3 64 224 64zM160 304L160 336C160 344.8 167.2 352 176 352L208 352C216.8 352 224 344.8 224 336L224 304C224 295.2 216.8 288 208 288L176 288C167.2 288 160 295.2 160 304zM288 304L288 336C288 344.8 295.2 352 304 352L336 352C344.8 352 352 344.8 352 336L352 304C352 295.2 344.8 288 336 288L304 288C295.2 288 288 295.2 288 304zM432 288C423.2 288 416 295.2 416 304L416 336C416 344.8 423.2 352 432 352L464 352C472.8 352 480 344.8 480 336L480 304C480 295.2 472.8 288 464 288L432 288zM160 432L160 464C160 472.8 167.2 480 176 480L208 480C216.8 480 224 472.8 224 464L224 432C224 423.2 216.8 416 208 416L176 416C167.2 416 160 423.2 160 432zM304 416C295.2 416 288 423.2 288 432L288 464C288 472.8 295.2 480 304 480L336 480C344.8 480 352 472.8 352 464L352 432C352 423.2 344.8 416 336 416L304 416zM416 432L416 464C416 472.8 423.2 480 432 480L464 480C472.8 480 480 472.8 480 464L480 432C480 423.2 472.8 416 464 416L432 416C423.2 416 416 423.2 416 432z"/>
+              </svg>
 
-        @if($selectNextDayPossible)
-          <button type="button" wire:click="selectNextDay"
-                  class="px-4 py-2 bg-blue-400 text-sm text-white hover:bg-blue-700">
-            <svg class="h-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 8 14">
-              <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="m1 13 5.7-5.326a.909.909 0 0 0 0-1.348L1 1"/>
-            </svg>
-          </button>
-        @endif
-      </div>
-
-      <div>
-        <button type="button"
-                class="text-sm text-gray-500 border rounded-md px-1 py-1 bg-white shadow-sm"
-                :class="{
-                  'hover:bg-green-100 hover:text-green-300': !showSelectDayCalendar,
-                  'hover:bg-red-100 hover:text-red-300': showSelectDayCalendar
-                }"
-                @click="showSelectDayCalendar = !showSelectDayCalendar">
-          <svg class="h-6 w-6 inline-block" fill="currentColor" viewBox="0 0 640 640" xmlns="http://www.w3.org/2000/svg">
-            <path d="M224 64C241.7 64 256 78.3 256 96L256 128L384 128L384 96C384 78.3 398.3 64 416 64C433.7 64 448 78.3 448 96L448 128L480 128C515.3 128 544 156.7 544 192L544 480C544 515.3 515.3 544 480 544L160 544C124.7 544 96 515.3 96 480L96 192C96 156.7 124.7 128 160 128L192 128L192 96C192 78.3 206.3 64 224 64zM160 304L160 336C160 344.8 167.2 352 176 352L208 352C216.8 352 224 344.8 224 336L224 304C224 295.2 216.8 288 208 288L176 288C167.2 288 160 295.2 160 304zM288 304L288 336C288 344.8 295.2 352 304 352L336 352C344.8 352 352 344.8 352 336L352 304C352 295.2 344.8 288 336 288L304 288C295.2 288 288 295.2 288 304zM432 288C423.2 288 416 295.2 416 304L416 336C416 344.8 423.2 352 432 352L464 352C472.8 352 480 344.8 480 336L480 304C480 295.2 472.8 288 464 288L432 288zM160 432L160 464C160 472.8 167.2 480 176 480L208 480C216.8 480 224 472.8 224 464L224 432C224 423.2 216.8 416 208 416L176 416C167.2 416 160 423.2 160 432zM304 416C295.2 416 288 423.2 288 432L288 464C288 472.8 295.2 480 304 480L336 480C344.8 480 352 472.8 352 464L352 432C352 423.2 344.8 416 336 416L304 416zM416 432L416 464C416 472.8 423.2 480 432 480L464 480C472.8 480 480 472.8 480 464L480 432C480 423.2 472.8 416 464 416L432 416C423.2 416 416 423.2 416 432z"/>
-          </svg>
-        </button>
-      </div>
-    </div>
-  </div>
+              <!-- visueller Toggle -->
+              <span class="relative w-9 h-5 rounded-full transition-colors"
+                    :class="showSelectDayCalendar ? 'bg-blue-600' : 'bg-gray-200'">
+                <span class="absolute top-[2px] left-[2px] h-4 w-4 rounded-full bg-white border border-gray-300 transition-transform"
+                      :class="showSelectDayCalendar ? 'translate-x-4' : 'translate-x-0'"></span>
+              </span>
+            </button>
+          </div>
+        </div>
+    </div>      
 
   {{-- Stats + Bulk-Aktionen --}}
   <div class="flex flex-wrap justify-between items-center gap-2">
@@ -73,15 +103,38 @@
   </div>
 
   {{-- Tabelle: pro Tag alle TN mit Aktionen --}}
-  <div class="overflow-x-auto border rounded bg-white">
-    <table class="min-w-full text-sm">
+  <div class=" border rounded bg-white">
+    <table class="min-w-full text-sm table-fixed">
       <thead class="bg-gray-50">
         <tr>
-          <th class="px-4 py-2 text-left">
-            <button wire:click="sort('name')" class="font-semibold">Teilnehmer</button>
-          </th>
-          <th class="px-4 py-2">Zeiten</th>
-          <th class="px-4 py-2">Aktionen</th>
+    <th class="px-4 py-2 text-left w-1/3">
+      <button
+        type="button"
+        wire:click="sort('name')"
+        class="flex items-center gap-1 font-semibold group"
+      >
+        Teilnehmer
+        @if($sortBy === 'name')
+          @if($sortDir === 'asc')
+            {{-- Pfeil nach oben --}}
+            <svg class="w-3 h-3 text-blue-600 group-hover:text-blue-800 transition" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+              <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m5 12 5-5 5 5"/>
+            </svg>
+          @else
+            {{-- Pfeil nach unten --}}
+            <svg class="w-3 h-3 text-blue-600 group-hover:text-blue-800 transition" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+              <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m5 8 5 5 5-5"/>
+            </svg>
+          @endif
+        @else
+          {{-- Neutraler Pfeil (grau, wenn nicht aktiv) --}}
+          <svg class="w-3 h-3 text-gray-400 group-hover:text-gray-600 transition" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m5 8 5 5 5-5"/>
+          </svg>
+        @endif
+      </button>
+    </th>
+          <th class="px-4 py-2"></th>
           <th class="px-4 py-2 text-right">Status</th>
         </tr>
       </thead>
@@ -113,17 +166,11 @@
               @endif
             </td>
 
-            {{-- Zeiten --}}
-            <td class="px-4 py-2 text-sm text-gray-700 whitespace-nowrap">
-              in: {{ $fmt($d['in'] ?? null) }} / out: {{ $fmt($d['out'] ?? null) }}
-              <div class="text-xs text-gray-500">
-                +{{ (int)($d['late_minutes'] ?? 0) }} min spät • {{ (int)($d['left_early_minutes'] ?? 0) }} min früher
-              </div>
-            </td>
+
 
             {{-- Aktionen --}}
             <td class="px-4 py-2">
-              <div class="inline-flex items-center gap-1">
+              <div class="inline-flex items-center justify-center gap-1 w-full">
                 {{-- Check-in (berechnet Verspätung ggü. Slot 1) --}}
                 <button
                   class="inline-flex items-center justify-center w-8 h-8 rounded border border-green-600 text-green-700 hover:bg-green-50"
@@ -209,9 +256,23 @@
             </td>
 
             {{-- Status --}}
+            @php
+              $late  = (int)($d['late_minutes'] ?? 0);
+              $early = (int)($d['left_early_minutes'] ?? 0);
+              $showTimes = $late > 0 || $early > 0;
+            @endphp
             <td class="px-4 py-2 text-right">
-              <span class="inline-flex rounded px-2 py-0.5 text-xs {{ $badge }}">{{ $statusLabel }}</span>
+              <div class="inline-flex items-center justify-end gap-1 w-full">
+                @if($showTimes)
+                  <div class="text-xs text-gray-500">
+                    +{{ $late }} min spät • {{ $early }} min früher
+                  </div>
+                @endif
+
+                <span class="inline-flex rounded px-2 py-0.5 text-xs {{ $badge }}">{{ $statusLabel }}</span>
+               </div>
             </td>
+
           </tr>
         @empty
           <tr><td colspan="4" class="p-6 text-center text-gray-500">Keine Einträge.</td></tr>

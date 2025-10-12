@@ -67,6 +67,7 @@ class CourseDocumentationPanel extends Component
 
 
 
+
     public function saveNotes(): void
     {
         if (!$this->selectedDayId) return;
@@ -107,10 +108,11 @@ class CourseDocumentationPanel extends Component
         return [$start->toDateString(), $end->toDateString()];
     }
 
-    public function updatedDayNotes(): void
+    public function updatedDayNotes($html): void
     {
         // optional: nichts tun, wenn du nur per Button speichern willst
         // oder: simple Throttle
+        optional($this->selectedDay)->update(['notes' => $html]);
         static $last = 0;
         if (microtime(true) - $last < 1.0) return; // 1s throttle
         $last = microtime(true);

@@ -49,13 +49,12 @@
       @endif
     </div>
   </div>
-  <div>
-    <span>Medien</span>
-    <span class="text-gray-500">({{ $filePool->files->count() }})</span>
-  </div>
-  <div class="my-8 mx-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
+  <div class="my-8 mx-2 flex space-x-4 ">
     @forelse($filePool->files as $file)
-      <x-ui.filepool.file-card :file="$file" />
+      <div class="w-32 max-w-[48%] mb-4">
+
+        <x-ui.filepool.file-card :file="$file" />
+      </div>
     @empty
       <div class="text-sm text-gray-500">Keine Dateien vorhanden.</div>
     @endforelse

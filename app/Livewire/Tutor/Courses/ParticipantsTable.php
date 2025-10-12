@@ -41,7 +41,7 @@ class ParticipantsTable extends Component
     public function mount(int $courseId, ?int $selectedDayId = null): void
     {
         $this->courseId = $courseId;
-        $this->course   = Course::with(['tutor', 'dates'])->findOrFail($courseId);
+        $this->course   = Course::findOrFail($courseId);
 
         // Tagesauswahl initialisieren: explizit -> heute -> erster Tag
         if ($selectedDayId) {

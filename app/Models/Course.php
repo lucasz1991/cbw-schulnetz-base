@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+
 
 class Course extends Model
 {
@@ -136,6 +138,11 @@ class Course extends Model
         return $this->morphOne(FilePool::class, 'filepoolable');
     }
 
+
+    public function files(): MorphMany
+    {
+        return $this->morphMany(\App\Models\File::class, 'fileable');
+    }
     /*
     |--------------------------------------------------------------------------
     | Scopes (praktisch fürs Admin-UI)

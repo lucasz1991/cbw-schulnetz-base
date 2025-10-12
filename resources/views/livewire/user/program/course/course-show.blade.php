@@ -30,14 +30,14 @@
                             <svg xmlns="http://www.w3.org/2000/svg"  class="w-4   mr-1 max-md:mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                             Tage
                         </button>
-                        <button x-on:click="selectedTab = 'claims'" 
-                            x-bind:aria-selected="selectedTab === 'claims'" 
-                            x-bind:tabindex="selectedTab === 'claims' ? '0' : '-1'" 
-                            x-bind:class="selectedTab === 'claims' ? ' shadow font-semibold text-primary border-b-2 border-b-secondary bg-blue-50' : 'bg-white text-on-surface font-medium border-b-white hover:border-b-blue-400 hover:border-b-outline-strong hover:text-on-surface-strong'" 
+                        <button x-on:click="selectedTab = 'material'" 
+                            x-bind:aria-selected="selectedTab === 'material'" 
+                            x-bind:tabindex="selectedTab === 'material' ? '0' : '-1'" 
+                            x-bind:class="selectedTab === 'material' ? ' shadow font-semibold text-primary border-b-2 border-b-secondary bg-blue-50' : 'bg-white text-on-surface font-medium border-b-white hover:border-b-blue-400 hover:border-b-outline-strong hover:text-on-surface-strong'" 
                             class="inline-flex items-center h-min px-4 py-2 text-sm rounded-t-lg border-b-2 border-t border-x border-x-gray-300 border-t-gray-300 bg-white max-md:mr-5" 
                             type="button" 
                             role="tab" 
-                            aria-controls="tabpanelclaims" 
+                            aria-controls="tabpanelmaterial" 
                             >
                             <svg xmlns="http://www.w3.org/2000/svg"  class="w-4   mr-1 max-md:mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>                        
                             Materialien
@@ -47,11 +47,22 @@
                 <div class="container mx-auto px-5" >
                     <div x-cloak x-show="selectedTab === 'basic'" x-collapse id="tabpanelbasic" role="tabpanel" aria-label="basic">
                             <livewire:user.program.course.course-show-overview
-                                :klassen-id="$klassenId ?? ($course['klassen_id'] ?? null)"
+                                :klassen-id="$klassenId ?? ($courseArray['klassen_id'] ?? null)"
                                 :key="'overview-'.$klassenId"
                                 lazy
                                 />
                     </div>
+
+                    <div x-cloak x-show="selectedTab === 'material'" x-collapse id="tabpanelmaterial" role="tabpanel" aria-label="material">
+                        <div>
+                            <livewire:tools.file-pools.manage-file-pools
+                                :modelType="\App\Models\Course::class"
+                                :modelId="$course->id"
+                                lazy 
+                            />
+                        </div>
+                    </div>
+
                 </div>
             </div>
     </div>      

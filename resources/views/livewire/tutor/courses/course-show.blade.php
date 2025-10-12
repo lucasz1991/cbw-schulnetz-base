@@ -55,29 +55,24 @@
             </span>
         </div>
         <x-ui.accordion.tabs
-                :tabs="['anwesenheit' => 'Anwesenheit', 'doku' => 'Dokumentation', 'medien' => 'Material']"
+                :tabs="['anwesenheit' => 'Anwesenheit', 'doku' => 'Dokumentation', 'medien' => 'Materialien']"
                 default="doku"
                 class="mt-4"
         >
         <x-ui.accordion.tab-panel for="anwesenheit">
             <div wire:key="participants-list">
-                <livewire:tutor.courses.participants-table :courseId="$course->id" lazy />
+                <livewire:tutor.courses.participants-table :courseId="$course->id" />
             </div>
         </x-ui.accordion.tab-panel>
             <x-ui.accordion.tab-panel for="doku">
                 <div>
                     
-                    <livewire:tutor.courses.course-documentation-panel :courseId="$course->id" lazy />
+                    <livewire:tutor.courses.course-documentation-panel :courseId="$course->id" />
                 </div>
             </x-ui.accordion.tab-panel>
             <x-ui.accordion.tab-panel for="medien">
-                <div>
-                    <livewire:tools.file-pools.manage-file-pools
-                        :modelType="\App\Models\Course::class"
-                        :modelId="$course->id"
-                         lazy
-                    />
-                </div>
+                <livewire:tutor.courses.manage-course-media :course="$course" lazy />
+
             </x-ui.accordion.tab-panel>
         </x-ui.accordion.tabs>
     </div>

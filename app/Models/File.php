@@ -10,6 +10,8 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Carbon;
 use App\Jobs\DeleteTempFile;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
+
 
 
 class File extends Model
@@ -20,6 +22,7 @@ class File extends Model
         'name',
         'path',
         'mime_type',
+        'type',
         'size',
         'expires_at',
         'created_at',
@@ -155,6 +158,24 @@ class File extends Model
         return Storage::disk($publicDisk)->url($tmpPath);
     }
 
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Gibt true zurück, wenn die Datei dem aktuell angemeldeten User gehört.
+     */
+    public function getIsOwnedByAuthUserAttribute(): bool
+    {
+        $authUser = Auth::user();
+
+        if (!$authUser) {
+            return false;
+        }
+
+        return (int) $this->user_id === (int) $authUser->id;
+    }
 
     /**
      * Morphable Beziehung – z. B. zu User, Course, Task, etc.

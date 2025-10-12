@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\Support\Facades\Response;
 use ZipArchive;
+use Illuminate\Support\Facades\Auth;
 
 class ManageFilePools extends Component
 {
@@ -67,6 +68,7 @@ class ManageFilePools extends Component
             $mime     = Storage::disk('private')->mimeType($path) ?? $uploadedFile->getClientMimeType();
 
             $this->filePool->files()->create([
+                'user_id'    => Auth::user()->id ?? null,
                 'name'       => $filename,
                 'path'       => $path,
                 'mime_type'  => $mime,

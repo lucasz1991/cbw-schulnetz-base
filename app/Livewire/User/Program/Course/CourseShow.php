@@ -14,7 +14,8 @@ class CourseShow extends Component
     public string $klassenId;
 
     /** Kurs + Days als Arrays fürs Blade */
-    public array $course = [];
+    public array $courseArray = [];
+    public Course $course;
     public array $days = [];
 
     /** Navigation innerhalb der eingeschriebenen Kurse der Person */
@@ -35,17 +36,17 @@ class CourseShow extends Component
         }
 
         // 1) Kurs laden
-        $course = Course::query()
+        $this->course = Course::query()
             ->where('klassen_id', $klassenId)
             ->first();
 
-        if (! $course) {
+        if (! $this->course) {
             abort(404, 'Kurs nicht gefunden.');
         }
 
         // 2) Einschreibung prüfen (existiert eine Enrollment-Zeile?)
         $enrolled = CourseParticipantEnrollment::query()
-            ->where('course_id', $course->id)
+            ->where('course_id', $this->course->id)
             ->where('person_id', $person->id)
             ->exists();
 
@@ -54,8 +55,8 @@ class CourseShow extends Component
         }
 
         // 3) Kurs → ViewModel
-        $this->course = $this->mapCourse($course);
-        $this->days   = $course->days->map(fn ($d) => $this->mapDay($d))->all();
+        $this->courseArray = $this->mapCourse($this->course);
+        $this->days   = $this->course->days->map(fn ($d) => $this->mapDay($d))->all();
 
         // 4) Prev/Nächster Kurs innerhalb der eigenen Einschreibungen
         $enrolledCourses = Course::query()
@@ -130,6 +131,7 @@ class CourseShow extends Component
     {
         return view('livewire.user.program.course.course-show', [
             'course' => $this->course,
+            'courseArray' => $this->courseArray,
             'days'   => $this->days,
             'prev'   => $this->prev,
             'next'   => $this->next,
