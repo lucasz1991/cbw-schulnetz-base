@@ -73,7 +73,7 @@
                 <livewire:tutor.courses.manage-course-media :course="$course" lazy />
             </x-ui.accordion.tab-panel>
             <x-ui.accordion.tab-panel for="results">
-                {{-- livewire:tutor.courses.manage-course-results course="$course" lazy /> --}}
+                <livewire:tutor.courses.manage-course-results :course="$course" lazy />
             </x-ui.accordion.tab-panel>
             <x-ui.accordion.tab-panel for="invoice">
                 <livewire:tutor.courses.manage-course-invoice :course="$course" lazy />
