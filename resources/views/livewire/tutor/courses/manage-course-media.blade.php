@@ -17,7 +17,9 @@
         </div>
       </x-slot>
       <x-slot name="content">
-        <span>Momentan keine Bildungsmittel eingetragen.</span>
+        <div class="my-4">
+            <span>Momentan keine Bildungsmittel eingetragen.</span>
+        </div>
       </x-slot>
     </x-ui.dropdown.course-dropdown>
 
