@@ -1,7 +1,7 @@
 <div class="space-y-4 transition-opacity duration-300" wire:loading.class="opacity-30">
     <div class="flex  max-md:flex-wrap  items-center space-x-3  justify-between mb-8">
         <div class="flex  justify-between items-center space-x-3 w-full">
-          <div>
+          <div class="flex items-center gap-2 ">
             <div class="flex   items-stretch rounded-md border border-gray-200 shadow-sm overflow-hidden h-max w-max max-md:mb-4">
                 <!-- zurück (minus) -->
                  @if($selectPreviousDayPossible)
@@ -41,12 +41,14 @@
                         : false;
                 @endphp
                 @if($isToday)
+                <div>
                   <span
                     class="h-max rounded-lg bg-green-100 border border-green-700 text-green-700 text-xs px-1.5 py-0.5 shadow"
                     title="Heutiger Tag"
                   >
                     Heute
                   </span>
+                </div>
                 @endif
           </div>
           <div>

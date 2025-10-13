@@ -166,7 +166,7 @@
         <p class="text-xs text-gray-400">Max. 1 Datei</p>
       @endif
     </div>
-    <div class="dz-previews flex items-center justify-around gap-2"></div>
+    <div class="dz-previews flex items-center flex-wrap justify-around gap-2"></div>
   </form>
 
   <!-- Livewire-Input (Modus-abhängig multiple) -->

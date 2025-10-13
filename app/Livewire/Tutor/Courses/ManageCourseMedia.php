@@ -123,7 +123,7 @@ public function closePreview(): void
 
         // Reset + Close
         $this->reset(['roterFadenUpload', 'roterFadenExpires', 'openRoterFadenForm']);
-
+        $this->roterFadenFile = $file;
         $this->dispatch('toast', type:'success', message:'Roter Faden aktualisiert.');
     }
 

@@ -97,7 +97,7 @@ class ManageCourseInvoice extends Component
         ]);
 
         $this->reset(['invoiceUpload', 'invoiceExpires', 'openInvoiceForm']);
-
+        $this->invoiceFile = $file;
         $this->dispatch('toast', type:'success', message:'Rechnung aktualisiert.');
         $this->dispatch('filepool:saved', model: 'invoiceUpload');
     }

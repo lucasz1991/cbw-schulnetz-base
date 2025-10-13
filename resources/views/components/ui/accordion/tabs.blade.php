@@ -31,9 +31,9 @@
                 type="button"
                 @click.prevent="openTab = '{{ $k }}'"
                 :class="openTab === '{{ $k }}'
-                    ? 'text-blue-600 text-semibold border-blue-300 bg-white border-b-0'
-                    : 'text-gray-700 bg-gray-100 border-gray-300 border-b-blue-300'"
-                class="px-4 py-2 text-sm font-medium transition-all border border-blue-300 border-b-blue-300 rounded-t-lg"
+                    ? 'text-blue-600 font-bold border-blue-300 bg-white border-b-0'
+                    : 'text-gray-500 font-medium bg-white border-gray-300 border-b-blue-300'"
+                class="px-4 py-2 text-sm  transition-all border border-blue-300 border-b-blue-300 rounded-t-lg"
                 role="tab"
                 :aria-selected="openTab === '{{ $k }}'"
                 :tabindex="openTab === '{{ $k }}' ? 0 : -1"

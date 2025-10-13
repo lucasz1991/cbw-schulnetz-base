@@ -7,7 +7,20 @@
         if ($event.detail.group === group) activeId = (activeId === $event.detail.id ? null : $event.detail.id)
      ">
  
-  <div class="mb-8">
+  <div class="mb-8  space-y-8">
+    <x-ui.dropdown.course-dropdown
+      group="course-{{ $course->id }}"
+      item-id="resources">
+      <x-slot name="trigger">
+        <div class="flex items-center space-x-3">
+          <h1>Bildungsmittel</h1>
+        </div>
+      </x-slot>
+      <x-slot name="content">
+        <span>Momentan keine Bildungsmittel eingetragen.</span>
+      </x-slot>
+    </x-ui.dropdown.course-dropdown>
+
     <x-ui.dropdown.course-dropdown
       group="course-{{ $course->id }}"
       item-id="roter-faden">
@@ -42,7 +55,7 @@
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 aspect-square mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                             Öffnen
                         </x-buttons.btn-group.btn-group-item>
-                        <x-buttons.btn-group.btn-group-item wire:click="removeRoterFaden">
+                        <x-buttons.btn-group.btn-group-item wire:click="removeRoterFaden" class="text-red-600 hover:text-red-700">
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 aspect-square mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
                             Entfernen
                         </x-buttons.btn-group.btn-group-item>
@@ -123,9 +136,6 @@
 
 
     </x-ui.dropdown.course-dropdown>
-  </div>
-
-  <div>
     <x-ui.dropdown.course-dropdown
       group="course-{{ $course->id }}"
       item-id="medien">
@@ -145,6 +155,6 @@
         />
       </x-slot>
     </x-ui.dropdown.course-dropdown>
-  </div>
 
+</div>
 </div>
