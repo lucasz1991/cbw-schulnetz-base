@@ -46,9 +46,10 @@
               @endif
             </td>
             <td class="px-4 py-2">
-              <input type="text"
+              <input type="number"
                      class="w-full max-w-[220px] rounded-md border-gray-300"
-                     placeholder="z. B. 87 / Note 2,0"
+                     min="0"
+                     max="100"
                      wire:model.defer="results.{{ $personId }}"
                      wire:blur="saveOne('{{ $personId }}')"/>
             </td>

@@ -194,19 +194,20 @@ class ParticipantsTable extends Component
         return $day;
     }
 
-    protected function normalizeRow(?array $row): array
-    {
-        $row = $row ?? [];
-        return [
-            'present'            => (bool)($row['present'] ?? false),
-            'excused'            => (bool)($row['excused'] ?? false),
-            'late_minutes'       => (int)($row['late_minutes'] ?? 0),
-            'left_early_minutes' => (int)($row['left_early_minutes'] ?? 0),
-            'note'               => $row['note'] ?? null,
-            'in'                 => data_get($row, 'timestamps.in'),
-            'out'                => data_get($row, 'timestamps.out'),
-        ];
-    }
+protected function normalizeRow(?array $row): array
+{
+    $row = $row ?? [];
+    return [
+        'present'            => (bool)($row['present'] ?? true), // Default: anwesend
+        'excused'            => (bool)($row['excused'] ?? false),
+        'late_minutes'       => (int)($row['late_minutes'] ?? 0),
+        'left_early_minutes' => (int)($row['left_early_minutes'] ?? 0),
+        'note'               => $row['note'] ?? null,
+        'in'                 => data_get($row, 'timestamps.in'),
+        'out'                => data_get($row, 'timestamps.out'),
+    ];
+}
+
 
     protected function rebuildAttendanceMap(): void
     {
@@ -252,27 +253,27 @@ class ParticipantsTable extends Component
 
     // ---- Aktionen (Check-in/out, Abwesend, Minuten, Notiz) ----
 
-    public function checkInNow(int $participantId): void
-    {
-        $now   = Carbon::now();
-        $date  = $this->selectedDay?->date?->format('Y-m-d');
-        $start = data_get($this->selectedDay?->day_sessions, '1.start', '08:00');
+public function checkInNow(int $participantId): void
+{
+    $now   = Carbon::now();
+    $date  = $this->selectedDay?->date?->format('Y-m-d');
+    $start = data_get($this->selectedDay?->day_sessions, '1.start', '08:00');
 
-        $late = 0;
-        if ($date && $start) {
-            $startAt = Carbon::parse("$date $start");
-            if ($now->gt($startAt)) {
-                $late = $startAt->diffInMinutes($now);
-            }
+    $late = 0;
+    if ($date && $start) {
+        $startAt = Carbon::parse("$date $start");
+        if ($now->gt($startAt)) {
+            $late = $startAt->diffInMinutes($now);
         }
-
-        $this->apply($participantId, [
-            'present' => true,
-            'excused' => false,
-            'late_minutes' => $late,
-            'timestamps' => ['in' => $now->toDateTimeString()],
-        ]);
     }
+
+    $this->apply($participantId, [
+        'present' => true,
+        'excused' => false,
+        'late_minutes' => $late,
+        'timestamps' => ['in' => $now->toDateTimeString()],
+    ]);
+}
 
     public function markAbsentNow(int $participantId): void
     {

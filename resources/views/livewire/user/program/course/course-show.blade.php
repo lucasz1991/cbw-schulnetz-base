@@ -1,7 +1,7 @@
 <div class="w-full relative border-t border-t-gray-300 bg-cover bg-center bg-[#eeeeeebd] pb-20" wire:loading.class="cursor-wait">
     <livewire:user.program.course.course-rating-form-modal />
     <div class="" >
-            <div x-data="{ selectedTab: $persist('basic') }" class="w-full">
+            <div x-data="{ selectedTab: $persist('basic').as('selectedTabcourse') }" class="w-full">
                 <div class="container mx-auto md:px-5 ">
                     <div x-on:keydown.right.prevent="$focus.wrap().next()" x-on:keydown.left.prevent="$focus.wrap().previous()" class="flex gap-2 overflow-x-auto transform -translate-y-[100%] -mb-6" role="tablist" aria-label="tab options">
                         <button x-on:click="selectedTab = 'basic'" 
@@ -18,17 +18,17 @@
                             </svg>
                            Übersicht
                         </button>
-                        <button x-on:click="selectedTab = 'tests'" 
-                            x-bind:aria-selected="selectedTab === 'tests'" 
-                            x-bind:tabindex="selectedTab === 'tests' ? '0' : '-1'" 
-                            x-bind:class="selectedTab === 'tests' ? ' shadow font-semibold text-primary border-b-2 border-b-secondary bg-blue-50' : 'bg-white text-on-surface font-medium border-b-white hover:border-b-blue-400 hover:border-b-outline-strong hover:text-on-surface-strong'" 
+                        <button x-on:click="selectedTab = 'doku'" 
+                            x-bind:aria-selected="selectedTab === 'doku'" 
+                            x-bind:tabindex="selectedTab === 'doku' ? '0' : '-1'" 
+                            x-bind:class="selectedTab === 'doku' ? ' shadow font-semibold text-primary border-b-2 border-b-secondary bg-blue-50' : 'bg-white text-on-surface font-medium border-b-white hover:border-b-blue-400 hover:border-b-outline-strong hover:text-on-surface-strong'" 
                             class="inline-flex items-center h-min px-4 py-2 text-sm rounded-t-lg border-b-2 border-t border-x border-x-gray-300 border-t-gray-300 bg-white" 
                             type="button" 
                             role="tab" 
-                            aria-controls="tabpaneltests" 
+                            aria-controls="tabpaneldoku" 
                             >
                             <svg xmlns="http://www.w3.org/2000/svg"  class="w-4   mr-1 max-md:mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                            Tage
+                            Dokumentation
                         </button>
                         <button x-on:click="selectedTab = 'material'" 
                             x-bind:aria-selected="selectedTab === 'material'" 
@@ -52,7 +52,11 @@
                                 lazy
                                 />
                     </div>
-
+                    <div x-cloak x-show="selectedTab === 'doku'" x-collapse id="tabpaneldoku" role="tabpanel" aria-label="doku">
+                        <div>
+                            <livewire:user.program.course.course-show-doku :course-id="$course->id" lazy />
+                        </div>
+                    </div>
                     <div x-cloak x-show="selectedTab === 'material'" x-collapse id="tabpanelmaterial" role="tabpanel" aria-label="material">
                         <div>
                             <livewire:tools.file-pools.manage-file-pools

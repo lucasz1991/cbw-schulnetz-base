@@ -172,26 +172,35 @@
 
             {{-- Aktionen --}}
             <td class="px-4 py-2">
+                @php
+                $d = $r['data'];
+                // „fehlend“ heißt: nicht anwesend und nicht entschuldigt
+                $isAbsent = ($d['present'] === false) && !($d['excused'] ?? false);
+              @endphp
               <div class="inline-flex items-center justify-center gap-1 w-full">
-                {{-- Check-in (berechnet Verspätung ggü. Slot 1) --}}
-                <button
-                  class="inline-flex items-center justify-center w-8 h-8 rounded border border-green-600 text-green-700 hover:bg-green-50"
-                  title="Anwesend (Check-in + Verspätung berechnen)"
-                  wire:click.stop="checkInNow({{ $r['id'] }})">
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                </button>
+    @if($isAbsent)
+      <button
+        class="inline-flex items-center justify-center w-8 h-8 rounded border border-green-600 text-green-700 hover:bg-green-50"
+        title="Verspätet einchecken"
+        wire:click.stop="checkInNow({{ $r['id'] }})">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M5 13l4 4L19 7" />
+        </svg>
+      </button>
+    @else
 
-                {{-- Abwesend (falls vorher anwesend -> Checkout + Frühweg) --}}
-                <button
-                  class="inline-flex items-center justify-center w-8 h-8 rounded border border-red-600 text-red-700 hover:bg-red-50"
-                  title="Abwesend (Check-out + ggf. Früh-weg berechnen)"
-                  wire:click.stop="markAbsentNow({{ $r['id'] }})">
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+    {{-- Abwesend (falls vorher anwesend -> Checkout + Frühweg) --}}
+    <button
+      class="inline-flex items-center justify-center w-8 h-8 rounded border border-red-600 text-red-700 hover:bg-red-50"
+      title="Abwesend (Check-out + ggf. Früh-weg berechnen)"
+      wire:click.stop="markAbsentNow({{ $r['id'] }})">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    </button>
+    @endif
+
 
                 {{-- Nur Check-out --}}
                 <button

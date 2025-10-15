@@ -1,6 +1,6 @@
 <div class="w-full relative border-t border-t-gray-300 bg-cover bg-center bg-[#eeeeeebd] pb-20 min-h-[70vh]" wire:loading.class="cursor-wait">
     <div class="" >
-            <div x-data="{ selectedTab: $persist('basic') }" class="w-full">
+            <div x-data="{ selectedTab: $persist('basic').as('selectedTabdashboard') }" class="w-full">
                 <div class="container mx-auto md:px-5 ">
                     <div x-on:keydown.right.prevent="$focus.wrap().next()" x-on:keydown.left.prevent="$focus.wrap().previous()" class="flex gap-2 overflow-x-auto transform -translate-y-[100%] -mb-6" role="tablist" aria-label="tab options">
                         <button x-on:click="selectedTab = 'basic'" 
@@ -17,18 +17,7 @@
                             </svg>
                             Quali.Programm
                         </button>
-                        <button x-on:click="selectedTab = 'media'" 
-                            x-bind:aria-selected="selectedTab === 'media'" 
-                            x-bind:tabindex="selectedTab === 'media' ? '0' : '-1'" 
-                            x-bind:class="selectedTab === 'media' ? ' shadow font-semibold text-primary border-b-2 border-b-secondary bg-blue-50' : 'bg-white text-on-surface font-medium border-b-white hover:border-b-blue-400 hover:border-b-outline-strong hover:text-on-surface-strong'" 
-                            class="inline-flex items-center h-min px-4 py-2 text-sm rounded-t-lg border-b-2 border-t border-x border-x-gray-300 border-t-gray-300 bg-white" 
-                            type="button" 
-                            role="tab" 
-                            aria-controls="tabpanelmedia" 
-                            >
-                            <svg xmlns="http://www.w3.org/2000/svg"  class="w-4   mr-1 max-md:mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>                        
-                            Medien
-                        </button>
+
                         <button x-on:click="selectedTab = 'claims'" 
                             x-bind:aria-selected="selectedTab === 'claims'" 
                             x-bind:tabindex="selectedTab === 'claims' ? '0' : '-1'" 

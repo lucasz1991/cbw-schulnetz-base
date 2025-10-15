@@ -61,7 +61,7 @@
             x-data="{
                 chart: null,
                 // deine Werte / Props (unverändert, nur bereitgehalten)
-                value: 85,
+                value: {{ $teilnehmerDaten['unterricht']['schnitt'] }},
                 size: 140,
                 start: -130,
                 end: 130,
@@ -106,7 +106,7 @@
                     },
                     stroke: { dashArray: 4 },
                     legend: { show: false },
-                    series: [85],
+                    series: [{{ $teilnehmerDaten['unterricht']['schnitt'] }}],
                     labels: ['Series A'],
                 };
                 // Cleanup (wie bei dir, ohne Einfluss auf Darstellung)

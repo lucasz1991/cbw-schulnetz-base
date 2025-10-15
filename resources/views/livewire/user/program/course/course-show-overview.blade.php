@@ -1,8 +1,7 @@
 <div class="">
   <header class="container mx-auto md:px-5 py-6 flex items-start justify-between">
-    <div>
+    <div class="flex items-center gap-2">
       <h1 class="text-2xl font-semibold">{{ $course['title'] ?? '—' }}</h1>
-      <p class="text-gray-600">{{ $course['room'] ?? '—' }} · {{ $course['zeitraum_fmt'] ?? '—' }}</p>
       @php
         $status = $course['status'] ?? 'Offen';
         $badge = [
@@ -13,6 +12,8 @@
         ][$status] ?? 'bg-gray-100 text-gray-800';
       @endphp
       <span class="inline-block mt-1 px-2 py-0.5 rounded {{ $badge }}">{{ $status }}</span>
+      <p class="text-gray-600">{{ $course['zeitraum_fmt'] ?? '—' }}</p>
+      <p class="text-gray-600">{{ $course['room'] ?? '—' }}</p>
     </div>
     <div class="flex items-center gap-2">
       <x-buttons.button-basic :size="'sm'"
