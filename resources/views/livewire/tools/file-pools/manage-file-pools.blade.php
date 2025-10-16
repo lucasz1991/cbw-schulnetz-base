@@ -1,6 +1,6 @@
 <div x-data="{ openFileForm: @entangle('openFileForm') ,  }">
   <div class="flex items-center justify-between mb-4">
-    <div class="flex items-stretch space-x-3" >
+    <div class="flex items-stretch space-x-3">
       @if( $filePool->files->count() > 0)
         <x-dropdown class="" :width="'min'" :align="'left'">
           <x-slot name="trigger">
@@ -12,21 +12,23 @@
             <x-dropdown-link wire:click="selectAll" class="flex items-center gap-2">
                 ✅&nbsp;&nbsp;Alle&nbsp;auswählen
             </x-dropdown-link>
-
             <x-dropdown-link wire:click="clearSelection" class="flex items-center gap-2">
                 ❌&nbsp;&nbsp;Auswahl&nbsp;entfernen
             </x-dropdown-link>
-            <x-dropdown-link wire:click="deleteMyFiles" wire:confirm="Bist du dir sicher? Das Löschen ist unwiederruflich." class="flex items-center gap-2 text-red-600">
+            @if(!$readOnly)
+              <x-dropdown-link wire:click="deleteMyFiles" wire:confirm="Bist du dir sicher? Das Löschen ist unwiederruflich." class="flex items-center gap-2 text-red-600">
                   🗑️&nbsp;&nbsp;Meine&nbsp;Dateien&nbsp;löschen
               </x-dropdown-link>
+            @endif
           </x-slot>
         </x-dropdown>
       @endif
-        
-        <button wire:click="$toggle('openFileForm')" class="flex items-center space-x-3 px-2 py-1 text-sm bg-gray-200 text-gray-600 rounded hover:bg-blue-500 hover:text-white">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 3a1 1 0 011 1v4h4a1 1 0 110 2h-4v4a1 1 0 11-2 0v-4H6a1 1 0 110-2h4V4a1 1 0 011-1z"/></svg>
-          Hinzufügen
-        </button>
+        @if(!$readOnly)
+          <button wire:click="$toggle('openFileForm')" class="flex items-center space-x-3 px-2 py-1 text-sm bg-gray-200 text-gray-600 rounded hover:bg-blue-500 hover:text-white">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 3a1 1 0 011 1v4h4a1 1 0 110 2h-4v4a1 1 0 11-2 0v-4H6a1 1 0 110-2h4V4a1 1 0 011-1z"/></svg>
+            Hinzufügen
+          </button>
+        @endif
     </div>
     <div>
       @if( $filePool->files->count() > 0)
@@ -37,13 +39,12 @@
             </button>
         </x-slot>
         <x-slot name="content">
-            <x-dropdown-link wire:click="downloadAll" class="flex items-center gap-2">
-                📥&nbsp;&nbsp;Alle&nbsp;Dateien&nbsp;herunterladen
-            </x-dropdown-link>
-
-        <x-dropdown-link wire:click="downloadZip" class="flex items-center gap-2">
-            📦&nbsp;&nbsp;Alle&nbsp;als&nbsp;ZIP&nbsp;herunterladen
-        </x-dropdown-link>
+          <x-dropdown-link wire:click="downloadAll" class="flex items-center gap-2">
+              📥&nbsp;&nbsp;Alle&nbsp;Dateien&nbsp;herunterladen
+          </x-dropdown-link>
+          <x-dropdown-link wire:click="downloadZip" class="flex items-center gap-2">
+              📦&nbsp;&nbsp;Alle&nbsp;als&nbsp;ZIP&nbsp;herunterladen
+          </x-dropdown-link>
         </x-slot>
       </x-dropdown>
       @endif

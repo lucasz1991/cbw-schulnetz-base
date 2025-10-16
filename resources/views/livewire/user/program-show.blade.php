@@ -21,35 +21,58 @@
                           </div>
                         </div>
                         <div class="absolute inset-y-0  right-1 left-10 flex justify-end  items-center h-full" >
-                            <div
-                                x-data="{
-                                    chart: null,
-                                    series: [75,65,55,65,65,75,55,75,55],
-                                    colors: ['#2b5c9e','#2b5c9e','#2b5c9e','#2b5c9e','#2b5c9e','#2b5c9e','#2b5c9e','#2b5c9e','#2b5c9e'],
-                                    pickColor(val){ if(!val) return null; const v=String(val).trim(); return v.startsWith('--') ? (getComputedStyle(document.documentElement).getPropertyValue(v).trim() || v) : v; },
-                                    init(){
-                                    const options = {
-                                        series: [{ data: this.series }],
-                                        chart: { type: 'bar', height: 60, width: 120, sparkline: { enabled: true } },
-                                        colors: this.colors.map(this.pickColor),
-                                        stroke: { curve: 'smooth', width: 2, colors: ['#2563eb'] },
-                                        tooltip: {
-                                        fixed: { enabled: true, position: 'topRight', offsetY: 30, offsetX: 0 },
-                                        x: { title: { formatter: () => 'Baustein' } },
-                                        y: { title: { formatter: () => 'Punkte' } },
-                                        marker: { show: true }
-                                        }
-                                    };
-                                    if (this.chart) { this.chart.destroy(); this.chart = null; }
-                                    this.chart = new ApexCharts(this.$el, options);
-                                    this.chart.render();
-                                    }
-                                }"
-                                x-init="init()"
-                                wire:ignore
-                                class="apex-charts flex justify-end items-center"
-                                
-                                ></div>
+<div
+  x-data="{
+    chart: null,
+    series: @js($bausteinSerie),
+    labels: @js($bausteinLabels),
+    colors: @js($bausteinColors),
+
+    pickColor(val){
+      if(!val) return null;
+      const v = String(val).trim();
+      return v.startsWith('--')
+        ? (getComputedStyle(document.documentElement).getPropertyValue(v).trim() || v)
+        : v;
+    },
+
+    buildOptions(){
+      return {
+        series: [{ data: this.series }],
+        chart: { type: 'bar', height: 60, width: 120, sparkline: { enabled: true } },
+        colors: (this.colors?.length ? this.colors.map(c => this.pickColor(c)) : ['#2b5c9e']),
+        plotOptions: { bar: { columnWidth: '70%', borderRadius: 3 } },
+        dataLabels: { enabled: false },
+        stroke: { width: 2 },
+        tooltip: {
+          y: {
+            title: { formatter: () => 'Punkte' },
+            formatter: (val) => (val ?? 0) + ' Pkt.'
+          },
+          x: { formatter: (val, { dataPointIndex }) => this.labels?.[dataPointIndex] ?? 'Baustein' }
+        }
+      };
+    },
+
+    init(){
+      // Debug bei Bedarf:
+      // console.log('Serie:', this.series, 'Labels:', this.labels, 'Colors:', this.colors);
+
+      if (this.chart) { this.chart.destroy(); this.chart = null; }
+      this.chart = new ApexCharts(this.$el, this.buildOptions());
+      this.chart.render();
+
+      // Reaktiv bei Livewire-Updates (falls Props dynamisch neu kommen)
+      this.$watch('series', (v) => { if (this.chart) this.chart.updateSeries([{ data: v }], true); });
+      this.$watch('labels', () =>  { if (this.chart) this.chart.updateOptions({ tooltip: this.buildOptions().tooltip }, true, true); });
+      this.$watch('colors', (v) => { if (this.chart) this.chart.updateOptions({ colors: v.map(c => this.pickColor(c)) }, true, true); });
+    }
+  }"
+  x-init="init()"
+  wire:ignore
+  class="apex-charts flex justify-end items-center"
+></div>
+
                         </div>
                     </div>
                 </div>
@@ -294,8 +317,32 @@
       {{-- Ergebnisse nach Kurs (Bausteine) --}}
       <div class="bg-white shadow rounded-lg  overflow-hidden border border-gray-300">
         <h3 class="text-lg font-semibold bg-sky-100 p-5">Bausteine</h3>
-        <ul class="divide-y divide-gray-200 max-h-[280px] overflow-y-auto scroll-container border border-gray-300 rounded-b-lg overflow-hidden bg-white snap-y touch-pan-y scroll-smooth" 
-        >
+<ul
+  class="divide-y divide-gray-200 max-h-[280px] overflow-y-auto scroll-container border border-gray-300 rounded-b-lg overflow-hidden bg-white snap-y touch-pan-y scroll-smooth"
+  x-data="{
+    scrollToCurrent() {
+      // aktuelle LI ist über x-ref='currentItem' markiert
+      const el = this.$refs.currentItem;
+      const scroller = this.$refs.scroller;
+      if (!el || !scroller) return;
+
+      // sanft in die Mitte scrollen (scrollIntoView + snap wirkt gut)
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Alternativ absoluter scrollTop:
+      // const top = el.offsetTop - (scroller.clientHeight / 2) + (el.clientHeight / 2);
+      // scroller.scrollTo({ top, behavior: 'smooth' });
+    }
+  }"
+  x-ref="scroller"
+  x-init="
+    // nach erstem Render
+    $nextTick(() => scrollToCurrent());
+    // nach Livewire-Updates erneut zentrieren
+    Livewire.hook('message.processed', () => scrollToCurrent());
+    // optional bei Resize neu zentrieren
+    window.addEventListener('resize', () => scrollToCurrent());
+  "
+>
           {{-- Bausteine --}}
           @forelse($bausteine as $b)
             @php
@@ -344,7 +391,7 @@
                             : 'cursor-default opacity-70';
             @endphp
 
-            <li class="{{ $rowBase }} {{ $rowBgs }} {{ $rowHover }}">
+            <li class="{{ $rowBase }} {{ $rowBgs }} {{ $rowHover }}"   @if($isCurrent) x-ref="currentItem" @endif>
               <div class="grid grid-cols-12 gap-1">
                 <div class="col-span-8 font-medium text-gray-800 flex items-center gap-2">
                   <div class="truncate">{{ $b['baustein'] }}</div>

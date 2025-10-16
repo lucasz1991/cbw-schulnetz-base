@@ -1,10 +1,10 @@
 @props(['group','itemId'])
 
 <div x-data>
-  <div class="rounded-lg overflow-hidden border border-sky-600">
+  <div class="rounded-lg overflow-hidden border border-secondary">
     <button
       @click="$dispatch('accordion-toggle', { group: '{{ $group }}', id: '{{ $itemId }}' })"
-      class="w-full px-4 py-2 flex justify-start items-center space-x-3 bg-sky-600 text-white"
+      class="w-full px-4 py-2 flex justify-start items-center space-x-3 bg-secondary text-white"
     >
       <svg xmlns="http://www.w3.org/2000/svg"
            :class="{ 'rotate-180': activeId === '{{ $itemId }}' }"

@@ -153,6 +153,7 @@
         <livewire:tools.file-pools.manage-file-pools
           :modelType="\App\Models\Course::class"
           :modelId="$course->id"
+          :readOnly="false"
           lazy
         />
       </x-slot>

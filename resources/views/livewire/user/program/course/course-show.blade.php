@@ -1,4 +1,4 @@
-<div class="w-full relative border-t border-t-gray-300 bg-cover bg-center bg-[#eeeeeebd] pb-20" wire:loading.class="cursor-wait">
+<div class="w-full relative border-t border-t-gray-300 bg-cover bg-center bg-[#eeeeeebd]" wire:loading.class="cursor-wait">
     <livewire:user.program.course.course-rating-form-modal />
     <div class="" >
             <div x-data="{ selectedTab: $persist('basic').as('selectedTabcourse') }" class="w-full">
@@ -44,7 +44,7 @@
                         </button>
                     </div>
                 </div>
-                <div class="container mx-auto px-5" >
+                <div class="" >
                     <div x-cloak x-show="selectedTab === 'basic'" x-collapse id="tabpanelbasic" role="tabpanel" aria-label="basic">
                             <livewire:user.program.course.course-show-overview
                                 :klassen-id="$klassenId ?? ($courseArray['klassen_id'] ?? null)"
@@ -59,11 +59,7 @@
                     </div>
                     <div x-cloak x-show="selectedTab === 'material'" x-collapse id="tabpanelmaterial" role="tabpanel" aria-label="material">
                         <div>
-                            <livewire:tools.file-pools.manage-file-pools
-                                :modelType="\App\Models\Course::class"
-                                :modelId="$course->id"
-                                lazy 
-                            />
+                            <livewire:user.program.course.course-show-media :course="$course" lazy />
                         </div>
                     </div>
 

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Carbon;
 
 
 class Course extends Model
@@ -76,6 +77,24 @@ class Course extends Model
     public function getDatesCountAttribute(): int
     {
         return $this->days()->count();
+    }
+
+    public function getZeitraumFmtAttribute(): ?string
+    {
+        $s = $this->planned_start_date ? Carbon::parse($this->planned_start_date) : null;
+        $e = $this->planned_end_date   ? Carbon::parse($this->planned_end_date)   : null;
+        return ($s && $e) ? $s->locale('de')->isoFormat('ll').' – '.$e->locale('de')->isoFormat('ll') : null;
+    }
+
+    public function getStatusLabelAttribute(): string
+    {
+        $s = $this->planned_start_date ? Carbon::parse($this->planned_start_date) : null;
+        $e = $this->planned_end_date   ? Carbon::parse($this->planned_end_date)   : null;
+        $now = Carbon::now('Europe/Berlin');
+        if ($s && $now->lt($s)) return 'Geplant';
+        if ($s && $e && $now->between($s, $e)) return 'Laufend';
+        if ($e && $now->gt($e)) return 'Abgeschlossen';
+        return 'Offen';
     }
 
     /*

@@ -35,9 +35,11 @@ class ManageFilePools extends Component
     public bool $openFileForm = false;
     public bool $openEditFileForm = false;
 
+    public bool $readOnly = true;
 
 
-    public function mount(string $modelType, int $modelId): void
+
+    public function mount(string $modelType, int $modelId, bool $readOnly): void
     {
         $this->modelType = $modelType;
         $this->modelId = $modelId;
@@ -52,6 +54,7 @@ class ManageFilePools extends Component
 
         $this->openFileForm = false;
         $this->openEditFileForm = false;
+        $this->readOnly = $readOnly;
     }
 
     public function uploadFile(int $filePoolId)

@@ -1,4 +1,4 @@
-<div x-data="{ openId: @entangle('openDayId').live }" class="space-y-3 pt-8">
+<div x-data="{ openId: @entangle('openDayId').live }" class="space-y-3 py-8  container px-5 mx-auto">
     <x-alert>
         Dokumentation der Kurstage<br>
         Hier findest du die Notizen zu jedem Kurstag. Klicke einen Tag an, um die Details zu öffnen.
@@ -43,10 +43,10 @@
                  @click="openId = (openId === {{ $day->id }} ? null : {{ $day->id }})"
                  @keydown.enter.prevent="openId = (openId === {{ $day->id }} ? null : {{ $day->id }})"
                  @keydown.space.prevent="openId = (openId === {{ $day->id }} ? null : {{ $day->id }})"
-                 class="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 cursor-pointer"
+                 class="w-full flex items-center justify-between px-4 py-3 cursor-pointer"
                  :aria-expanded="String(openId === {{ $day->id }})"
                  :class="openId === {{ $day->id }}
-                    ? 'bg-blue-600 text-white hover:text-gray-600'
+                    ? 'bg-secondary text-white '
                     : 'bg-white hover:bg-gray-50 text-gray-600'"
                  aria-controls="panel-{{ $day->id }}">
                 <div class="text-left">

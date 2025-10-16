@@ -29,6 +29,9 @@ class ProgramShow extends Component
 
     public array $excludeFromProgress = ['FERI', 'PRAK', 'PRUE']; // alles, was nicht als Kurs zählt
 
+    public $bausteinSerie;
+    public $bausteinLabels;
+    public $bausteinColors;
 
     /** Listener */
     protected $listeners = ['refreshParent' => '$refresh'];
@@ -238,6 +241,47 @@ class ProgramShow extends Component
             'unterricht' => $unterricht,
             'praktikum'  => $praktikum,
         ];
+
+// --- Chart-Serien bauen: nur KURSE, nur ABGESCHLOSSEN, Werte als INT ---
+$heute = Carbon::now('Europe/Berlin')->startOfDay();
+
+$chartBausteine = collect($this->bausteine)
+    ->filter(fn ($b) => ($b['typ'] ?? null) === 'kurs')                 // nur echte Kurse
+    ->map(function ($b) {                                               // Start/Ende als Carbon
+        $b['_start'] = $this->toCarbon($b['beginn'] ?? null);
+        $b['_end']   = $this->toCarbon($b['ende']   ?? null);
+        return $b;
+    })
+    ->filter(fn ($b) => $b['_start'] && $b['_end'])                     // nur mit Datum
+    ->filter(fn ($b) => $b['_end']->lt($heute))                         // nur abgeschlossen (Ende < heute)
+    ->map(function ($b) {                                               // Wert bestimmen + runden
+        // Priorität: 'punkte' -> 'schnitt'
+        $rawVal = null;
+        if (isset($b['punkte']) && is_numeric($b['punkte'])) {
+            $rawVal = (float) $b['punkte'];
+        } elseif (isset($b['schnitt']) && is_numeric($b['schnitt'])) {
+            $rawVal = (float) $b['schnitt'];
+        }
+        $value = $this->toInt($rawVal);                                 // -> INT oder null
+
+        return [
+            'label' => $b['kurzbez'] ?? ($b['baustein'] ?? 'Baustein'),
+            'end'   => $b['_end'],
+            'value' => $value,
+        ];
+    })
+    ->filter(fn ($x) => !is_null($x['value']))                          // nur mit Wert
+    ->sortBy('end')                                                     // chronologisch nach Ende
+    ->values()
+    ->take(-9);                                                         // z.B. letzte 9
+
+// Öffentliche Props für Alpine/Apex
+$this->bausteinSerie  = $chartBausteine->pluck('value')->all();        // [78,64,55,...] (ints)
+$this->bausteinLabels = $chartBausteine->map(
+    fn ($x) => $x['label'].' · '.$x['end']->format('d.m.')
+)->all();                                                               // ["Modul · 03.10.", ...]
+$this->bausteinColors = array_fill(0, count($this->bausteinSerie), '#2b5c9e'); // optional: einfarbig
+
     }
 
     private function detectBausteinTyp(?string $kurzbez): string
@@ -251,6 +295,10 @@ class ProgramShow extends Component
         };
     }
 
+    private function toInt(?float $v): ?int
+    {
+        return is_null($v) ? null : (int) round($v);
+    }
 
     public function placeholder()
     {
@@ -323,6 +371,9 @@ class ProgramShow extends Component
             'anzahlBausteine'     => $this->anzahlBausteine,
             'bestandenBausteine'  => $this->bestandenBausteine,
             'progress'            => $this->progress,
+            'bausteinSerie'            => $this->bausteinSerie,
+            'bausteinLabels'            => $this->bausteinLabels,
+            'bausteinColors'            => $this->bausteinColors,
         ]);
     }
 }

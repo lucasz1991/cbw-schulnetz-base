@@ -6,11 +6,12 @@ use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Carbon;
 use App\Models\Course;
+use App\Models\Person;
 use App\Models\CourseParticipantEnrollment;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection; // <- neu
 
 class CourseShowOverview extends Component
 {
-    /** Wird vom Parent (CourseShow) übergeben */
     public string $klassenId;
 
     public array $course = [];
@@ -20,6 +21,12 @@ class CourseShowOverview extends Component
     public int $index = -1;
     public int $total = 0;
 
+    public ?Person $tutor = null;
+    public int $participantsCount = 0;
+
+    /** @var EloquentCollection<Course> */
+    public EloquentCollection $enrolledCourses; // <- als Eloquent-Collection typisieren
+
     public function mount(string $klassenId): void
     {
         $this->klassenId = $klassenId;
@@ -27,11 +34,13 @@ class CourseShowOverview extends Component
         $person = Auth::user()?->person;
         if (! $person) abort(404);
 
+        // Kurs + benötigte Relationen laden
         $course = Course::query()
+            ->with(['tutor', 'days'])   // <- eager load
             ->where('klassen_id', $klassenId)
             ->firstOrFail();
 
-        // Einschreibung erzwingen
+        // Einschreibung prüfen
         $enrolled = CourseParticipantEnrollment::query()
             ->where('course_id', $course->id)
             ->where('person_id', $person->id)
@@ -52,8 +61,11 @@ class CourseShowOverview extends Component
             'end'         => $end?->toDateString(),
             'zeitraum_fmt'=> ($start && $end) ? $start->locale('de')->isoFormat('ll').' – '.$end->locale('de')->isoFormat('ll') : '—',
             'status'      => $this->status($start, $end),
-            'tutor'       => $course->primaryTutorPerson ? trim($course->primaryTutorPerson->vorname.' '.$course->primaryTutorPerson->nachname) : null,
+            'tutor'       => $course->tutor ? trim(($course->tutor->vorname ?? '').' '.($course->tutor->nachname ?? '')) : null,
         ];
+
+        $this->tutor = $course->tutor;                    // <- echtes Person-Model
+        $this->participantsCount = (int) ($course->participantsCount ?? 0);
 
         $this->stats = [
             'tage'      => $course->days->count(),
@@ -62,29 +74,32 @@ class CourseShowOverview extends Component
             'end'       => $this->course['end'] ?? null,
         ];
 
-
-
-        // Navigation innerhalb der eigenen Kurse (Prev/Nächster) – Links gehen auf den PARENT (CourseShow)
-        $enrolledCourses = Course::query()
+        // EINGESCHRIEBENE KURSE ALS MODELLE LADEN
+        $this->enrolledCourses = Course::query()
+            ->select('courses.*')                  // <- wichtig bei join: Course-Model bleibt intakt
+            ->with(['days'])                       // <- Relationen für Frontend
+            ->withCount('days')                    // <- z.B. $rc->days_count
             ->join('course_participant_enrollments as cpe', 'cpe.course_id', '=', 'courses.id')
             ->where('cpe.person_id', $person->id)
             ->orderBy('courses.planned_start_date')
-            ->get([
-                'courses.klassen_id',
-                'courses.title',
-                'courses.planned_start_date',
-            ]);
+            ->get();
 
-        $this->total = $enrolledCourses->count();
-        $this->index = $enrolledCourses->search(fn($c) => $c->klassen_id === $this->klassenId);
-        $this->prev  = ($this->index > 0) ? [
-            'klassen_id' => $enrolledCourses[$this->index - 1]->klassen_id,
-            'title'      => $enrolledCourses[$this->index - 1]->title,
-        ] : null;
-        $this->next  = ($this->index !== false && $this->index + 1 < $this->total) ? [
-            'klassen_id' => $enrolledCourses[$this->index + 1]->klassen_id,
-            'title'      => $enrolledCourses[$this->index + 1]->title,
-        ] : null;
+        $this->total = $this->enrolledCourses->count();
+        $this->index = (int) $this->enrolledCourses->search(fn(Course $c) => $c->klassen_id === $this->klassenId);
+
+        $this->prev  = ($this->index > 0)
+            ? [
+                'klassen_id' => $this->enrolledCourses[$this->index - 1]->klassen_id,
+                'title'      => $this->enrolledCourses[$this->index - 1]->title,
+              ]
+            : null;
+
+        $this->next  = ($this->index !== false && $this->index + 1 < $this->total)
+            ? [
+                'klassen_id' => $this->enrolledCourses[$this->index + 1]->klassen_id,
+                'title'      => $this->enrolledCourses[$this->index + 1]->title,
+              ]
+            : null;
     }
 
     private function status(?Carbon $start, ?Carbon $end): string
@@ -94,52 +109,6 @@ class CourseShowOverview extends Component
         if ($start && $end && $now->between($start, $end)) return 'Laufend';
         if ($end && $now->gt($end)) return 'Abgeschlossen';
         return 'Offen';
-    }
-
-    public function placeholder()
-    {
-        return <<<'HTML'
-            <div role="status" class=" animate-pulse">
-                <div class="">
-                    <header class="container mx-auto px-5 py-6 flex items-start justify-between">
-                        <div>
-                        <h1 class="text-2xl font-semibold"><div class="h-2.5 bg-gray-300 rounded-full w-48 mb-4"></div></h1>
-                        <p class="text-gray-600"><div class="h-2 bg-gray-300 rounded-full max-w-[480px] mb-2.5"></div></p>
-                        <span class="inline-block mt-1 px-2 py-0.5 rounded bg-gray-100 text-gray-800"></span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                        <x-buttons.button-basic :size="'sm'">
-                            Bewerten
-                        </x-buttons.button-basic>
-                            <x-buttons.button-basic :size="'sm'"
-                            wire:navigate>← Vorheriger</x-buttons.button-basic>
-                            <x-buttons.button-basic :size="'sm'"
-                            wire:navigate>Nächster →</x-buttons.button-basic>
-                        </div>
-                    </header>
-                    <section class="container mx-auto px-5 pb-6">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div class="bg-white rounded-lg border shadow p-4">
-                            <p class="text-xs text-gray-500 mb-4">Tage</p>
-                            <p class="text-2xl font-semibold"><div class="h-2.5 bg-gray-300 rounded-full w-48 my-4"></div></p>
-                        </div>
-                        <div class="bg-white rounded-lg border shadow p-4">
-                            <p class="text-xs text-gray-500 mb-4">Einheiten (gesamt)</p>
-                            <p class="text-2xl font-semibold"><div class="h-2.5 bg-gray-300 rounded-full w-48 my-4"></div></p>
-                        </div>
-                        <div class="bg-white rounded-lg border shadow p-4">
-                            <p class="text-xs text-gray-500 mb-4">Beginn</p>
-                            <p class="text-2xl font-semibold"><div class="h-2.5 bg-gray-300 rounded-full w-48 my-4"></div></p>
-                        </div>
-                        <div class="bg-white rounded-lg border shadow p-4">
-                            <p class="text-xs text-gray-500 mb-4">Ende</p>
-                            <p class="text-2xl font-semibold"><div class="h-2.5 bg-gray-300 rounded-full w-48 my-4"></div></p>
-                        </div>
-                        </div>
-                    </section>
-                </div>
-            </div>
-        HTML;
     }
 
     public function render()
