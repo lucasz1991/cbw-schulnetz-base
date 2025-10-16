@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 
 
 class Course extends Model
@@ -95,6 +96,29 @@ class Course extends Model
         if ($s && $e && $now->between($s, $e)) return 'Laufend';
         if ($e && $now->gt($e)) return 'Abgeschlossen';
         return 'Offen';
+    }
+
+
+
+    public function scopeTaughtBy(Builder $q, int $personId): Builder
+    {
+        return $q->whereHas('tutors', fn($qq) => $qq->where('people.id', $personId));
+    }
+
+    public function scopeActiveAt(Builder $q, Carbon $at): Builder
+    {
+        return $q->where('planned_start_date', '<=', $at)
+                ->where('planned_end_date', '>=', $at);
+    }
+
+    public function scopeCompletedBefore(Builder $q, Carbon $at): Builder
+    {
+        return $q->where('planned_end_date', '<', $at);
+    }
+
+    public function scopeUpcomingAfter(Builder $q, Carbon $at): Builder
+    {
+        return $q->where('planned_start_date', '>', $at);
     }
 
     /*
