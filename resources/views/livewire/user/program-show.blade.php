@@ -283,7 +283,8 @@
                     <p class="text-xs text-gray-600 mb-2">
                       Übersicht über deine Anträge im Programm.
                     </p>
-                    <x-buttons.button-basic :size="'sm'" :mode="'primary'" @click="$dispatch('open-program-attendance');isClicked = true; setTimeout(() => isClicked = false, 100)" class="w-full">
+                    <x-buttons.button-basic :size="'sm'" :mode="'primary'"     @click="selectedTab = 'claims'"
+ class="w-full">
                       Anträge anzeigen
                     </x-buttons.button-basic>
                   </div>
@@ -295,7 +296,12 @@
                     <p class="text-xs text-gray-600 mb-2">
                       Übersicht über deine Bausteine exportieren.
                     </p>
-                    <x-buttons.button-basic :size="'sm'" :mode="'primary'" @click="$dispatch('open-program-attendance');isClicked = true; setTimeout(() => isClicked = false, 100)" class="w-full">
+                    <x-buttons.button-basic :size="'sm'" :mode="'primary'"     
+                        @click="$dispatch('toast', { 
+                            message: 'Baustein Dokumentation ist noch in der Entwicklung....', 
+                            type: 'info' 
+                        });" 
+                        class="w-full">
                       anzeigen
                     </x-buttons.button-basic>
                   </div>

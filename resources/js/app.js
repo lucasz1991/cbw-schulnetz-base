@@ -5,6 +5,9 @@ import resize from '@alpinejs/resize';
 import intersect from '@alpinejs/intersect'
 import MetisMenu from "metismenujs";
 
+import 'sweetalert2/dist/sweetalert2.min.css';
+import './assets/sweetalerts/sweetalerts';
+
 Alpine.plugin(collapse);
 Alpine.plugin(mask);
 Alpine.plugin(resize);
