@@ -325,90 +325,93 @@
 <ul
   class="divide-y divide-gray-200 max-h-[280px] overflow-y-auto scroll-container border border-gray-300 rounded-b-lg overflow-hidden bg-white snap-y touch-pan-y scroll-smooth"
   x-data="{
+    // relative Top-Position des Elements innerhalb des Scrollers berechnen
+    _relTop(el, scroller) {
+      const elRect = el.getBoundingClientRect();
+      const scRect = scroller.getBoundingClientRect();
+      // aktuelle Scrollposition mitrechnen:
+      return (elRect.top - scRect.top) + scroller.scrollTop;
+    },
     scrollToCurrent() {
-      // aktuelle LI ist über x-ref='currentItem' markiert
       const el = this.$refs.currentItem;
       const scroller = this.$refs.scroller;
       if (!el || !scroller) return;
 
-      // sanft in die Mitte scrollen (scrollIntoView + snap wirkt gut)
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      // Alternativ absoluter scrollTop:
-      // const top = el.offsetTop - (scroller.clientHeight / 2) + (el.clientHeight / 2);
-      // scroller.scrollTo({ top, behavior: 'smooth' });
+      const elTop = this._relTop(el, scroller);
+      const targetTop = elTop - (scroller.clientHeight / 2) + (el.clientHeight / 2);
+
+      scroller.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
     }
   }"
   x-ref="scroller"
   x-init="
-    // nach erstem Render
     $nextTick(() => scrollToCurrent());
-    // nach Livewire-Updates erneut zentrieren
     Livewire.hook('message.processed', () => scrollToCurrent());
-    // optional bei Resize neu zentrieren
     window.addEventListener('resize', () => scrollToCurrent());
   "
 >
+
           {{-- Bausteine --}}
           @forelse($bausteine as $b)
-  @php
-    $typ      = $b['typ'] ?? 'kurs';
-    $hasLink  = !empty($b['klassen_id']);
-    $isCurrent = isset($aktuellesModul['baustein_id']) 
-                && $aktuellesModul['baustein_id'] === ($b['baustein_id'] ?? null);
+            @php
+              $typ      = $b['typ'] ?? 'kurs';
+              $hasLink  = !empty($b['klassen_id']);
+              $isCurrent = isset($aktuellesModul['baustein_id']) 
+                          && $aktuellesModul['baustein_id'] === ($b['baustein_id'] ?? null);
 
-    // Zeitvergleich – KEIN use im Blade, stattdessen voll qualifiziert:
-    $start = !empty($b['beginn']) ? \Illuminate\Support\Carbon::parse($b['beginn']) : null;
-    $ende  = !empty($b['ende'])   ? \Illuminate\Support\Carbon::parse($b['ende'])   : null;
-    $today = \Illuminate\Support\Carbon::now('Europe/Berlin');
+              // Zeitvergleich – KEIN use im Blade, stattdessen voll qualifiziert:
+              $start = !empty($b['beginn']) ? \Illuminate\Support\Carbon::parse($b['beginn']) : null;
+              $ende  = !empty($b['ende'])   ? \Illuminate\Support\Carbon::parse($b['ende'])   : null;
+              $today = \Illuminate\Support\Carbon::now('Europe/Berlin');
 
-    // neue Felder sicher casten
-    $punkte         = array_key_exists('punkte', $b) ? (int) $b['punkte'] : null;
-    $klassenschnitt = array_key_exists('klassenschnitt', $b) ? (int) $b['klassenschnitt'] : null;
-    $schnitt        = array_key_exists('schnitt', $b) ? (float) $b['schnitt'] : null;
+              // neue Felder sicher casten
+              $punkte         = array_key_exists('punkte', $b) ? (int) $b['punkte'] : null;
+              $klassenschnitt = array_key_exists('klassenschnitt', $b) ? (int) $b['klassenschnitt'] : null;
+              $schnitt        = array_key_exists('schnitt', $b) ? (float) $b['schnitt'] : null;
 
-    // Statuslogik
-    $status = null;
-    $statusClass = '';
+              // Statuslogik
+              $status = null;
+              $statusClass = '';
 
-    if ($typ === 'kurs') {
-        if ($start && $start->isFuture()) {
-            $status = 'Geplant';
-            $statusClass = 'text-yellow-700 bg-yellow-100';
-        } elseif ($start && $ende && $start->lte($today) && $ende->gte($today)) {
-            $status = 'Laufend';
-            $statusClass = 'text-blue-700 bg-blue-100';
-        } else {
-            // *** NEU: Wenn Punkte = 0 UND Klassenschnitt = 0 => Ergebnis offen
-            if ($punkte === 0 && $klassenschnitt === 0) {
-                $status = 'Ergebnis offen';
-                $statusClass = 'text-gray-700 bg-gray-100';
-            }
-            // Falls nicht offen durch 0/0, dann nach schnitt bewerten (falls vorhanden)
-            elseif ($schnitt !== null) {
-                if ($schnitt >= 50) {
-                    $status = 'Bestanden';
-                    $statusClass = 'text-green-700 bg-green-100';
-                } else {
-                    $status = 'Nicht bestanden';
-                    $statusClass = 'text-red-700 bg-red-100';
-                }
-            } else {
-                // Fallback
-                $status = 'offen';
-                $statusClass = 'text-gray-600 bg-gray-100';
-            }
-        }
-    }
+              if ($typ === 'kurs') {
+                  if ($start && $start->isFuture()) {
+                      $status = 'Geplant';
+                      $statusClass = 'text-yellow-700 bg-yellow-100';
+                  } elseif ($start && $ende && $start->lte($today) && $ende->gte($today)) {
+                      $status = 'Laufend';
+                      $statusClass = 'text-blue-700 bg-blue-100';
+                  } else {
+                      // *** NEU: Wenn Punkte = 0 UND Klassenschnitt = 0 => Ergebnis offen
+                      if ($punkte === 0 && $klassenschnitt === 0) {
+                          $status = 'Ergebnis offen';
+                          $statusClass = 'text-gray-700 bg-gray-100';
+                      }
+                      // Falls nicht offen durch 0/0, dann nach schnitt bewerten (falls vorhanden)
+                      elseif ($schnitt !== null) {
+                          if ($schnitt >= 50) {
+                              $status = 'Bestanden';
+                              $statusClass = 'text-green-700 bg-green-100';
+                          } else {
+                              $status = 'Nicht bestanden';
+                              $statusClass = 'text-red-700 bg-red-100';
+                          }
+                      } else {
+                          // Fallback
+                          $status = 'offen';
+                          $statusClass = 'text-gray-600 bg-gray-100';
+                      }
+                  }
+              }
 
-    // Zeilenstile
-    $rowBase   = 'relative h-[70px] py-3 px-4 transition-all delay-50 duration-500 snap-start ';
-    $rowBgs    = $isCurrent 
-                  ? 'bg-emerald-50 ring-1 ring-emerald-200' 
-                  : 'even:bg-white odd:bg-gray-100';
-    $rowHover  = $hasLink 
-                  ? 'group hover:bg-blue-100 hover:pr-[45px] cursor-pointer' 
-                  : 'cursor-default opacity-70';
-  @endphp
+              // Zeilenstile
+              $rowBase   = 'relative h-[70px] py-3 px-4 transition-all delay-50 duration-500 snap-start ';
+              $rowBgs    = $isCurrent 
+                            ? 'bg-emerald-50 ring-1 ring-emerald-200' 
+                            : 'even:bg-white odd:bg-gray-100';
+              $rowHover  = $hasLink 
+                            ? 'group hover:bg-blue-100 hover:pr-[45px] cursor-pointer' 
+                            : 'cursor-default opacity-70';
+            @endphp
 
 
             <li class="{{ $rowBase }} {{ $rowBgs }} {{ $rowHover }}"   @if($isCurrent) x-ref="currentItem" @endif>

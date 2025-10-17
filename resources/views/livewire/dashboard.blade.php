@@ -1,46 +1,20 @@
 <div class="w-full relative border-t border-t-gray-300 bg-cover bg-center bg-[#eeeeeebd] pb-20 min-h-[70vh]" wire:loading.class="cursor-wait">
-    <div class="" >
-            <div x-data="{ selectedTab: $persist('basic').as('selectedTabdashboard') }" class="w-full">
-                <div class="container mx-auto md:px-5 ">
-                    <div x-on:keydown.right.prevent="$focus.wrap().next()" x-on:keydown.left.prevent="$focus.wrap().previous()" class="flex gap-2 overflow-x-auto transform -translate-y-[100%] -mb-6" role="tablist" aria-label="tab options">
-                        <button x-on:click="selectedTab = 'basic'" 
-                            x-bind:aria-selected="selectedTab === 'basic'" 
-                            x-bind:tabindex="selectedTab === 'basic' ? '0' : '-1'" 
-                            x-bind:class="selectedTab === 'basic' ? ' shadow font-semibold text-primary border-b-2 border-b-secondary !bg-blue-50' : 'bg-white text-on-surface font-medium border-b-white hover:border-b-blue-400 hover:border-b-outline-strong hover:text-on-surface-strong'" 
-                            class="inline-flex items-center h-min px-4 py-2 text-sm  rounded-t-lg border-b-2 border-t border-x border-x-gray-300 border-t-gray-300 bg-white max-md:ml-5" 
-                            type="button" 
-                            role="tab" 
-                            aria-controls="tabpanelBasic" 
-                            >
-                            <svg class="w-5   mr-1 max-md:mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"  fill="none" viewBox="0 0 24 24">
-                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 4h3a1 1 0 0 1 1 1v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3m0 3h6m-3 5h3m-6 0h.01M12 16h3m-6 0h.01M10 3v4h4V3h-4Z"></path>
-                            </svg>
-                            Dashboard
-                        </button>
+  <x-ui.tabsnav.container storage-key="selectedTabdashboard" default="basic" class="w-full">
+    <div class="container mx-auto md:px-5">
+      <x-ui.tabsnav.nav :tabs="[
+        ['id'=>'basic',  'label'=>'Dashboard', 'icon'=> new \Illuminate\Support\HtmlString('<svg class=\'h-4\' xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\'><path stroke=\'currentColor\' stroke-width=\'2\' d=\'M15 4h3a1 1 0 0 1 1 1v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3m0 3h6m-3 5h3m-6 0h.01M12 16h3m-6 0h.01M10 3v4h4V3h-4Z\'/></svg>')],
+        ['id'=>'claims', 'label'=>'Anträge',   'icon'=> new \Illuminate\Support\HtmlString('<svg class=\'h-4\' xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'currentColor\' stroke-width=\'2\'><rect x=\'3\' y=\'4\' width=\'18\' height=\'18\' rx=\'2\' ry=\'2\'/><line x1=\'16\' y1=\'2\' x2=\'16\' y2=\'6\'/><line x1=\'8\' y1=\'2\' x2=\'8\' y2=\'6\'/><line x1=\'3\' y1=\'10\' x2=\'21\' y2=\'10\'/></svg>')],
+      ]" />
+    </div>
 
-                        <button x-on:click="selectedTab = 'claims'" 
-                            x-bind:aria-selected="selectedTab === 'claims'" 
-                            x-bind:tabindex="selectedTab === 'claims' ? '0' : '-1'" 
-                            x-bind:class="selectedTab === 'claims' ? ' shadow font-semibold text-primary border-b-2 border-b-secondary bg-blue-50' : 'bg-white text-on-surface font-medium border-b-white hover:border-b-blue-400 hover:border-b-outline-strong hover:text-on-surface-strong'" 
-                            class="inline-flex items-center h-min px-4 py-2 text-sm rounded-t-lg border-b-2 border-t border-x border-x-gray-300 border-t-gray-300 bg-white max-md:mr-5" 
-                            type="button" 
-                            role="tab" 
-                            aria-controls="tabpanelclaims" 
-                            >
-                            <svg xmlns="http://www.w3.org/2000/svg"  class="w-4   mr-1 max-md:mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                            Anträge
-                        </button>
-    
-                    </div>
-                </div>
-                <div class="container mx-auto px-5" >
-                    <div x-cloak x-show="selectedTab === 'basic'" x-collapse id="tabpanelbasic" role="tabpanel" aria-label="basic">
-                        <livewire:user.program-show lazy />
-                    </div>
-                    <div x-cloak x-show="selectedTab === 'claims'" x-collapse id="tabpanelclaims" role="tabpanel" aria-label="claims">
-                        <livewire:user.user-requests lazy />
-                    </div>
-                </div>
-            </div>
-    </div>      
+    <div class="container mx-auto px-5">
+      <x-ui.tabsnav.panel name="basic">
+        <livewire:user.program-show lazy />
+      </x-ui.tabsnav.panel>
+
+      <x-ui.tabsnav.panel name="claims">
+        <livewire:user.user-requests lazy />
+      </x-ui.tabsnav.panel>
+    </div>
+  </x-ui.tabsnav.container>
 </div>

@@ -1,29 +1,31 @@
 <div class="">
-  <header class="container mx-auto md:px-5 py-6 flex items-start justify-between">
-    <div class="flex items-center gap-2">
+  <header class="container mx-auto px-5 py-6">
+    <div class="flex items-start justify-between">      
+      <div class="flex items-center gap-2">
+        <div>
+          @php
+            $status = $course['status'] ?? 'Offen';
+            $badge = [
+              'Geplant' => 'bg-yellow-100 text-yellow-800',
+              'Laufend' => 'bg-blue-100 text-blue-800',
+              'Abgeschlossen' => 'bg-gray-200 text-gray-800',
+              'Offen' => 'bg-gray-200 text-gray-800',
+            ][$status] ?? 'bg-gray-200 text-gray-800';
+          @endphp
+          <span class="inline-block px-2 py-0.5 rounded mb-4 {{ $badge }}">{{ $status }}</span>
+        </div>
+      </div>
       <div>
-        @php
-          $status = $course['status'] ?? 'Offen';
-          $badge = [
-            'Geplant' => 'bg-yellow-100 text-yellow-800',
-            'Laufend' => 'bg-blue-100 text-blue-800',
-            'Abgeschlossen' => 'bg-gray-100 text-gray-800',
-            'Offen' => 'bg-gray-100 text-gray-800',
-          ][$status] ?? 'bg-gray-100 text-gray-800';
-        @endphp
-        <span class="inline-block px-2 py-0.5 rounded mb-4 {{ $badge }}">{{ $status }}</span>
-        <h1 class="text-2xl font-semibold">{{ $course['title'] ?? '—' }}</h1>
+        <div class="">
+          <x-ui.badge.badge :color="'blue'">
+            {{ $course['zeitraum_fmt'] ?? '—' }}
+          </x-ui.badge.badge>
+        </div>
       </div>
     </div>
-    <div>
-      <div class="">
-        <x-ui.badge.badge :color="'blue'">
-          {{ $course['zeitraum_fmt'] ?? '—' }}
-        </x-ui.badge.badge>
-      </div>
-    </div>
+    <h1 class="text-2xl font-semibold">{{ $course['title'] ?? '—' }}</h1>
   </header>
-  <section class="container mx-auto md:px-5 pb-24">
+  <section class="container mx-auto px-5 pb-24">
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <div class="bg-white rounded-lg border shadow p-4">
         <x-user.public-info :person="$tutor" />
@@ -55,7 +57,7 @@
     </div>
 </section>
 <section class="bg-white border-b-2 border-t-2  border-secondary">
-  <div class="container mx-auto md:px-5 py-10 space-y-8  pb-24">
+  <div class="container mx-auto px-5 py-10 space-y-8  pb-24">
       <h2 class="text-lg font-semibold">Baustein-Beschreibungen</h2>
       <p class="text-sm text-gray-500">Noch keine Baustein-Beschreibungen hinterlegt.</p>
   </div>
@@ -64,7 +66,7 @@
 
 
 <section class="bg-blue-50 overflow-x-hidden">
-  <div class="container mx-auto md:px-5 py-10  pb-24" >
+  <div class="container mx-auto px-5 py-10  pb-24" >
     <div class="flex items-center justify-between mb-8">
       <h3 class="text-lg font-semibold">Weitere Kurse</h3>
       <div class="flex items-center gap-2">
