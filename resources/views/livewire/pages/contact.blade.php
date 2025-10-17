@@ -122,8 +122,6 @@
                     src="{{ asset('site-images/home-Slider_-_Studenten.jpg') }}"
                     class=" absolute inset-0 h-full w-full object-cover opacity-80"
                 />
-                <!-- Overlay -->
-                <div class="absolute inset-0 bg-primary-900/40" ></div>
                 <div class="hidden lg:relative lg:block lg:p-12">
 
                     <h2 class="mt-6 text-2xl font-bold sm:text-3xl md:text-4xl text-white">

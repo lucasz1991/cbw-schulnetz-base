@@ -23,7 +23,7 @@
       </div>
     </div>
   </header>
-  <section class="container mx-auto md:px-5 pb-12">
+  <section class="container mx-auto md:px-5 pb-24">
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <div class="bg-white rounded-lg border shadow p-4">
         <x-user.public-info :person="$tutor" />
@@ -55,7 +55,7 @@
     </div>
 </section>
 <section class="bg-white border-b-2 border-t-2  border-secondary">
-  <div class="container mx-auto md:px-5 py-10 space-y-8">
+  <div class="container mx-auto md:px-5 py-10 space-y-8  pb-24">
       <h2 class="text-lg font-semibold">Baustein-Beschreibungen</h2>
       <p class="text-sm text-gray-500">Noch keine Baustein-Beschreibungen hinterlegt.</p>
   </div>
@@ -64,7 +64,7 @@
 
 
 <section class="bg-blue-50 overflow-x-hidden">
-  <div class="container mx-auto md:px-5 py-10">
+  <div class="container mx-auto md:px-5 py-10  pb-24" >
     <div class="flex items-center justify-between mb-8">
       <h3 class="text-lg font-semibold">Weitere Kurse</h3>
       <div class="flex items-center gap-2">
