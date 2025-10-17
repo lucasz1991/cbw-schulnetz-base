@@ -1,4 +1,4 @@
-<div class="transition-opacity duration-300" >
+<div class="transition-opacity duration-300"  wire:key="doc-panel-{{ $selectedDayId }}">
   <div class="flex max-md:flex-wrap items-center space-x-3 justify-between mb-8">
     <div class="flex justify-between items-center space-x-3 w-full">
       <div class="flex items-center gap-2">
@@ -58,7 +58,6 @@
     <x-ui.editor.toast
       wire:key="tui-editor-{{ $selectedDayId }}" 
       wireModel="dayNotes"
-      :value="$dayNotes"
     />
   </div>
 </div>

@@ -1,7 +1,7 @@
 @props([
-  'wireModel' => null,
-  'value' => '',     
-  'height' => '24rem',
+  'wireModel' => null,           // z. B. "notes" oder "form.notes"
+  'value' => '',                 // Initialwert als Fallback (falls wireModel null ist)
+  'height' => '38rem',
   'previewStyle' => 'tab',
   'initialEditType' => 'wysiwyg',
   'disableImages' => true,
@@ -11,102 +11,94 @@
 @php
   $safeWireKey = str_replace(['.',':'], '-', $wireModel ?? 'notes');
   $id = "tui-editor-{$safeWireKey}";
-  $inputId = "tui-input-{$safeWireKey}";
 @endphp
 
-<div
-  x-data="{
-    opts: {
-      height: @js($height),
-      previewStyle: @js($previewStyle),
-      initialEditType: @js($initialEditType),
-      disableImages: @js($disableImages),
-      initialValue: @js($value ?? ''),     // ← Initialwert vom Parent
-      placeholder: @js($placeholder),
-    },
-    editor: null,
-    internalChange: false,
+{{-- Alpine-Factory einmalig bereitstellen (ohne Mehrfachdefinition) --}}
+<script>
+  window.tuiEditorFactory = window.tuiEditorFactory || function (opts) {
+    return {
+      opts,
+      editor: null,
+      internalChange: false,
 
-    waitFor(cond, t=4000, every=25){
-      return new Promise(r=>{
-        const start=Date.now();
-        (function tick(){
-          if (cond()) return r();
-          if (Date.now()-start>=t) return r();
-          setTimeout(tick, every);
-        })();
-      });
-    },
+      waitFor(cond, t = 4000, every = 25) {
+        return new Promise((resolve) => {
+          const start = Date.now();
+          (function tick() {
+            if (cond()) return resolve();
+            if (Date.now() - start >= t) return resolve();
+            setTimeout(tick, every);
+          })();
+        });
+      },
 
-    async initOnce(){
-      await this.waitFor(() => window.toastui && window.toastui.Editor);
+      async initOnce() {
+        await this.waitFor(() => window.toastui && window.toastui.Editor);
 
-      // Hidden initial befüllen (damit Livewire sofort den Wert hat)
-      if (!this.$refs.hidden.value && this.opts.initialValue) {
-        this.$refs.hidden.value = this.opts.initialValue;
-        this.$refs.hidden.dispatchEvent(new Event('input', { bubbles: true }));
-      }
-
-      // Editor nur einmal beim Mount bauen (dieser Block remountet ohnehin per wire:key)
-      this.editor = new toastui.Editor({
-        el: this.$refs.holder,
-        height: this.opts.height,
-        initialEditType: this.opts.initialEditType,
-        previewStyle: this.opts.previewStyle,
-        placeholder: this.opts.placeholder,
-        initialValue: this.$refs.hidden.value || this.opts.initialValue || '',
-        usageStatistics: false,
-        toolbarItems: [
-          ['heading','bold','italic','strike'],
-          ['hr','quote'],
-          ['ul','ol','task'],
-          ['table','link']
-        ],
-        hooks: {
-          addImageBlobHook: (blob, cb) => {
-            if (this.opts.disableImages) return;
+        // Editor initialisieren
+        this.editor = new toastui.Editor({
+          el: this.$refs.holder,
+          height: this.opts.height,
+          initialEditType: this.opts.initialEditType,
+          previewStyle: this.opts.previewStyle,
+          placeholder: this.opts.placeholder,
+          initialValue: (this.opts.model ?? this.opts.initialValue ?? ''),
+          usageStatistics: false,
+          toolbarItems: [
+            ['heading','bold','italic','strike'],
+            ['hr','quote'],
+            ['ul','ol','task'],
+            ['table','link']
+          ],
+          hooks: {
+            addImageBlobHook: (blob, cb) => {
+              if (this.opts.disableImages) return; // Upload unterbinden, wenn deaktiviert
+              // Hier könntest du optional deinen Upload implementieren und cb(url, 'alt') aufrufen
+            }
           }
-        }
-      });
+        });
 
-      // Editor -> Hidden
-      this.editor.on('change', () => {
-        this.internalChange = true;
-        const html = this.editor.getHTML() || '';
-        if (this.$refs.hidden.value !== html) {
-          this.$refs.hidden.value = html;
-          this.$refs.hidden.dispatchEvent(new Event('input', { bubbles: true }));
-        }
-        this.$nextTick(() => this.internalChange = false);
-      });
+        // Editor -> Livewire/Alpine (über entangled model)
+        this.editor.on('change', () => {
+          this.internalChange = true;
+          const html = this.editor.getHTML() || '';
+          if (this.opts.model !== html) this.opts.model = html;
+          this.$nextTick(() => (this.internalChange = false));
+        });
 
-      // Hidden -> Editor (falls Livewire serverseitig setzt, z. B. Autosave)
-      this.$watch(() => this.$refs.hidden.value, (nv) => {
-        if (this.internalChange || !this.editor) return;
-        const next = nv || '';
-        const cur  = this.editor.getHTML() || '';
-        if (next !== cur) {
-          const sel = this.editor.getSelection();
-          this.editor.setHTML(next);
-          if (sel) this.editor.setSelection(sel[0], sel[1]);
-        }
-      });
-    },
-  }"
+        // Livewire/Server -> Editor (reagiert auf Server-Updates)
+        this.$watch('opts.model', (nv) => {
+          if (this.internalChange || !this.editor) return;
+          const next = nv || '';
+          const cur  = this.editor.getHTML() || '';
+          if (next !== cur) {
+            const sel = this.editor.getSelection?.();
+            this.editor.setHTML(next);
+            if (sel) this.editor.setSelection(sel[0], sel[1]);
+          }
+        });
+      },
+    };
+  };
+</script>
+
+<div
+  x-data="tuiEditorFactory({
+    // Wenn wireModel vorhanden, binde bidirektional; sonst lokale Einbahnstraße mit initialValue
+    model: @if($wireModel) @entangle($wireModel).live @else null @endif,
+    height: @js($height),
+    previewStyle: @js($previewStyle),
+    initialEditType: @js($initialEditType),
+    disableImages: @js($disableImages),
+    placeholder: @js($placeholder),
+    initialValue: @js($value ?? ''),
+  })"
   x-init="initOnce()"
   class="tui-editor-wrapper"
 >
   <style>.toastui-editor-mode-switch{display:none!important}</style>
 
-  {{-- Hidden bleibt Livewire-gebunden --}}
-  <input
-    type="hidden"
-    id="{{ $inputId }}"
-    x-ref="hidden"
-    @if($wireModel) wire:model.live.debounce.500ms="{{ $wireModel }}" @endif
-  >
-
-  {{-- Holder darf Livewire NICHT anfassen --}}
+  {{-- Editor-Container (Livewire darf hier nicht reinfunken) --}}
   <div
     id="{{ $id }}"
     x-ref="holder"

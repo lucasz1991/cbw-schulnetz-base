@@ -1,4 +1,4 @@
-<div  class="w-full relative bg-gray-100 py-20"  wire:loading.class="cursor-wait">
+<div  class="w-full relative bg-gray-100 py-8"  wire:loading.class="cursor-wait">
     @section('title')
         {{ __('Nachrichten') }}
     @endsection
@@ -31,8 +31,7 @@
     <div class="container mx-auto">
         <div class="bg-white  shadow-lg rounded-lg p-6"> 
             <div class="p-4 mb-4 text-sm text-green-800 rounded-lg bg-green-50" role="alert">
-                <p><span class="text-lg font-medium">Du wirst hier über alle wichtigen Nachrichten informiert.</span><br> Jede neue Nachricht, die dich betrifft, wird dir direkt angezeigt, damit du immer auf dem neuesten Stand bist. Schau regelmäßig in dein Postfach, um keine wichtigen Updates zu verpassen.</p>
-            </div>
+<p><span class="text-lg font-medium">Hier erhalten Sie alle wichtigen Informationen von der CBW-Verwaltung.</span><br> Neue Mitteilungen und aktuelle Hinweise werden Ihnen direkt angezeigt, damit Sie jederzeit bestens informiert sind. Schauen Sie regelmäßig in Ihr Postfach, um keine wichtigen Neuigkeiten zu verpassen.</p>            </div>
         <div class="mt-10 space-y-5">
             <div class="flex flex-col md:flex-row items-center justify-between space-y-3 md:space-y-0 ">
                 <div class="w-full md:w-1/2">

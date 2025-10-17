@@ -97,44 +97,20 @@ class CourseDay extends Model
         ];
     }
 
-    public static function makeDefaultAttendance(self $day): array
-    {
-        $emptyRow = fn () => [
-            'present'            => false,
-            'late_minutes'       => 0,
-            'left_early_minutes' => 0,
-            'excused'            => false,
-            'note'               => null,
-            'timestamps'         => ['in' => null, 'out' => null],
-            'created_at'         => null,
-            'updated_at'         => null,
-        ];
+public static function makeDefaultAttendance(self $day): array
+{
+    return [
+        // Wichtig: leer lassen, damit "kein Eintrag" = Default "anwesend" im UI bedeuten kann
+        'participants' => [],
+        'status' => [
+            'start'      => 0,
+            'end'        => 0,
+            'created_at' => null,
+            'updated_at' => null,
+        ],
+    ];
+}
 
-        $byParticipant = function () use ($day, $emptyRow) {
-            // Wenn es eine participants-Relation am Course gibt, vorbefüllen (optional).
-            // Ansonsten einfach leer lassen.
-            $participants = $day->course?->participants ?? collect();
-            if (method_exists($participants, 'pluck')) {
-                $map = [];
-                foreach ($participants as $p) {
-                    // Keyed by participant_id
-                    $map[$p->id] = $emptyRow();
-                }
-                return $map;
-            }
-            return []; // kein Vorbefüllen möglich
-        };
-
-        return [
-            'participants' => $byParticipant(),
-            'status' => [
-                'start' => 0,
-                'end' => 0,
-                'created_at' => null,
-                'updated_at' => null,
-            ],
-        ];
-    }
 
     /**
      * Attendance für einen Teilnehmer gemäß Default-Struktur updaten.

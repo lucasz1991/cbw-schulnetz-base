@@ -107,8 +107,8 @@
   {{-- Tabelle: pro Tag alle TN mit Aktionen --}}
   <div class=" border rounded bg-white">
     <table class="min-w-full text-sm table-fixed">
-      <thead class="bg-gray-50">
-        <tr>
+<thead class="bg-gray-50">
+  <tr>
     <th class="px-4 py-2 text-left w-1/3">
       <button
         type="button"
@@ -116,175 +116,210 @@
         class="flex items-center gap-1 font-semibold group"
       >
         Teilnehmer
+        {{-- (Sortierpfeile bleiben wie gehabt) --}}
         @if($sortBy === 'name')
           @if($sortDir === 'asc')
-            {{-- Pfeil nach oben --}}
             <svg class="w-3 h-3 text-blue-600 group-hover:text-blue-800 transition" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
               <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m5 12 5-5 5 5"/>
             </svg>
           @else
-            {{-- Pfeil nach unten --}}
             <svg class="w-3 h-3 text-blue-600 group-hover:text-blue-800 transition" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
               <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m5 8 5 5 5-5"/>
             </svg>
           @endif
         @else
-          {{-- Neutraler Pfeil (grau, wenn nicht aktiv) --}}
           <svg class="w-3 h-3 text-gray-400 group-hover:text-gray-600 transition" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
             <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m5 8 5 5 5-5"/>
           </svg>
         @endif
       </button>
     </th>
-          <th class="px-4 py-2"></th>
-          <th class="px-4 py-2 text-right">Status</th>
-        </tr>
-      </thead>
+
+    {{-- NEU: Status & Zeiten mittlere Spalte --}}
+    <th class="px-4 py-2 text-left">Status &amp; Zeiten</th>
+
+    {{-- NEU: Aktionen rechte Spalte --}}
+    <th class="px-4 py-2 text-right">Aktionen</th>
+  </tr>
+</thead>
+
 
       <tbody class="divide-y divide-gray-100">
         @forelse($rows as $r)
-          @php
-            $d = $r['data'];
-            $fmt = fn($t) => $t ? \Illuminate\Support\Str::substr($t, 11, 5) : '—';
-            $touched = ($d['present'] === true) || ($d['excused'] === true)
-                    || (($d['late_minutes'] ?? 0) > 0) || (($d['left_early_minutes'] ?? 0) > 0)
-                    || !empty($d['in']) || !empty($d['out']);
+@php
+  $d        = $r['data'];
+  $hasEntry = $r['hasEntry'] ?? false; // << nutzen
+  $late     = (int)($d['late_minutes'] ?? 0);
+  $early    = (int)($d['left_early_minutes'] ?? 0);
 
-            $statusLabel = 'Fehlend';
-            $badge = 'bg-red-100 text-red-700';
-            if (!$touched) { $statusLabel = 'Unbekannt'; $badge = 'bg-gray-100 text-gray-700'; }
-            elseif ($d['excused']) { $statusLabel = 'Entschuldigt'; $badge = 'bg-blue-100 text-blue-800'; }
-            elseif ($d['present'] && ($d['late_minutes'] ?? 0) > 0) { $statusLabel = 'Verspätet'; $badge = 'bg-yellow-100 text-yellow-800'; }
-            elseif ($d['present']) { $statusLabel = 'Anwesend'; $badge = 'bg-green-100 text-green-700'; }
-          @endphp
+  if (!$hasEntry) {
+      $statusLabel = 'Unbekannt';
+      $badge = 'bg-gray-100 text-gray-700';
+  } elseif ($d['excused']) {
+      $statusLabel = 'Entschuldigt';
+      $badge = 'bg-blue-100 text-blue-800';
+  } elseif ($d['present'] && $late > 0) {
+      $statusLabel = 'Verspätet';
+      $badge = 'bg-yellow-100 text-yellow-800';
+  } elseif ($d['present']) {
+      $statusLabel = 'Anwesend';
+      $badge = 'bg-green-100 text-green-700';
+  } else {
+      // hat Eintrag, aber nicht anwesend & nicht entschuldigt => Abwesend
+      $statusLabel = 'Fehlend';
+      $badge = 'bg-red-100 text-red-700';
+  }
+@endphp
 
-          <tr x-data="{ lateOpen:false, noteOpen:false }" class="hover:bg-gray-50">
-            {{-- Teilnehmer --}}
-            <td class="px-4 py-2">
-              @if($r['user'])
-                <x-user.public-info :person="$r['user']" />
-              @else
-                <div class="font-medium">Teilnehmer #{{ $r['id'] }}</div>
-              @endif
-            </td>
 
-
-
-            {{-- Aktionen --}}
-            <td class="px-4 py-2">
-                @php
-                $d = $r['data'];
-                // „fehlend“ heißt: nicht anwesend und nicht entschuldigt
-                $isAbsent = ($d['present'] === false) && !($d['excused'] ?? false);
-              @endphp
-              <div class="inline-flex items-center justify-center gap-1 w-full">
-    @if($isAbsent)
-      <button
-        class="inline-flex items-center justify-center w-8 h-8 rounded border border-green-600 text-green-700 hover:bg-green-50"
-        title="Verspätet einchecken"
-        wire:click.stop="checkInNow({{ $r['id'] }})">
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M5 13l4 4L19 7" />
-        </svg>
-      </button>
+<tr x-data="{ lateOpen:false, noteOpen:false }" class="hover:bg-gray-50">
+  {{-- 1) Teilnehmer (links) --}}
+  <td class="px-4 py-2">
+    @if($r['user'])
+      <x-user.public-info :person="$r['user']" />
     @else
+      <div class="font-medium">Teilnehmer #{{ $r['id'] }}</div>
+    @endif
+  </td>
 
-    {{-- Abwesend (falls vorher anwesend -> Checkout + Frühweg) --}}
-    <button
-      class="inline-flex items-center justify-center w-8 h-8 rounded border border-red-600 text-red-700 hover:bg-red-50"
-      title="Abwesend (Check-out + ggf. Früh-weg berechnen)"
-      wire:click.stop="markAbsentNow({{ $r['id'] }})">
-      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-      </svg>
-    </button>
+  {{-- 2) Status & Zeiten (Mitte, linksbündig) --}}
+@php
+  $d        = $r['data'];
+  $hasEntry = $r['hasEntry'] ?? false;
+  $late     = (int)($d['late_minutes'] ?? 0);
+  $early    = (int)($d['left_early_minutes'] ?? 0);
+
+  if (!$hasEntry) {
+      // KEIN Eintrag => Default: Anwesend
+      $statusLabel = 'Anwesend';
+      $badge = 'bg-green-100 text-green-700';
+  } elseif ($d['excused']) {
+      $statusLabel = 'Entschuldigt';
+      $badge = 'bg-blue-100 text-blue-800';
+  } elseif ($d['present'] && $late > 0) {
+      $statusLabel = 'Verspätet';
+      $badge = 'bg-yellow-100 text-yellow-800';
+  } elseif ($d['present']) {
+      $statusLabel = 'Anwesend';
+      $badge = 'bg-green-100 text-green-700';
+  } else {
+      // Eintrag vorhanden, nicht anwesend & nicht entschuldigt
+      $statusLabel = 'Fehlend';
+      $badge = 'bg-red-100 text-red-700';
+  }
+@endphp
+
+
+<td class="px-4 py-2">
+  <div class="flex items-center gap-2 flex-wrap">
+    {{-- Status-Badge --}}
+    <span class="inline-flex rounded px-2 py-0.5 text-xs {{ $badge }}">
+      {{ $statusLabel }}
+    </span>
+
+    {{-- Verspätung / Frühweg Badges --}}
+    @if($late > 0)
+      <span class="inline-flex rounded px-2 py-0.5 text-xs bg-yellow-100 text-yellow-800">
+        +{{ $late }} min spät
+      </span>
     @endif
 
+    @if($early > 0)
+      <span class="inline-flex rounded px-2 py-0.5 text-xs bg-orange-100 text-orange-800">
+        {{ $early }} min früher
+      </span>
+    @endif
+  </div>
+</td>
 
-                {{-- Nur Check-out --}}
-                <button
-                  class="inline-flex items-center justify-center w-8 h-8 rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
-                  title="Nur Check-out"
-                  wire:click.stop="checkOutNow({{ $r['id'] }})">
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2v-1m8-10V5a2 2 0 00-2-2H7a2 2 0 00-2 2v1" />
-                  </svg>
-                </button>
 
-                {{-- Verspätung/Frühweg bearbeiten (Popover) --}}
-                <div class="relative">
-                  <button
-                    class="inline-flex items-center justify-center w-8 h-8 rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
-                    title="Verspätung / Früh weg eintragen"
-                    @click="lateOpen = !lateOpen">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </button>
-                  <div x-cloak x-show="lateOpen" @click.outside="lateOpen=false"
-                       class="absolute z-10 mt-2 w-64 rounded border border-gray-300 bg-white p-3 shadow">
-                    <div class="space-y-2">
-                      <label class="block text-xs text-gray-600">Verspätung (Minuten)</label>
-                      <input type="number" min="0" class="w-full rounded border-gray-300"
-                             value="{{ (int)($d['late_minutes'] ?? 0) }}"
-                             wire:change="setLateMinutes({{ $r['id'] }}, $event.target.value)" />
-                      <label class="block text-xs text-gray-600">Früh weg (Minuten)</label>
-                      <input type="number" min="0" class="w-full rounded border-gray-300"
-                             value="{{ (int)($d['left_early_minutes'] ?? 0) }}"
-                             wire:change="setLeftEarlyMinutes({{ $r['id'] }}, $event.target.value)" />
-                      <div class="flex justify-end">
-                        <button class="text-xs text-gray-600 underline" @click="lateOpen=false">Schließen</button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
 
-                {{-- Notiz bearbeiten (Popover) --}}
-                <div class="relative">
-                  <button
-                    class="inline-flex items-center justify-center w-8 h-8 rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
-                    title="Notiz hinzufügen"
-                    @click="noteOpen = !noteOpen">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z" />
-                    </svg>
-                  </button>
-                  <div x-cloak x-show="noteOpen" @click.outside="noteOpen=false"
-                       class="absolute z-10 mt-2 w-72 rounded border border-gray-300 bg-white p-3 shadow">
-                    <label class="block text-xs text-gray-600 mb-1">Notiz</label>
-                    <textarea rows="3" class="w-full rounded border-gray-300"
-                              wire:change="setNote({{ $r['id'] }}, $event.target.value)">{{ $d['note'] }}</textarea>
-                    <div class="mt-2 flex justify-end">
-                      <button class="text-xs text-gray-600 underline" @click="noteOpen=false">Schließen</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </td>
 
-            {{-- Status --}}
-            @php
-              $late  = (int)($d['late_minutes'] ?? 0);
-              $early = (int)($d['left_early_minutes'] ?? 0);
-              $showTimes = $late > 0 || $early > 0;
-            @endphp
-            <td class="px-4 py-2 text-right">
-              <div class="inline-flex items-center justify-end gap-1 w-full">
-                @if($showTimes)
-                  <div class="text-xs text-gray-500">
-                    +{{ $late }} min spät • {{ $early }} min früher
-                  </div>
-                @endif
+  {{-- 3) Aktionen (rechts, Buttons ganz nach rechts) --}}
+@php
+  // Abwesend nur, wenn Eintrag existiert und present=false & !excused
+  $isAbsent = ($r['hasEntry'] ?? false) && ($d['present'] === false) && !($d['excused'] ?? false);
+@endphp
+  <td class="px-4 py-2">
+    <div class="flex items-center justify-end gap-1">
 
-                <span class="inline-flex rounded px-2 py-0.5 text-xs {{ $badge }}">{{ $statusLabel }}</span>
-               </div>
-            </td>
+      {{-- Anwesend / Abwesend: nur Flags setzen --}}
+      @if($isAbsent)
+        <button
+          class="inline-flex items-center justify-center w-8 h-8 rounded border border-green-600 text-green-700 hover:bg-green-50"
+          title="Anwesend"
+          wire:click.stop="markPresent({{ $r['id'] }})">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M5 13l4 4L19 7" />
+          </svg>
+        </button>
+      @else
+        <button
+          class="inline-flex items-center justify-center w-8 h-8 rounded border border-red-600 text-red-700 hover:bg-red-50"
+          title="Abwesend"
+          wire:click.stop="markAbsent({{ $r['id'] }})">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      @endif
 
-          </tr>
+      {{-- Verspätung/Frühweg (Popover) --}}
+      <div class="relative">
+        <button
+          class="inline-flex items-center justify-center w-8 h-8 rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
+          title="Verspätung / Früh weg eintragen"
+          @click="lateOpen = !lateOpen">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </button>
+        <div x-cloak x-show="lateOpen" @click.outside="lateOpen=false"
+             class="absolute right-0 z-10 mt-2 w-64 rounded border border-gray-300 bg-white p-3 shadow">
+          <div class="space-y-2">
+            <label class="block text-xs text-gray-600">Verspätung (Minuten)</label>
+            <input type="number" min="0" class="w-full rounded border-gray-300"
+                   value="{{ (int)($d['late_minutes'] ?? 0) }}"
+                   wire:change="setLateMinutes({{ $r['id'] }}, $event.target.value)" />
+            <label class="block text-xs text-gray-600">Früh weg (Minuten)</label>
+            <input type="number" min="0" class="w-full rounded border-gray-300"
+                   value="{{ (int)($d['left_early_minutes'] ?? 0) }}"
+                   wire:change="setLeftEarlyMinutes({{ $r['id'] }}, $event.target.value)" />
+            <div class="flex justify-end">
+              <button class="text-xs text-gray-600 underline" @click="lateOpen=false">Schließen</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {{-- Notiz (Popover) --}}
+      <div class="relative">
+        <button
+          class="inline-flex items-center justify-center w-8 h-8 rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
+          title="Notiz hinzufügen"
+          @click="noteOpen = !noteOpen">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z" />
+          </svg>
+        </button>
+        <div x-cloak x-show="noteOpen" @click.outside="noteOpen=false"
+             class="absolute right-0 z-10 mt-2 w-72 rounded border border-gray-300 bg-white p-3 shadow">
+          <label class="block text-xs text-gray-600 mb-1">Notiz</label>
+          <textarea rows="3" class="w-full rounded border-gray-300"
+                    wire:change="setNote({{ $r['id'] }}, $event.target.value)">{{ $d['note'] }}</textarea>
+          <div class="mt-2 flex justify-end">
+            <button class="text-xs text-gray-600 underline" @click="noteOpen=false">Schließen</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </td>
+</tr>
+
         @empty
           <tr><td colspan="4" class="p-6 text-center text-gray-500">Keine Einträge.</td></tr>
         @endforelse

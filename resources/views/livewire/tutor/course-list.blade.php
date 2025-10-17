@@ -7,6 +7,6 @@
         </div>
     </x-slot>
     <div class="">
-        <livewire:tutor.courses.courses-list-preview />
+        <livewire:tutor.courses.courses-list-preview  :showAll="true"  />
     </div>
 </div>

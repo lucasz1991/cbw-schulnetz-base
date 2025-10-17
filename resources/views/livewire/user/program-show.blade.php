@@ -267,7 +267,7 @@
               <div class="swiper-wrapper h-full">
                 <div class="swiper-slide">
                   <div class="grid h-full grid-cols-1 place-content-stretch">
-                    <h3 class="text-gray-800 font-semibold mb-1">Programm als PDF</h3>
+                    <h3 class="text-gray-800 font-semibold mb-1">Qualiprogramm als PDF</h3>
                     <p class="text-xs text-gray-600 mb-2">
                       Lade dein aktuelles Qualifizierungsprogramm als PDF herunter.
                     </p>
@@ -279,7 +279,7 @@
 
                 <div class="swiper-slide">
                   <div class="grid h-full grid-cols-1 place-content-stretch">
-                    <h3 class="text-gray-800 font-semibold mb-1">Anträge stellen</h3>
+                    <h3 class="text-gray-800 font-semibold mb-1">Anträge</h3>
                     <p class="text-xs text-gray-600 mb-2">
                       Übersicht über deine Anträge im Programm.
                     </p>
@@ -291,9 +291,9 @@
 
                 <div class="swiper-slide">
                   <div class="grid h-full grid-cols-1 place-content-stretch">
-                    <h3 class="text-gray-800 font-semibold mb-1">Program Dokumentation</h3>
+                    <h3 class="text-gray-800 font-semibold mb-1">Baustein Dokumentation</h3>
                     <p class="text-xs text-gray-600 mb-2">
-                      Übersicht über dein Programm exportieren.
+                      Übersicht über deine Bausteine exportieren.
                     </p>
                     <x-buttons.button-basic :size="'sm'" :mode="'primary'" @click="$dispatch('open-program-attendance');isClicked = true; setTimeout(() => isClicked = false, 100)" class="w-full">
                       anzeigen
@@ -345,53 +345,73 @@
 >
           {{-- Bausteine --}}
           @forelse($bausteine as $b)
-            @php
-              $typ      = $b['typ'] ?? 'kurs';
-              $hasLink  = !empty($b['klassen_id']);
-              $isCurrent = isset($aktuellesModul['baustein_id']) 
-                          && $aktuellesModul['baustein_id'] === ($b['baustein_id'] ?? null);
+  @php
+    $typ      = $b['typ'] ?? 'kurs';
+    $hasLink  = !empty($b['klassen_id']);
+    $isCurrent = isset($aktuellesModul['baustein_id']) 
+                && $aktuellesModul['baustein_id'] === ($b['baustein_id'] ?? null);
 
-              // Zeitvergleich – KEIN use im Blade, stattdessen voll qualifiziert:
-              $start = !empty($b['beginn']) ? \Illuminate\Support\Carbon::parse($b['beginn']) : null;
-              $ende  = !empty($b['ende'])   ? \Illuminate\Support\Carbon::parse($b['ende'])   : null;
-              $today = \Illuminate\Support\Carbon::now('Europe/Berlin');
+    // Zeitvergleich – KEIN use im Blade, stattdessen voll qualifiziert:
+    $start = !empty($b['beginn']) ? \Illuminate\Support\Carbon::parse($b['beginn']) : null;
+    $ende  = !empty($b['ende'])   ? \Illuminate\Support\Carbon::parse($b['ende'])   : null;
+    $today = \Illuminate\Support\Carbon::now('Europe/Berlin');
 
-              // Statuslogik
-              $status = null;
-              $statusClass = '';
+    // neue Felder sicher casten
+    $punkte         = array_key_exists('punkte', $b) ? (int) $b['punkte'] : null;
+    $klassenschnitt = array_key_exists('klassenschnitt', $b) ? (int) $b['klassenschnitt'] : null;
+    $schnitt        = array_key_exists('schnitt', $b) ? (float) $b['schnitt'] : null;
 
-              if ($typ === 'kurs') {
-                  if ($start && $start->isFuture()) {
-                      $status = 'Geplant';
-                      $statusClass = 'text-yellow-700 bg-yellow-100';
-                  } elseif ($start && $ende && $start->lte($today) && $ende->gte($today)) {
-                      $status = 'Laufend';
-                      $statusClass = 'text-blue-700 bg-blue-100';
-                  } elseif (!is_null($b['schnitt'] ?? null)) {
-                      if (($b['schnitt'] ?? 0) >= 50) {
-                          $status = 'Bestanden';
-                          $statusClass = 'text-green-700 bg-green-100';
-                      } else {
-                          $status = 'Nicht bestanden';
-                          $statusClass = 'text-red-700 bg-red-100';
-                      }
-                  } else {
-                      $status = 'offen';
-                      $statusClass = 'text-gray-600 bg-gray-100';
-                  }
-              }
+    // Statuslogik
+    $status = null;
+    $statusClass = '';
 
-              // Zeilenstile
-              $rowBase   = 'relative h-[70px] py-3 px-4 transition-all delay-50 duration-500 snap-start ';
-              $rowBgs    = $isCurrent 
-                            ? 'bg-emerald-50 ring-1 ring-emerald-200' 
-                            : 'even:bg-white odd:bg-gray-100';
-              $rowHover  = $hasLink 
-                            ? 'group hover:bg-blue-100 hover:pr-[45px] cursor-pointer' 
-                            : 'cursor-default opacity-70';
-            @endphp
+    if ($typ === 'kurs') {
+        if ($start && $start->isFuture()) {
+            $status = 'Geplant';
+            $statusClass = 'text-yellow-700 bg-yellow-100';
+        } elseif ($start && $ende && $start->lte($today) && $ende->gte($today)) {
+            $status = 'Laufend';
+            $statusClass = 'text-blue-700 bg-blue-100';
+        } else {
+            // *** NEU: Wenn Punkte = 0 UND Klassenschnitt = 0 => Ergebnis offen
+            if ($punkte === 0 && $klassenschnitt === 0) {
+                $status = 'Ergebnis offen';
+                $statusClass = 'text-gray-700 bg-gray-100';
+            }
+            // Falls nicht offen durch 0/0, dann nach schnitt bewerten (falls vorhanden)
+            elseif ($schnitt !== null) {
+                if ($schnitt >= 50) {
+                    $status = 'Bestanden';
+                    $statusClass = 'text-green-700 bg-green-100';
+                } else {
+                    $status = 'Nicht bestanden';
+                    $statusClass = 'text-red-700 bg-red-100';
+                }
+            } else {
+                // Fallback
+                $status = 'offen';
+                $statusClass = 'text-gray-600 bg-gray-100';
+            }
+        }
+    }
+
+    // Zeilenstile
+    $rowBase   = 'relative h-[70px] py-3 px-4 transition-all delay-50 duration-500 snap-start ';
+    $rowBgs    = $isCurrent 
+                  ? 'bg-emerald-50 ring-1 ring-emerald-200' 
+                  : 'even:bg-white odd:bg-gray-100';
+    $rowHover  = $hasLink 
+                  ? 'group hover:bg-blue-100 hover:pr-[45px] cursor-pointer' 
+                  : 'cursor-default opacity-70';
+  @endphp
+
 
             <li class="{{ $rowBase }} {{ $rowBgs }} {{ $rowHover }}"   @if($isCurrent) x-ref="currentItem" @endif>
+              @if($hasLink)
+                <a href="{{ route('user.program.course.show', $b['klassen_id']) }}" wire:navigate aria-label="Baustein öffnen">
+              @else 
+                <div>
+              @endif
               <div class="grid grid-cols-12 gap-1">
                 <div class="col-span-8 font-medium text-gray-800 flex items-center gap-2">
                   <div class="truncate">{{ $b['baustein'] }}</div>
@@ -438,6 +458,9 @@
                       <line x1="15" y1="12" x2="3" y2="12"/>
                     </svg>
                   </a>
+                </div>
+                </a>
+              @else 
                 </div>
               @endif
             </li>

@@ -79,210 +79,219 @@ class ProgramShow extends Component
      * ViewModel aufbauen (entspricht deinem @php-Block)
      */
     private function buildViewModelFromRaw(array $raw): void
-    {
-        // ---------- Bausteine normalisieren ----------
-        $bausteine = collect($raw['tn_baust'] ?? [])->map(function ($b) {
-            $kurz = $b['kurzbez'] ?? null;
-            $typ  = $this->detectBausteinTyp($kurz);
-
-            return [
-                'klassen_id'         => $b['klassen_id'] ?? null,
-                'baustein_id'        => $b['baustein_id'] ?? null,
-                'block'              => null,
-                'abschnitt'          => null,
-                'beginn'             => $b['beginn_baustein'] ?? null,
-                'ende'               => $b['ende_baustein'] ?? null,
-                'tage'               => $this->num($b['baustein_tage'] ?? null),
-                'unterrichtsklasse'  => $b['klassen_co_ks'] ?? null,
-                'baustein'           => $b['langbez'] ?? ($b['kurzbez'] ?? '—'),
-                'kurzbez'            => $kurz,
-                'schnitt'            => $this->num($b['tn_punkte'] ?? null),
-                'punkte'             => $this->num($b['tn_punkte'] ?? null),
-                'fehltage'           => $this->num($b['fehltage'] ?? null),
-                'klassenschnitt'     => $this->num($b['klassenschnitt'] ?? null),
-
-                // NEU:
-                'typ'                => $typ,                       // 'kurs' | 'ferien' | 'praktikum' | 'pruefung'
-                'is_non_course'      => $typ !== 'kurs',            // true = NICHT als Kurs werten
-            ];
-        });
-
-
-        // statt FERI/PRAK hart zu prüfen:
-        $bausteineProgress = $bausteine->reject(function ($b) {
-            $k = strtoupper((string) ($b['kurzbez'] ?? ''));
-            return in_array($k, $this->excludeFromProgress, true) || ($b['typ'] !== 'kurs');
-        });
-
-        $anzahlBausteine    = $bausteineProgress->count();
-        $bestandenBausteine = $bausteineProgress
-            ->filter(fn ($b) => is_numeric($b['schnitt']) && $b['schnitt'] >= 50)
-            ->count();
-
-        // Nur echte Kurse (typ === 'kurs'), mit gültigen Daten und sortiert
-        $kurseMitDatum = collect($bausteine)
-            ->filter(fn ($b) => ($b['typ'] ?? null) === 'kurs')
-            ->map(function ($b) {
-                $b['_start'] = $this->toCarbon($b['beginn'] ?? null);
-                $b['_end']   = $this->toCarbon($b['ende']   ?? null);
-                return $b;
-            })
-            ->filter(fn ($b) => $b['_start'] && $b['_end'])
-            ->sortBy('_start')
-            ->values();
-
-        $heute = Carbon::now('Europe/Berlin')->startOfDay();
-
-        // Laufender Kurs: start <= heute <= end
-        $aktuellesModul = $kurseMitDatum->first(
-            fn ($b) => $b['_start']->lte($heute) && $b['_end']->gte($heute)
-        );
-
-        // Falls keiner läuft: nächster zukünftiger Kurs
-        if (!$aktuellesModul) {
-            $aktuellesModul = $kurseMitDatum->first(
-                fn ($b) => $b['_start']->gt($heute)
-            );
-        }
-
-        // Nächstes Modul: direkt nach dem aktuellen in der Timeline
-        $naechstesModul = null;
-        if ($aktuellesModul) {
-            $idx = $kurseMitDatum->search(
-                fn ($x) => ($x['baustein_id'] ?? null) === ($aktuellesModul['baustein_id'] ?? null)
-            );
-            if ($idx !== false && $idx + 1 < $kurseMitDatum->count()) {
-                $naechstesModul = $kurseMitDatum->get($idx + 1);
-            }
-        }
-
-        // Aufräumen der internen Felder und setzen der Public Props
-        $strip = function (?array $b) {
-            if (!$b) return null;
-            unset($b['_start'], $b['_end']);
-            return $b;
-        };
-
-        $this->aktuellesModul = $strip($aktuellesModul ? (array) $aktuellesModul : null);
-        $this->naechstesModul = $strip($naechstesModul ? (array) $naechstesModul : null);
-
-        $progress = $anzahlBausteine ? (int) round(($bestandenBausteine / $anzahlBausteine) * 100) : 0;
-
-
-        // ---------- Summen ----------
-        $summen = $raw['summen'] ?? [];
-        $unterricht = [
-            'tage'      => $summen['u_tage']     ?? null,
-            'einheiten' => $summen['u_std']      ?? null,
-            'fehltage'  => $summen['fehltage']   ?? null,
-            'note'      => $summen['note_lang']  ?? null,
-            'schnitt'   => $summen['tn_schnitt'] ?? null,
-            'punkte'    => null, // nicht vorhanden
-        ];
-
-        // ---------- Maßnahme / Vertrag / Träger ----------
-        $massnahme = [
-            'titel'    => ($raw['langbez_m'] ?? $raw['langbez_w'] ?? '—')
-                          . ' · ' . ($raw['massn_kurz'] ?? '—'),
-            'zeitraum' => [
-                'von' => $raw['vertrag_beginn'] ?? '—',
-                'bis' => $raw['vertrag_ende']   ?? '—',
-            ],
-            'bausteine'=> $raw['vertrag_baust'] ?? $anzahlBausteine,
-            'inhalte'  => ($raw['uform'] ?? $raw['uform_kurz'] ?? '—')
-                          . ' · ' . ($raw['vtz_lang'] ?? $raw['vtz'] ?? '—'),
-        ];
-
-        $vertrag = [
-            'vertrag'         => $raw['vtz']            ?? '—',
-            'kennung'         => $raw['massn_kurz']     ?? '—',
-            'von'             => $raw['vertrag_beginn'] ?? '—',
-            'bis'             => $raw['vertrag_ende']   ?? '—',
-            'rechnungsnummer' => $raw['rechnung_nr']    ?? '—',
-            'abschlussdatum'  => $raw['vertrag_datum']  ?? '—',
-        ];
-
-        $traeger = [
-            'institution'     => $raw['mp_langbez'] ?? '—',
-            'ansprechpartner' => trim(($raw['mp_vorname'] ?? '') . ' ' . ($raw['mp_nachname'] ?? '')) ?: '—',
-            'adresse'         => trim(($raw['mp_plz'] ?? '') . ' ' . ($raw['mp_ort'] ?? '')) ?: '—',
-        ];
-
-        $teilnehmerVm = [
-            'name'          => $raw['name']          ?? '—',
-            'geburt_datum'  => $raw['geburt_datum']  ?? '—',
-            'teilnehmer_nr' => $raw['teilnehmer_nr'] ?? '—',
-            'kunden_nr'     => $raw['kunden_nr']     ?? '—',
-            'stammklasse'   => $raw['stammklasse']   ?? '—',
-            'test_punkte'   => $raw['test_punkte']   ?? '—',
-            'email_priv'    => $raw['email_priv']    ?? null,
-        ];
-
-        $praktikum = [
-            'tage'      => $summen['prak_tage'] ?? null,
-            'stunden'   => $summen['prak_std']  ?? null,
-            'bemerkung' => null,
-        ];
-
-        // ---------- Public Props füllen ----------
-        $this->bausteine            = $bausteine->all();
-        $this->aktuellesModul       = $aktuellesModul ? (array) $aktuellesModul : null;
-        $this->naechstesModul       = $naechstesModul ? (array) $naechstesModul : null;
-        $this->anzahlBausteine      = (int) $anzahlBausteine;
-        $this->bestandenBausteine   = (int) $bestandenBausteine;
-        $this->progress             = (int) $progress;
-
-        $this->teilnehmerDaten = [
-            'teilnehmer' => $teilnehmerVm,
-            'massnahme'  => $massnahme,
-            'vertrag'    => $vertrag,
-            'traeger'    => $traeger,
-            'bausteine'  => $this->bausteine, // für die Liste
-            'unterricht' => $unterricht,
-            'praktikum'  => $praktikum,
-        ];
-
-// --- Chart-Serien bauen: nur KURSE, nur ABGESCHLOSSEN, Werte als INT ---
-$heute = Carbon::now('Europe/Berlin')->startOfDay();
-
-$chartBausteine = collect($this->bausteine)
-    ->filter(fn ($b) => ($b['typ'] ?? null) === 'kurs')                 // nur echte Kurse
-    ->map(function ($b) {                                               // Start/Ende als Carbon
-        $b['_start'] = $this->toCarbon($b['beginn'] ?? null);
-        $b['_end']   = $this->toCarbon($b['ende']   ?? null);
-        return $b;
-    })
-    ->filter(fn ($b) => $b['_start'] && $b['_end'])                     // nur mit Datum
-    ->filter(fn ($b) => $b['_end']->lt($heute))                         // nur abgeschlossen (Ende < heute)
-    ->map(function ($b) {                                               // Wert bestimmen + runden
-        // Priorität: 'punkte' -> 'schnitt'
-        $rawVal = null;
-        if (isset($b['punkte']) && is_numeric($b['punkte'])) {
-            $rawVal = (float) $b['punkte'];
-        } elseif (isset($b['schnitt']) && is_numeric($b['schnitt'])) {
-            $rawVal = (float) $b['schnitt'];
-        }
-        $value = $this->toInt($rawVal);                                 // -> INT oder null
+{
+    // ---------- Bausteine normalisieren ----------
+    $bausteine = collect($raw['tn_baust'] ?? [])->map(function ($b) {
+        $kurz = $b['kurzbez'] ?? null;
+        $typ  = $this->detectBausteinTyp($kurz);
 
         return [
-            'label' => $b['kurzbez'] ?? ($b['baustein'] ?? 'Baustein'),
-            'end'   => $b['_end'],
-            'value' => $value,
+            'klassen_id'         => $b['klassen_id'] ?? null,
+            'baustein_id'        => $b['baustein_id'] ?? null,
+            'block'              => null,
+            'abschnitt'          => null,
+            'beginn'             => $b['beginn_baustein'] ?? null,
+            'ende'               => $b['ende_baustein'] ?? null,
+            'tage'               => $this->num($b['baustein_tage'] ?? null),
+            'unterrichtsklasse'  => $b['klassen_co_ks'] ?? null,
+            'baustein'           => $b['langbez'] ?? ($b['kurzbez'] ?? '—'),
+            'kurzbez'            => $kurz,
+            'schnitt'            => $this->num($b['tn_punkte'] ?? null),
+            'punkte'             => $this->num($b['tn_punkte'] ?? null),
+            'fehltage'           => $this->num($b['fehltage'] ?? null),
+            'klassenschnitt'     => $this->num($b['klassenschnitt'] ?? null),
+
+            // Typisierung
+            'typ'                => $typ,                // 'kurs' | 'ferien' | 'praktikum' | 'pruefung'
+            'is_non_course'      => $typ !== 'kurs',     // true = NICHT als Kurs werten
         ];
-    })
-    ->filter(fn ($x) => !is_null($x['value']))                          // nur mit Wert
-    ->sortBy('end')                                                     // chronologisch nach Ende
-    ->values()
-    ->take(-9);                                                         // z.B. letzte 9
+    });
 
-// Öffentliche Props für Alpine/Apex
-$this->bausteinSerie  = $chartBausteine->pluck('value')->all();        // [78,64,55,...] (ints)
-$this->bausteinLabels = $chartBausteine->map(
-    fn ($x) => $x['label'].' · '.$x['end']->format('d.m.')
-)->all();                                                               // ["Modul · 03.10.", ...]
-$this->bausteinColors = array_fill(0, count($this->bausteinSerie), '#2b5c9e'); // optional: einfarbig
+    // ---------- Zähl-/Progress-Basis: nur echte Kurse ----------
+    $bausteineKurse = $bausteine->filter(fn ($b) => ($b['typ'] ?? null) === 'kurs');
 
+    // optional: per Kurzcode bestimmte Bausteine ausschließen
+    $bausteineKurse = $bausteineKurse->reject(function ($b) {
+        $k = strtoupper((string) ($b['kurzbez'] ?? ''));
+        return in_array($k, $this->excludeFromProgress, true);
+    });
+
+    // „Ergebnis offen“: Punkte==0 UND Klassenschnitt==0
+    $istOffen = fn ($b) =>
+        isset($b['punkte'], $b['klassenschnitt'])
+        && (float)$b['punkte'] === 0.0
+        && (float)$b['klassenschnitt'] === 0.0;
+
+    // Kennzahlen
+    $anzahlBausteine    = $bausteineKurse->count(); // NUR echte Kurse
+    $bestandenBausteine = $bausteineKurse
+        ->reject($istOffen)                                    // offene nicht als bestanden zählen
+        ->filter(fn ($b) => is_numeric($b['schnitt']) && $b['schnitt'] >= 50)
+        ->count();
+
+    $progress = $anzahlBausteine ? (int) round(($bestandenBausteine / $anzahlBausteine) * 100) : 0;
+
+    // ---------- Nur echte Kurse (typ === 'kurs'), mit gültigen Daten und sortiert ----------
+    $kurseMitDatum = collect($bausteine)
+        ->filter(fn ($b) => ($b['typ'] ?? null) === 'kurs')
+        ->map(function ($b) {
+            $b['_start'] = $this->toCarbon($b['beginn'] ?? null);
+            $b['_end']   = $this->toCarbon($b['ende']   ?? null);
+            return $b;
+        })
+        ->filter(fn ($b) => $b['_start'] && $b['_end'])
+        ->sortBy('_start')
+        ->values();
+
+    $heute = Carbon::now('Europe/Berlin')->startOfDay();
+
+    // Laufender Kurs: start <= heute <= end
+    $aktuellesModul = $kurseMitDatum->first(
+        fn ($b) => $b['_start']->lte($heute) && $b['_end']->gte($heute)
+    );
+
+    // Falls keiner läuft: nächster zukünftiger Kurs
+    if (!$aktuellesModul) {
+        $aktuellesModul = $kurseMitDatum->first(
+            fn ($b) => $b['_start']->gt($heute)
+        );
     }
+
+    // Nächstes Modul: direkt nach dem aktuellen in der Timeline
+    $naechstesModul = null;
+    if ($aktuellesModul) {
+        $idx = $kurseMitDatum->search(
+            fn ($x) => ($x['baustein_id'] ?? null) === ($aktuellesModul['baustein_id'] ?? null)
+        );
+        if ($idx !== false && $idx + 1 < $kurseMitDatum->count()) {
+            $naechstesModul = $kurseMitDatum->get($idx + 1);
+        }
+    }
+
+    // Aufräumen der internen Felder und setzen der Public Props
+    $strip = function (?array $b) {
+        if (!$b) return null;
+        unset($b['_start'], $b['_end']);
+        return $b;
+    };
+
+    $this->aktuellesModul = $strip($aktuellesModul ? (array) $aktuellesModul : null);
+    $this->naechstesModul = $strip($naechstesModul ? (array) $naechstesModul : null);
+
+    // ---------- Summen ----------
+    $summen = $raw['summen'] ?? [];
+    $unterricht = [
+        'tage'      => $summen['u_tage']     ?? null,
+        'einheiten' => $summen['u_std']      ?? null,
+        'fehltage'  => $summen['fehltage']   ?? null,
+        'note'      => $summen['note_lang']  ?? null,
+        'schnitt'   => $summen['tn_schnitt'] ?? null,
+        'punkte'    => null, // nicht vorhanden
+    ];
+
+    // ---------- Maßnahme / Vertrag / Träger ----------
+    $massnahme = [
+        'titel'    => ($raw['langbez_m'] ?? $raw['langbez_w'] ?? '—')
+                      . ' · ' . ($raw['massn_kurz'] ?? '—'),
+        'zeitraum' => [
+            'von' => $raw['vertrag_beginn'] ?? '—',
+            'bis' => $raw['vertrag_ende']   ?? '—',
+        ],
+        'bausteine'=> $raw['vertrag_baust'] ?? $anzahlBausteine, // nur echte Kurse
+        'inhalte'  => ($raw['uform'] ?? $raw['uform_kurz'] ?? '—')
+                      . ' · ' . ($raw['vtz_lang'] ?? $raw['vtz'] ?? '—'),
+    ];
+
+    $vertrag = [
+        'vertrag'         => $raw['vtz']            ?? '—',
+        'kennung'         => $raw['massn_kurz']     ?? '—',
+        'von'             => $raw['vertrag_beginn'] ?? '—',
+        'bis'             => $raw['vertrag_ende']   ?? '—',
+        'rechnungsnummer' => $raw['rechnung_nr']    ?? '—',
+        'abschlussdatum'  => $raw['vertrag_datum']  ?? '—',
+    ];
+
+    $traeger = [
+        'institution'     => $raw['mp_langbez'] ?? '—',
+        'ansprechpartner' => trim(($raw['mp_vorname'] ?? '') . ' ' . ($raw['mp_nachname'] ?? '')) ?: '—',
+        'adresse'         => trim(($raw['mp_plz'] ?? '') . ' ' . ($raw['mp_ort'] ?? '')) ?: '—',
+    ];
+
+    $teilnehmerVm = [
+        'name'          => $raw['name']          ?? '—',
+        'geburt_datum'  => $raw['geburt_datum']  ?? '—',
+        'teilnehmer_nr' => $raw['teilnehmer_nr'] ?? '—',
+        'kunden_nr'     => $raw['kunden_nr']     ?? '—',
+        'stammklasse'   => $raw['stammklasse']   ?? '—',
+        'test_punkte'   => $raw['test_punkte']   ?? '—',
+        'email_priv'    => $raw['email_priv']    ?? null,
+    ];
+
+    $praktikum = [
+        'tage'      => $summen['prak_tage'] ?? null,
+        'stunden'   => $summen['prak_std']  ?? null,
+        'bemerkung' => null,
+    ];
+
+    // ---------- Public Props füllen ----------
+    $this->bausteine            = $bausteine->all();
+    $this->aktuellesModul       = $aktuellesModul ? (array) $aktuellesModul : null;
+    $this->naechstesModul       = $naechstesModul ? (array) $naechstesModul : null;
+    $this->anzahlBausteine      = (int) $anzahlBausteine;     // nur echte Kurse
+    $this->bestandenBausteine   = (int) $bestandenBausteine;  // offene nicht gezählt
+    $this->progress             = (int) $progress;
+
+    $this->teilnehmerDaten = [
+        'teilnehmer' => $teilnehmerVm,
+        'massnahme'  => $massnahme,
+        'vertrag'    => $vertrag,
+        'traeger'    => $traeger,
+        'bausteine'  => $this->bausteine, // für die Liste
+        'unterricht' => $unterricht,
+        'praktikum'  => $praktikum,
+    ];
+
+    // --- Chart-Serien bauen: nur KURSE, nur ABGESCHLOSSEN, Werte als INT ---
+    $heute = Carbon::now('Europe/Berlin')->startOfDay();
+
+    $chartBausteine = collect($this->bausteine)
+        ->filter(fn ($b) => ($b['typ'] ?? null) === 'kurs')                 // nur echte Kurse
+        ->map(function ($b) {                                               // Start/Ende als Carbon
+            $b['_start'] = $this->toCarbon($b['beginn'] ?? null);
+            $b['_end']   = $this->toCarbon($b['ende']   ?? null);
+            return $b;
+        })
+        ->filter(fn ($b) => $b['_start'] && $b['_end'])                     // nur mit Datum
+        ->filter(fn ($b) => $b['_end']->lt($heute))                         // nur abgeschlossen (Ende < heute)
+        ->map(function ($b) {                                               // Wert bestimmen + runden
+            // Priorität: 'punkte' -> 'schnitt'
+            $rawVal = null;
+            if (isset($b['punkte']) && is_numeric($b['punkte'])) {
+                $rawVal = (float) $b['punkte'];
+            } elseif (isset($b['schnitt']) && is_numeric($b['schnitt'])) {
+                $rawVal = (float) $b['schnitt'];
+            }
+            $value = $this->toInt($rawVal);                                 // -> INT oder null
+
+            return [
+                'label' => $b['kurzbez'] ?? ($b['baustein'] ?? 'Baustein'),
+                'end'   => $b['_end'],
+                'value' => $value,
+            ];
+        })
+        ->filter(fn ($x) => !is_null($x['value']))                          // nur mit Wert
+        ->sortBy('end')                                                     // chronologisch nach Ende
+        ->values()
+        ->take(-9);                                                         // z.B. letzte 9
+
+    // Öffentliche Props für Alpine/Apex
+    $this->bausteinSerie  = $chartBausteine->pluck('value')->all();        // [78,64,55,...] (ints)
+    $this->bausteinLabels = $chartBausteine->map(
+        fn ($x) => $x['label'].' · '.$x['end']->format('d.m.')
+    )->all();                                                               // ["Modul · 03.10.", ...]
+    $this->bausteinColors = array_fill(0, count($this->bausteinSerie), '#2b5c9e'); // optional: einfarbig
+}
+
 
     private function detectBausteinTyp(?string $kurzbez): string
     {

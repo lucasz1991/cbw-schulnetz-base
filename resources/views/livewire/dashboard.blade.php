@@ -15,7 +15,7 @@
                             <svg class="w-5   mr-1 max-md:mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"  fill="none" viewBox="0 0 24 24">
                                 <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 4h3a1 1 0 0 1 1 1v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3m0 3h6m-3 5h3m-6 0h.01M12 16h3m-6 0h.01M10 3v4h4V3h-4Z"></path>
                             </svg>
-                            Quali.Programm
+                            Dashboard
                         </button>
 
                         <button x-on:click="selectedTab = 'claims'" 
@@ -37,16 +37,8 @@
                     <div x-cloak x-show="selectedTab === 'basic'" x-collapse id="tabpanelbasic" role="tabpanel" aria-label="basic">
                         <livewire:user.program-show lazy />
                     </div>
-                    <div x-cloak x-show="selectedTab === 'media'"  x-collapse id="tabpanelmedia" role="tabpanel" aria-label="media">
-                        <livewire:user.media-pool  lazy />
-                    </div>
-                    <div x-cloak x-show="selectedTab === 'tests'" x-collapse id="tabpaneltests" role="tabpanel" aria-label="tests">
-                        <livewire:user.absences lazy />
-                        <livewire:user.makeup-exam-registration lazy />
-                    </div>
                     <div x-cloak x-show="selectedTab === 'claims'" x-collapse id="tabpanelclaims" role="tabpanel" aria-label="claims">
                         <livewire:user.user-requests lazy />
-
                     </div>
                 </div>
             </div>

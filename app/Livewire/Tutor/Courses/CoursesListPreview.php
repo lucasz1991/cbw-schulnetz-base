@@ -8,49 +8,63 @@ use Illuminate\Support\Carbon;
 
 class CoursesListPreview extends Component
 {
+    public bool $showAll = false; // <-- übergibt die Ansichtseinstellung
     public $courses;
 
-    public function mount(): void
+    public function mount(bool $showAll = false): void
     {
-        $person = Auth::user()?->person; // Person-Model (nicht Relation)
+        $this->showAll = $showAll;
+        $person = Auth::user()?->person;
+
         if (!$person) {
             $this->courses = collect();
             return;
         }
 
         $now = Carbon::now('Europe/Berlin');
+        $base = $person->taughtCourses(); // Relation
 
-        // Basisrelation: vom Dozent unterrichtete Kurse
-        $base = $person->taughtCourses(); // ->belongsToMany(Course::class, ...) o.ä.
+        if ($this->showAll) {
+            // Zeige alle Kurse (z. B. absteigend nach Startdatum)
+            $this->courses = $base
+                ->orderBy('planned_start_date', 'desc')
+                ->get();
+        } else {
+            // Nur 3 relevante Kurse
+            $weekStart = $now->copy()->startOfWeek(Carbon::MONDAY)->startOfDay();
+            $weekEnd   = $now->copy()->endOfWeek(Carbon::SUNDAY)->endOfDay();
 
-        // 1) Aktiver Kurs (falls vorhanden)
-        $active = (clone $base)
-            ->where('planned_start_date', '<=', $now)
-            ->where('planned_end_date', '>=', $now)
-            ->orderBy('planned_start_date', 'desc')
-            ->limit(1)
-            ->get();
+            // 1) Aktiver Kurs (inkl. Wochenend-Kulanz)
+            $active = (clone $base)
+                ->where('planned_start_date', '<=', $now)
+                ->where(function ($q) use ($now, $weekStart, $weekEnd) {
+                    $q->where('planned_end_date', '>=', $now)
+                      ->orWhereBetween('planned_end_date', [$weekStart, $weekEnd]);
+                })
+                ->orderBy('planned_start_date', 'desc')
+                ->limit(1)
+                ->get();
 
-        // 2) Zuletzt abgeschlossener Kurs
-        $lastFinished = (clone $base)
-            ->where('planned_end_date', '<', $now)
-            ->orderBy('planned_end_date', 'desc')
-            ->limit(1)
-            ->get();
+            // 2) Zuletzt abgeschlossener Kurs
+            $lastFinished = (clone $base)
+                ->where('planned_end_date', '<', $now)
+                ->orderBy('planned_end_date', 'desc')
+                ->limit(1)
+                ->get();
 
-        // 3) Nächster bevorstehender Kurs
-        $nextUpcoming = (clone $base)
-            ->where('planned_start_date', '>', $now)
-            ->orderBy('planned_start_date', 'asc')
-            ->limit(1)
-            ->get();
+            // 3) Nächster Kurs
+            $nextUpcoming = (clone $base)
+                ->where('planned_start_date', '>', $now)
+                ->orderBy('planned_start_date', 'asc')
+                ->limit(1)
+                ->get();
 
-        // Zusammensetzen, Duplikate entfernen (zur Sicherheit)
-        $this->courses = $active
-            ->concat($lastFinished)
-            ->concat($nextUpcoming)
-            ->unique('id')
-            ->values();
+            $this->courses = $active
+                ->concat($lastFinished)
+                ->concat($nextUpcoming)
+                ->unique('id')
+                ->values();
+        }
     }
 
     public function render()

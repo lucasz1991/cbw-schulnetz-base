@@ -198,7 +198,8 @@ protected function normalizeRow(?array $row): array
 {
     $row = $row ?? [];
     return [
-        'present'            => (bool)($row['present'] ?? true), // Default: anwesend
+        // WICHTIG: Default NICHT anwesend
+        'present'            => (bool)($row['present'] ?? false),
         'excused'            => (bool)($row['excused'] ?? false),
         'late_minutes'       => (int)($row['late_minutes'] ?? 0),
         'left_early_minutes' => (int)($row['left_early_minutes'] ?? 0),
@@ -207,6 +208,7 @@ protected function normalizeRow(?array $row): array
         'out'                => data_get($row, 'timestamps.out'),
     ];
 }
+
 
 
     protected function rebuildAttendanceMap(): void
@@ -305,6 +307,30 @@ public function checkInNow(int $participantId): void
         $this->apply($participantId, $patch);
     }
 
+
+    public function markPresent(int $participantId): void
+    {
+        // Nur Flags setzen, keine Zeiten berechnen/setzen
+        $this->apply($participantId, [
+            'present' => true,
+            'excused' => false,
+        ]);
+    }
+
+    public function markAbsent(int $participantId): void
+    {
+        // Nur Flags auf "abwesend", keine Checkout-/Frühweg-Logik
+        $this->apply($participantId, [
+            'present' => false,
+            'excused' => false,
+            // Optional (falls du klar sein willst, dass keine Zeiten gelten):
+            // 'late_minutes' => 0,
+            // 'left_early_minutes' => 0,
+            // 'timestamps' => ['in' => null, 'out' => null],
+        ]);
+    }
+
+
     public function setLateMinutes(int $participantId, $minutes): void
     {
         $this->apply($participantId, ['late_minutes' => max(0, (int)$minutes)]);
@@ -359,28 +385,24 @@ public function checkInNow(int $participantId): void
         }
     }
 
-    public function getRowsProperty(): Collection
+public function getRowsProperty(): Collection
 {
     $day = $this->selectedDay;
-    if (!$day) {
-        return collect();
-    }
+    if (!$day) return collect();
 
     $att = $day->attendance_data ?? [];
     $map = Arr::get($att, 'participants', []);
 
-    // IDs aus JSON + Relation zusammenführen
     $allIds = collect(array_keys($map))->map(fn ($id) => (int) $id);
 
     if ($day->course && method_exists($day->course, 'participants')) {
         $rel = $day->course->participants();
-        $qualifiedKey = $rel->getModel()->getQualifiedKeyName(); // z.B. "users.id"
+        $qualifiedKey = $rel->getModel()->getQualifiedKeyName();
         $allIds = $allIds->merge($rel->pluck($qualifiedKey)->all());
     }
 
     $allIds = $allIds->map(fn ($id) => (int) $id)->unique()->values();
 
-    // Teilnehmer laden
     $participants = collect();
     if ($day->course && method_exists($day->course, 'participants') && $allIds->isNotEmpty()) {
         $rel = $day->course->participants();
@@ -389,10 +411,13 @@ public function checkInNow(int $participantId): void
     }
 
     $rows = $allIds->map(function (int $pid) use ($participants, $map) {
+        $raw = $map[$pid] ?? null;
         return [
-            'id'   => $pid,
-            'user' => $participants[$pid] ?? null,
-            'data' => $this->normalizeRow($map[$pid] ?? null),
+            'id'       => $pid,
+            'user'     => $participants[$pid] ?? null,
+            'data'     => $this->normalizeRow($raw),
+            // NEU: signalisiert „es existiert ein Attendance-Eintrag“
+            'hasEntry' => array_key_exists($pid, $map),
         ];
     });
 
@@ -400,6 +425,7 @@ public function checkInNow(int $participantId): void
         ->sortBy(fn ($r) => strtolower($r['user']->nachname ?? ('zzzz_'.$r['id'])))
         ->values();
 }
+
 
 /** Tages-Statistik auf Basis von $rows */
 public function getStatsProperty(): array
