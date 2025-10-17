@@ -1,6 +1,14 @@
 <div class="space-y-4 pt-6">
+    @if(!$invoice)
+      <x-alert class="bg-yellow-50 border border-yellow-800 text-yellow-800 rounded mb-6">
+        <p class="text-sm leading-snug">
+          Sobald alle Kursinhalte erfasst sind – z.&nbsp;B. <span class="font-medium">Roter Faden</span> und 
+          <span class="font-medium">Testergebnisse</span> – können Sie hier die <span class="font-medium">Rechnung</span> für diesen Kurs speichern.
+        </p>
+      </x-alert>
+    @endif
   @if($invoice)
-    <div class="md:flex items-center flex-wrap justify-between rounded border p-3 bg-white">
+    <div class="md:flex items-center flex-wrap justify-between rounded border p-3 bg-white ">
         <div class="text-base max-md:mb-4 flex items-center gap-2">
             <div class="flex-shrink-0 w-12 h-12 flex items-center justify-center">
                 <img class="w-12 h-12 object-contain"
