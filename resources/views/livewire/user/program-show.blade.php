@@ -5,7 +5,7 @@
   <section class="relative space-y-6">
     <div class="mt-4">
       <div class="grid grid-cols-2 md:grid-cols-4 gap-6 ">
-        <div class="bg-white shadow rounded-lg text-center col-span-2 md:col-span-1 max-md:order-3">
+        <div class="bg-white shadow rounded-lg text-center col-span-2 md:col-span-1 max-md:order-4">
             <div class="card-body pr-2  grid place-content-stretch h-full">
                 <div>
                     <div class="relative h-full grid place-content-stretch grid-cols-12">
@@ -21,64 +21,63 @@
                           </div>
                         </div>
                         <div class="absolute inset-y-0  right-1 left-10 flex justify-end  items-center h-full" >
-<div
-  x-data="{
-    chart: null,
-    series: @js($bausteinSerie),
-    labels: @js($bausteinLabels),
-    colors: @js($bausteinColors),
+                          <div
+                            x-data="{
+                              chart: null,
+                              series: @js($bausteinSerie),
+                              labels: @js($bausteinLabels),
+                              colors: @js($bausteinColors),
 
-    pickColor(val){
-      if(!val) return null;
-      const v = String(val).trim();
-      return v.startsWith('--')
-        ? (getComputedStyle(document.documentElement).getPropertyValue(v).trim() || v)
-        : v;
-    },
+                              pickColor(val){
+                                if(!val) return null;
+                                const v = String(val).trim();
+                                return v.startsWith('--')
+                                  ? (getComputedStyle(document.documentElement).getPropertyValue(v).trim() || v)
+                                  : v;
+                              },
 
-    buildOptions(){
-      return {
-        series: [{ data: this.series }],
-        chart: { type: 'bar', height: 60, width: 120, sparkline: { enabled: true } },
-        colors: (this.colors?.length ? this.colors.map(c => this.pickColor(c)) : ['#2b5c9e']),
-        plotOptions: { bar: { columnWidth: '70%', borderRadius: 3 } },
-        dataLabels: { enabled: false },
-        stroke: { width: 2 },
-        tooltip: {
-          y: {
-            title: { formatter: () => 'Punkte' },
-            formatter: (val) => (val ?? 0) + ' Pkt.'
-          },
-          x: { formatter: (val, { dataPointIndex }) => this.labels?.[dataPointIndex] ?? 'Baustein' }
-        }
-      };
-    },
+                              buildOptions(){
+                                return {
+                                  series: [{ data: this.series }],
+                                  chart: { type: 'bar', height: 60, width: 120, sparkline: { enabled: true } },
+                                  colors: (this.colors?.length ? this.colors.map(c => this.pickColor(c)) : ['#2b5c9e']),
+                                  plotOptions: { bar: { columnWidth: '70%', borderRadius: 3 } },
+                                  dataLabels: { enabled: false },
+                                  stroke: { width: 2 },
+                                  tooltip: {
+                                    y: {
+                                      title: { formatter: () => 'Punkte' },
+                                      formatter: (val) => (val ?? 0) + ' Pkt.'
+                                    },
+                                    x: { formatter: (val, { dataPointIndex }) => this.labels?.[dataPointIndex] ?? 'Baustein' }
+                                  }
+                                };
+                              },
 
-    init(){
-      // Debug bei Bedarf:
-      // console.log('Serie:', this.series, 'Labels:', this.labels, 'Colors:', this.colors);
+                              init(){
+                                // Debug bei Bedarf:
+                                // console.log('Serie:', this.series, 'Labels:', this.labels, 'Colors:', this.colors);
 
-      if (this.chart) { this.chart.destroy(); this.chart = null; }
-      this.chart = new ApexCharts(this.$el, this.buildOptions());
-      this.chart.render();
+                                if (this.chart) { this.chart.destroy(); this.chart = null; }
+                                this.chart = new ApexCharts(this.$el, this.buildOptions());
+                                this.chart.render();
 
-      // Reaktiv bei Livewire-Updates (falls Props dynamisch neu kommen)
-      this.$watch('series', (v) => { if (this.chart) this.chart.updateSeries([{ data: v }], true); });
-      this.$watch('labels', () =>  { if (this.chart) this.chart.updateOptions({ tooltip: this.buildOptions().tooltip }, true, true); });
-      this.$watch('colors', (v) => { if (this.chart) this.chart.updateOptions({ colors: v.map(c => this.pickColor(c)) }, true, true); });
-    }
-  }"
-  x-init="init()"
-  wire:ignore
-  class="apex-charts flex justify-end items-center"
-></div>
-
+                                // Reaktiv bei Livewire-Updates (falls Props dynamisch neu kommen)
+                                this.$watch('series', (v) => { if (this.chart) this.chart.updateSeries([{ data: v }], true); });
+                                this.$watch('labels', () =>  { if (this.chart) this.chart.updateOptions({ tooltip: this.buildOptions().tooltip }, true, true); });
+                                this.$watch('colors', (v) => { if (this.chart) this.chart.updateOptions({ colors: v.map(c => this.pickColor(c)) }, true, true); });
+                              }
+                            }"
+                            x-init="init()"
+                            wire:ignore
+                            class="apex-charts flex justify-end items-center"
+                          ></div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="bg-white shadow rounded-lg p-5 text-left col-span-1 max-md:order-1">
+        <div class="bg-white shadow rounded-lg p-5 text-left col-span-1 max-md:order-2">
           <p class=" text-gray-700">Endergebnis&nbsp;Ø</p>
             <div
             x-data="{
@@ -151,7 +150,7 @@
             wire:ignore
             ></div>
                     </div>
-                    <div class="bg-white shadow rounded-lg p-5 text-left col-span-1 max-md:order-2">
+                    <div class="bg-white shadow rounded-lg p-5 text-left col-span-1 max-md:order-3">
                     <p class="text-gray-700">Fortschritt</p>
                     <div
             x-data="{
@@ -218,7 +217,7 @@
 
         </div>
         <div
-          class="bg-white shadow rounded-lg p-5 text-left col-span-1 max-md:order-2"
+          class="bg-white shadow rounded-lg p-5 text-left col-span-2 md:col-span-1 max-md:order-1"
           x-data="{
             swiper: null,
             initSwiper() {

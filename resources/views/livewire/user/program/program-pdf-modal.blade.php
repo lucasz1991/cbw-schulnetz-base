@@ -13,7 +13,9 @@
         <x-slot name="title">
             <div class="flex items-center justify-between w-full">
                 <span>{{ $title }}</span>
-
+                <button  wire:click="$set('show', false)">
+                    x
+                </button>
             </div>
         </x-slot>
 
