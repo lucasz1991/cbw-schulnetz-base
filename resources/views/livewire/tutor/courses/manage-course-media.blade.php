@@ -145,7 +145,7 @@
         <div class="flex items-center space-x-3">
           <h1>Medien</h1>
           <div class="text-blue-600 bg-white h-6 w-6 aspect-square rounded-full flex justify-center items-center">
-            <span class="text-xs font-semibold">{{ $course->filePool->files->count() }}</span>
+            <span class="text-xs font-semibold">{{ $course->filePool?->files->count() }}</span>
           </div>
         </div>
       </x-slot>
