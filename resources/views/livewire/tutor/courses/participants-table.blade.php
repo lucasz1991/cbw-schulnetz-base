@@ -18,7 +18,10 @@
                         :sortDir="$sortDir"
                         :selectPreviousDayPossible="$selectPreviousDayPossible"
                         :selectNextDayPossible="$selectNextDayPossible"
+                        :plannedStart="$plannedStart" 
+                        :plannedEnd="$plannedEnd"    
                     />
+
                 @else
                     <p class="text-sm text-gray-500">Kein Datum ausgewählt.</p>
                 @endif

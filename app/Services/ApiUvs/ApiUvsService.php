@@ -124,7 +124,7 @@ class ApiUvsService
             ]);
     }
 
-    protected function request(string $method, string $path, array $payload = [], array $query = []): array
+    public function request(string $method, string $path, array $payload = [], array $query = []): array
     {
         $url = rtrim($this->baseUrl, '/') . $path;
 

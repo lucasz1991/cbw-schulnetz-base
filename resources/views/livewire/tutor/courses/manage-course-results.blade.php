@@ -45,14 +45,28 @@
                 <div class="text-xs text-gray-500">#{{ $personId }}</div>
               @endif
             </td>
-            <td class="px-4 py-2">
-              <input type="number"
-                     class="w-full max-w-[220px] rounded-md border-gray-300"
-                     min="0"
-                     max="100"
-                     wire:model.defer="results.{{ $personId }}"
-                     wire:blur="saveOne('{{ $personId }}')"/>
-            </td>
+<td class="px-4 py-2 flex items-stretch gap-2">
+    {{-- Status-Select --}}
+    <select wire:model.defer="statuses.{{ $personId }}"
+            wire:blur="saveOne('{{ $personId }}')"
+            class="flex-1 rounded-md border border-gray-300 bg-white text-sm px-2">
+        <option value="">Status wählen…</option>
+        @foreach($statusOptions as $label)
+            <option value="{{ $label }}">{{ $label }}</option>
+        @endforeach
+    </select>
+
+    {{-- Ergebnis-Input --}}
+    <input type="number"
+           min="0"
+           max="100"
+           wire:model.defer="results.{{ $personId }}"
+           wire:blur="saveOne('{{ $personId }}')"
+           class="flex-1 rounded-md border border-gray-300 px-2"/>
+</td>
+
+
+
           </tr>
         @empty
           <tr>

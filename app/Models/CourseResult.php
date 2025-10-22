@@ -13,6 +13,7 @@ class CourseResult extends Model
         'course_id',
         'person_id',
         'result',
+        'status',
         'updated_by',
     ];
 

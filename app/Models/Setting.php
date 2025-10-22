@@ -3,51 +3,67 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Support\Facades\Cache;
 
 class Setting extends Model
 {
     use HasFactory;
-    // Erlaubte Felder, die in der Datenbank gespeichert werden können
+
     protected $fillable = ['type', 'key', 'value'];
 
-    // JSON-Daten als Array speichern und abrufen
     protected $casts = [
         'value' => 'array',
     ];
 
     /**
-     * Get the value of a setting by key.
-     *
-     * @param string $key
-     * @return mixed
+     * Cache prefix, um Keys konsistent zu halten.
      */
-    public static function getValue($type = null, $key)
+    protected static $cachePrefix = 'settings.';
+
+    /**
+     * Get the value of a setting by type and key (cached).
+     */
+    public static function getValue($type, $key)
     {
-        $query = self::where('key', $key);
-        
-        if ($type !== null) {
-            $query->where('type', $type);
-        }
-        
-        $setting = $query->first();
-        return $setting ? $setting->value : null;
+        $cacheKey = static::$cachePrefix . "{$type}.{$key}";
+
+        // Cache für 1 Stunde (kannst du anpassen)
+        return Cache::remember($cacheKey, now()->addHours(1), function () use ($type, $key) {
+            return optional(
+                static::where('type', $type)
+                    ->where('key', $key)
+                    ->first()
+            )->value;
+        });
     }
 
     /**
-     * Set or update the value of a setting by key.
-     *
-     * @param string $key
-     * @param mixed $value
-     * @return void
+     * Set or update the value of a setting by key
+     * and clear the cache automatically.
      */
-    public static function setValue($key, $value)
+    public static function setValue($type, $key, $value)
     {
-        self::updateOrCreate(
-            ['key' => $key],
+        $setting = static::updateOrCreate(
+            ['type' => $type, 'key' => $key],
             ['value' => $value]
         );
+
+        // Cache-Eintrag invalidieren
+        $cacheKey = static::$cachePrefix . "{$type}.{$key}";
+        Cache::forget($cacheKey);
+
+        return $setting;
+    }
+
+    /**
+     * Löscht den Cache für einen kompletten Setting-Type.
+     */
+    public static function clearTypeCache($type)
+    {
+        // Optional: falls du mehrere Keys pro Type hast
+        $pattern = static::$cachePrefix . "{$type}.*";
+        collect(Cache::getRedis()->keys($pattern))
+            ->each(fn($key) => Cache::forget(str_replace(config('cache.prefix') . ':', '', $key)));
     }
 }
-

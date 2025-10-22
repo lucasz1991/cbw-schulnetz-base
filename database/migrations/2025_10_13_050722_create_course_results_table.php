@@ -13,6 +13,7 @@ return new class extends Migration
             $table->foreignId('course_id')->constrained()->cascadeOnDelete();
             $table->unsignedBigInteger('person_id'); // Verknüpft zu persons.id oder deiner Personentabelle
             $table->string('result', 50)->nullable(); // z. B. Note oder Punktzahl
+            $table->string('status', 200)->nullable(); // z. B. "bestanden" oder "nicht bestanden"
             $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
 

@@ -12,7 +12,6 @@ use Livewire\WithPagination;
 use Livewire\WithoutUrlPagination;
 use Illuminate\Support\Collection;
 
-
 class ParticipantsTable extends Component
 {
     use WithPagination, WithoutUrlPagination;
@@ -27,28 +26,29 @@ class ParticipantsTable extends Component
     public string $sortDir = 'asc';
     public int $perPage = 10;
 
-    // Tagesauswahl (wie CourseDocumentationPanel)
+    // Tagesauswahl
     public ?int $selectedDayId = null;
     public ?CourseDay $selectedDay = null;
 
-    // Abgeleitete Attendance-Map für schnelles Lookup im Blade
+    // Abgeleitete Attendance-Map
     public array $attendanceMap = [];
 
-    // UI-Flags für Prev/Next-Buttons
+    // UI-Flags für Prev/Next
     public bool $selectPreviousDayPossible = false;
-    public bool $selectNextDayPossible = false;
+    public bool $selectNextDayPossible     = false;
 
+    // ---- Mount ----
     public function mount(int $courseId, ?int $selectedDayId = null): void
     {
         $this->courseId = $courseId;
         $this->course   = Course::findOrFail($courseId);
 
-        // Tagesauswahl initialisieren: explizit -> heute -> erster Tag
         if ($selectedDayId) {
             $this->selectDay($selectedDayId);
         } else {
-            $today = now()->toDateString();
-            $day   = CourseDay::where('course_id', $courseId)
+            $today = now('Europe/Berlin')->toDateString();
+
+            $day = CourseDay::where('course_id', $courseId)
                 ->whereDate('date', $today)
                 ->first()
                 ?: CourseDay::where('course_id', $courseId)->orderBy('date')->first();
@@ -63,17 +63,14 @@ class ParticipantsTable extends Component
         $this->updatePrevNextFlags();
     }
 
-    // --- Events / Auswahl ---
-
+    // ---- Events / Auswahl ----
     /** Auswahl per Kalenderklick (nimmt ID oder { id: ... } entgegen) */
     #[On('calendarEventClick')]
     public function handleCalendarEventClick(...$args): void
     {
         $first = $args[0] ?? null;
-        $id = is_array($first) ? (int) data_get($first, 'id') : (int) $first;
-        if ($id > 0) {
-            $this->selectDay($id);
-        }
+        $id    = is_array($first) ? (int) data_get($first, 'id') : (int) $first;
+        if ($id > 0) $this->selectDay($id);
     }
 
     /** Aus CourseDocumentationPanel gesendet */
@@ -92,15 +89,13 @@ class ParticipantsTable extends Component
         $this->rebuildAttendanceMap();
         $this->updatePrevNextFlags();
         $this->resetPage();
-
-        // Wichtig: kein erneutes dispatch('daySelected'), um Event-Ping-Pong zu vermeiden
     }
 
     protected function updatePrevNextFlags(): void
     {
         if (!$this->selectedDay) {
             $this->selectPreviousDayPossible = false;
-            $this->selectNextDayPossible = false;
+            $this->selectNextDayPossible     = false;
             return;
         }
 
@@ -137,8 +132,7 @@ class ParticipantsTable extends Component
         if ($next) $this->selectDay($next->id);
     }
 
-    // --- Suche/Sortierung/Pagination ---
-
+    // ---- Suche/Sortierung/Pagination ----
     public function updatingSearch() { $this->resetPage(); }
     public function updatedPerPage() { $this->resetPage(); }
 
@@ -171,7 +165,7 @@ class ParticipantsTable extends Component
             ->when(true, function ($q) use ($allowedSorts) {
                 if ($this->sortBy === 'name') {
                     $q->orderBy('nachname', $this->sortDir)
-                      ->orderBy('vorname', $this->sortDir);
+                      ->orderBy('vorname',  $this->sortDir);
                     return;
                 }
 
@@ -185,8 +179,7 @@ class ParticipantsTable extends Component
             ->paginate($this->perPage);
     }
 
-    // --- Attendance-Logik (aus ManageAttendance integriert) ---
-
+    // ---- Attendance-Logik ----
     protected function dayOrFail(): CourseDay
     {
         $day = $this->selectedDayId ? CourseDay::find($this->selectedDayId) : null;
@@ -194,123 +187,110 @@ class ParticipantsTable extends Component
         return $day;
     }
 
-protected function normalizeRow(?array $row): array
-{
-    $row = $row ?? [];
-    return [
-        // WICHTIG: Default NICHT anwesend
-        'present'            => (bool)($row['present'] ?? false),
-        'excused'            => (bool)($row['excused'] ?? false),
-        'late_minutes'       => (int)($row['late_minutes'] ?? 0),
-        'left_early_minutes' => (int)($row['left_early_minutes'] ?? 0),
-        'note'               => $row['note'] ?? null,
-        'in'                 => data_get($row, 'timestamps.in'),
-        'out'                => data_get($row, 'timestamps.out'),
-    ];
-}
+    protected function normalizeRow(?array $row): array
+    {
+        $row = $row ?? [];
+        return [
+            'present'            => (bool)($row['present'] ?? false),
+            'excused'            => (bool)($row['excused'] ?? false),
+            'late_minutes'       => (int)($row['late_minutes'] ?? 0),
+            'left_early_minutes' => (int)($row['left_early_minutes'] ?? 0),
+            'note'               => $row['note'] ?? null,
 
+            // Zeitstempel (Server-perspektive)
+            'in'                 => data_get($row, 'timestamps.in'),
+            'out'                => data_get($row, 'timestamps.out'),
 
+            // User-Eingaben über Timepicker
+            'arrived_at'         => $row['arrived_at'] ?? null, // 'HH:MM'
+            'left_at'            => $row['left_at'] ?? null,    // 'HH:MM'
+        ];
+    }
 
     protected function rebuildAttendanceMap(): void
     {
-        if (!$this->selectedDay) {
-            $this->attendanceMap = [];
-            return;
-        }
+        if (!$this->selectedDay) { $this->attendanceMap = []; return; }
+
         $att = $this->selectedDay->attendance_data ?? [];
         $raw = Arr::get($att, 'participants', []);
+
         $this->attendanceMap = collect($raw)
             ->map(fn ($row) => $this->normalizeRow($row))
             ->all();
     }
-
 
     protected function currentRow(int $participantId): ?array
     {
         return Arr::get($this->selectedDay?->attendance_data, "participants.$participantId");
     }
 
+    /**
+     * Einheitlicher Patch-Writer gegen CourseDay::setAttendance(...)
+     * und lokales ViewModel ($attendanceMap) aktualisieren.
+     */
     protected function apply(int $participantId, array $patch): void
     {
         $day = $this->dayOrFail();
-        // Model-Methode aus ManageAttendance erwartet: setAttendance($participantId, $patch)
+        // Persistieren im Model
         $day->setAttendance($participantId, $patch);
 
-        // Lokale Map aktualisieren, ohne komplettes Reload
+        // Lokales ViewModel mergen
         $existing = $this->attendanceMap[$participantId] ?? [];
-        $merged = array_replace_recursive(
-            $this->normalizeRow($existing),
-            $patch,
-            // timestamps gesondert zusammenführen
-            isset($patch['timestamps']) ? [
-                'in'  => $patch['timestamps']['in']  ?? ($existing['in'] ?? null),
-                'out' => $patch['timestamps']['out'] ?? ($existing['out'] ?? null),
-            ] : []
-        );
+        $merged   = array_replace_recursive($this->normalizeRow($existing), $patch);
+
+        // timestamps gesondert mergen
+        if (isset($patch['timestamps'])) {
+            $merged['in']  = $patch['timestamps']['in']  ?? ($existing['in']  ?? null);
+            $merged['out'] = $patch['timestamps']['out'] ?? ($existing['out'] ?? null);
+        }
+
+        // arrived_at/left_at ggf. direkt übergeben (für Timepicker)
+        if (array_key_exists('arrived_at', $patch)) $merged['arrived_at'] = $patch['arrived_at'];
+        if (array_key_exists('left_at',    $patch)) $merged['left_at']    = $patch['left_at'];
+
         $this->attendanceMap[$participantId] = $this->normalizeRow($merged);
 
-        // Optional: Day-Model frisch ziehen, wenn serverseitig weitere Anpassungen passieren
+        // Falls serverseitig noch mehr passiert:
         $this->selectedDay?->refresh();
     }
 
-    // ---- Aktionen (Check-in/out, Abwesend, Minuten, Notiz) ----
-
-public function checkInNow(int $participantId): void
-{
-    $now   = Carbon::now();
-    $date  = $this->selectedDay?->date?->format('Y-m-d');
-    $start = data_get($this->selectedDay?->day_sessions, '1.start', '08:00');
-
-    $late = 0;
-    if ($date && $start) {
-        $startAt = Carbon::parse("$date $start");
-        if ($now->gt($startAt)) {
-            $late = $startAt->diffInMinutes($now);
-        }
-    }
-
-    $this->apply($participantId, [
-        'present' => true,
-        'excused' => false,
-        'late_minutes' => $late,
-        'timestamps' => ['in' => $now->toDateTimeString()],
-    ]);
-}
-
-    public function markAbsentNow(int $participantId): void
+    // ---- Aktionen (Check-in/out, Abwesend/Anwesend, Timepicker, Notiz) ----
+    public function checkInNow(int $participantId): void
     {
-        $row  = $this->currentRow($participantId) ?? [];
-        $now  = Carbon::now();
-        $date = $this->selectedDay?->date?->format('Y-m-d');
+        $now   = Carbon::now('Europe/Berlin');
+        [$start] = $this->plannedTimesForSelectedDay();
 
-        $endStr = data_get($this->selectedDay?->day_sessions, '4.end')
-              ?? $this->selectedDay?->end_time?->format('H:i')
-              ?? '16:00';
-
-        $patch = [
-            'present' => false,
-            'excused' => false,
-        ];
-
-        if (!empty($row['present'])) {
-            $leftEarly = 0;
-            if ($date && $endStr) {
-                $endAt = Carbon::parse("$date $endStr");
-                if ($now->lt($endAt)) {
-                    $leftEarly = $now->diffInMinutes($endAt);
-                }
-            }
-            $patch['left_early_minutes'] = $leftEarly;
-            $patch['timestamps'] = ['out' => $now->toDateTimeString()];
+        $late = 0;
+        if ($start && $now->gt($start)) {
+            $late = $start->diffInMinutes($now);
         }
 
-        $this->apply($participantId, $patch);
+        $this->apply($participantId, [
+            'present'      => true,
+            'excused'      => false,
+            'late_minutes' => $late,
+            'timestamps'   => ['in' => $now->toDateTimeString()],
+        ]);
     }
 
+    public function checkOutNow(int $participantId): void
+    {
+        $now = Carbon::now('Europe/Berlin');
+        [, $end] = $this->plannedTimesForSelectedDay();
+
+        $leftEarly = 0;
+        if ($end && $now->lt($end)) {
+            $leftEarly = $now->diffInMinutes($end);
+        }
+
+        $this->apply($participantId, [
+            'left_early_minutes' => $leftEarly,
+            'timestamps'         => ['out' => $now->toDateTimeString()],
+        ]);
+    }
 
     public function markPresent(int $participantId): void
     {
-        // Nur Flags setzen, keine Zeiten berechnen/setzen
         $this->apply($participantId, [
             'present' => true,
             'excused' => false,
@@ -319,26 +299,79 @@ public function checkInNow(int $participantId): void
 
     public function markAbsent(int $participantId): void
     {
-        // Nur Flags auf "abwesend", keine Checkout-/Frühweg-Logik
         $this->apply($participantId, [
             'present' => false,
             'excused' => false,
-            // Optional (falls du klar sein willst, dass keine Zeiten gelten):
-            // 'late_minutes' => 0,
-            // 'left_early_minutes' => 0,
-            // 'timestamps' => ['in' => null, 'out' => null],
         ]);
     }
 
+    public function markAbsentNow(int $participantId): void
+    {
+        $row = $this->currentRow($participantId) ?? [];
+        $now = Carbon::now('Europe/Berlin');
 
+        [, $end] = $this->plannedTimesForSelectedDay();
+
+        $patch = [
+            'present' => false,
+            'excused' => false,
+        ];
+
+        // Falls zuvor anwesend -> "früher gegangen" berechnen
+        if (!empty($row['present']) && $end && $now->lt($end)) {
+            $patch['left_early_minutes'] = $now->diffInMinutes($end);
+            $patch['timestamps'] = ['out' => $now->toDateTimeString()];
+        }
+
+        $this->apply($participantId, $patch);
+    }
+
+    // --- Minuten-Setter (falls noch direkt benutzt) ---
     public function setLateMinutes(int $participantId, $minutes): void
     {
-        $this->apply($participantId, ['late_minutes' => max(0, (int)$minutes)]);
+        $this->apply($participantId, ['late_minutes' => max(0, (int) $minutes)]);
     }
 
     public function setLeftEarlyMinutes(int $participantId, $minutes): void
     {
-        $this->apply($participantId, ['left_early_minutes' => max(0, (int)$minutes)]);
+        $this->apply($participantId, ['left_early_minutes' => max(0, (int) $minutes)]);
+    }
+
+    // --- Timepicker-Setter (neu) ---
+    public function setArrivalTime(int $participantId, ?string $hhmm): void
+    {
+        $time = $this->normalizeTime($hhmm); // 'HH:MM' oder null
+        $arr  = $this->toCarbonOnSelectedDate($time);
+
+        [$start] = $this->plannedTimesForSelectedDay();
+        $late = 0;
+        if ($start && $arr && $arr->greaterThan($start)) {
+            $late = $start->diffInMinutes($arr);
+        }
+
+        $this->apply($participantId, [
+            'arrived_at'   => $time,
+            'late_minutes' => $late,
+            'present'      => true, // wer ankommt, ist anwesend
+        ]);
+    }
+
+    public function setLeaveTime(int $participantId, ?string $hhmm): void
+    {
+        $time = $this->normalizeTime($hhmm); // 'HH:MM' oder null
+        $out  = $this->toCarbonOnSelectedDate($time);
+
+        [, $end] = $this->plannedTimesForSelectedDay();
+        $early = 0;
+        if ($end && $out && $out->lessThan($end)) {
+            $early = $out->diffInMinutes($end);
+        }
+
+        $this->apply($participantId, [
+            'left_at'            => $time,
+            'left_early_minutes' => $early,
+            'present'            => true, // wer geht, war zumindest anwesend
+        ]);
     }
 
     public function setNote(int $participantId, ?string $note): void
@@ -346,33 +379,10 @@ public function checkInNow(int $participantId): void
         $this->apply($participantId, ['note' => $note]);
     }
 
-    public function checkOutNow(int $participantId): void
-    {
-        $now  = Carbon::now();
-        $date = $this->selectedDay?->date?->format('Y-m-d');
-
-        $endStr = data_get($this->selectedDay?->day_sessions, '4.end')
-              ?? $this->selectedDay?->end_time?->format('H:i')
-              ?? '16:00';
-
-        $leftEarly = 0;
-        if ($date && $endStr) {
-            $endAt = Carbon::parse("$date $endStr");
-            if ($now->lt($endAt)) {
-                $leftEarly = $now->diffInMinutes($endAt);
-            }
-        }
-
-        $this->apply($participantId, [
-            'left_early_minutes' => $leftEarly,
-            'timestamps' => ['out' => $now->toDateTimeString()],
-        ]);
-    }
-
     public function bulk(string $action): void
     {
-        // nur aktuelle Seite
         $ids = $this->participants->getCollection()->pluck('id');
+
         foreach ($ids as $pid) {
             match ($action) {
                 'all_present'  => $this->apply($pid, ['present' => true,  'excused' => false]),
@@ -385,75 +395,142 @@ public function checkInNow(int $participantId): void
         }
     }
 
-public function getRowsProperty(): Collection
-{
-    $day = $this->selectedDay;
-    if (!$day) return collect();
+    // ---- Rows/Stats ----
+    public function getRowsProperty(): Collection
+    {
+        $day = $this->selectedDay;
+        if (!$day) return collect();
 
-    $att = $day->attendance_data ?? [];
-    $map = Arr::get($att, 'participants', []);
+        $att = $day->attendance_data ?? [];
+        $map = Arr::get($att, 'participants', []);
 
-    $allIds = collect(array_keys($map))->map(fn ($id) => (int) $id);
+        $allIds = collect(array_keys($map))->map(fn ($id) => (int) $id);
 
-    if ($day->course && method_exists($day->course, 'participants')) {
-        $rel = $day->course->participants();
-        $qualifiedKey = $rel->getModel()->getQualifiedKeyName();
-        $allIds = $allIds->merge($rel->pluck($qualifiedKey)->all());
+        if ($day->course && method_exists($day->course, 'participants')) {
+            $rel          = $day->course->participants();
+            $qualifiedKey = $rel->getModel()->getQualifiedKeyName();
+            $allIds       = $allIds->merge($rel->pluck($qualifiedKey)->all());
+        }
+
+        $allIds      = $allIds->map(fn ($id) => (int) $id)->unique()->values();
+        $participants = collect();
+
+        if ($day->course && method_exists($day->course, 'participants') && $allIds->isNotEmpty()) {
+            $rel          = $day->course->participants();
+            $qualifiedKey = $rel->getModel()->getQualifiedKeyName();
+            $participants = $rel->whereIn($qualifiedKey, $allIds)->get()->keyBy('id');
+        }
+
+        $rows = $allIds->map(function (int $pid) use ($participants, $map) {
+            $raw = $map[$pid] ?? null;
+
+            return [
+                'id'       => $pid,
+                'user'     => $participants[$pid] ?? null,
+                'data'     => $this->normalizeRow($raw),
+                'hasEntry' => array_key_exists($pid, $map),
+            ];
+        });
+
+        return $rows
+            ->sortBy(fn ($r) => strtolower($r['user']->nachname ?? ('zzzz_'.$r['id'])))
+            ->values();
     }
 
-    $allIds = $allIds->map(fn ($id) => (int) $id)->unique()->values();
+    /** Tages-Statistik auf Basis von $rows */
+    public function getStatsProperty(): array
+    {
+        $rows    = $this->rows;
+        $present = $rows->where('data.present', true)->count();
+        $excused = $rows->where('data.excused', true)->count();
+        $late    = $rows->filter(fn ($r) => ((int)($r['data']['late_minutes'] ?? 0)) > 0)->count();
+        $total   = max($rows->count(), 0);
+        $absent  = $total - $present - $excused;
 
-    $participants = collect();
-    if ($day->course && method_exists($day->course, 'participants') && $allIds->isNotEmpty()) {
-        $rel = $day->course->participants();
-        $qualifiedKey = $rel->getModel()->getQualifiedKeyName();
-        $participants = $rel->whereIn($qualifiedKey, $allIds)->get()->keyBy('id');
+        return compact('present', 'excused', 'late', 'absent', 'total');
     }
 
-    $rows = $allIds->map(function (int $pid) use ($participants, $map) {
-        $raw = $map[$pid] ?? null;
-        return [
-            'id'       => $pid,
-            'user'     => $participants[$pid] ?? null,
-            'data'     => $this->normalizeRow($raw),
-            // NEU: signalisiert „es existiert ein Attendance-Eintrag“
-            'hasEntry' => array_key_exists($pid, $map),
-        ];
-    });
+    // ---- Helpers ----
 
-    return $rows
-        ->sortBy(fn ($r) => strtolower($r['user']->nachname ?? ('zzzz_'.$r['id'])))
-        ->values();
-}
+    protected function normalizeTime(?string $hhmm): ?string
+    {
+        if (!$hhmm) return null;
+        return preg_match('/^\d{2}:\d{2}$/', $hhmm) ? $hhmm : null;
+    }
 
+    protected function toCarbonOnSelectedDate(?string $hhmm): ?Carbon
+    {
+        if (!$hhmm || !preg_match('/^\d{2}:\d{2}$/', $hhmm)) return null;
 
-/** Tages-Statistik auf Basis von $rows */
-public function getStatsProperty(): array
-{
-    $rows    = $this->rows;
-    $present = $rows->where('data.present', true)->count();
-    $excused = $rows->where('data.excused', true)->count();
-    $late    = $rows->filter(fn ($r) => ((int)($r['data']['late_minutes'] ?? 0)) > 0)->count();
-    $total   = max($rows->count(), 0);
-    $absent  = $total - $present - $excused;
+        $base = $this->selectedDay?->date
+            ? Carbon::parse($this->selectedDay->date, 'Europe/Berlin')->startOfDay()
+            : Carbon::today('Europe/Berlin');
 
-    return compact('present', 'excused', 'late', 'absent', 'total');
-}
-    // --- Render ---
+        [$H, $M] = explode(':', $hhmm);
+        return $base->copy()->setTime((int) $H, (int) $M);
+    }
 
+    /**
+     * Start/Ende strikt aus start_time (H:i:s) + std (volle Stunden, ggf. Dezimal) berechnen.
+     * Beispiel: start_time=08:00:00, std=9.00  => Ende=17:00:00
+     *
+     * @return array{0:?Carbon,1:?Carbon}
+     */
+    protected function plannedTimesForSelectedDay(): array
+    {
+        $tz   = 'Europe/Berlin';
+        $date = $this->selectedDay?->date
+            ? Carbon::parse($this->selectedDay->date, $tz)->format('Y-m-d')
+            : Carbon::today($tz)->format('Y-m-d');
+
+        $startTime = $this->selectedDay?->start_time; // Carbon|string|null
+        $stdRaw    = $this->selectedDay?->std;        // z. B. 9.00 (als string/float/int)
+
+        if (!$startTime || $stdRaw === null) {
+            // Fallback: 08–16
+            $start = Carbon::parse("$date 08:00:00", $tz);
+            $end   = Carbon::parse("$date 16:00:00", $tz);
+            return [$start, $end];
+        }
+
+        // Start auf gewählten Tag legen
+        $startHms = Carbon::parse($startTime, $tz)->format('H:i:s');
+        $start    = Carbon::parse("$date $startHms", $tz);
+
+        // std als Dezimalstunden in Minuten
+        $hoursDecimal = (float) $stdRaw;             // 9.00 -> 9.0
+        $minutes      = (int) round($hoursDecimal * 60);
+
+        $end = $start->copy()->addMinutes($minutes);
+
+        return [$start, $end];
+    }
+
+    /** Praktische Strings 'H:i' für Blade-Timepicker-Defaults */
+    protected function plannedStartEndStrings(): array
+    {
+        [$start, $end] = $this->plannedTimesForSelectedDay();
+        return [$start?->format('H:i'), $end?->format('H:i')];
+    }
+
+    // ---- Render ----
     public function render()
     {
-        // Falls sich Daten seit dem letzten Tick änderten, Flags sauber halten
         $this->updatePrevNextFlags();
+        [$plannedStart, $plannedEnd] = $this->plannedStartEndStrings();
 
         return view('livewire.tutor.courses.participants-table', [
-            'participants' => $this->participants, 
-            'rows'         => $this->rows,
-            'stats'        => $this->stats,
-            'selectedDay'  => $this->selectedDay,
-            'selectedDayId'=> $this->selectedDayId,
+            'participants'              => $this->participants,
+            'rows'                      => $this->rows,
+            'stats'                     => $this->stats,
+            'selectedDay'               => $this->selectedDay,
+            'selectedDayId'             => $this->selectedDayId,
             'selectPreviousDayPossible' => $this->selectPreviousDayPossible,
             'selectNextDayPossible'     => $this->selectNextDayPossible,
+
+            // Neu: Defaults für Timepicker
+            'plannedStart'              => $plannedStart, // 'H:i'
+            'plannedEnd'                => $plannedEnd,   // 'H:i'
         ]);
     }
-}
+} 
