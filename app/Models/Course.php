@@ -32,6 +32,7 @@ class Course extends Model
         // Anzeige/Meta
         'title',
         'description',
+        'educational_materials',
 
         // Grobe Plan-Daten
         'planned_start_date',
@@ -49,12 +50,13 @@ class Course extends Model
     ];
 
     protected $casts = [
-        'planned_start_date' => 'date',
-        'planned_end_date'   => 'date',
-        'source_last_upd'    => 'datetime',
-        'is_active'          => 'boolean',
-        'settings'           => 'array',
-        'source_snapshot'    => 'array',
+        'planned_start_date'    => 'date',
+        'planned_end_date'      => 'date',
+        'source_last_upd'       => 'datetime',
+        'is_active'             => 'boolean',
+        'settings'              => 'array',
+        'source_snapshot'       => 'array',
+        'educational_materials' => 'array',
     ];
 
     /**
@@ -79,6 +81,31 @@ class Course extends Model
     {
         return $this->days()->count();
     }
+
+    public function getMaterialsAttribute(): array
+    {
+        $raw = $this->educational_materials;
+        return is_array($raw) ? $raw : [];
+    }
+    
+    /**
+     * Alle Material-Bestätigungen zu diesem Kurs
+     */
+    public function materialAcknowledgements()
+    {
+        return $this->hasMany(\App\Models\CourseMaterialAcknowledgement::class);
+    }
+
+    /**
+     * Prüft, ob eine bestimmte Person (Teilnehmer) die Bereitstellung bestätigt hat.
+     */
+    public function isMaterialsAcknowledgedBy(int $personId): bool
+    {
+        return $this->materialAcknowledgements()
+                    ->where('person_id', $personId)
+                    ->exists();
+    }
+
 
     public function getZeitraumFmtAttribute(): ?string
     {

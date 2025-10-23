@@ -24,7 +24,7 @@ class ManageCourseMedia extends Component
     // ... oben in der Klasse
 public bool $openPreview = false;
 
-
+ 
 
     protected function rules(): array
     {

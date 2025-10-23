@@ -86,6 +86,7 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
         $participantsData = $payload['participants'] ?? [];
         $teachersData     = $payload['teachers']     ?? [];
         $daysData         = $payload['days']         ?? [];
+        $materialsData    = $payload['materials']    ?? [];
 
         if (!$courseData) {
             Log::warning("CreateOrUpdateCourse: API-Response ohne 'course' für {$this->klassenId}");
@@ -154,6 +155,7 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
                 'room'                => $courseData['unterr_raum']      ?? null,
                 'title'               => $courseData['bezeichnung']      ?? ('Kurs ' . $this->klassenId),
                 'description'         => $courseData['bemerkung']        ?? null,
+                'educational_materials' => $materialsData                 ?? [],
                 'planned_start_date'  => $courseData['beginn']           ?? null,
                 'planned_end_date'    => $courseData['ende']             ?? null,
                 'type'                => 'basic',

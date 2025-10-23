@@ -17,7 +17,21 @@
       <x-slot name="trigger"><h1>Bildungsmittel</h1></x-slot>
       <x-slot name="content">
         <div class="my-4">
-          <span>Momentan keine Bildungsmittel eingetragen.</span>
+            <ul class="divide-y divide-gray-200 rounded-md border border-gray-200 overflow-hidden">
+            @php $materials = $course->materials; @endphp
+            @foreach($materials as $m)
+                <li class="p-3 bg-white hover:bg-gray-50 transition">
+                <div class="font-semibold text-gray-800">{{ $m['titel'] ?? '—' }}</div>
+                <div class="text-sm text-gray-600">{{ $m['titel2'] ?? '' }}</div>
+                <div class="text-xs text-gray-500 mt-1">
+                    @if(!empty($m['verlag'])){{ $m['verlag'] }}@endif
+                    @if(!empty($m['isbn'])) | ISBN: {{ $m['isbn'] }}@endif
+                </div>
+                </li>
+            @endforeach
+            </ul>
+            <livewire:user.program.course.materials-acknowledgement :course="$course" lazy />
+
         </div>
       </x-slot>
     </x-ui.dropdown.course-dropdown>
