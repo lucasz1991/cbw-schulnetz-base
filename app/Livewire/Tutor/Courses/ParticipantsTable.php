@@ -438,17 +438,44 @@ class ParticipantsTable extends Component
     }
 
     /** Tages-Statistik auf Basis von $rows */
-    public function getStatsProperty(): array
-    {
-        $rows    = $this->rows;
-        $present = $rows->where('data.present', true)->count();
-        $excused = $rows->where('data.excused', true)->count();
-        $late    = $rows->filter(fn ($r) => ((int)($r['data']['late_minutes'] ?? 0)) > 0)->count();
-        $total   = max($rows->count(), 0);
-        $absent  = $total - $present - $excused;
+public function getStatsProperty(): array
+{
+    $rows      = $this->rows;
+    $total     = $rows->count();
 
-        return compact('present', 'excused', 'late', 'absent', 'total');
-    }
+    // Bereits erfasste Datensätze
+    $marked    = $rows->where('hasEntry', true);
+    $unmarked  = $rows->where('hasEntry', false)->count(); // noch keine Eingabe -> zählt als anwesend
+
+    // --- Basiszählungen ---
+    $excused   = $marked->where('data.excused', true)->count();
+    $late      = $marked->filter(fn ($r) => (int)($r['data']['late_minutes'] ?? 0) > 0)->count();
+
+    // Normale Anwesenheit = present = true, aber nicht verspätet
+    $presentMarked = $marked
+        ->where('data.present', true)
+        ->filter(fn ($r) => ((int)($r['data']['late_minutes'] ?? 0)) === 0)
+        ->count();
+
+    // Fehlend = explizit erfasst, aber weder present noch excused
+    $absent = $marked->filter(fn ($r) =>
+        empty($r['data']['present']) && empty($r['data']['excused'])
+    )->count();
+
+    // Gesamt anwesend = regulär anwesend + unmarked (noch keine Eingabe)
+    $present = $presentMarked + $unmarked;
+
+    return [
+        'present'  => $present,
+        'late'     => $late,
+        'excused'  => $excused,
+        'absent'   => $absent,
+        'unmarked' => $unmarked,
+        'total'    => $total,
+    ];
+}
+
+
 
     // ---- Helpers ----
 
