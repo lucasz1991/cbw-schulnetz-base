@@ -24,38 +24,54 @@
     x-data="{
       ctx: null,
       drawing: false,
-      bound: false,
       ratio: Math.max(window.devicePixelRatio || 1, 1),
+      ro: null,
+      bound: false,
+
+      syncCanvasSize() {
+        const c = this.$refs.canvas;
+        const rect = c.getBoundingClientRect();
+
+        // CSS-Größe explizit
+        c.style.width  = rect.width  + 'px';
+        c.style.height = rect.height + 'px';
+
+        // interne Gerätepixel
+        c.width  = Math.max(1, Math.round(rect.width  * this.ratio));
+        c.height = Math.max(1, Math.round(rect.height * this.ratio));
+
+        // Kontext + DPI-Transform → Zeichnen in CSS-Pixeln
+        this.ctx = c.getContext('2d');
+        this.ctx.setTransform(this.ratio, 0, 0, this.ratio, 0, 0);
+        this.ctx.lineWidth = 2;
+        this.ctx.lineCap   = 'round';
+      },
 
       setupCanvas() {
-        const c = this.$refs.canvas;
-
-        // Stelle sicher, dass das Canvas ein Layout hat (Modal kann animiert sein)
-        // Warte bis zum nächsten Frame, damit getBoundingClientRect() echte Werte liefert
         this.$nextTick(() => {
-          const rect = c.getBoundingClientRect();
+          this.syncCanvasSize();
 
-          // CSS-Größe (sichtbar)
-          const cssW = rect.width || c.clientWidth || 600;
-          const cssH = rect.height || c.clientHeight || 192;
+          if (!this.bound) {
+            this.bindEvents();
 
-          // Physische Pixelgröße
-          c.width  = Math.round(cssW * this.ratio);
-          c.height = Math.round(cssH * this.ratio);
-
-          // Kontext zurücksetzen + DPI-Transform setzen
-          this.ctx = c.getContext('2d');
-          this.ctx.setTransform(this.ratio, 0, 0, this.ratio, 0, 0); // statt ctx.scale(...)
-
-          // Zeichenstil
-          this.ctx.lineWidth = 2;     // in CSS-px (weil Transform aktiv ist)
-          this.ctx.lineCap   = 'round';
-
-          if (!this.bound) this.bindEvents();
+            // Reagiert auf Größenänderungen (Modal-Open, Resize, etc.)
+            this.ro = new ResizeObserver(() => {
+              const snap = this.toDataURL();
+              this.syncCanvasSize();
+              this.$nextTick(() => {
+                const img = new Image();
+                img.onload = () => {
+                  const c = this.$refs.canvas;
+                  this.ctx.drawImage(img, 0, 0, c.width / this.ratio, c.height / this.ratio);
+                };
+                img.src = snap;
+              });
+            });
+            this.ro.observe(this.$refs.canvas);
+          }
         });
       },
 
-      // Koordinaten in CSS-px (nicht multiplyen!), da der Kontext bereits transformiert ist
       _pos(e) {
         const c = this.$refs.canvas;
         const rect = c.getBoundingClientRect();
@@ -65,7 +81,6 @@
 
       bindEvents() {
         const c = this.$refs.canvas;
-
         const start = (e) => { this.drawing = true; this.ctx.beginPath(); this.ctx.moveTo(...this._pos(e)); };
         const move  = (e) => { if (!this.drawing) return; this.ctx.lineTo(...this._pos(e)); this.ctx.stroke(); };
         const end   = () => { this.drawing = false; };
@@ -75,35 +90,17 @@
         c.addEventListener('mousemove', move);
         window.addEventListener('mouseup', end);
 
-        // Touch (+ Scroll unterbinden, sonst Versatz auf mobilen Geräten)
+        // Touch
         c.style.touchAction = 'none';
         c.addEventListener('touchstart', (e)=>{ e.preventDefault(); start(e); }, { passive:false });
         c.addEventListener('touchmove',  (e)=>{ e.preventDefault(); move(e);  }, { passive:false });
         window.addEventListener('touchend', end);
 
-        // Resize: Inhalt behalten → erst Daten sichern, dann neu setup, dann skalierte Wiedergabe
-        const onResize = () => {
-          const data = this.toDataURL();        // Hi-DPI PNG
-          this.setupCanvas();                   // setzt Größe/Transform neu
-          // nach einem Tick zurückzeichnen, wenn ctx steht
-          this.$nextTick(() => {
-            const img = new Image();
-            img.onload = () => {
-              // Kontext ist transformiert (ratio aktiv), daher in CSS-px zurückzeichnen
-              const cssW = this.$refs.canvas.width  / this.ratio;
-              const cssH = this.$refs.canvas.height / this.ratio;
-              this.ctx.drawImage(img, 0, 0, cssW, cssH);
-            };
-            img.src = data;
-          });
-        };
-        window.addEventListener('resize', onResize);
-
         // Cleanup
         this.$cleanup?.(() => {
           window.removeEventListener('mouseup', end);
           window.removeEventListener('touchend', end);
-          window.removeEventListener('resize', onResize);
+          if (this.ro) this.ro.disconnect();
         });
 
         this.bound = true;
@@ -111,29 +108,49 @@
 
       clear() {
         const c = this.$refs.canvas;
-        if (this.ctx) this.ctx.clearRect(0, 0, c.width / this.ratio, c.height / this.ratio);
+        this.ctx.save();
+        this.ctx.setTransform(1,0,0,1,0,0);
+        this.ctx.clearRect(0, 0, c.width, c.height);
+        this.ctx.restore();
       },
 
-      toDataURL() {
-        return this.$refs.canvas.toDataURL('image/png');
+      toDataURL() { return this.$refs.canvas.toDataURL('image/png'); },
+
+      hasInk() { // simple Alpha-Check, optional
+        const c = this.$refs.canvas;
+        const { data } = this.ctx.getImageData(0, 0, c.width, c.height);
+        for (let i = 3; i < data.length; i += 4*64) { if (data[i] !== 0) return true; }
+        return false;
       }
     }"
-    x-init="$nextTick(() => setupCanvas())"
-    x-effect="if ($wire.get('open')) { $nextTick(() => setupCanvas()) }"
+    x-init="setupCanvas(); setTimeout(() => setupCanvas(), 60)"  {{-- zweiter Sync nach Modal-Transition --}}
     class="space-y-3"
   >
     <p class="text-sm text-gray-700">Bitte unterschreiben Sie im Feld.</p>
 
     <div class="border rounded bg-gray-50 p-2">
-      <!-- keine Border auf dem Canvas selbst, um Offsets zu vermeiden -->
-      <canvas x-ref="canvas" class="w-full h-48 bg-white rounded block"></canvas>
+      <canvas x-ref="canvas" class="block bg-white rounded w-full" style="height:12rem;"></canvas>
     </div>
 
     <div class="flex items-center gap-2">
       <button type="button" class="px-2 py-1.5 rounded border" @click="clear()">Leeren</button>
-      <button type="button" class="px-3 py-1.5 rounded bg-blue-600 text-white"
-              @click="$wire.set('signatureDataUrl', toDataURL())">
-        Unterschrift übernehmen
+
+      {{-- Bestätigen hier im Content (Footer bleibt leer) --}}
+      <button type="button"
+              class="px-3 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-700"
+              @click="
+                if (!hasInk()) { $wire.set('errorMsg','Bitte unterschreiben Sie im Feld.'); return; }
+                $wire.set('errorMsg', null);
+                $wire.set('signatureDataUrl', toDataURL());
+                $wire.save();
+              ">
+        Bestätigen
+      </button>
+
+      <button type="button"
+              class="px-3 py-1.5 rounded border"
+              @click="$wire.set('open', false)">
+        Abbrechen
       </button>
     </div>
 
@@ -144,11 +161,10 @@
 </x-slot>
 
 
+
+
+
     <x-slot name="footer">
-      <div class="flex items-center gap-2">
-        <x-button wire:click="save" >Bestätigen</x-button>
-        <x-button wire:click="$set('open', false)">Abbrechen</x-button>
-      </div>
     </x-slot>
   </x-dialog-modal>
 </div>
