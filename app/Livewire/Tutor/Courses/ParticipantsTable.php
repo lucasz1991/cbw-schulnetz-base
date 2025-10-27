@@ -224,10 +224,7 @@ class ParticipantsTable extends Component
         return Arr::get($this->selectedDay?->attendance_data, "participants.$participantId");
     }
 
-    /**
-     * Einheitlicher Patch-Writer gegen CourseDay::setAttendance(...)
-     * und lokales ViewModel ($attendanceMap) aktualisieren.
-     */
+
     protected function apply(int $participantId, array $patch): void
     {
         $day = $this->dayOrFail();
@@ -254,7 +251,6 @@ class ParticipantsTable extends Component
         $this->selectedDay?->refresh();
     }
 
-    // ---- Aktionen (Check-in/out, Abwesend/Anwesend, Timepicker, Notiz) ----
     public function checkInNow(int $participantId): void
     {
         $now   = Carbon::now('Europe/Berlin');
@@ -326,7 +322,6 @@ class ParticipantsTable extends Component
         $this->apply($participantId, $patch);
     }
 
-    // --- Minuten-Setter (falls noch direkt benutzt) ---
     public function setLateMinutes(int $participantId, $minutes): void
     {
         $this->apply($participantId, ['late_minutes' => max(0, (int) $minutes)]);
@@ -337,7 +332,6 @@ class ParticipantsTable extends Component
         $this->apply($participantId, ['left_early_minutes' => max(0, (int) $minutes)]);
     }
 
-    // --- Timepicker-Setter (neu) ---
     public function setArrivalTime(int $participantId, ?string $hhmm): void
     {
         $time = $this->normalizeTime($hhmm); // 'HH:MM' oder null
@@ -395,7 +389,6 @@ class ParticipantsTable extends Component
         }
     }
 
-    // ---- Rows/Stats ----
     public function getRowsProperty(): Collection
     {
         $day = $this->selectedDay;
@@ -437,43 +430,42 @@ class ParticipantsTable extends Component
             ->values();
     }
 
-    /** Tages-Statistik auf Basis von $rows */
-public function getStatsProperty(): array
-{
-    $rows      = $this->rows;
-    $total     = $rows->count();
+    public function getStatsProperty(): array
+    {
+        $rows      = $this->rows;
+        $total     = $rows->count();
 
-    // Bereits erfasste Datensätze
-    $marked    = $rows->where('hasEntry', true);
-    $unmarked  = $rows->where('hasEntry', false)->count(); // noch keine Eingabe -> zählt als anwesend
+        // Bereits erfasste Datensätze
+        $marked    = $rows->where('hasEntry', true);
+        $unmarked  = $rows->where('hasEntry', false)->count(); // noch keine Eingabe -> zählt als anwesend
 
-    // --- Basiszählungen ---
-    $excused   = $marked->where('data.excused', true)->count();
-    $late      = $marked->filter(fn ($r) => (int)($r['data']['late_minutes'] ?? 0) > 0)->count();
+        // --- Basiszählungen ---
+        $excused   = $marked->where('data.excused', true)->count();
+        $late      = $marked->filter(fn ($r) => (int)($r['data']['late_minutes'] ?? 0) > 0)->count();
 
-    // Normale Anwesenheit = present = true, aber nicht verspätet
-    $presentMarked = $marked
-        ->where('data.present', true)
-        ->filter(fn ($r) => ((int)($r['data']['late_minutes'] ?? 0)) === 0)
-        ->count();
+        // Normale Anwesenheit = present = true, aber nicht verspätet
+        $presentMarked = $marked
+            ->where('data.present', true)
+            ->filter(fn ($r) => ((int)($r['data']['late_minutes'] ?? 0)) === 0)
+            ->count();
 
-    // Fehlend = explizit erfasst, aber weder present noch excused
-    $absent = $marked->filter(fn ($r) =>
-        empty($r['data']['present']) && empty($r['data']['excused'])
-    )->count();
+        // Fehlend = explizit erfasst, aber weder present noch excused
+        $absent = $marked->filter(fn ($r) =>
+            empty($r['data']['present']) && empty($r['data']['excused'])
+        )->count();
 
-    // Gesamt anwesend = regulär anwesend + unmarked (noch keine Eingabe)
-    $present = $presentMarked + $unmarked;
+        // Gesamt anwesend = regulär anwesend + unmarked (noch keine Eingabe)
+        $present = $presentMarked + $unmarked;
 
-    return [
-        'present'  => $present,
-        'late'     => $late,
-        'excused'  => $excused,
-        'absent'   => $absent,
-        'unmarked' => $unmarked,
-        'total'    => $total,
-    ];
-}
+        return [
+            'present'  => $present,
+            'late'     => $late,
+            'excused'  => $excused,
+            'absent'   => $absent,
+            'unmarked' => $unmarked,
+            'total'    => $total,
+        ];
+    }
 
 
 

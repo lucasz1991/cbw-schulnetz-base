@@ -58,9 +58,16 @@
             </div>
         </div>
         <x-ui.accordion.tabs
-                :tabs="['anwesenheit' => 'Anwesenheit', 'doku' => 'Dokumentation', 'medien' => 'Materialien', 'results' => 'Ergebnisse', 'invoice' => 'Rechnung']"
-                default="doku"
-                class="mt-8"
+            :tabs="[
+                'anwesenheit' => ['label' => 'Anwesenheit',   'icon' => 'fad fa-user-clock'],
+                'doku'        => ['label' => 'Dokumentation', 'icon' => 'fad fa-file-signature'],
+                'medien'      => ['label' => 'Materialien',   'icon' => 'fad fa-books'],
+                'results'     => ['label' => 'Ergebnisse',    'icon' => 'fad fa-poll-people'],
+                'invoice'     => ['label' => 'Rechnung',      'icon' => 'fad fa-file-invoice-dollar']
+            ]"
+            :collapseAt="'lg'"
+            default="doku"
+            class="mt-8"
         >
             <x-ui.accordion.tab-panel for="anwesenheit">
                 <livewire:tutor.courses.participants-table :courseId="$course->id" />
