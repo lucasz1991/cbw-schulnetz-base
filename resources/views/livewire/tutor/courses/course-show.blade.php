@@ -24,7 +24,7 @@
                 Kurs im Detail 
             </span>
         </div> 
-    </x-slot> 
+    </x-slot>  
     <div class=" space-y-12">
         <div class="bg-white p-4 border border-gray-300 rounded-lg shadow space-y-8 ">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
