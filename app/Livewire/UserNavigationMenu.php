@@ -7,12 +7,9 @@ use App\Models\Message;
 
 class UserNavigationMenu extends Component
 {
-
-    
     public $currentUrl;
     public $receivedMessages;
     public $unreadMessagesCount;
-
 
     public $message;
 

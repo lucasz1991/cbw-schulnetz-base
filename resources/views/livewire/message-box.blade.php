@@ -1,4 +1,4 @@
-<div  class="w-full relative bg-gray-100 py-8"  wire:loading.class="cursor-wait">
+<div  class="w-full relative bg-gray-100 py-8 pb-12"  wire:loading.class="cursor-wait">
     @section('title')
         {{ __('Nachrichten') }}
     @endsection
@@ -31,7 +31,7 @@
     <div class="container mx-auto">
         <div class="bg-white  shadow-lg rounded-lg p-6"> 
             <div class="p-4 mb-4 text-sm text-green-800 rounded-lg bg-green-50" role="alert">
-<p><span class="text-lg font-medium">Hier erhalten Sie alle wichtigen Informationen von der CBW-Verwaltung.</span><br> Neue Mitteilungen und aktuelle Hinweise werden Ihnen direkt angezeigt, damit Sie jederzeit bestens informiert sind. Schauen Sie regelmäßig in Ihr Postfach, um keine wichtigen Neuigkeiten zu verpassen.</p>            </div>
+            <p><span class="text-lg font-medium">Hier erhalten Sie alle wichtigen Informationen von der CBW-Verwaltung.</span><br> Neue Mitteilungen und aktuelle Hinweise werden Ihnen direkt angezeigt, damit Sie jederzeit bestens informiert sind. Schauen Sie regelmäßig in Ihr Postfach, um keine wichtigen Neuigkeiten zu verpassen.</p>            </div>
         <div class="mt-10 space-y-5">
             <div class="flex flex-col md:flex-row items-center justify-between space-y-3 md:space-y-0 ">
                 <div class="w-full md:w-1/2">
@@ -59,43 +59,112 @@
                             <th scope="col" class="py-3 px-6 w-1/12"></th>
                         </tr>
                     </thead>
-                    <tbody>
-                        @forelse($messages as $message)
-                            <tr class="border-b hover:bg-blue-50 cursor-pointer @if($message->status == 1) bg-blue-200 @endif" wire:click="showMessage({{ $message->id }})"  wire:key="{{ $message->id }}">
-                                    <td class="px-4 py-3 font-medium text-gray-900 whitespace-nowrap  truncate">{{ $message->sender->name }}</td>
-                                    <td  class="px-4 py-3 font-medium text-gray-900 whitespace-nowrap  truncate">{{ $message->subject }}</td>
-                                    <td class="px-4 py-3 ">
-                                        <span class="block truncate" >{{ mb_substr(strip_tags($message->message), 0, 100) }}</span>
-                                        @if($message->files()->count() > 0)
-                                            <span class="text-xs text-gray-500">({{ $message->files()->count() }} Datei{{ $message->files()->count() > 1 ? 'en' : '' }})</span>
-                                        @endif
-                                    </td>
-                                    <td class="px-4 py-3">{{ $message->created_at->diffForHumans() }}</td>
-                                    <td x-data="{ open: false }" @click.away="open = false"
-                                         class="px-3 py-3 flex items-center justify-end">
-                                        <button @click.prevent="open = !open" class="inline-flex items-center p-0.5 text-sm font-medium text-center text-gray-500 hover:text-gray-800 rounded-lg focus:outline-none" type="button">
-                                            <svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewbox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                                <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" />
-                                            </svg>
-                                        </button>
-                                        <div class="hidden z-10 w-44 bg-white rounded divide-y divide-gray-100 shadow">
-                                            <ul class="py-1 text-sm text-gray-700" aria-labelledby="apple-imac-27-dropdown-button">
-                                                <li>
-                                                    <button @click.prevent="$wire.showMessage({{ $message->id }})" class="block py-2 px-4 hover:bg-gray-100">anzeigen</button>
-                                                </li>
-                                            </ul>
-                                            <div class="py-1">
-                                                <button @click.prevent="open = false"  class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100">Löschen</button>
-                                            </div>
-                                        </div>
-                                    </td>
-                            </tr>
-                        @empty
-                            <tr class=" " >
-                                <td class="border-b border-gray-200 px-6 py-4 truncate">Keine Nachrichten gefunden.</td>
-                            </tr>
-                        @endforelse    
-                    </tbody>
+<tbody>
+  @forelse($messages as $message)
+    @php
+      $isAdmin      = optional($message->sender)->role === 'admin';
+      $senderName   = $isAdmin ? 'CBW Team' : ($message->sender->name ?? 'Unbekannt');
+      $senderAvatar = $isAdmin
+          ? asset('site-images/icon.png')  // passe deinen Pfad an
+          : ($message->sender->profile_photo_url ?? asset('images/avatar-fallback.png'));
+      $isUnread     = (int)$message->status === 1;
+    @endphp
+
+    <tr
+      wire:key="msg-{{ $message->id }}"
+      class="group border-b cursor-pointer hover:bg-blue-50 {{ $isUnread ? 'bg-blue-50/70' : '' }}"
+      @click="$wire.showMessage({{ $message->id }})"
+      role="button"
+      aria-label="Nachricht öffnen"
+    >
+      {{-- Von --}}
+      <td class="px-4 py-3 font-medium text-gray-900 whitespace-nowrap truncate">
+        <span class="inline-flex items-center gap-2">
+          <img src="{{ $senderAvatar }}" class="w-5 h-5 rounded-full object-cover" alt="">
+          <span class="{{ $isUnread ? 'font-semibold' : '' }}">{{ $senderName }}</span>
+          @if($isUnread)
+            <span class="ml-1 inline-block w-1.5 h-1.5 rounded-full bg-blue-500" aria-hidden="true"></span>
+          @endif
+        </span>
+      </td>
+
+      {{-- Betreff --}}
+      <td class="px-4 py-3 font-medium text-gray-900 whitespace-nowrap truncate">
+        <span class="{{ $isUnread ? 'font-semibold' : '' }}">
+          {{ $message->subject }}
+        </span>
+      </td>
+
+      {{-- Nachricht (Snippet + optional Paperclip) --}}
+      <td class="px-4 py-3">
+        <div class="flex items-center gap-2 min-w-0">
+          @if($message->files_count > 0)
+            <svg class="w-4 h-4 text-gray-500 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M18.364 5.636a5 5 0 010 7.071l-7.071 7.071a5 5 0 11-7.071-7.071l6-6a3 3 0 114.243 4.243l-6 6a1 1 0 11-1.414-1.414l6-6a1 1 0 10-1.414-1.414l-6 6a3 3 0 104.243 4.243l7.071-7.071a3 3 0 10-4.243-4.243l-6 6" />
+            </svg>
+          @endif
+          <span class="truncate">
+            {{ \Illuminate\Support\Str::limit(strip_tags($message->message), 100) }}
+          </span>
+        </div>
+      </td>
+
+      {{-- Datum mit Tooltip --}}
+      <td class="px-4 py-3" title="{{ $message->created_at->format('d.m.Y H:i') }}">
+        {{ $message->created_at->diffForHumans() }}
+      </td>
+
+      {{-- Aktionen (Dropdown) --}}
+      <td class="px-3 py-3 relative" x-data="{ open:false }">
+        <button
+          type="button"
+          @click.stop="open = !open"
+          class="inline-flex items-center p-1.5 rounded hover:bg-gray-100 text-gray-600"
+          aria-haspopup="true"
+          aria-expanded="false"
+          title="Optionen"
+        >
+          <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm6-2a2 2 0 100 4 2 2 0 000-4z"/>
+          </svg>
+        </button>
+
+        <div
+          x-cloak
+          x-show="open"
+          @click.outside="open = false"
+          x-transition
+          class="absolute right-0 mt-2 z-20 w-44 bg-white rounded shadow border"
+          role="menu"
+        >
+          <button
+            type="button"
+            @click.stop="$wire.showMessage({{ $message->id }}); open=false;"
+            class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50"
+            role="menuitem"
+          >
+            Anzeigen
+          </button>
+          <button
+            type="button"
+            @click.stop="open=false"
+            class="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+            role="menuitem"
+          >
+            Löschen
+          </button>
+        </div>
+      </td>
+    </tr>
+  @empty
+    <tr>
+      <td class="border-b border-gray-200 px-6 py-4" colspan="5">
+        Keine Nachrichten gefunden.
+      </td>
+    </tr>
+  @endforelse
+</tbody>
+
                 </table>
             </div>
                 @if ($messages->hasMorePages())
@@ -109,54 +178,9 @@
                 @endif
             </div> 
         </div>
-        <!-- Modal zum ansehen der Nachricht-->
-        <div 
-            x-show="showMessageModal" x-cloak 
-            x-data="{
-                showMessageModal: @entangle('showMessageModal')
-            }"
-            
-            class="fixed inset-0 p-6 flex items-center justify-center z-50 modal-container ">
-
-            <div x-show="showMessageModal" class="fixed inset-0 transform" x-on:click="showMessageModal = false">
-                <div class="absolute inset-0 bg-gray-900 opacity-75"></div>
-            </div>
-
-            <div x-show="showMessageModal" class="bg-white rounded-lg overflow-hidden transform sm:w-full sm:mx-auto max-w-2xl ">
-                <div class=" p-4 relative">
-                    <button type="button" @click="showMessageModal = false; $selectedMessage = null;" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                    <div>
-                        <div class="flex">
-                            <span class="inline-block  text-xs font-medium text-gray-700 mb-2 bg-green-100 px-2 py-1 rounded-full">{{ $selectedMessage ? $selectedMessage->created_at->diffForHumans() : '' }}</span>
-                        </div>
-
-                    </div>
-                    <h3 class="text-xl font-semibold mb-4 border-b pb-2">{{ $selectedMessage ? $selectedMessage->subject : '' }}</h3>
-                    <div class="my-6">
-                        <p class="text-gray-800">{!! $selectedMessage ? $selectedMessage->message  : '' !!}</p>
-                    </div>
-                    <div class="mt-4">
-                        @if($selectedMessage && $selectedMessage->files()->count() > 0)
-                            <h4 class="text-lg font-semibold mb-2">Anhänge</h4>
-                            <ul class="space-y-2">
-                                @foreach($selectedMessage->files as $file)
-                                    <li>
-                                        <a href="{{ Storage::url($file->path) }}" target="_blank" class="text-blue-600 hover:underline">{{ $file->name }}</a>
-                                    </li>
-                                @endforeach
-                            </ul>
-                        @endif
-                    </div>
-                </div>
-
-                <div class="flex justify-end mt-4 mb-2">
-                    <button type="button" @click="showMessageModal = false; $selectedMessage = null;" class="bg-green-300 hover:bg-green-400 text-white px-4 py-2 rounded-lg mr-2">Schließen</button>
-                </div>
-            </div>
-        </div>
+            <x-ui.messages.message-show-modal
+                model="showMessageModal"
+                :message="$selectedMessage"
+            />
     </div>
 </div>

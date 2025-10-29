@@ -6,15 +6,17 @@ use Livewire\Component;
 use App\Models\Message;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Auth;
-
+use Illuminate\Support\Str;
 
 class MessageBox extends Component
 {
-    use WithPagination;  
+    use WithPagination;
 
     public $selectedMessage;
     public $showMessageModal = false;
     public $loadedPages = 1;
+
+    public string $search = ''; // 👈 Suche
 
     protected $listeners = [
         'refreshComponent' => '$refresh',
@@ -22,21 +24,20 @@ class MessageBox extends Component
 
     public function mount()
     {
-        
         $this->dispatch('refreshComponent');
     }
 
-    public function loadMore()
-    {
-        $this->loadedPages++;
-    }
+    public function updatingSearch()    { $this->resetPage(); }   // bei Suche neue Seite
+    public function loadMore()          { $this->loadedPages++; } // "Mehr laden"
 
     public function showMessage($messageId)
     {
-        $this->selectedMessage = auth()->user()->receivedMessages()->find($messageId);
-        
+        $this->selectedMessage = auth()->user()->receivedMessages()
+            ->with(['files', 'sender']) // sicherstellen
+            ->find($messageId);
+
         if ($this->selectedMessage) {
-            $this->selectedMessage->update(['status' => 2]);
+            $this->selectedMessage->update(['status' => 2]); // gelesen
             $this->showMessageModal = true;
         }
         $this->dispatch('refreshComponent');
@@ -44,14 +45,26 @@ class MessageBox extends Component
 
     public function render()
     {
-       
-        $messages = auth()->user()->receivedMessages()
-            ->orderBy('created_at', 'desc')
-            ->paginate(12 * $this->loadedPages);
-        if(Auth::check() && Auth::user()->role == 'tutor') {
-            return view('livewire.message-box', compact('messages'))->layout("layouts/app-tutor");
-        }else {
-            return view('livewire.message-box', compact('messages'))->layout("layouts/app");
+        $base = auth()->user()->receivedMessages()
+            ->with(['sender:id,name,role,profile_photo_path']) // 👈 eager
+            ->withCount('files')                                // 👈 files_count für Icon
+            ->orderByDesc('created_at');
+
+        if (filled($this->search)) {
+            $s = '%'.trim($this->search).'%';
+            $base->where(function ($q) use ($s) {
+                $q->where('subject', 'like', $s)
+                  ->orWhere('message', 'like', $s)
+                  ->orWhereHas('sender', fn($qs) => $qs->where('name', 'like', $s));
+            });
         }
+
+        $messages = $base->paginate(12 * $this->loadedPages);
+
+        if (auth()->check() && auth()->user()->role === 'tutor') {
+            return view('livewire.message-box', compact('messages'))->layout('layouts/app-tutor');
+        }
+        return view('livewire.message-box', compact('messages'))->layout('layouts/app');
     }
 }
+
