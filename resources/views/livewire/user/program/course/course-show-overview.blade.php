@@ -56,12 +56,72 @@
       </div>
     </div>
 </section>
-<section class="bg-white border-b-2 border-t-2  border-secondary">
-  <div class="container mx-auto px-5 py-10 space-y-8  pb-24">
-      <h2 class="text-lg font-semibold">Baustein-Beschreibungen</h2>
-      <p class="text-sm text-gray-500">Noch keine Baustein-Beschreibungen hinterlegt.</p>
+<section class="bg-white border-b-2 border-t-2 border-secondary">
+  <div class="container mx-auto px-5 py-10 pb-24">
+    <h2 class="text-lg font-semibold mb-6">Ergebnisse</h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {{-- Dein Ergebnis --}}
+      <div class="bg-white rounded-lg border shadow p-4">
+        <div class="flex items-start justify-between">
+          <p class="text-sm text-gray-500">Dein Ergebnis</p>
+          <x-ui.badge.badge :color="'blue'">
+            @if(!is_null($participantScore))
+              {{ number_format($participantScore, 0) }} / 100
+            @else
+              —
+            @endif
+          </x-ui.badge.badge>
+        </div>
+
+        <div class="mt-3">
+          @if(!is_null($participantScore))
+            <div class="w-full h-2 bg-gray-100 rounded">
+              <div class="h-2 bg-primary-600 rounded"
+                   style="width: {{ max(0, min(100, (int) round($participantScore))) }}%"></div>
+            </div>
+            <p class="mt-2 text-xs text-gray-500">
+              Note:
+              <span class="font-medium text-gray-800">{{ $participantGrade ?? '—' }}</span>
+            </p>
+          @else
+            <p class="text-sm text-gray-500">Noch kein Ergebnis erfasst.</p>
+          @endif
+        </div>
+      </div>
+
+      {{-- Klassenschnitt --}}
+      <div class="bg-white rounded-lg border shadow p-4">
+        <div class="flex items-start justify-between">
+          <p class="text-sm text-gray-500">Klassenschnitt</p>
+          <x-ui.badge.badge :color="'gray'">
+            @if(!is_null($classAverage))
+              {{ number_format($classAverage, 1) }} / 100
+            @else
+              —
+            @endif
+          </x-ui.badge.badge>
+        </div>
+
+        <div class="mt-3">
+          @if(!is_null($classAverage))
+            <div class="w-full h-2 bg-gray-100 rounded">
+              <div class="h-2 bg-gray-400 rounded"
+                   style="width: {{ max(0, min(100, (int) round($classAverage))) }}%"></div>
+            </div>
+            <p class="mt-2 text-xs text-gray-500">
+              Ø aus allen bewerteten Bausteinen dieses Kurses
+            </p>
+          @else
+            <p class="text-sm text-gray-500">Noch keine Klassenergebnisse vorhanden.</p>
+          @endif
+        </div>
+      </div>
+
+    </div>
   </div>
 </section>
+
 
 
 

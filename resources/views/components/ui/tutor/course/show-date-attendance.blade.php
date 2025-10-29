@@ -76,7 +76,6 @@
         </div>
     </div>      
 
-  {{-- Stats + Bulk-Aktionen --}}
   <div class="flex flex-wrap justify-between items-center gap-2">
     @if($selectedDay)
       <div class="flex flex-wrap gap-2 text-xs">
@@ -105,7 +104,7 @@
   </div>
 
   {{-- Tabelle: pro Tag alle TN mit Aktionen --}}
-  <div class=" border rounded bg-white">
+  <div class="overflow-x-auto border rounded bg-white">
     <table class="min-w-full text-sm table-fixed">
       <thead class="bg-gray-50">
         <tr>
@@ -175,11 +174,13 @@
           <tr x-data="{ lateOpen:false, noteOpen:false }" class="hover:bg-gray-50">
             {{-- 1) Teilnehmer (links) --}}
             <td class="px-4 py-2">
-              @if($r['user'])
-                <x-user.public-info :person="$r['user']" />
-              @else
-                <div class="font-medium">Teilnehmer #{{ $r['id'] }}</div>
-              @endif
+              <div class="w-max">
+                @if($r['user'])
+                  <x-user.public-info :person="$r['user']" />
+                @else
+                  <div class="font-medium">Teilnehmer #{{ $r['id'] }}</div>
+                @endif
+              </div>
             </td>
 
             {{-- 2) Status & Zeiten (Mitte, linksbündig) --}}

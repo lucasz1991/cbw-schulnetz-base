@@ -1,7 +1,7 @@
 @props([
     'person' => null,
     'user'   => null,
-    'size'   => 8,   // Tailwind-Größe: 6/8/10/12 ...
+    'size'   => 6,   // Tailwind-Größe: 6/8/10/12 ...
 ])
 
 @php
@@ -48,12 +48,7 @@
             >
     @endif
 
-    <span class="inline-flex items-center gap-1.5 text-sm font-medium text-gray-800">
+    <span class="inline-flex items-center gap-1.5 text-xs md:text-sm font-medium text-gray-800">
         <span>{{ $displayName }}</span>
-        <span
-            class="inline-block w-2 h-2 rounded-full {{ $hasUser ? 'bg-green-500/90' : 'bg-gray-300' }}"
-            title="{{ $hasUser ? 'Verknüpfter Benutzer vorhanden' : 'Kein verknüpfter Benutzer' }}"
-            aria-label="{{ $hasUser ? 'Status: aktiv' : 'Status: inaktiv' }}">
-        </span>
     </span>
 </div>

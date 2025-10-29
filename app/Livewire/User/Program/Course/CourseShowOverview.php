@@ -9,6 +9,7 @@ use App\Models\Course;
 use App\Models\Person;
 use App\Models\CourseParticipantEnrollment;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection; // <- neu
+use Illuminate\Support\Collection;
 
 class CourseShowOverview extends Component
 {
@@ -24,8 +25,21 @@ class CourseShowOverview extends Component
     public ?Person $tutor = null;
     public int $participantsCount = 0;
 
-    /** @var EloquentCollection<Course> */
     public EloquentCollection $enrolledCourses; // <- als Eloquent-Collection typisieren
+
+    public ?float $participantScore = null; // Dein Ergebnis (Ø tn_punkte > 0)
+    public ?float $classAverage     = null; // Klassenschnitt (Ø klassenschnitt > 0)
+
+    protected function safeAvg(Collection $c, string $key): ?float
+    {
+        // Ø nur über >0 Werte; wenn nichts vorliegt -> null
+        $vals = $c->pluck($key)
+                  ->filter(fn($v) => is_numeric($v) && (float)$v > 0)
+                  ->map(fn($v) => (float)$v)
+                  ->values();
+
+        return $vals->isNotEmpty() ? $vals->avg() : null;
+    }
 
     public function mount(string $klassenId): void
     {
@@ -33,7 +47,6 @@ class CourseShowOverview extends Component
 
         $person = Auth::user()?->person;
         if (! $person) abort(404);
-
         // Kurs + benötigte Relationen laden
         $course = Course::query()
             ->with(['tutor', 'days'])   // <- eager load
@@ -100,6 +113,15 @@ class CourseShowOverview extends Component
                 'title'      => $this->enrolledCourses[$this->index + 1]->title,
               ]
             : null;
+        
+        $pd = $person->programdata ?? [];
+        $blocks = collect($pd['tn_baust'] ?? [])
+            ->where('klassen_id', $klassenId)
+            ->values();
+
+        // Ø über >0 Punkte
+        $this->participantScore = $this->safeAvg($blocks, 'tn_punkte');       // z.B. 91
+        $this->classAverage     = $this->safeAvg($blocks, 'klassenschnitt');  // z.B. 71
     }
 
     private function status(?Carbon $start, ?Carbon $end): string

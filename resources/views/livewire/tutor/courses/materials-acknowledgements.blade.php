@@ -1,4 +1,8 @@
-<div class="rounded-md border bg-white p-4">
+<div class="rounded-md border border-yellow-300 bg-yellow-50 p-4 mb-2">
+  <div class="mb-6"> 
+    <h2 class="text-base font-semibold text-gray-800 mb-2">Bildungsmittel-Bestätigungen</h2>
+    <p class="text-sm text-gray-600">Hier finden Sie eine Übersicht über die Bestätigungen der Bildungsmittel für den Kurs der Teilnehmer.</p>
+  </div>
   {{-- Kurzübersicht für den Direktblick --}}
   <div class="flex flex-wrap items-center gap-3">
     <span class="inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 bg-gray-50">
@@ -37,7 +41,7 @@
     <x-slot name="content">
       <div class="mb-3 flex items-center gap-2">
         <input type="search"
-               wire:model.debounce.300ms="search"
+               wire:model.live.debounce.300ms="search"
                placeholder="Teilnehmer suchen …"
                class="w-full rounded-md border-gray-300"/>
       </div>

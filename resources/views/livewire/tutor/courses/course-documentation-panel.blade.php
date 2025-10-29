@@ -6,8 +6,8 @@
         @if($selectedDayId)
           <x-ui.tutor.course.show-date-documentation
             :selectedDay="$selectedDay"
-            :selectedDayId="$selectedDayId"     {{--  ← NEU --}}
-            :dayNotes="$dayNotes"               {{--  ← NEU --}}
+            :selectedDayId="$selectedDayId"
+            :dayNotes="$dayNotes"
             :selectPreviousDayPossible="$selectPreviousDayPossible"
             :selectNextDayPossible="$selectNextDayPossible"
           />
