@@ -1,4 +1,4 @@
-<div class="relative" x-data="{ open:false }">
+<div class="relative" x-data="{ open:false }"  wire:poll.60s="loadInbox">
   <!-- Button -->
   <button @click="open = !open" class="block" aria-haspopup="true" :aria-expanded="open">
     <span class="relative">
