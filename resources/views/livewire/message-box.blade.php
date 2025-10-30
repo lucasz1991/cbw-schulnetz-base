@@ -166,7 +166,7 @@
 </tbody>
 
                 </table>
-            </div>
+            </div> 
                 @if ($messages->hasMorePages())
                     <div class="text-center mt-10"
                     x-data="{ isClicked: false }" 
@@ -183,4 +183,4 @@
                 :message="$selectedMessage"
             />
     </div>
-</div>
+</div> 

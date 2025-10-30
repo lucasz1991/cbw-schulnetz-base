@@ -1,5 +1,5 @@
 <div>
-  <div class="lg:grid lg:min-h-[70vh] lg:grid-cols-12">
+  <div class="lg:grid lg:min-h-[100vh] lg:grid-cols-12">
     {{-- Linke Seite mit Bild und Text --}}
     <section class="relative flex h-32 items-center justify-end lg:col-span-5 lg:h-full xl:col-span-6">
       <img

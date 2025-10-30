@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" style="user-select:none;" class="scroll-smooth">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="scroll-smooth">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -35,9 +35,11 @@
     <body class=" antialiased ">
         <div id="main" class="snap-y">
             @livewire('user-alert')
-            <header class="snap-start">
-                @livewire('user-navigation-menu')
-            </header>
+            @if(Auth::check())
+                <header class="snap-start">
+                    @livewire('user-navigation-menu')
+                </header>
+            @endif
             <x-page-header />
             <x-pagebuilder-module :position="'top_banner'"/>
             <x-pagebuilder-module :position="'banner'"/>
@@ -49,11 +51,13 @@
                 <x-pagebuilder-module :position="'content'"/>
             </main>
         </div>
-        <x-pagebuilder-module :position="'footer'"/>
-        @livewire('footer')
-        @livewire('tools.chatbot')
-          <livewire:tools.file-pools.file-preview-modal lazy />
-        @stack('modals')
+        @if(Auth::check())
+            <x-pagebuilder-module :position="'footer'"/>
+            @livewire('footer')
+            @livewire('tools.chatbot')
+            <livewire:tools.file-pools.file-preview-modal lazy />
+            @stack('modals')
+        @endif
         
         
         <!-- Scripts -->

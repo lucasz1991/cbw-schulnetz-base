@@ -66,121 +66,13 @@
                              </a>
                          </div>
                          <div class="flex items-center space-x-4 max-md:order-3 md:order-2  flex-none" @click="$dispatch('navhide')">
-                             <!-- Inbox Buttons -->
-                             <div class="flex items-center space-x-6 mr-2">
-                                 @if (Auth::check() && $currentUrl !== url('/user/messages'))
-                                 <div class="relative" x-data="{ open: false, modalOpen: false, selectedMessage: null  }">
-                                     <!-- Button zum Öffnen des Popups -->
-                                     <button @click="open = !open" class="block">
-                                         <span class="relative">
-                                             <svg xmlns="http://www.w3.org/2000/svg" width="30px" class="fill-[#333] hover:fill-[#077bff] stroke-2 inline" viewBox="0 0 512 512" stroke-width="106">
-                                                 <g>
-                                                     <g>
-                                                         <g>
-                                                             <g>
-                                                                 <path d="M479.568,412.096H33.987c-15,0-27.209-12.209-27.209-27.209V130.003c0-15,12.209-27.209,27.209-27.209h445.581      
-                                                                 c15,0,27.209,12.209,27.209,27.209v255C506.661,399.886,494.568,412.096,479.568,412.096z 
-                                                                 M33.987,114.189      
-                                                                 c-8.721,0-15.814,7.093-15.814,15.814v255c0,8.721,7.093,15.814,15.814,15.814h445.581c8.721,0,15.814-7.093,15.814-15.814v-255      
-                                                                 c0-8.721-7.093-15.814-15.814-15.814C479.568,114.189,33.987,114.189,33.987,114.189z"/>
-                                                             </g>
-                                                             <g>
-                                                                 <path d="M256.894,300.933c-5.93,0-11.86-1.977-16.744-5.93l-41.977-33.14L16.313,118.491c-2.442-1.977-2.907-5.581-0.93-8.023      
-                                                                 c1.977-2.442,5.581-2.907,8.023-0.93l181.86,143.372l42.093,33.14c5.698,4.535,13.721,4.535,19.535,0l41.977-33.14      
-                                                                 l181.628-143.372c2.442-1.977,6.047-1.512,8.023,0.93c1.977-2.442,1.512,6.047-0.93,8.023l-181.86,143.372l-41.977,33.14      
-                                                                 C268.755,299.072,262.708,300.933,256.894,300.933z"/>
-                                                             </g>
-                                                         </g>
-                                                     </g>
-                                                 </g>
-                                             </svg>
-                                             @if($unreadMessagesCount >= 1)
-                                                 <span class="absolute right-[-9px] -ml-1 top-[-5px] rounded-full bg-red-400 px-1.5 py-0.2 text-xs text-white">
-                                                     {{ $unreadMessagesCount }}
-                                                 </span>
-                                             @endif
-                                         </span>
-                                     </button>
-                                     <!-- Popup -->
-                                     <div 
-                                         x-show="open" 
-                                         x-cloak
-                                         class="absolute md:p-4 right-0 md:mt-2 md:w-[24.5rem] max-md:fixed max-md:inset-0 max-md:w-full max-md:top-0 max-md:flex max-md:items-center max-md:justify-center max-md:bg-black max-md:bg-opacity-50 max-md:z-50"
-                                         x-transition>
-                                         <div @click.away="open = false" class="relative max-w-full max-md:pt-10 divide-y divide-slate-400/20 rounded-lg bg-white text-[0.8125rem]/5 text-slate-900 ring-1 shadow-xl shadow-black/5 ring-slate-700/10 z-50">
-                                                     <button type="button" @click="open = false; selectedMessage = null;" class="md:hidden absolute top-2 right-2 text-gray-400 hover:text-gray-600">
-                                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                                         </svg>
-                                                     </button>
-                                             <!-- Nachrichtenliste -->
-                                             @forelse($receivedMessages as $message)
-                                             <div 
-                                                 @click="modalOpen = true; open = false; selectedMessage = { subject: '{{ $message->subject }}', body: '{!! addslashes($message->message) !!}', createdAt: '{{ $message->created_at->diffForHumans() }}' }; $wire.setMessageStatus({{ $message->id }}); " 
-                                                 class="flex items-center p-4 hover:bg-slate-50 cursor-pointer @if($message->status == 1) bg-blue-200 @endif">
-                                                 <div class="block h-10 w-10 size-4 flex-none rounded-full">
-                                                     <x-application-logo class="w-10" />
-                                                 </div>
-                                                 <div class="ml-4 flex-auto">    
-                                                     <div class="font-medium">{{ $message->subject }}</div>
-                                                     <div class="mt-1 text-slate-700">
-                                                         {{ Str::limit(strip_tags($message->message), 40) }}
-                                                     </div>
-                                                 </div>
-                                             </div>
-                                             @empty
-                                             <div class="p-4 text-center text-slate-700">
-                                                 Keine  Nachrichten
-                                             </div>
-                                             @endforelse
-                                             <!-- "Alle ansehen"-Button -->
-                                             <div class="p-4">
-                                                 <a href="{{ route('messages') }}" 
-                                                     class="pointer-events-auto rounded-md px-4 py-2 text-center font-medium ring-1 shadow-xs ring-slate-700/10 hover:bg-slate-50 block">
-                                                     Alle Nachrichten ansehen
-                                                 </a>
-                                             </div>
-                                         </div>
-                                     </div>
-                                     <!-- Modal -->
-                                     <div 
-                                         x-show="modalOpen" 
-                                         x-cloak
-                                         class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
-                                         x-transition:enter="transition ease-out duration-200"
-                                             x-transition:enter-start="opacity-0"
-                                             x-transition:enter-end="opacity-100"
-                                             x-transition:leave="transition ease-in duration-200"
-                                             x-transition:leave-start="opacity-100"
-                                             x-transition:leave-end="opacity-0">
-                                         <div @click.away="modalOpen = false"  class="bg-white w-[90%] max-w-md rounded-lg shadow-lg p-6 relative">
-                                             <div>
-                                                 <button type="button" @click="modalOpen = false; selectedMessage = null;" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
-                                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                                     </svg>
-                                                 </button>
-                                                 <div>
-                                                     <div class="flex">
-                                                         <span class="inline-block  text-xs font-medium text-gray-700 mb-2 bg-green-100 px-2 py-1 rounded-full" x-text="selectedMessage?.createdAt"></span>
-                                                     </div>
-                                                 </div>
-                                                 <h3 class="text-xl font-semibold mb-4 border-b pb-2" x-text="selectedMessage?.subject"></h3>
-                                                 <div class="my-6">
-                                                     <p class="text-gray-800" x-html="selectedMessage?.body"></p>
-                                                 </div>
-                                                 </div>
-                                                 <div class="flex justify-end mt-4">
-                                                     <button type="button" @click="modalOpen = false; isClicked = true; setTimeout(() => isClicked = false, 100)" 
-                                                     x-data="{ isClicked: false }" 
-                                                     :style="isClicked ? 'transform:scale(0.7);' : 'transform:scale(1);'"
-                                                     class="transition-all duration-100 py-2.5 px-5  text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 ">Schließen</button>
-                                                 </div>
-                                         </div>
-                                     </div>
-                                 </div>
-                                 @endif
-                             </div>
+{{-- Inbox Buttons --}}
+<div class="flex items-center space-x-6 mr-2">
+  @if (Auth::check() && $currentUrl !== url('/user/messages'))
+    <livewire:tools.header-inbox />
+  @endif
+</div>
+
              
              
                              <div class="hidden md:block">

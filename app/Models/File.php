@@ -33,110 +33,353 @@ class File extends Model
         'expires_at' => 'datetime',
     ];
 
+    /* ------------------------------------------
+     * zentrale Dateitypen-Definition
+     * ----------------------------------------*/
+protected static function fileTypeMap(): array
+{
+    return [
+        // -----------------------------------------
+        // OFFICE & DOKUMENTE
+        // -----------------------------------------
+        'pdf' => [
+            'ext'  => 'pdf',
+            'label'=> 'PDF-Dokument',
+            'icon' => 'file-pdf.png',
+            'mime' => ['application/pdf'],
+        ],
+        'doc' => [
+            'ext'  => 'doc',
+            'label'=> 'Microsoft Word-Dokument',
+            'icon' => 'file-word.png',
+            'mime' => [
+                'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            ],
+        ],
+        'docx' => [
+            'ext'  => 'docx',
+            'label'=> 'Microsoft Word-Dokument',
+            'icon' => 'file-word.png',
+            'mime' => [
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            ],
+        ],
+        'xls' => [
+            'ext'  => 'xls',
+            'label'=> 'Microsoft Excel-Arbeitsmappe',
+            'icon' => 'file-exel.png',
+            'mime' => [
+                'application/vnd.ms-excel',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            ],
+        ],
+        'xlsx' => [
+            'ext'  => 'xlsx',
+            'label'=> 'Microsoft Excel-Arbeitsmappe',
+            'icon' => 'file-exel.png',
+            'mime' => ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+        ],
+        'ppt' => [
+            'ext'  => 'ppt',
+            'label'=> 'Microsoft PowerPoint-Präsentation',
+            'icon' => 'file-powerpoint.png',
+            'mime' => ['application/vnd.ms-powerpoint'],
+        ],
+        'pptx' => [
+            'ext'  => 'pptx',
+            'label'=> 'Microsoft PowerPoint-Präsentation',
+            'icon' => 'file-powerpoint.png',
+            'mime' => ['application/vnd.openxmlformats-officedocument.presentationml.presentation'],
+        ],
+        'csv' => [
+            'ext'  => 'csv',
+            'label'=> 'CSV-Tabelle',
+            'icon' => 'csv-icon.svg',
+            'mime' => ['text/csv'],
+        ],
+        'txt' => [
+            'ext'  => 'txt',
+            'label'=> 'Textdatei',
+            'icon' => 'txt-icon.svg',
+            'mime' => ['text/plain'],
+        ],
+        'xml' => [
+            'ext'  => 'xml',
+            'label'=> 'XML-Datei',
+            'icon' => 'xml-icon.svg',
+            'mime' => ['application/xml', 'text/xml'],
+        ],
+        'html' => [
+            'ext'  => 'html',
+            'label'=> 'HTML-Dokument',
+            'icon' => 'html-icon.svg',
+            'mime' => ['text/html'],
+        ],
+        'htm' => [
+            'ext'  => 'htm',
+            'label'=> 'HTML-Dokument',
+            'icon' => 'html-icon.svg',
+            'mime' => ['text/html'],
+        ],
+
+        // -----------------------------------------
+        // CODE & SCRIPTING
+        // -----------------------------------------
+        'php' => [
+            'ext'  => 'php',
+            'label'=> 'PHP-Datei',
+            'icon' => 'php-icon.svg',
+            'mime' => ['text/x-php', 'application/x-httpd-php', 'application/x-php'],
+        ],
+        'js' => [
+            'ext'  => 'js',
+            'label'=> 'JavaScript-Datei',
+            'icon' => 'txt-icon.svg',
+            'mime' => ['application/javascript', 'text/javascript'],
+        ],
+        'json' => [
+            'ext'  => 'json',
+            'label'=> 'JSON-Datei',
+            'icon' => 'txt-icon.svg',
+            'mime' => ['application/json'],
+        ],
+        'css' => [
+            'ext'  => 'css',
+            'label'=> 'CSS-Stylesheet',
+            'icon' => 'txt-icon.svg',
+            'mime' => ['text/css'],
+        ],
+        'yaml' => [
+            'ext'  => 'yaml',
+            'label'=> 'YAML-Datei',
+            'icon' => 'txt-icon.svg',
+            'mime' => ['application/x-yaml', 'text/yaml'],
+        ],
+        'sql' => [
+            'ext'  => 'sql',
+            'label'=> 'SQL-Skript',
+            'icon' => 'txt-icon.svg',
+            'mime' => ['application/sql', 'text/x-sql'],
+        ],
+        'md' => [
+            'ext'  => 'md',
+            'label'=> 'Markdown-Dokument',
+            'icon' => 'txt-icon.svg',
+            'mime' => ['text/markdown'],
+        ],
+
+        // -----------------------------------------
+        // GRAFIK / DESIGN
+        // -----------------------------------------
+        'ai' => [
+            'ext'  => 'ai',
+            'label'=> 'Adobe Illustrator-Datei',
+            'icon' => 'ai-icon.svg',
+            'mime' => ['application/postscript', 'application/illustrator'],
+        ],
+        'eps' => [
+            'ext'  => 'eps',
+            'label'=> 'PostScript-Datei (EPS)',
+            'icon' => 'eps-icon.svg',
+            'mime' => ['application/postscript'],
+        ],
+        'cdr' => [
+            'ext'  => 'cdr',
+            'label'=> 'CorelDRAW-Datei',
+            'icon' => 'cdr-icon.svg',
+            'mime' => ['application/vnd.corel-draw'],
+        ],
+        'raw' => [
+            'ext'  => 'raw',
+            'label'=> 'RAW-Bilddatei',
+            'icon' => 'raw-icon.svg',
+            'mime' => ['image/x-raw', 'image/raw'],
+        ],
+        'gif' => [
+            'ext'  => 'gif',
+            'label'=> 'GIF-Bild',
+            'icon' => 'gif-icon.svg',
+            'mime' => ['image/gif'],
+        ],
+        'jpg' => [
+            'ext'  => 'jpg',
+            'label'=> 'JPEG-Bild',
+            'icon' => null,
+            'mime' => ['image/jpeg'],
+        ],
+        'jpeg' => [
+            'ext'  => 'jpeg',
+            'label'=> 'JPEG-Bild',
+            'icon' => null,
+            'mime' => ['image/jpeg'],
+        ],
+        'png' => [
+            'ext'  => 'png',
+            'label'=> 'PNG-Bild',
+            'icon' => null,
+            'mime' => ['image/png'],
+        ],
+        'svg' => [
+            'ext'  => 'svg',
+            'label'=> 'SVG-Vektorgrafik',
+            'icon' => null,
+            'mime' => ['image/svg+xml'],
+        ],
+        'webp' => [
+            'ext'  => 'webp',
+            'label'=> 'WebP-Bild',
+            'icon' => null,
+            'mime' => ['image/webp'],
+        ],
+        'heic' => [
+            'ext'  => 'heic',
+            'label'=> 'HEIC-Bild',
+            'icon' => null,
+            'mime' => ['image/heic', 'image/heif'],
+        ],
+
+        // -----------------------------------------
+        // AUDIO / VIDEO
+        // -----------------------------------------
+        'mp3' => [
+            'ext'  => 'mp3',
+            'label'=> 'MP3-Audiodatei',
+            'icon' => 'mp3-icon.svg',
+            'mime' => ['audio/mpeg'],
+        ],
+        'wav' => [
+            'ext'  => 'wav',
+            'label'=> 'WAV-Audiodatei',
+            'icon' => 'wav-icon.svg',
+            'mime' => ['audio/wav', 'audio/x-wav'],
+        ],
+        'mp4' => [
+            'ext'  => 'mp4',
+            'label'=> 'MP4-Video',
+            'icon' => 'mp4-icon.svg',
+            'mime' => ['video/mp4'],
+        ],
+        'avi' => [
+            'ext'  => 'avi',
+            'label'=> 'AVI-Video',
+            'icon' => 'file-video.png',
+            'mime' => ['video/x-msvideo'],
+        ],
+        'mov' => [
+            'ext'  => 'mov',
+            'label'=> 'MOV-Video',
+            'icon' => 'file-video.png',
+            'mime' => ['video/quicktime'],
+        ],
+        'mpg' => [
+            'ext'  => 'mpg',
+            'label'=> 'MPEG-Video',
+            'icon' => 'file-video.png',
+            'mime' => ['video/mpeg'],
+        ],
+        'mpeg' => [
+            'ext'  => 'mpeg',
+            'label'=> 'MPEG-Video',
+            'icon' => 'file-video.png',
+            'mime' => ['video/mpeg'],
+        ],
+
+        // -----------------------------------------
+        // ARCHIVE
+        // -----------------------------------------
+        'zip' => [
+            'ext'  => 'zip',
+            'label'=> 'ZIP-Archiv',
+            'icon' => 'zip-icon.svg',
+            'mime' => ['application/zip', 'application/x-zip-compressed'],
+        ],
+        'rar' => [
+            'ext'  => 'rar',
+            'label'=> 'RAR-Archiv',
+            'icon' => 'rar-icon.svg',
+            'mime' => ['application/x-rar-compressed'],
+        ],
+        '7z' => [
+            'ext'  => '7z',
+            'label'=> '7z-Archiv',
+            'icon' => 'zip-icon.svg',
+            'mime' => ['application/x-7z-compressed'],
+        ],
+        'tar' => [
+            'ext'  => 'tar',
+            'label'=> 'TAR-Archiv',
+            'icon' => 'zip-icon.svg',
+            'mime' => ['application/x-tar'],
+        ],
+        'gz' => [
+            'ext'  => 'gz',
+            'label'=> 'GZIP-Archiv',
+            'icon' => 'zip-icon.svg',
+            'mime' => ['application/gzip'],
+        ],
+
+        // -----------------------------------------
+        // FALLBACK
+        // -----------------------------------------
+        '*' => [
+            'ext'  => null,
+            'label'=> 'Datei',
+            'icon' => 'doc-icon.svg',
+            'mime' => ['application/octet-stream'],
+        ],
+    ];
+}
+
+
+    protected static function resolveFileType(?string $mime, ?string $ext): array
+    {
+        $types = static::fileTypeMap();
+        $mime = strtolower((string) $mime);
+        $ext  = strtolower((string) $ext);
+
+        if ($ext && isset($types[$ext])) {
+            return $types[$ext];
+        }
+        foreach ($types as $type) {
+            if (in_array($mime, $type['mime'] ?? [], true)) {
+                return $type;
+            }
+        }
+        return $types['*'];
+    }
+
+    public function getIsImageAttribute(): bool
+    {
+        $mime = (string) ($this->mime_type ?? '');
+        $ext  = strtolower((string) ($this->guessExtension($mime, $this->path) ?? ''));
+        $type = static::resolveFileType($mime, $ext);
+
+        if (str_starts_with($mime, 'image/') && $type['icon'] === null) {
+            return true;
+        }else {
+            return false;
+        }
+    }
+
     public function getIconOrThumbnailAttribute(): string
     {
         $mime = (string) ($this->mime_type ?? '');
+        $ext  = strtolower((string) ($this->guessExtension($mime, $this->path) ?? ''));
+        $type = static::resolveFileType($mime, $ext);
 
-        // → Bilder kriegen ein echtes Thumbnail / Temp-URL
-        if (str_starts_with($mime, 'image/')) {
+        if (str_starts_with($mime, 'image/') && $type['icon'] === null) {
             return $this->getEphemeralPublicUrl(10);
         }
-
-        // Extension aus Pfad/MIME ermitteln
-        $ext = strtolower((string) ($this->guessExtension($mime, $this->path) ?? ''));
-
-        // 1) Exakte Zuordnung nach Dateiendung (aus deinem Ordner)
-        $byExt = [
-            // Office & Dokumente
-            'pdf'  => 'file-pdf.png',
-            'doc'  => 'file-word.png',
-            'docx' => 'file-word.png',
-            'ppt'  => 'file-powerpoint.png',
-            'pptx' => 'file-powerpoint.png',
-            'xls'  => 'file-exel.png',     // Schreibweise wie im Screenshot
-            'xlsx' => 'file-exel.png',
-            'csv'  => 'csv-icon.svg',
-            'txt'  => 'txt-icon.svg',
-            'xml'  => 'xml-icon.svg',
-            'htm'  => 'html-icon.svg',
-            'html' => 'html-icon.svg',
-
-            // Code & Scripts
-            'php'  => 'php-icon.svg',
-
-            // Grafik / Design
-            'ai'   => 'ai-icon.svg',
-            'eps'  => 'eps-icon.svg',
-            'cdr'  => 'cdr-icon.svg',
-            'gif'  => 'gif-icon.svg',
-            'raw'  => 'raw-icon.svg',
-
-            // Audio
-            'mp3'  => 'mp3-icon.svg',
-            'wav'  => 'wav-icon.svg',
-
-            // Video
-            'mp4'  => 'mp4-icon.svg',
-            'avi'  => 'avi-icon.svg',
-            'mov'  => 'mov-icon.svg',
-            'mpg'  => 'mpg-icon.svg',
-            'mpeg' => 'mpg-icon.svg',
-
-            // Archive
-            'zip'  => 'zip-icon.svg',
-            'rar'  => 'rar-icon.svg',
-            '7z'   => 'zip-icon.svg',
-        ];
-
-        if ($ext && isset($byExt[$ext])) {
-            return asset('site-images/fileicons/' . $byExt[$ext]);
-        }
-
-        // 2) MIME-Fallbacks (falls keine Extension erkannt)
-        if (str_starts_with($mime, 'video/')) {
-            return asset('site-images/fileicons/file-video.png');
-        }
-        if (str_starts_with($mime, 'audio/')) {
-            return asset('site-images/fileicons/file-audio.png');
-        }
-        if (str_contains($mime, 'pdf')) {
-            return asset('site-images/fileicons/file-pdf.png');
-        }
-        if (str_contains($mime, 'zip') || str_contains($mime, 'compressed')) {
-            return asset('site-images/fileicons/file-zip.png');
-        }
-        if (str_contains($mime, 'excel') || str_contains($mime, 'spreadsheet')) {
-            return asset('site-images/fileicons/file-exel.png');
-        }
-        if (str_contains($mime, 'word')) {
-            return asset('site-images/fileicons/file-word.png');
-        }
-        if (str_contains($mime, 'powerpoint') || str_contains($mime, 'presentation')) {
-            return asset('site-images/fileicons/file-powerpoint.png');
-        }
-        if (str_starts_with($mime, 'text/')) {
-            if (str_contains($mime, 'html')) {
-                return asset('site-images/fileicons/html-icon.svg');
-            }
-            return asset('site-images/fileicons/txt-icon.svg');
-        }
-        if (str_contains($mime, 'php')) {
-            return asset('site-images/fileicons/php-icon.svg');
-        }
-
-        // 3) Letzter Fallback → generisches Doku-Icon
-        return asset('site-images/fileicons/doc-icon.svg');
+        return asset('site-images/fileicons/' . ($type['icon'] ?? static::fileTypeMap()['*']['icon']));
     }
-
-
 
     public function getSizeFormattedAttribute(): string
     {
         $bytes = (int) $this->size;
-
         if ($bytes < 1024) {
             return $bytes . ' B';
-        } elseif ($bytes < 1048576) {
+        } elseif ($bytes < 1000000) {
             return number_format($bytes / 1024, 1, ',', '.') . ' KB';
         } else {
             return number_format($bytes / 1048576, 2, ',', '.') . ' MB';
@@ -148,7 +391,6 @@ class File extends Model
         $publicDisk = 'public';
         $sourceDisk = 'private';
         $cacheKey   = "file:{$this->getKey()}:temp_url";
-
         $cached = Cache::get($cacheKey);
 
         if ($cached) {
@@ -158,7 +400,7 @@ class File extends Model
             }
         }
 
-        $lock = Cache::lock("lock:{$cacheKey}", 10); 
+        $lock = Cache::lock("lock:{$cacheKey}", 10);
         try {
             if ($lock->get()) {
                 $cached = Cache::get($cacheKey);
@@ -171,29 +413,26 @@ class File extends Model
 
                 $tmpName = Str::uuid()->toString() . '-' . basename($this->path);
                 $tmpPath = 'temp/' . $tmpName;
-
                 $read = Storage::disk($sourceDisk)->readStream($this->path);
-                if (! $read) {
+                if (!$read) {
                     throw new \RuntimeException("Quelle nicht lesbar: {$this->path}");
                 }
                 Storage::disk($publicDisk)->writeStream($tmpPath, $read);
-                if(Storage::disk($publicDisk)->exists($tmpPath) === false) {
+                if (!Storage::disk($publicDisk)->exists($tmpPath)) {
                     Log::error("Fehler beim Schreiben der temporären Datei: {$tmpPath}");
                     throw new \RuntimeException("Ziel nicht schreibbar: {$tmpPath}");
-                }else {
+                } else {
                     Log::info("Temporäre Datei erstellt: {$tmpPath}");
                 }
-                if (is_resource($read)) { fclose($read); }
-
-                DeleteTempFile::dispatch($publicDisk, $tmpPath)
-                    ->delay(now()->addMinutes($minutes));
-
+                if (is_resource($read)) {
+                    fclose($read);
+                }
+                DeleteTempFile::dispatch($publicDisk, $tmpPath)->delay(now()->addMinutes($minutes));
                 $payload = [
                     'path'       => $tmpPath,
                     'expires_at' => now()->addMinutes($minutes)->toIso8601String(),
                 ];
                 Cache::put($cacheKey, $payload, now()->addMinutes($minutes));
-
                 return Storage::disk($publicDisk)->url($tmpPath);
             }
         } finally {
@@ -207,28 +446,25 @@ class File extends Model
 
         $tmpName = Str::uuid()->toString() . '-' . basename($this->path);
         $tmpPath = 'temp/' . $tmpName;
-
         $read = Storage::disk($sourceDisk)->readStream($this->path);
-        if (! $read) {
+        if (!$read) {
             throw new \RuntimeException("Quelle nicht lesbar: {$this->path}");
         }
         Storage::disk($publicDisk)->writeStream($tmpPath, $read);
-        if(Storage::disk($publicDisk)->exists($tmpPath) === false) {
+        if (!Storage::disk($publicDisk)->exists($tmpPath)) {
             Log::error("Fehler beim Schreiben der temporären Datei: {$tmpPath}");
             throw new \RuntimeException("Ziel nicht schreibbar: {$tmpPath}");
-        }else {
+        } else {
             Log::info("Temporäre Datei erstellt: {$tmpPath}");
         }
-        if (is_resource($read)) { fclose($read); }
-
-        DeleteTempFile::dispatch($publicDisk, $tmpPath)
-            ->delay(now()->addMinutes($minutes));
-
+        if (is_resource($read)) {
+            fclose($read);
+        }
+        DeleteTempFile::dispatch($publicDisk, $tmpPath)->delay(now()->addMinutes($minutes));
         Cache::put($cacheKey, [
             'path'       => $tmpPath,
             'expires_at' => now()->addMinutes($minutes)->toIso8601String(),
         ], now()->addMinutes($minutes));
-
         return Storage::disk($publicDisk)->url($tmpPath);
     }
 
@@ -246,21 +482,24 @@ class File extends Model
         return (int) $this->user_id === (int) $authUser->id;
     }
 
-        public function getNameWithExtensionAttribute(): string
+    public function getNameWithExtensionAttribute(): string
     {
         $safeName = $this->sanitizeName($this->name ?? 'datei');
         $ext = pathinfo($safeName, PATHINFO_EXTENSION);
         if ($ext !== '') {
             return $safeName;
         }
-        $guessed = $this->guessExtension($this->mime_type, $this->path);
-        return $guessed ? ($safeName . '.' . $guessed) : $safeName;
+        $mime = $this->mime_type ?? '';
+        $guessed = $this->guessExtension($mime, $this->path);
+        $type = static::resolveFileType($mime, $guessed);
+        $finalExt = $type['ext'] ?? $guessed;
+        return $finalExt ? ($safeName . '.' . $finalExt) : $safeName;
     }
 
     protected function sanitizeName(string $name): string
     {
         $name = trim($name);
-        $name = str_replace(['\\', '/', "\0"], '-',$name);
+        $name = str_replace(['\\', '/', "\0"], '-', $name);
         return $name === '' ? 'datei' : $name;
     }
 
@@ -272,7 +511,8 @@ class File extends Model
                 if (!empty($candidates)) {
                     return strtolower($candidates[0]);
                 }
-            } catch (\Throwable $e) {}
+            } catch (\Throwable $e) {
+            }
         }
         if ($storagePath) {
             $ext = pathinfo($storagePath, PATHINFO_EXTENSION);
@@ -301,136 +541,11 @@ class File extends Model
     {
         $mime = strtolower((string) $this->mime_type);
         $ext  = $this->guessExtension($mime, $this->path);
-        $extU = $ext ? strtoupper($ext) : null;
-
-        // 1) Spezifische Zuordnungen
-        $map = [
-            // Bilder
-            'image/jpeg'                    => 'JPEG-Bild',
-            'image/png'                     => 'PNG-Bild',
-            'image/gif'                     => 'GIF-Bild',
-            'image/webp'                    => 'WebP-Bild',
-            'image/svg+xml'                 => 'SVG-Vektorgrafik',
-            'image/heic'                    => 'HEIC-Bild',
-            'image/heif'                    => 'HEIF-Bild',
-            'image/tiff'                    => 'TIFF-Bild',
-            'image/bmp'                     => 'BMP-Bild',
-            'image/x-icon'                  => 'ICO-Icon',
-
-            // Audio
-            'audio/mpeg'                    => 'MP3-Audiodatei',
-            'audio/mp4'                     => 'M4A-Audiodatei',
-            'audio/aac'                     => 'AAC-Audiodatei',
-            'audio/wav'                     => 'WAV-Audiodatei',
-            'audio/x-wav'                   => 'WAV-Audiodatei',
-            'audio/ogg'                     => 'OGG-Audiodatei',
-            'audio/opus'                    => 'OPUS-Audiodatei',
-            'audio/flac'                    => 'FLAC-Audiodatei',
-            'audio/midi'                    => 'MIDI-Datei',
-            'audio/x-midi'                  => 'MIDI-Datei',
-
-            // Video
-            'video/mp4'                     => 'MP4-Video',
-            'video/quicktime'               => 'MOV-Video',
-            'video/x-msvideo'               => 'AVI-Video',
-            'video/x-matroska'              => 'MKV-Video',
-            'video/webm'                    => 'WebM-Video',
-            'video/mpeg'                    => 'MPEG-Video',
-            'video/3gpp'                    => '3GPP-Video',
-
-            // PDF
-            'application/pdf'               => 'PDF-Dokument',
-
-            // Office (Microsoft)
-            'application/msword'                                                => 'Microsoft Word-Dokument (DOC)',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'Microsoft Word-Dokument (DOCX)',
-            'application/vnd.ms-excel'                                          => 'Microsoft Excel-Arbeitsmappe (XLS)',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'Microsoft Excel-Arbeitsmappe (XLSX)',
-            'text/csv'                                                          => 'CSV-Tabelle',
-            'application/vnd.ms-powerpoint'                                     => 'Microsoft PowerPoint-Präsentation (PPT)',
-            'application/vnd.openxmlformats-officedocument.presentationml.presentation' => 'Microsoft PowerPoint-Präsentation (PPTX)',
-
-            // Office (OpenDocument)
-            'application/vnd.oasis.opendocument.text'         => 'OpenDocument Text (ODT)',
-            'application/vnd.oasis.opendocument.spreadsheet'  => 'OpenDocument Tabelle (ODS)',
-            'application/vnd.oasis.opendocument.presentation' => 'OpenDocument Präsentation (ODP)',
-
-            // Text & Web
-            'text/plain'                   => 'Textdatei',
-            'text/html'                    => 'HTML-Dokument',
-            'text/css'                     => 'CSS-Stylesheet',
-            'application/javascript'       => 'JavaScript-Datei',
-            'text/javascript'              => 'JavaScript-Datei',
-            'application/json'             => 'JSON-Datei',
-            'application/xml'              => 'XML-Datei',
-            'text/xml'                     => 'XML-Datei',
-            'application/x-yaml'           => 'YAML-Datei',
-            'text/yaml'                    => 'YAML-Datei',
-            'application/sql'              => 'SQL-Skript',
-            'text/x-sql'                   => 'SQL-Skript',
-
-            // Code/Quelltexte (häufige)
-            'text/x-php'                   => 'PHP-Datei',
-            'application/x-httpd-php'      => 'PHP-Datei',
-            'application/x-php'            => 'PHP-Datei',
-            'text/x-python'                => 'Python-Datei',
-            'text/x-java-source'           => 'Java-Quelldatei',
-            'text/x-c'                     => 'C-Quelldatei',
-            'text/x-c++'                   => 'C++-Quelldatei',
-            'application/x-typescript'     => 'TypeScript-Datei',
-            'text/markdown'                => 'Markdown-Dokument',
-
-            // Design/Publishing
-            'application/postscript'       => 'PostScript (AI/EPS)',
-            'application/illustrator'      => 'Adobe Illustrator-Datei',
-            'image/vnd.adobe.photoshop'    => 'Photoshop-Datei (PSD)',
-            'application/vnd.corel-draw'   => 'CorelDRAW-Datei (CDR)',
-
-            // Archive & Kompression
-            'application/zip'              => 'ZIP-Archiv',
-            'application/x-7z-compressed'  => '7z-Archiv',
-            'application/x-rar-compressed' => 'RAR-Archiv',
-            'application/x-tar'            => 'TAR-Archiv',
-            'application/gzip'             => 'GZIP-Archiv',
-            'application/x-bzip2'          => 'BZIP2-Archiv',
-            'application/x-xz'             => 'XZ-Archiv',
-
-            // Sonstiges verbreitet
-            'application/octet-stream'     => 'Binärdatei',
-        ];
-
-        if (isset($map[$mime])) {
-            // Optional: Extension im Label anzeigen
-            if ($extU && !str_contains($map[$mime], "($extU)")) {
-                return $map[$mime] . " ($extU)";
-            }
-            return $map[$mime];
-        }
-
-        // 2) Familien-Fallbacks (image/*, audio/*, …)
-        $family = strtok($mime, '/'); // z.B. "image"
-        $familyLabels = [
-            'image'       => 'Bilddatei',
-            'audio'       => 'Audiodatei',
-            'video'       => 'Videodatei',
-            'text'        => 'Textdatei',
-            'font'        => 'Schriftart',
-            'multipart'   => 'Mehrteilige Datei',
-            'message'     => 'Nachrichtenformat',
-            'model'       => '3D/Modelldatei',
-            'application' => 'Anwendungsdatei',
-        ];
-        if ($family && isset($familyLabels[$family])) {
-            return $extU ? "{$familyLabels[$family]} ($extU)" : $familyLabels[$family];
-        }
-
-        // 3) Letzter Fallback – möglichst hilfreich mit Extension/MIME
-        if ($extU) {
-            return "Datei ($extU)";
-        }
-        return $mime !== '' ? "Unbekannter Dateityp ({$mime})" : 'Unbekannter Dateityp';
+        $type = static::resolveFileType($mime, $ext);
+        $label = $type['label'] ?? 'Datei';
+        $extU = $type['ext'] ? strtoupper($type['ext']) : null;
+        return $extU ? "{$label} ({$extU})" : $label;
     }
-
 
     public function fileable(): MorphTo
     {

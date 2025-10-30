@@ -5,6 +5,7 @@ namespace App\Livewire\Tools\FilePools;
 use Livewire\Component;
 use App\Models\File;
 use Livewire\Attributes\On;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class FilePreviewModal extends Component
 {
@@ -16,6 +17,12 @@ class FilePreviewModal extends Component
     public function handlePreview(int $id): void
     {
         $this->openWith($id);
+    }
+
+    public function downloadFile(int $fileId): StreamedResponse
+    {
+        $file = File::findOrFail($fileId);
+        return $file->download(); // 👈 zentral im Model
     }
 
     public function openWith(int $id): void

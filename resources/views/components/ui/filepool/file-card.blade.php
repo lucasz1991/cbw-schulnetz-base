@@ -5,7 +5,7 @@
         @touchstart="isHovered = true"
         >
     <div class="transition " :class="{ 'blur-sm': isHovered }">
-            <img src="{{ $file->icon_or_thumbnail }}"  class="w-full max:w-24 mx-auto aspect-square object-contain p-2 ">
+        <img src="{{ $file->icon_or_thumbnail }}"  class="w-full !aspect-square  @if($file->is_image) object-cover @else object-contain p-6 @endif ">
     </div>
     <div class="p-2 space-y-2 bg-gray-100 transition " :class="{ 'blur-sm': isHovered }">
         <div class="text-sm text-gray-800 truncate " title="{{ $file->name }}">{{ $file->name }}</div>
@@ -13,7 +13,7 @@
             <span>{{ $file->getMimeTypeForHumans() }}</span>
         </div>
         <div class="text-xs text-gray-500 ">
-            <span>{{ number_format($file->size / 1024, 1) }} KB</span>
+            <span>{{ $file->getSizeFormattedAttribute() }}</span>
         </div>
         @if($file->expires_at)
             @if(!$file->isExpired())

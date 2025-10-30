@@ -16,7 +16,7 @@ class MessageBox extends Component
     public $showMessageModal = false;
     public $loadedPages = 1;
 
-    public string $search = ''; // 👈 Suche
+    public string $search = ''; 
 
     protected $listeners = [
         'refreshComponent' => '$refresh',
@@ -46,8 +46,8 @@ class MessageBox extends Component
     public function render()
     {
         $base = auth()->user()->receivedMessages()
-            ->with(['sender:id,name,role,profile_photo_path']) // 👈 eager
-            ->withCount('files')                                // 👈 files_count für Icon
+            ->with(['sender:id,name,role,profile_photo_path']) 
+            ->withCount('files')                 
             ->orderByDesc('created_at');
 
         if (filled($this->search)) {

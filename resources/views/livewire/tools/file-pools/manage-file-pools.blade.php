@@ -25,9 +25,9 @@
       @endif
     </div>
   </div>
-  <div class="my-8 mx-2 flex space-x-4 ">
+  <div class="my-8 mx-2 flex flex-wrap">
     @forelse($filePool->files as $file)
-      <div class="w-32 max-w-[48%] mb-4">
+      <div class="w-32  mb-4 mr-4">
         <x-ui.filepool.file-card :file="$file" />
       </div>
     @empty
