@@ -56,14 +56,16 @@
 
               <div class="flex items-center flex-wrap gap-2">
                 <x-buttons.btn-group.btn-group>
-                  <x-buttons.btn-group.btn-group-item wire:click="$set('openPreview', true)">
+                  <x-buttons.btn-group.btn-group-item 
+                    @click="window.dispatchEvent(new CustomEvent('filepool-preview', { detail: { id: {{ $roterFaden->id }} } }))"
+                  >
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 aspect-square mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                     Vorschau
                   </x-buttons.btn-group.btn-group-item>
 
-                  <x-buttons.btn-group.btn-group-item href="{{ $roterFaden->getEphemeralPublicUrl(10) }}" target="_blank">
+                  <x-buttons.btn-group.btn-group-item  wire:click="downloadFile({{ $roterFaden->id }})">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 aspect-square mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                    Öffnen
+                    Download
                   </x-buttons.btn-group.btn-group-item>
                 </x-buttons.btn-group.btn-group>
               </div>
@@ -71,40 +73,11 @@
           @else
             <p class="text-gray-600 text-sm">Noch kein „Roter Faden“ vorhanden.</p>
           @endif
-        </div>
+        </div> 
 
-        {{-- Modal: Vorschau (read-only) --}}
-        <x-dialog-modal wire:model="openPreview">
-          <x-slot name="title">Roter Faden – Vorschau</x-slot>
-          <x-slot name="content">
-            @if($roterFaden)
-              <div class="rounded-md border overflow-hidden">
-                <iframe
-                  key="roter-faden-preview-{{ $roterFaden->id }}-{{ $roterFaden->updated_at?->timestamp ?? $roterFaden->id }}"
-                  class="w-full h-[75vh] min-h-[420px]"
-                  src="{{ $roterFaden->getEphemeralPublicUrl(10) }}"
-                ></iframe>
-              </div>
-            @else
-              <p class="text-sm text-gray-600">Keine Datei vorhanden.</p>
-            @endif
-          </x-slot>
-          <x-slot name="footer">
-            <div class="flex items-center gap-2">
-              @if($roterFaden)
-                <a href="{{ $roterFaden->getEphemeralPublicUrl(10) }}" target="_blank"
-                   class="px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm">
-                  In neuem Tab öffnen
-                </a>
-              @endif
-              <x-button wire:click="$set('openPreview', false)">Schließen</x-button>
-            </div>
-          </x-slot>
-        </x-dialog-modal>
       </x-slot>
     </x-ui.dropdown.course-dropdown>
 
-    {{-- Medien (nur Download) --}}
     <x-ui.dropdown.course-dropdown group="course-{{ $course->id }}" item-id="medien">
       <x-slot name="trigger">
         <div class="flex items-center space-x-3">
@@ -125,4 +98,5 @@
     </x-ui.dropdown.course-dropdown>
 
   </div>
+
 </div>

@@ -32,7 +32,7 @@ $sizeClasses = match ($size) {
         @click="isClicked = true; setTimeout(() => isClicked = false, 100)"
         style="transform:scale(1);"
         :style="isClicked ? 'transform:scale(0.9);' : ''"
-        wire:navigate >
+        >
         {{ $slot }}
     </a>
 @else

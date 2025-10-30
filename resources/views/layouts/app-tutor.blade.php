@@ -60,6 +60,7 @@
                 </div>
             </main>
         @endif
+         <livewire:tools.file-pools.file-preview-modal lazy />
         <!-- script -->
         @include('layouts.vendor-scripts')
         <!-- Scripts -->

@@ -5,6 +5,7 @@ namespace App\Livewire\User\Program\Course;
 use App\Models\Course;
 use App\Models\File;
 use Livewire\Component;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CourseShowMedia extends Component
 {
@@ -14,11 +15,14 @@ class CourseShowMedia extends Component
     public function mount(Course $course): void
     {
         $this->course = $course;
-        // Optional: Zugriff prüfen (Teilnehmer des Kurses etc.)
-        // abort_unless(auth()->user()?->isEnrolledIn($course), 403);
     }
 
-    /** Aktueller Roter-Faden (Single) */
+    public function downloadFile(int $fileId): StreamedResponse
+    {
+        $file = File::findOrFail($fileId);
+        return $file->download();
+    }
+
     public function getRoterFadenProperty(): ?File
     {
         return $this->course->files()

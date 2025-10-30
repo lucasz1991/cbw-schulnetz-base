@@ -24,6 +24,7 @@
         integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
     <!-- apexcharts -->
     <script src="{{ URL::asset('adminresources/apexcharts/apexcharts.min.js') }}"></script>
+    <link rel="stylesheet" href="{{ asset('adminresources/fontawesome6/css/all.min.css') }}">
         
         <!-- Styles -->
         @vite(['resources/css/app.css'])
@@ -51,7 +52,7 @@
         <x-pagebuilder-module :position="'footer'"/>
         @livewire('footer')
         @livewire('tools.chatbot')
-        
+          <livewire:tools.file-pools.file-preview-modal lazy />
         @stack('modals')
         
         
