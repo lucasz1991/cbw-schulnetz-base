@@ -1,6 +1,6 @@
 <div wire:loading.class="cursor-wait opacity-50 animate-pulse" class="transition">
-  <livewire:user.program.program-pdf-modal />
-  <livewire:user.program.course.course-rating-form-modal />
+  <livewire:user.program.program-pdf-modal lazy />
+  <livewire:user.program.course.course-rating-form-modal lazy />
 
   <section class="relative space-y-6">
     <div class="mt-4">

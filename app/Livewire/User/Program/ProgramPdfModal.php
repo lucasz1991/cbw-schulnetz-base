@@ -23,6 +23,12 @@ class ProgramPdfModal extends Component
     /** Merkt die Temp-Datei (public) zum sofortigen Aufräumen */
     public ?string $tempPublicPath = null;
 
+        public function mount (): void
+    {
+        $this->showModal = false;
+        $this->reset();
+    }
+    
     #[On('open-program-pdf')]
     public function openForCurrentUser(): void
     {
