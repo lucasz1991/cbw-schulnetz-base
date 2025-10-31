@@ -55,7 +55,7 @@
             <x-pagebuilder-module :position="'footer'"/>
             @livewire('footer')
             @livewire('tools.chatbot')
-            <livewire:tools.file-pools.file-preview-modal lazy />
+            <livewire:tools.file-pools.file-preview-modal />
             @stack('modals')
         @endif
         

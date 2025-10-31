@@ -415,6 +415,7 @@ protected static function fileTypeMap(): array
                 $tmpPath = 'temp/' . $tmpName;
                 $read = Storage::disk($sourceDisk)->readStream($this->path);
                 if (!$read) {
+                    return '';
                     throw new \RuntimeException("Quelle nicht lesbar: {$this->path}");
                 }
                 Storage::disk($publicDisk)->writeStream($tmpPath, $read);

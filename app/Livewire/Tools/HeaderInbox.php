@@ -4,6 +4,8 @@ namespace App\Livewire\Tools;
 
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
+use App\Models\File;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class HeaderInbox extends Component
 {
@@ -31,7 +33,7 @@ class HeaderInbox extends Component
             ->with(['sender:id,name,role,profile_photo_path'])
             ->withCount('files')
             ->orderByDesc('created_at')
-            ->limit(6)
+            ->limit(3)
             ->get();
 
         $this->unreadMessagesCount = $user->receivedMessages()
@@ -61,6 +63,12 @@ class HeaderInbox extends Component
             // Zähler/Liste aktualisieren
             $this->loadInbox();
         }
+    }
+
+    public function downloadFile(int $fileId): StreamedResponse
+    {
+        $file = File::findOrFail($fileId);
+        return $file->download(); // 👈 zentral im Model
     }
 
     // Optional: Button "Alle ansehen" könnte hier auch nur route() sein; kein Handler nötig.

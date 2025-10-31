@@ -7,6 +7,8 @@ use App\Models\Message;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use App\Models\File;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class MessageBox extends Component
 {
@@ -41,6 +43,12 @@ class MessageBox extends Component
             $this->showMessageModal = true;
         }
         $this->dispatch('refreshComponent');
+    }
+
+    public function downloadFile(int $fileId): StreamedResponse
+    {
+        $file = File::findOrFail($fileId);
+        return $file->download(); // 👈 zentral im Model
     }
 
     public function render()

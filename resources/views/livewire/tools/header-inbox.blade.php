@@ -25,7 +25,7 @@
 
       <button
         type="button"
-        class="w-full flex items-center gap-3 p-3 hover:bg-slate-50 text-left {{ $isUnread ? 'bg-blue-50/70' : '' }}"
+        class="w-full flex items-center gap-3 p-3 hover:bg-slate-50 text-left {{ $isUnread ? 'bg-blue-50' : '' }}"
         @click.stop="$wire.showMessage({{ $message->id }}); open=false;"
       >
         <img src="{{ $senderAvatar }}" class="w-8 h-8 rounded-full object-cover" alt="">

@@ -54,11 +54,7 @@
 
                  <!-- Primary Navigation Menu -->
                  <div class="container mx-auto flex justify-between items-center ">
-                    @if (optional(Auth::user())->role === 'guest')
-                         <div class="max-md:order-1  md:order-2 flex-none self-stretch" @click="isMobileMenuOpen = false">
-                             <livewire:tools.search-modal />
-                         </div>
-                    @endif
+
                          <div class="flex-none flex items-center h-full py-2 max-md:order-1" @click="$dispatch('navhide')">
                              <a href="{{ \App\Providers\RouteServiceProvider::home() }}" wire:navigate   class="h-full flex items-center max-sm:max-w-[160px]">
                                  <x-logo.site-logo-horizontal  />

@@ -38,43 +38,44 @@
     {{-- Inhalt --}}
     <x-slot name="content">
         @if($message)
-            {{-- Subject --}}
-            <h3 class="text-xl font-semibold mb-1 border-b pb-2 mt-12">
-                {{ $subject }}
-            </h3>
-
-            {{-- Header (Nachrichtenüberschrift) --}}
-            @if($header)
-                <div class="text-gray-700 font-medium mb-4">
-                    {{ $header }}
+            <div class="space-y-6 border border-gray-200 rounded-lg p-6 bg-gray-50  mt-6 mb-4">
+                {{-- Subject --}}
+                <h3 class="text-xl font-semibold mb-1 border-b pb-2">
+                    {{ $subject }}
+                </h3>
+    
+                {{-- Header (Nachrichtenüberschrift) --}}
+                @if($header)
+                    <div class="text-gray-700 font-medium mb-4">
+                        {{ $header }}
+                    </div>
+                @endif
+    
+                {{-- Nachrichtentext --}}
+                <div class="prose prose-sm max-w-none text-gray-800">
+                    {!! $message->message !!}
                 </div>
-            @endif
-
-            {{-- Nachrichtentext --}}
-            <div class="prose prose-sm max-w-none text-gray-800">
-                {!! $message->message !!}
             </div>
 
             {{-- Anhänge --}}
             @if($message->files?->count())
-                <div class="mt-12">
+                <div class="mt-6 px-2">
                     <h4 class="text-sm font-semibold mb-2 flex items-center gap-2">
                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                             <path d="M18.364 5.636a5 5 0 010 7.071l-7.071 7.071a5 5 0 11-7.071-7.071l6-6a3 3 0 114.243 4.243l-6 6a1 1 0 11-1.414-1.414l6-6a1 1 0 10-1.414-1.414l-6 6a3 3 0 104.243 4.243l7.071-7.071a3 3 0 10-4.243-4.243l-6 6" />
                         </svg>
                         Anhänge ({{ $message->files->count() }})
                     </h4>
-                    <ul class="space-y-1">
-                        @foreach($message->files as $file)
-                            <li class="truncate">
-                                <a href="{{ $file->getEphemeralPublicUrl() }}"
-                                   target="_blank"
-                                   class="text-blue-600 hover:underline break-all">
-                                    {{ $file->name }}
-                                </a>
-                            </li>
-                        @endforeach
-                    </ul>
+
+                    <div class="my-8 mx-2 flex flex-wrap">
+                        @forelse($message->files as $file)
+                        <div class="w-32  mb-4 mr-4">
+                            <x-ui.filepool.file-card :file="$file" />
+                        </div>
+                        @empty
+                        <div class="text-sm text-gray-500">Keine Dateien vorhanden.</div>
+                        @endforelse
+                    </div>
                 </div>
             @endif
         @else

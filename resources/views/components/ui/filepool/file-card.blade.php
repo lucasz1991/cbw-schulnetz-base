@@ -1,5 +1,5 @@
 <div    x-data="{ isHovered: false }" 
-        class="relative border border-gray-400 rounded-xl overflow-hidden bg-white shadow mb-2 cardgroup"
+        class="relative border border-gray-300 rounded-xl overflow-hidden bg-white shadow mb-2 cardgroup"
         @mouseenter="isHovered = true"
         @mouseleave="isHovered = false"
         @touchstart="isHovered = true"
