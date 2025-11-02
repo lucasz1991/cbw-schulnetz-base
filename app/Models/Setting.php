@@ -56,6 +56,15 @@ class Setting extends Model
         return $setting;
     }
 
+    public static function getValueUncached($type, $key)
+    {
+        $setting = static::where('type', $type)
+            ->where('key', $key)
+            ->first();
+
+        return $setting ? $setting->value : null;
+    }
+
     /**
      * Löscht den Cache für einen kompletten Setting-Type.
      */
