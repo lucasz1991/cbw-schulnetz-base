@@ -514,14 +514,14 @@
                   · {{ $aktuellesModul['tage'] }} Tage
               </p>
               {{-- Gesamt-Fortschritt über alle Bausteine --}}
-              <div class="mt-2">
+              <div class="mt-4">
                 <div class="w-full bg-gray-200 rounded-full h-3">
-                  <div class="bg-blue-600 h-3 rounded-full" style="width: {{ $progress }}%"></div>
+                  <div class="bg-blue-600 h-3 rounded-full" style="width: {{ $currentProgress }}%"></div>
                 </div>
-                <p class="text-sm text-gray-600 mt-1">Fortschritt: {{ $progress }}%</p>
+                <p class="text-sm text-gray-600 mt-1">Fortschritt: {{ $currentProgress }}%</p>
               </div>
               <div>
-                <div class="flex items-center justify-between ">
+                <div class="flex items-center justify-between mt-4">
                   @if($aktuellesModul['klassen_id'] != null)
                   <x-buttons.button-basic :size="'sm'" href="{{ route('user.program.course.show', $aktuellesModul['klassen_id']) }}" class="">
                     Details

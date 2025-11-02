@@ -26,6 +26,7 @@ class ProgramShow extends Component
     public int $anzahlBausteine = 0;
     public int $bestandenBausteine = 0;
     public int $progress = 0;
+    public int $currentProgress = 0;
 
     public array $excludeFromProgress = ['FERI', 'PRAK', 'PRUE']; // alles, was nicht als Kurs zählt
 
@@ -178,6 +179,8 @@ class ProgramShow extends Component
     $this->aktuellesModul = $strip($aktuellesModul ? (array) $aktuellesModul : null);
     $this->naechstesModul = $strip($naechstesModul ? (array) $naechstesModul : null);
 
+    $this->currentProgress = $this->calcCurrentProgress($this->aktuellesModul);
+
     // ---------- Summen ----------
     $summen = $raw['summen'] ?? [];
     $unterricht = [
@@ -292,6 +295,25 @@ class ProgramShow extends Component
     $this->bausteinColors = array_fill(0, count($this->bausteinSerie), '#2b5c9e'); // optional: einfarbig
 }
 
+private function calcCurrentProgress(?array $modul): int
+{
+    if (!$modul) return 0;
+
+    $start = $this->toCarbon($modul['beginn'] ?? null);
+    $end   = $this->toCarbon($modul['ende']   ?? null);
+    if (!$start || !$end) return 0;
+
+    // Dauer in Sekunden (Ende >= Start), 0-Dauer absichern
+    $total = max(1, $end->endOfDay()->diffInSeconds($start->startOfDay()));
+    $now   = Carbon::now('Europe/Berlin');
+
+    // Vor / Nach Zeitraum → 0% / 100%
+    if ($now->lt($start)) return 0;
+    if ($now->gt($end->endOfDay())) return 100;
+
+    $done = $now->diffInSeconds($start->startOfDay());
+    return (int) round(min(100, max(0, ($done / $total) * 100)));
+}
 
     private function detectBausteinTyp(?string $kurzbez): string
     {

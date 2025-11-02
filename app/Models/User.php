@@ -168,26 +168,6 @@ class User extends Authenticatable
         $this->notify(new CustomResetPasswordNotification($this, $token));
     }
 
-    public function sendEmailShelfBookingConfirmationNotification()
-    {
-        try {
-            // Überprüfung, ob die E-Mail-Adresse gültig ist (optional)
-            if (!filter_var($this->email, FILTER_VALIDATE_EMAIL)) {
-                throw new \Exception("Ungültige E-Mail-Adresse: " . $this->email);
-            }
-    
-            $this->notify(new CustomVerifyEmail);
-        } catch (\Symfony\Component\Mailer\Exception\TransportExceptionInterface $e) {
-            Log::error('Transport-Fehler beim Senden der E-Mail: ' . $e->getMessage());
-            session()->flash('error', 'Die E-Mail konnte nicht zugestellt werden. Bitte überprüfen Sie Ihre E-Mail-Adresse.');
-        } catch (\Symfony\Component\Mailer\Exception\UnexpectedResponseException $e) {
-            Log::error('Unerwartete Antwort vom Mailserver: ' . $e->getMessage());
-            session()->flash('error', 'Die E-Mail konnte nicht zugestellt werden. Bitte wenden Sie sich an den Support.');
-        } catch (\Exception $e) {
-            Log::error('Allgemeiner Fehler beim Senden der E-Mail: ' . $e->getMessage());
-            session()->flash('error', 'Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
-        }
-    }
 
     public function hasAccessToInvoice($filename)
     {

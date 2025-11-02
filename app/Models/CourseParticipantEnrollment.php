@@ -5,12 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 
-class CourseParticipantEnrollment extends Model
+class CourseParticipantEnrollment extends Pivot
 {
     use HasFactory, SoftDeletes;
 
     protected $table = 'course_participant_enrollments';
+    public $incrementing = true;      // falls es eine autoincrement id gibt
+    protected $keyType = 'int';
 
     protected $fillable = [
         'course_id','person_id',

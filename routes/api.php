@@ -22,6 +22,8 @@ use App\Http\Controllers\Api\AdminStorageController;
 Route::post('/admin/upload', [AdminStorageController::class, 'store']);
 Route::delete('/admin/delete', [AdminStorageController::class, 'destroy']);
 
+Route::post('/admin/resolve-file-url', [AdminStorageController::class, 'resolveFileUrl']);
+
 
 Route::post('/pagebuilder/upload', [PagebuilderProjectController::class, 'uploadImage']);
 Route::get('/pagebuilder/assets', [PagebuilderProjectController::class, 'getAssets']);
