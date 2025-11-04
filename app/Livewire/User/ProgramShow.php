@@ -6,6 +6,8 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\RateLimiter;
+
 
 
 class ProgramShow extends Component
@@ -35,6 +37,8 @@ class ProgramShow extends Component
     public $bausteinColors;
 
     public bool $apiProgramLoading = false;
+    protected int $apiCooldownSeconds = 300;
+
 
     /** Listener */
     protected $listeners = ['refreshParent' => '$refresh'];
@@ -57,15 +61,24 @@ class ProgramShow extends Component
 
     public function pollProgram(): void
     {
-        if (! $this->apiProgramLoading) return;
+        $person = $this->userData?->person;
+        if (!$person) return;
 
-        $new = $this->userData?->person?->programdata ?? [];
-
-        if (!empty($new)) {
-            $this->apiProgramLoading = false;   // Polling beenden
-            $this->raw = $new;
-            $this->buildViewModelFromRaw($new);
+        if ($this->apiProgramLoading) {
+            $this->userData->load('person');
+            $new = $this->userData->person?->programdata ?? [];
+            if (!empty($new)) {
+                $this->apiProgramLoading = false;
+                $this->raw = $new;
+                $this->buildViewModelFromRaw($new);
+            }
+            return;
         }
+
+        $key = "uvs:apiupdate:{$person->id}";
+        RateLimiter::attempt($key, 1, function () use ($person) {
+            $person->apiupdate();
+        }, $this->apiCooldownSeconds);
     }
 
 
