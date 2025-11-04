@@ -91,7 +91,7 @@
             x-data="{
                 chart: null,
                 // deine Werte / Props (unverändert, nur bereitgehalten)
-                value: {{ $teilnehmerDaten['unterricht']['schnitt'] }},
+                value: @js($teilnehmerDaten['unterricht']['schnitt'] ?? 0),
                 size: 140,
                 start: -130,
                 end: 130,
