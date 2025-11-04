@@ -136,7 +136,7 @@
                     },
                     stroke: { dashArray: 4 },
                     legend: { show: false },
-                    series: [{{ $teilnehmerDaten['unterricht']['schnitt'] }}],
+                    series: [@js($teilnehmerDaten['unterricht']['schnitt'] ?? 0)],
                     labels: ['Series A'],
                 };
                 // Cleanup (wie bei dir, ohne Einfluss auf Darstellung)
