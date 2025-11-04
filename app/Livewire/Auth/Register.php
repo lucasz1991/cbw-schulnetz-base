@@ -73,11 +73,17 @@ class Register extends Component
         if ($existingIncomplete) {
             // Link zum Setzen des Passworts erneut senden
              // $existingIncomplete->notify(new SetPasswordNotification($existingIncomplete, $this->generateResetToken($existingIncomplete)));
-            $this->dispatch(
-                'showAlert',
-                'Dein Konto wurde bereits erstellt, ist aber noch nicht aktiviert. Wir haben dir den Link zum Setzen deines Passworts erneut gesendet.',
-                'warning'
-            );
+
+                $this->dispatch('showAlert', [
+                    'type' => 'warning',
+                    'title' => 'Konto bereits vorhanden',
+                    'text' => 'Dein Konto wurde bereits erstellt, ist aber noch nicht aktiviert. 
+                            Wir haben dir den Link zum Setzen deines Passworts erneut gesendet.',
+                    'confirmText' => 'Zum Login',
+                    'allowOutsideClick' => false,
+                    'redirectTo' => route('login'),
+                    'redirectOn' => 'confirm',
+                ]);
             return;
         }
 
