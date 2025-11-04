@@ -1,4 +1,12 @@
-<div wire:loading.class="cursor-wait opacity-50 animate-pulse" class="transition">
+<div
+  class="transition"
+  @if($apiProgramLoading)
+    wire:poll.visible.1000="pollProgram"
+  @else
+    wire:poll.visible.5000
+  @endif
+  wire:loading.class="cursor-wait opacity-50 animate-pulse"
+>
   <livewire:user.program.program-pdf-modal lazy />
   <livewire:user.program.course.course-rating-form-modal lazy />
 

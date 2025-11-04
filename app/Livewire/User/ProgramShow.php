@@ -34,6 +34,8 @@ class ProgramShow extends Component
     public $bausteinLabels;
     public $bausteinColors;
 
+    public bool $apiProgramLoading = false;
+
     /** Listener */
     protected $listeners = ['refreshParent' => '$refresh'];
 
@@ -45,8 +47,27 @@ class ProgramShow extends Component
         }
         $this->raw = $this->userData?->person?->programdata ?? [];
 
+        if (empty($this->raw)) {
+            // Keine Daten vorhanden
+            $this->apiProgramLoading = true;
+            return;
+        }
         $this->buildViewModelFromRaw($this->raw);
     }
+
+    public function pollProgram(): void
+    {
+        if (! $this->apiProgramLoading) return;
+
+        $new = $this->userData?->person?->programdata ?? [];
+
+        if (!empty($new)) {
+            $this->apiProgramLoading = false;   // Polling beenden
+            $this->raw = $new;
+            $this->buildViewModelFromRaw($new);
+        }
+    }
+
 
     /**
      * Utility: numeric value or null
