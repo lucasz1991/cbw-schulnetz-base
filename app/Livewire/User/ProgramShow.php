@@ -7,6 +7,8 @@ use Livewire\WithPagination;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\RateLimiter;
+use App\Models\User;
+use App\Models\Person;
 
 
 
