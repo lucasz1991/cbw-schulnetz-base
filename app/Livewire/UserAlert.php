@@ -25,38 +25,48 @@ class UserAlert extends Component
         'toast'     => 'displayToast',
     ];
 
-    public function displayToast($message, $type = 'info', array $options = [])
-    {
-        $payload = is_array($message) ? $message : array_merge(['text' => $message], $options);
-        $this->dispatch('swal:toast',
-            type: $payload['type']   ?? $type,
-            title: $payload['title'] ?? ($this->typeLabels[$type] ?? ucfirst($type)),
-            text: $payload['text']   ?? null,
-            html: $payload['html']   ?? null,
-            position: $payload['position'] ?? null,
-            timer: $payload['timer'] ?? null
-        );
-    }
+public function displayToast($message, $type = 'info', array $options = [])
+{
+    $payload = is_array($message) ? $message : array_merge(['text' => $message], $options);
 
-    public function displayAlert($message, $type = 'info', array $options = [])
-    {
-        $payload = is_array($message) ? $message : array_merge(['text' => $message], $options);
+    $this->dispatch('swal:toast',
+        type: $payload['type']   ?? $type,
+        title: $payload['title'] ?? ($this->typeLabels[$type] ?? ucfirst($type)),
+        text:  $payload['text']  ?? null,
+        html:  $payload['html']  ?? null,
+        position: $payload['position'] ?? null,
+        timer: $payload['timer'] ?? null,
 
-        $typeKey = $payload['type'] ?? $type;
-        $title   = $payload['title'] ?? ($this->typeLabels[$typeKey] ?? ucfirst($typeKey));
+        // ✅ NEU:
+        redirectTo: $payload['redirectTo'] ?? null,
+        confirmText: $payload['confirmText'] ?? 'OK', // falls du beim Toast einen OK-Button willst
+        showConfirm: $payload['showConfirm'] ?? null   // optional
+    );
+}
 
-        $this->dispatch('swal:alert',
-            type: $typeKey,
-            title: $title,
-            text:  $payload['text'] ?? null,
-            html:  $payload['html'] ?? null,
-            showCancel:  $payload['showCancel']  ?? false,
-            confirmText: $payload['confirmText'] ?? 'OK',
-            cancelText:  $payload['cancelText']  ?? 'Abbrechen',
-            allowOutsideClick: $payload['allowOutsideClick'] ?? true,
-            onConfirm: $payload['onConfirm'] ?? null
-        );
-    }
+public function displayAlert($message, $type = 'info', array $options = [])
+{
+    $payload = is_array($message) ? $message : array_merge(['text' => $message], $options);
+
+    $typeKey = $payload['type'] ?? $type;
+    $title   = $payload['title'] ?? ($this->typeLabels[$typeKey] ?? ucfirst($typeKey));
+
+    $this->dispatch('swal:alert',
+        type: $typeKey,
+        title: $title,
+        text:  $payload['text'] ?? null,
+        html:  $payload['html'] ?? null,
+        showCancel:  $payload['showCancel']  ?? false,
+        confirmText: $payload['confirmText'] ?? 'OK',
+        cancelText:  $payload['cancelText']  ?? 'Abbrechen',
+        allowOutsideClick: $payload['allowOutsideClick'] ?? true,
+        onConfirm: $payload['onConfirm'] ?? null,
+
+        // ✅ NEU:
+        redirectTo: $payload['redirectTo'] ?? null,
+        redirectOn: $payload['redirectOn'] ?? 'confirm' // 'confirm' | 'close'
+    );
+}
 
     public function render()
     {

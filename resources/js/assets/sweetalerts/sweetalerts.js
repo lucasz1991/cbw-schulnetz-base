@@ -10,7 +10,7 @@ const iconMap = (type) => {
   }
 };
 
-// Toast (oben rechts, auto-close)
+// Toast (oben rechts)
 window.addEventListener('swal:toast', (e) => {
   const d = e.detail || {};
   const type = d.type || 'info';
@@ -21,16 +21,25 @@ window.addEventListener('swal:toast', (e) => {
     info:    'Hinweis!',
   }[type] || 'Hinweis!');
 
+  // Wenn redirectTo gesetzt ist, zeigen wir einen OK-Button (kein Auto-Close).
+  const showConfirm = d.showConfirm ?? !!d.redirectTo;
+
   Swal.fire({
     toast: true,
     position: d.position || 'top-end',
     icon: iconMap(type),
     title,
     text:  d.text  ?? undefined,
-    html:  d.html  ?? undefined, // erlaubt HTML
-    timer: d.timer ?? 4000,
-    timerProgressBar: true,
-    showConfirmButton: false,
+    html:  d.html  ?? undefined,     // erlaubt HTML
+    timer: showConfirm ? undefined : (d.timer ?? 4000),
+    timerProgressBar: !showConfirm,
+    showConfirmButton: showConfirm,
+    confirmButtonText: d.confirmText || 'OK',
+  }).then((result) => {
+    // Weiterleitung: bei OK oder (falls kein Button) nach Timer-Ende
+    if ((result.isConfirmed || result.dismiss === Swal.DismissReason.timer) && d.redirectTo) {
+      window.location.assign(d.redirectTo);
+    }
   });
 });
 
@@ -52,6 +61,21 @@ window.addEventListener('swal:alert', async (e) => {
 
   // optional: Callback/Followup-Event
   if (d.onConfirm && res.isConfirmed) {
-    window.dispatchEvent(new CustomEvent(d.onConfirm.name || 'swal:confirmed', { detail: d.onConfirm.detail || {} }));
+    window.dispatchEvent(
+      new CustomEvent(d.onConfirm.name || 'swal:confirmed', { detail: d.onConfirm.detail || {} })
+    );
+  }
+
+  // Redirect-Handling
+  const redirectOn = d.redirectOn || 'confirm'; // 'confirm' | 'close'
+  const shouldRedirect =
+    d.redirectTo &&
+    (
+      (redirectOn === 'confirm' && res.isConfirmed) ||
+      (redirectOn === 'close'   && (res.isDismissed || res.isDenied))
+    );
+
+  if (shouldRedirect) {
+    window.location.assign(d.redirectTo);
   }
 });

@@ -153,11 +153,18 @@ class Register extends Component
         });
 
         // 7) Erfolgsmeldung
-        $this->dispatch(
-            'showAlert',
-            'Du hast dein Konto erfolgreich erstellt. Bitte prüfe deine E-Mails, um dein Passwort zu setzen und dein Konto zu aktivieren.',
-            'success'
-        );
+$this->dispatch('showAlert', [
+    'type' => 'success',
+    'title' => 'Konto erstellt',
+    'text' => 'Bitte prüfe deine E-Mails, um dein Passwort zu setzen und dein Konto zu aktivieren.',
+    'confirmText' => 'Zum Login',
+    'allowOutsideClick' => false,
+    'redirectTo' => route('login'),
+    'redirectOn' => 'confirm', 
+]);
+
+
+
     }
 
     // === Hilfsfunktionen ===
