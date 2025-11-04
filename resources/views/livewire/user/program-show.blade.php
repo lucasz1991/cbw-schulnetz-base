@@ -2,8 +2,6 @@
   class="transition"
   @if($apiProgramLoading)
     wire:poll.visible.2000="pollProgram"
-  @else
-    wire:poll.visible.10000
   @endif
   wire:loading.class="cursor-wait opacity-50 animate-pulse"
 >    {{-- Loader wenn Programm noch nicht geladen --}}
