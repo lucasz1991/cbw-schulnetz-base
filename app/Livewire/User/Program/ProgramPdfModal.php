@@ -53,7 +53,7 @@ class ProgramPdfModal extends Component
         $name = $data['name'] ?? 'Teilnehmer';
         $name = str_replace(', ', '_', $name);
         $this->downloadName = 'Qualifizierungsprogramm_'.$name.'_'.now()->format('Y').'.pdf';
-        $this->title = 'TN-Qualifizierungsprogramm';
+        $this->title = $this->downloadName;
 
         // === PDF mit FPDI: identische Parameter wie dein Legacy-Skript ===
         $template = storage_path('app/private/pdfs/cbw_letter.pdf');

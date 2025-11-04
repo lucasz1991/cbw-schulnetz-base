@@ -154,7 +154,7 @@ class Register extends Component
         $this->dispatch(
             'showAlert',
             'Du hast dein Konto erfolgreich erstellt. Bitte prüfe deine E-Mails, um dein Passwort zu setzen und dein Konto zu aktivieren.',
-            'info'
+            'success'
         );
     }
 
