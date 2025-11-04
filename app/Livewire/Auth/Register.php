@@ -119,6 +119,8 @@ class Register extends Component
                 'status'   => 1,
                 'role'     => $role,
                 'password' => bcrypt($randomPassword),
+                // vorläufig in dev verifizieren
+                'email_verified_at' => now(),
             ]);
 
             // Person anhand person_id (präferiert) oder email_priv finden
