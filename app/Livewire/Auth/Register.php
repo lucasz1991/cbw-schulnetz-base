@@ -72,7 +72,7 @@ class Register extends Component
 
         if ($existingIncomplete) {
             // Link zum Setzen des Passworts erneut senden
-            $existingIncomplete->notify(new SetPasswordNotification($existingIncomplete, $this->generateResetToken($existingIncomplete)));
+             // $existingIncomplete->notify(new SetPasswordNotification($existingIncomplete, $this->generateResetToken($existingIncomplete)));
             $this->dispatch(
                 'showAlert',
                 'Dein Konto wurde bereits erstellt, ist aber noch nicht aktiviert. Wir haben dir den Link zum Setzen deines Passworts erneut gesendet.',
