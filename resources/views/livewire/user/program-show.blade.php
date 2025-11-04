@@ -6,7 +6,7 @@
   wire:loading.class="cursor-wait opacity-50 animate-pulse"
 >    {{-- Loader wenn Programm noch nicht geladen --}}
     @if($apiProgramLoading)
-        <div role="status" class="h-32 w-full relative animate-pulse">
+        <div role="status" class="h-32 w-full relative animate-pulse" wire:ignore>
             <div class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-white/70 transition-opacity">
                 <div class="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-2 shadow">
                     <span class="loader"></span>
