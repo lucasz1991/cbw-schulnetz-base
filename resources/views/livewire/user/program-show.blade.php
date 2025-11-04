@@ -1,9 +1,9 @@
 <div
   class="transition"
   @if($apiProgramLoading)
-    wire:poll.visible.1000="pollProgram"
+    wire:poll.visible.2000="pollProgram"
   @else
-    wire:poll.visible.5000
+    wire:poll.visible.10000
   @endif
   wire:loading.class="cursor-wait opacity-50 animate-pulse"
 >    {{-- Loader wenn Programm noch nicht geladen --}}
@@ -12,7 +12,7 @@
             <div class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-white/70 transition-opacity">
                 <div class="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-2 shadow">
                     <span class="loader"></span>
-                    <span class="text-sm text-gray-700">wird geladen…</span>
+                    <span class="text-sm text-gray-700">Programm Daten werden geladen…</span>
                 </div>
             </div>
         </div>
