@@ -6,7 +6,17 @@
     wire:poll.visible.5000
   @endif
   wire:loading.class="cursor-wait opacity-50 animate-pulse"
->
+>    {{-- Loader wenn Programm noch nicht geladen --}}
+    @if($apiProgramLoading)
+        <div role="status" class="h-32 w-full relative animate-pulse">
+            <div class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-white/70 transition-opacity">
+                <div class="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-2 shadow">
+                    <span class="loader"></span>
+                    <span class="text-sm text-gray-700">wird geladen…</span>
+                </div>
+            </div>
+        </div>
+    @else
   <livewire:user.program.program-pdf-modal lazy />
   <livewire:user.program.course.course-rating-form-modal lazy />
 
@@ -291,7 +301,7 @@
                       Übersicht über deine Anträge im Programm.
                     </p>
                     <x-buttons.button-basic :size="'sm'" :mode="'primary'"     @click="selectedTab = 'claims'"
- class="w-full">
+                       class="w-full">
                       Anträge anzeigen
                     </x-buttons.button-basic>
                   </div>
@@ -731,5 +741,5 @@
         </div>
 
   </section>
-
+  @endif
 </div>
