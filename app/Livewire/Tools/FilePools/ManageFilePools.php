@@ -219,12 +219,13 @@ class ManageFilePools extends Component
     public function placeholder()
     {
         return <<<'HTML'
-            <div role="status" class="space-y-8 py-8 animate-pulse md:flex md:items-center md:space-x-8 w-full">
-                <div class="w-full space-y-2">
-                    <div class="h-2.5 bg-gray-300 rounded-full w-48 mb-4"></div>
-                    <div class="h-2 bg-gray-300 rounded-full max-w-[480px] mb-2.5"></div>
-                    <div class="h-2 bg-gray-300 rounded-full mb-2.5"></div>
-                </div>
+            <div role="status" class="h-32 w-full relative animate-pulse">
+                    <div class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-white/70 transition-opacity">
+                        <div class="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-2 shadow">
+                            <span class="loader"></span>
+                            <span class="text-sm text-gray-700">wird geladen…</span>
+                        </div>
+                    </div>
             </div>
         HTML;
     }
