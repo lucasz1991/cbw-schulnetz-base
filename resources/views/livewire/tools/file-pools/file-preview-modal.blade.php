@@ -13,7 +13,7 @@
                     <span>{{ $file->getMimeTypeForHumans() }}</span>
                 </div>
                 <div class="text-xs text-gray-500 ">
-                    <span>{{ number_format($file->size / 1024, 1) }} KB</span>
+                    <span>{{ $file?->sizeFormatted ?? '' }}</span>
                 </div>
             </div>
             <div>

@@ -133,23 +133,16 @@ class CourseShowOverview extends Component
         return 'Offen';
     }
 
-        public function placeholder()
+    public function placeholder()
     {
         return <<<'HTML'
-            <div role="status" class=" animate-pulse">
-                <section class="relative min-h-[50vh]">
-                    <div class="container mx-auto px-5 my-4  space-y-6">
-                        <div class="grid grid-cols-1">
-                            <div class="bg-white h-[160px] shadow rounded-lg text-center col-span-2 md:col-span-1 max-md:order-3 flex items-center justify-center">
-                                <div class="w-full space-y-2 p-4">
-                                    <div class="h-2.5 bg-gray-300 rounded-full w-48 mb-4"></div>
-                                    <div class="h-2 bg-gray-300 rounded-full max-w-[480px] mb-2.5"></div>
-                                    <div class="h-2 bg-gray-300 rounded-full mb-2.5"></div>
-                                </div>
-                            </div>
+            <div role="status" class="h-32 w-full relative animate-pulse">
+                    <div class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-white/70 transition-opacity">
+                        <div class="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-2 shadow">
+                            <span class="loader"></span>
+                            <span class="text-sm text-gray-700">wird geladen…</span>
                         </div>
                     </div>
-                </section>
             </div>
         HTML;
     }

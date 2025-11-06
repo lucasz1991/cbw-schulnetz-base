@@ -19,12 +19,12 @@
         <script src="{{ URL::asset('adminresources/flatpickr/flatpickr.min.js') }}"></script>
         <script src="{{ URL::asset('adminresources/flatpickr/l10n/de.js') }}"></script>
         <script src="https://unpkg.com/dropzone@6.0.0-beta.1/dist/dropzone-min.js"></script>
-    <link href="https://unpkg.com/dropzone@6.0.0-beta.1/dist/dropzone.css" rel="stylesheet" type="text/css" />
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"
+        <link href="https://unpkg.com/dropzone@6.0.0-beta.1/dist/dropzone.css" rel="stylesheet" type="text/css" />
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"
         integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
-    <!-- apexcharts -->
-    <script src="{{ URL::asset('adminresources/apexcharts/apexcharts.min.js') }}"></script>
-    <link rel="stylesheet" href="{{ asset('adminresources/fontawesome6/css/all.min.css') }}">
+        <!-- apexcharts -->
+        <script src="{{ URL::asset('adminresources/apexcharts/apexcharts.min.js') }}"></script>
+        <link rel="stylesheet" href="{{ asset('adminresources/fontawesome6/css/all.min.css') }}">
         
         <!-- Styles -->
         @vite(['resources/css/app.css'])
