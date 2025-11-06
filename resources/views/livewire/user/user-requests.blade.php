@@ -1,7 +1,9 @@
 <div class=" mt-4" wire:loading.class="opacity-50 pointer-events-none">
-    <livewire:user.absences  />
-    <livewire:user.makeup-exam-registration />
-    <livewire:user.external-makeup-registration />
+    <livewire:user.absences lazy />
+    <livewire:user.makeup-exam-registration lazy />
+    <livewire:user.external-makeup-registration lazy />
+    <livewire:user.request-detail-modal lazy />
+
 
     <div class="mb-12">
     <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -126,117 +128,58 @@
     </div>
 
     </div>
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
-        <h2 class="text-lg font-semibold">Meine Anträge</h2>
-
-        <div class="flex items-center gap-2">
-            <input type="text"
-                   placeholder="Suchen…"
-                   class="px-3 py-2 rounded border  opacity-70 hover:opacity-100 transition "
-                   wire:model.live.debounce.300ms="search">
-
-            <select class="px-3 py-2 rounded border pr-8 opacity-70 hover:opacity-100 transition" wire:model.live="filterType" title="Typ">
-                <option value="all">Alle Typen</option>
-                <option value="makeup">Nachprüfung (intern)</option>
-                <option value="external_makeup">Nachprüfung (extern)</option>
-                <option value="absence">Fehlzeit</option>
-            </select>
 
 
-            {{-- Neuer Antrag -> nur Events --}}
-            <div class="relative" x-data="{open:false}" @keydown.escape="open=false">
-                <button type="button" class="px-3 py-2 rounded border bg-white" @click="open = !open">+ Neuer Antrag</button>
-                <div class="absolute right-0 mt-2 w-56 bg-white border rounded shadow z-10" x-cloak x-show="open" @click.outside="open=false">
-                    <button class="w-full text-left px-3 py-2 hover:bg-gray-50" @click="$wire.openCreate('makeup'); open=false">Nachprüfung (intern)</button>
-                    <button class="w-full text-left px-3 py-2 hover:bg-gray-50" @click="$wire.openCreate('external_makeup'); open=false">Nachprüfung (extern)</button>
-                    <button class="w-full text-left px-3 py-2 hover:bg-gray-50" @click="$wire.openCreate('absence'); open=false">Fehlzeit</button>
-                </div>
+    <div class="bg-white mb-4 p-4 pb-1 rounded-lg border shadow-sm">        
+        {{-- Toolbar --}}
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+            <h2 class="text-lg font-semibold">Meine Anträge</h2>
+    
+            <div class="flex items-center gap-2">
+                <x-tables.search-field 
+                    resultsCount="{{ $requests->count() }}"
+                    wire:model.live="search"
+                />
+    
+    
+                <select class="px-2 py-0.5 h-[30px] rounded border border-gray-300 pr-8 opacity-70 hover:opacity-100 transition"
+                        wire:model.live="filterType" title="Typ">
+                    <option value="all">Alle Typen</option>
+                    <option value="makeup">Nachprüfung (intern)</option>
+                    <option value="external_makeup">Nachprüfung (extern)</option>
+                    <option value="absence">Fehlzeit</option>
+                    <option value="general">Allgemein</option>
+                </select>
+
+                <select class="px-2 py-0.5 h-[30px] rounded border border-gray-300 pr-8 opacity-70 hover:opacity-100 transition"
+                        wire:model.live="filterStatus" title="Status">
+                    <option value="all">Alle Status</option>
+                    <option value="pending">Eingereicht</option>
+                    <option value="in_review">In Prüfung</option>
+                    <option value="approved">Genehmigt</option>
+                    <option value="rejected">Abgelehnt</option>
+                    <option value="canceled">Storniert</option>
+                </select>
+    
             </div>
         </div>
-    </div>
-
-    {{-- Tabelle (reine Anzeige, keine Formulare) --}}
-    <div class="bg-white border rounded-lg overflow-hidden">
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50">
-            <tr class="text-left">
-                <th class="px-4 py-2">Typ</th>
-                <th class="px-4 py-2">Titel</th>
-                <th class="px-4 py-2">Zeitraum/Termin</th>
-                <th class="px-4 py-2">Grund</th>
-                <th class="px-4 py-2">Status</th>
-                <th class="px-4 py-2 w-40"></th>
-            </tr>
-            </thead>
-            <tbody>
-            @forelse($requests as $r)
-                <tr class="border-t">
-                    <td class="px-4 py-2">
-                        @php
-                            $typeLabel = [
-                                'makeup' => 'Nachprüfung (intern)',
-                                'external_makeup' => 'Nachprüfung (extern)',
-                                'absence' => 'Fehlzeit',
-                                'general' => 'Allgemein',
-                            ][$r->type] ?? ucfirst($r->type);
-                        @endphp
-                        {{ $typeLabel }}
-                    </td>
-                    <td class="px-4 py-2">
-                        <div class="font-medium">{{ $r->title ?: '—' }}</div>
-                        <div class="text-xs text-gray-500">
-                            @if($r->module_code) Baustein: {{ $r->module_code }} · @endif
-                            @if($r->instructor_name) Dozent: {{ $r->instructor_name }} @endif
-                        </div>
-                    </td>
-                    <td class="px-4 py-2">
-                        @if($r->type === 'absence')
-                            {{ optional($r->date_from)->format('d.m.Y') ?: '—' }}
-                        @else
-                            @if($r->scheduled_at)
-                                {{ $r->scheduled_at->timezone(config('app.timezone'))->format('d.m.Y H:i') }}
-                            @elseif($r->date_from || $r->date_to)
-                                {{ optional($r->date_from)->format('d.m.Y') }} – {{ optional($r->date_to)->format('d.m.Y') }}
-                            @else
-                                —
-                            @endif
-                        @endif
-                    </td>
-                    <td class="px-4 py-2">
-                        <span class="text-xs">
-                            {{ $r->reason ? str_replace('_',' ', $r->reason) : '—' }}
-                            @if($r->reason_item) · {{ $r->reason_item }} @endif
-                        </span>
-                    </td>
-                    <td class="px-4 py-2">
-                        <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs
-                            @class([
-                                'bg-yellow-100 text-yellow-800' => $r->status === 'pending',
-                                'bg-green-100 text-green-700'   => $r->status === 'approved',
-                                'bg-red-100 text-red-700'       => $r->status === 'rejected',
-                                'bg-gray-100 text-gray-700'     => $r->status === 'canceled',
-                            ])
-                        ">
-                          {{ ucfirst($r->status) }}
-                        </span>
-                    </td>
-                    <td class="px-4 py-2">
-                        <div class="flex gap-2 justify-end">
-                            <button class="px-2 py-1 rounded border" wire:click="openEdit({{ $r->id }})">Öffnen</button>
-                            @if($r->status === 'pending')
-                                <button class="px-2 py-1 rounded border" wire:click="cancel({{ $r->id }})">Stornieren</button>
-                            @endif
-                            <button class="px-2 py-1 rounded border text-red-600" wire:click="delete({{ $r->id }})">Löschen</button>
-                        </div>
-                    </td>
-                </tr>
-            @empty
-                <tr><td colspan="6" class="px-4 py-6 text-center text-gray-500">Noch keine Anträge.</td></tr>
-            @endforelse
-            </tbody>
-        </table>
-        <div class="p-3">
-            {{ $requests->links() }}
+    
+        {{-- Tabelle --}}
+        <div class="">
+            <x-tables.table
+                :columns="[
+                    ['label'=>'Typ','key'=>'type','width'=>'30%','sortable'=>false,'hideOn'=>'none'],
+                    ['label'=>'Zeitraum','key'=>'date_range','width'=>'40%','sortable'=>false,'hideOn'=>'lg'],
+                    ['label'=>'Status','key'=>'status','width'=>'30%','sortable'=>false,'hideOn'=>'md'],
+                ]"
+                :items="$requests"
+                row-view="components.tables.rows.user-requests.row"
+                actions-view="components.tables.rows.user-requests.actions"
+            />
+    
+            <div class="p-3">
+                {{ $requests->links() }}
+            </div>
         </div>
     </div>
 </div>

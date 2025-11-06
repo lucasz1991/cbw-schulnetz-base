@@ -11,7 +11,7 @@ class UserRequests extends Component
 {
     use WithPagination;
 
-    public string $filterStatus = 'all';        // all|pending|approved|rejected|canceled
+    public string $filterStatus = 'all';        // all|pending|approved|rejected|canceled|in_review
     public string $filterType   = 'all';        // all|makeup|external_makeup|absence|general
     public string $search       = '';
     public int $perPage         = 10;
@@ -23,20 +23,19 @@ class UserRequests extends Component
     ];
 
     protected $listeners = [
-        // von Unter-Modulen senden nach Save/Delete:
         'user-request:updated' => '$refresh',
         'user-request:created' => '$refresh',
         'user-request:deleted' => '$refresh',
     ];
 
-    public function updatingSearch()     { $this->resetPage(); }
-    public function updatingFilterType() { $this->resetPage(); }
+    public function updatingSearch()      { $this->resetPage(); }
+    public function updatingFilterType()  { $this->resetPage(); }
     public function updatingFilterStatus(){ $this->resetPage(); }
 
     public function openCreate(string $type): void
     {
-        // nur Events emittieren, KEINE Formulare hier
-        $this->dispatch('open-request-form', type: $type); // z.B. 'makeup' | 'external_makeup' | 'absence' | 'general'
+        // z. B. 'makeup' | 'external_makeup' | 'absence' | 'general'
+        $this->dispatch('open-request-form', type: $type);
     }
 
     public function openEdit(int $id): void
@@ -48,8 +47,15 @@ class UserRequests extends Component
     {
         $req = UserRequest::where('user_id', Auth::id())->findOrFail($id);
         if ($req->status === 'pending') {
-            $req->update(['status' => 'canceled', 'decided_at' => now()]);
-            $this->dispatch('notify', type: 'success', message: 'Antrag storniert.');
+            $req->update([
+                'status'     => 'canceled',
+                'decided_at' => now(),
+            ]);
+            $this->dispatch('toast', [
+                'type' => 'success',
+                'title'=> 'Erfolgreich abgebrochen',
+                'text' => 'Deine Anfrage wurde abgebrochen.',
+            ]);
             $this->dispatch('user-request:updated');
         }
     }
@@ -58,7 +64,11 @@ class UserRequests extends Component
     {
         $req = UserRequest::where('user_id', Auth::id())->findOrFail($id);
         $req->delete();
-        $this->dispatch('notify', type: 'success', message: 'Antrag gelöscht.');
+        $this->dispatch('toast', [
+            'type' => 'success',
+            'title'=> 'Erfolgreich gelöscht',
+            'text' => 'Deine Anfrage wurde gelöscht.',
+        ]);
         $this->dispatch('user-request:deleted');
     }
 
@@ -68,29 +78,22 @@ class UserRequests extends Component
             ->when($this->filterStatus !== 'all', fn($q) => $q->where('status', $this->filterStatus))
             ->when($this->filterType !== 'all',   fn($q) => $q->where('type', $this->filterType))
             ->when($this->search, function ($q) {
-                $q->where(function ($w) {
-                    $w->where('title', 'like', '%'.$this->search.'%')
-                      ->orWhere('message', 'like', '%'.$this->search.'%')
-                      ->orWhere('module_code', 'like', '%'.$this->search.'%')
-                      ->orWhere('instructor_name', 'like', '%'.$this->search.'%');
+                $s = '%'.$this->search.'%';
+                $q->where(function ($w) use ($s) {
+                    $w->where('title', 'like', $s)
+                      ->orWhere('message', 'like', $s)
+                      ->orWhere('class_code', 'like', $s)
+                      ->orWhere('module_code', 'like', $s)
+                      ->orWhere('instructor_name', 'like', $s)
+                      ->orWhere('reason', 'like', $s)
+                      ->orWhere('reason_item', 'like', $s)
+                      ->orWhere('certification_key', 'like', $s)
+                      ->orWhere('certification_label', 'like', $s);
                 });
             })
-            ->latest()
+            // sortiere primär nach submitted_at, sonst created_at
+            ->orderByRaw('COALESCE(submitted_at, created_at) DESC')
             ->paginate($this->perPage);
-    }
-
-    public function placeholder()
-    {
-        return <<<'HTML'
-            <div role="status" class="h-32 w-full relative animate-pulse">
-                    <div class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-white/70 transition-opacity">
-                        <div class="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-2 shadow">
-                            <span class="loader"></span>
-                            <span class="text-sm text-gray-700">wird geladen…</span>
-                        </div>
-                    </div>
-            </div>
-        HTML;
     }
 
     public function render()

@@ -25,6 +25,8 @@
         <!-- apexcharts -->
         <script src="{{ URL::asset('adminresources/apexcharts/apexcharts.min.js') }}"></script>
         <link rel="stylesheet" href="{{ asset('adminresources/fontawesome6/css/all.min.css') }}">
+                  <script src="https://unpkg.com/dropzone@5/dist/min/dropzone.min.js"></script>
+            <link rel="stylesheet" href="https://unpkg.com/dropzone@5/dist/min/dropzone.min.css" type="text/css" />
         
         <!-- Styles -->
         @vite(['resources/css/app.css'])
