@@ -22,14 +22,7 @@
     $inputId = $id ?? $name ?? 'time_'.uniqid();
 @endphp
 
-@once
-    @push('styles')
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    @endpush
-    @push('scripts')
-        <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    @endpush
-@endonce
+
 
 <div class="space-y-1" x-data="{
     fp: null,
