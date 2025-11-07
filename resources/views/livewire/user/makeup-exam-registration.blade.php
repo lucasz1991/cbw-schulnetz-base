@@ -2,26 +2,18 @@
   <x-slot name="title">Antrag auf Nachprüfung</x-slot>
 
   <x-slot name="content">
-    <form
-      x-data="{ showDeleteUpload:false }"
-      class="space-y-6"
-      {{-- wire:submit.prevent="save" --}}
-    >
-      {{-- Versteckte Felder – später aus Backend/User ziehen --}}
-      <input type="hidden" name="tn_name" value="Müstermann, Mäx">
-      <input type="hidden" name="tn_nummer" value="0000007">
-      <input type="hidden" name="institut" value="Köln">
-      <input type="hidden" name="email" value="mm@muster.com">
-      <input type="hidden" name="send_date" value="28.05.2025 - 06:03">
+    <form x-data="{ }" class="space-y-6" wire:submit.prevent="save">
 
       <div class="grid md:grid-cols-3 gap-4">
-        <div><strong>Name:</strong> Müstermann, Mäx</div>
-        <div><strong>Nummer:</strong> 0000007</div>
+        <div class="md:col-span-2">
+          <strong>Name:</strong> {{ auth()->user()->name }}
+        </div>
         <div class="text-right">
           <label for="klasse" class="block text-sm font-medium">Klasse</label>
-          <input id="klasse" type="text" required maxlength="8"
+          <input id="klasse" type="text" maxlength="12" placeholder="z. B. INF23A"
                  class="mt-1 block w-full border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                 wire:model.defer="klasse">
+                 wire:model.live.debounce.300ms="klasse">
+          @error('klasse') <div class="text-xs text-red-600 mt-1">{{ $message }}</div> @enderror
         </div>
       </div>
 
@@ -41,6 +33,7 @@
             Nachprüfung zur Ergebnisverbesserung (40,00 €)
           </label>
         </div>
+        @error('wiederholung') <div class="text-xs text-red-600 mt-1">{{ $message }}</div> @enderror
       </div>
 
       <div class="grid md:grid-cols-2 gap-4">
@@ -56,12 +49,14 @@
             <option value="1752831000">18.07.2025 - 11:30</option>
             <option value="1754040600">01.08.2025 - 11:30</option>
           </select>
+          @error('nachKlTermin') <div class="text-xs text-red-600 mt-1">{{ $message }}</div> @enderror
         </div>
         <div>
           <label for="nKlBaust" class="block text-sm font-medium">Baustein</label>
-          <input id="nKlBaust" type="text" maxlength="6" required placeholder="Baustein"
+          <input id="nKlBaust" type="text" maxlength="10" required placeholder="Baustein"
                  class="mt-1 block w-full border-gray-300 rounded shadow-sm"
                  wire:model.defer="nKlBaust">
+          @error('nKlBaust') <div class="text-xs text-red-600 mt-1">{{ $message }}</div> @enderror
         </div>
       </div>
 
@@ -71,12 +66,14 @@
           <input id="nKlDozent" type="text" required placeholder="Dozent"
                  class="mt-1 block w-full border-gray-300 rounded shadow-sm"
                  wire:model.defer="nKlDozent">
+          @error('nKlDozent') <div class="text-xs text-red-600 mt-1">{{ $message }}</div> @enderror
         </div>
         <div>
           <label for="nKlOrig" class="block text-sm font-medium">Ursprüngliche Prüfung am</label>
           <input id="nKlOrig" type="date" required
                  class="mt-1 block w-full border-gray-300 rounded shadow-sm"
                  wire:model.defer="nKlOrig">
+          @error('nKlOrig') <div class="text-xs text-red-600 mt-1">{{ $message }}</div> @enderror
         </div>
       </div>
 
@@ -102,28 +99,32 @@
             Krankheit am Prüfungstag, <strong>ohne Attest</strong>
           </label>
         </div>
+        @error('grund') <div class="text-xs text-red-600 mt-1">{{ $message }}</div> @enderror
       </div>
 
+      {{-- Livewire Upload --}}
       <div class="border-t pt-4">
-        <label class="block text-sm font-medium mb-2">Anlage (jpg, png, gif, pdf)</label>
-        <div class="flex items-center space-x-4">
-          <button type="button" class="upload-btn bg-gray-100 border px-4 py-2 rounded text-sm">Anlage hinzufügen</button>
-          <span class="text-gray-500">Keine Anlage hinzugefügt</span>
-          <span x-show="showDeleteUpload">
-            <a href="#" class="text-red-600 text-sm">[ löschen ]</a>
-          </span>
-        </div>
+        <label class="block text-sm font-medium mb-2">Anlagen (jpg, png, gif, pdf)</label>
+          <x-ui.filepool.drop-zone
+                :model="'attachments'"
+                acceptedFiles=".jpg,.jpeg,.png,.gif,.pdf"
+                maxFiles="3"
+            />
+        @error('attachments.*') <div class="text-xs text-red-600 mt-1">{{ $message }}</div> @enderror
       </div>
 
       <div class="prose text-sm text-gray-600">
         <p>(*) Eine Nachprüfung ist kostenfrei, wenn ein Attest für den ursprünglichen Prüfungstag vorliegt.</p>
         <p>(**) Die Gebühr ist mit Abgabe der Anmeldung vor dem Nachprüfungstermin zu entrichten.</p>
       </div>
+
+      {{-- Enter = Submit --}}
+      <button type="submit" class="hidden"></button>
     </form>
   </x-slot>
 
   <x-slot name="footer">
     <x-secondary-button wire:click="close">Schließen</x-secondary-button>
-    {{-- <x-button class="ml-2" wire:click="save">Antrag senden</x-button> --}}
+    <x-button class="ml-2" wire:click="save">Antrag senden</x-button>
   </x-slot>
 </x-dialog-modal>

@@ -60,6 +60,8 @@ class Absences extends Component
         $this->showModal = true;
         $this->fehlDatum ??= now()->toDateString();
         $this->abw_grund ??= 'abw_unwichtig';
+            $this->dispatch('open-absence-dropzone', ['model' => 'attachments']);
+
     }
 
     public function close(): void { $this->showModal = false; }
@@ -147,6 +149,8 @@ class Absences extends Component
                 'expires_at'=> null,
             ]);
         }
+            $this->dispatchBrowserEvent('filepool:saved', ['model' => 'attachments']);
+
 
         $this->dispatch('user-request:updated');
         $this->dispatch('toast', [

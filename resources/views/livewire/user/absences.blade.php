@@ -101,10 +101,13 @@
       </div>
 
       {{-- Livewire Upload --}}
-      <div class="border-t pt-4" wire:ignore>
+      <div class="border-t pt-4"   x-data="{ dropzone: null }"
+           x-on:open-absence-dropzone.window="$dispatch('dropzone:mount')">
         <x-ui.forms.label value="Anlagen (jpg, png, gif, pdf)"/>
-        <x-ui.filepool.drop-zone :model="'attachments'" />
-        <x-ui.forms.input-error for="attachments.*"/>
+  <x-ui.filepool.drop-zone
+      :model="'attachments'"
+      :maxFiles="10"
+  />
       </div>
 
       {{-- Submit im Formular (Enter) --}}
