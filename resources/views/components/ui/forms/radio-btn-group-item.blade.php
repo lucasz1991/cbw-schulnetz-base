@@ -44,7 +44,7 @@
                {{ $disabled ? 'opacity-50 pointer-events-none' : '' }}"
     >
         @if($icon)
-            <i class="{{ $iconStyle }} {{ $icon }} fa-2x"></i>
+            <i class="{{ $iconStyle }} {{ $icon }} fa-lg"></i>
         @endif
         <span>{{ $label }}</span>
     </label>

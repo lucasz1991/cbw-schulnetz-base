@@ -3,15 +3,13 @@
 
   <x-slot name="content">
     <form class="space-y-6">
-      {{-- Versteckte Basis-Felder (später aus User/Backend befüllen) --}}
-      <input type="hidden" name="tn_name" value="Müstermann, Mäx">
-      <input type="hidden" name="tn_nummer" value="0000007">
-      <input type="hidden" name="institut" value="Köln">
-
       {{-- Kopfzeile --}}
       <div class="grid md:grid-cols-3 gap-4">
-        <div><strong>Name:</strong> Müstermann, Mäx</div>
-        <div><strong>Nummer:</strong> 0000007</div>
+                <div class="md:col-span-2">
+          <x-ui.forms.label value="Person"/>
+          <p class="text-gray-700 font-semibold">{{ auth()->user()?->person ? ( auth()->user()?->person?->vorname.' '.auth()->user()?->person?->nachname ) :  auth()->user()->name }}</p>
+          <p class="text-gray-500 text-xs">{{ auth()->user()?->person?->person_id ?  auth()->user()?->person?->person_id :  'keine person Id vorhanden' }}</p>
+        </div>
         <div class="text-right">
           <label for="klasse" class="block text-sm font-medium">Klasse</label>
           <input id="klasse" type="text" maxlength="12" placeholder="z. B. INF23A"
@@ -99,10 +97,10 @@
       {{-- Upload-Platzhalter (später zu Livewire Upload migrieren) --}}
       <div class="border-t pt-4">
         <label class="block text-sm font-medium mb-2">Anlage (jpg, png, gif, pdf)</label>
-        <div class="flex items-center space-x-4">
-          <button type="button" class="bg-gray-100 border px-4 py-2 rounded text-sm">Anlage hinzufügen</button>
-          <span class="text-gray-500">Keine Anlage hinzugefügt</span>
-        </div>
+          <x-ui.filepool.drop-zone
+                :model="'exam_registration_attachments'"
+                acceptedFiles=".jpg,.jpeg,.png,.gif,.pdf"
+          />
       </div>
 
       {{-- Hinweise --}}

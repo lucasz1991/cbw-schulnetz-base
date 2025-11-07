@@ -88,9 +88,7 @@
         />
 
         <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 1.75a10.25 10.25 0 1 0 0 20.5 10.25 10.25 0 0 0 0-20.5Zm.75 5a.75.75 0 0 0-1.5 0v5.19c0 .2.08.39.22.53l3.25 3.25a.75.75 0 1 0 1.06-1.06l-3.03-3.03V6.75Z"/>
-            </svg>
+            <i class="fal fa-clock text-gray-500 fa-lg"></i>
         </div>
     </div>
 

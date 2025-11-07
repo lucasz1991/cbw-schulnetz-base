@@ -43,7 +43,7 @@
               <x-ui.forms.label value="Zeiten"/>
             </div>
             <div class="grid justify-stretch self-stretch h-full">
-                <label>
+                <div>
                   <x-ui.forms.checkbox
                       id="fehltag"
                       label="Ganztägig gefehlt"
@@ -51,14 +51,14 @@
                           :toggle="true"
                   />
   
-                </label>
+                </div>
                 
                 {{-- Zeiten-Bereich nur zeigen, wenn NICHT ganztägig --}}
                 <div
                     x-show="!fehltag"
                     x-cloak
                     aria-hidden="false">
-                    <div class="">
+                    <div class="space-y-4">
                       <div>
                          <x-ui.forms.label for="fehlUhrGek" value="Später gekommen (Uhrzeit)"/>
                           <x-ui.forms.time-input
@@ -102,14 +102,14 @@
                   value="abw_wichtig"
                   wire:model="abw_grund"
                   icon="fa-check-circle"
-                  iconStyle="fad"
+                  iconStyle="fal"
               />
               <x-ui.forms.radio-btn-group-item
                   label="Ohne wichtigen Grund"
                   value="abw_unwichtig"
                   wire:model="abw_grund"
                   icon="fa-ban"
-                  iconStyle="fad"
+                  iconStyle="fal"
               />
           </x-ui.forms.radio-btn-group>
           </div>

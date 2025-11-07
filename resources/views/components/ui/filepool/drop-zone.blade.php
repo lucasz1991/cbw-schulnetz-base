@@ -54,6 +54,7 @@
 
       const previews = el.querySelector('.dz-previews') || el;
 
+
       this.dz = new Dropzone(el, {
         url: '#', // nur UI – Upload macht Livewire
         autoProcessQueue: false,
@@ -65,7 +66,18 @@
         acceptedFiles: this.opts.acceptedFiles ?? undefined,
         chunking: true,
         chunkSize: 1000000, // rein visuell
+        dictRemoveFile: 'Datei löschen',
+        dictMaxFilesExceeded: 'Maximale Anzahl an Dateien erreicht.',
+        dictFileTooBig: 'Datei zu groß ',
+        dictInvalidFileType: 'Dieser Dateityp ist nicht erlaubt.',
+        dictResponseError: 'Serverfehler',
+        dictCancelUpload: 'Upload abbrechen',
+        dictUploadCanceled: 'Upload abgebrochen.',
+        dictCancelUploadConfirmation: 'Upload wirklich abbrechen?',
+        dictRemoveFileConfirmation: 'Datei wirklich löschen?',
       });
+
+
 
       // SINGLE: neue Datei ersetzt alte
       this.dz.on('maxfilesexceeded', (file) => {
