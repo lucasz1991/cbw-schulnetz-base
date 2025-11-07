@@ -26,6 +26,7 @@
     },
 
     init() {
+      console.log('Dropzone init', @js($model), this.single, this.opts);
       // optionales externes Reset (z. B. nach Server-Save)
       window.addEventListener('filepool:saved', (e) => {
         if (e?.detail?.model === @js($model)) this.resetDZ();
@@ -157,7 +158,7 @@
   x-init="init()"
 >
   <!-- Dropzone-UI (vor Livewire geschützt) -->
-  <form x-ref="dzForm"
+  <div x-ref="dzForm"
         class="dropzone pointer-events-auto min-h-[140px] rounded-xl border-2 border-dashed border-gray-300 bg-gray-50"
         wire:ignore>
     <div class="dz-message needsclick">
@@ -167,7 +168,7 @@
       @endif
     </div>
     <div class="dz-previews flex items-center flex-wrap justify-around gap-2"></div>
-  </form>
+</div>
 
   <!-- Livewire-Input (Modus-abhängig multiple) -->
   <input

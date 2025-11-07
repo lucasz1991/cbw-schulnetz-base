@@ -18,13 +18,12 @@
         <script src="{{ URL::asset('adminresources/choices.js/public/assets/scripts/choices.min.js') }}"></script>
         <script src="{{ URL::asset('adminresources/flatpickr/flatpickr.min.js') }}"></script>
         <script src="{{ URL::asset('adminresources/flatpickr/l10n/de.js') }}"></script>
-        <script src="https://code.jquery.com/jquery-3.6.0.min.js"
-        integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
-        <!-- apexcharts -->
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+        <script src="https://unpkg.com/dropzone@5/dist/min/dropzone.min.js"></script>
+        <link rel="stylesheet" href="https://unpkg.com/dropzone@5/dist/min/dropzone.min.css" type="text/css" />
         <script src="{{ URL::asset('adminresources/apexcharts/apexcharts.min.js') }}"></script>
         <link rel="stylesheet" href="{{ asset('adminresources/fontawesome6/css/all.min.css') }}">
-                  <script src="https://unpkg.com/dropzone@5/dist/min/dropzone.min.js"></script>
-            <link rel="stylesheet" href="https://unpkg.com/dropzone@5/dist/min/dropzone.min.css" type="text/css" />
+
         
         <!-- Styles -->
         @vite(['resources/css/app.css'])
@@ -63,24 +62,6 @@
         <!-- Scripts -->
         @vite(['resources/js/app.js'])
         @livewireScripts
-        <!-- <script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="90a1af19-c1d7-46b9-9855-b9b076ac7501" data-blockingmode="auto" type="text/javascript"></script> -->
-        <!-- <script async src="https://www.googletagmanager.com/gtag/js?id=AW-16808641054"></script> <script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'AW-16808641054'); </script>-->
-       <!-- <script data-cookieconsent="ignore">    window.dataLayer = window.dataLayer || [];    function gtag() {        dataLayer.push(arguments);    }    gtag("consent", "default", {        ad_personalization: "denied",        ad_storage: "denied",        ad_user_data: "denied",        analytics_storage: "denied",        functionality_storage: "denied",        personalization_storage: "denied",        security_storage: "granted",        wait_for_update: 500,    });    gtag("set", "ads_data_redaction", true);    gtag("set", "url_passthrough", false);</script>
-        <script type="text/javascript">
-        ((d,i,m)=>{ct=t=>d.createTextNode(t);ce=e=>d.createElement(e);d.querySelectorAll(i)
-        .forEach(e=>{const a=ce('a'),div=ce('div'),p=ce('p'),s=e.dataset.cookieblockSrc,sp=
-        /google\.com\/maps\/embed/.test(s)?'Google Maps':/player\.vimeo\.com\/video\//
-        .test(s)?'Vimeo':/youtube(-nocookie)?\.com\/embed\//.test(s)?'YouTube':undefined;
-        if(!sp)return;div.innerHTML=`<div style="background-color:#CCC;display:inline-`+
-        `block;height:${e.height}px;position:relative;width:${e.width}px;"><div style=`+
-        '"background-color:#848484;border-radius:15px;height:50%;position:absolute;'+
-        'transform:translate(50%,50%);width:50%;"><p style="color:#FFF;font-size:7.5em;'+
-        'position:relative;top:50%;left:50%;margin:0;text-align:center;transform:translate'
-        +'-50%,-50%);">&ctdot;</p></div>';div.classList.add(`cookieconsent-optout-${m}`);
-        a.textContent=`accept ${m} cookies`;a.href='javascript:Cookiebot.renew()';p.append(
-        ct('Please '), a, ct(` to view this ${sp} content.`));div.append(p);e.parentNode
-        .insertBefore(div, e);})})(document, 'iframe[data-cookieblock-src]', 'marketing')
-        </script> -->
-        
+        @yield('js')
     </body>
 </html>

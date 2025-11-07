@@ -15,8 +15,9 @@
     >
       <div class="grid md:grid-cols-2 gap-4">
         <div>
-          <x-ui.forms.label value="Name"/>
-          <p class="text-gray-700 font-semibold">{{ auth()->user()->name }}</p>
+          <x-ui.forms.label value="Person"/>
+          <p class="text-gray-700 font-semibold">{{ auth()->user()?->person ? ( auth()->user()?->person?->vorname.' '.auth()->user()?->person?->nachname ) :  auth()->user()->name }}</p>
+          <p class="text-gray-500 text-xs">{{ auth()->user()?->person?->person_id ?  auth()->user()?->person?->person_id :  'keine person Id vorhanden' }}</p>
         </div>
         <div>
           <x-ui.forms.label for="klasse" value="Klasse"/>
@@ -26,57 +27,94 @@
         </div>
       </div>
 
-      <div class="grid md:grid-cols-2 gap-4 items-end">
+      <div class="grid md:grid-cols-2 gap-8 ">
           <div>
-            <x-ui.forms.label for="fehlDatum" value="Datum"/>
-            <x-ui.forms.input id="fehlDatum" type="date" wire:model="fehlDatum"/>
+            <x-ui.forms.date-input
+                id="fehlDatum"
+                model="fehlDatum"
+                label="Datum"
+                :inline="true"
+                required
+            />
             <x-ui.forms.input-error for="fehlDatum"/>
           </div>
-        <label class="inline-flex items-center gap-2">
-          <x-ui.forms.checkbox x-model="fehltag"/>
-          <span>Ganztägig gefehlt</span>
-        </label>
-
+          <div class="h-full">
+            <div class="h-max">
+              <x-ui.forms.label value="Zeiten"/>
+            </div>
+            <div class="grid justify-stretch self-stretch h-full">
+                <label>
+                  <x-ui.forms.checkbox
+                      id="fehltag"
+                      label="Ganztägig gefehlt"
+                      wire:model="fehltag"
+                          :toggle="true"
+                  />
+  
+                </label>
+                
+                {{-- Zeiten-Bereich nur zeigen, wenn NICHT ganztägig --}}
+                <div
+                    x-show="!fehltag"
+                    x-cloak
+                    aria-hidden="false">
+                    <div class="">
+                      <div>
+                         <x-ui.forms.label for="fehlUhrGek" value="Später gekommen (Uhrzeit)"/>
+                          <x-ui.forms.time-input
+                            id="fehlUhrGek"
+                            name="fehlUhrGek"
+                            min="08:00"
+                            max="23:00"
+                            x-bind:disabled="fehltag"
+                            class="disabled:bg-gray-100"
+                            wire:model="fehlUhrGek"
+                            :inline="true"
+                        />
+                      </div>
+                      <div>
+                        <x-ui.forms.label for="fehlUhrGeg" value="Früher gegangen (Uhrzeit)"/>
+                        <x-ui.forms.time-input
+                            id="fehlUhrGeg"
+                            name="fehlUhrGeg"
+                            min="08:00"
+                            max="23:00"
+                            x-bind:disabled="fehltag"
+                            class="disabled:bg-gray-100"
+                            wire:model="fehlUhrGeg"
+                            :inline="true"
+                        />
+    
+                      </div>
+                    </div>
+                </div>
+            </div>
+          </div>
       </div>
 
-    {{-- Zeiten-Bereich nur zeigen, wenn NICHT ganztägig --}}
-    <div class="grid md:grid-cols-2 gap-4"
-        x-show="!fehltag"
-        x-transition.opacity.duration.150ms
-        x-cloak
-        aria-hidden="false">
-        <div>
-        <x-ui.forms.label for="fehlUhrGek" value="Später gekommen (Uhrzeit)"/>
-        <x-ui.forms.input id="fehlUhrGek" type="time" min="08:00" max="23:00"
-                            x-bind:disabled="fehltag" class="disabled:bg-gray-100"
-                            wire:model="fehlUhrGek"/>
-        <x-ui.forms.input-error for="fehlUhrGek"/>
-        </div>
-        <div>
-        <x-ui.forms.label for="fehlUhrGeg" value="Früher gegangen (Uhrzeit)"/>
-        <x-ui.forms.input id="fehlUhrGeg" type="time" min="08:00" max="23:00"
-                            x-bind:disabled="fehltag" class="disabled:bg-gray-100"
-                            wire:model="fehlUhrGeg"/>
-        <x-ui.forms.input-error for="fehlUhrGeg"/>
-        </div>
-    </div>
 
         {{-- Grund der Fehlzeit --}}
-        <div class="space-y-2">
-            <x-ui.forms.label value="Grund der Fehlzeit"/>
-            <div class="flex flex-wrap gap-6">
-                <label class="inline-flex items-center gap-2">
-                <input type="radio" class="text-blue-600" value="abw_wichtig" x-model="abw_grund">
-                <span>Mit wichtigem Grund</span>
-                </label>
-                <label class="inline-flex items-center gap-2">
-                <input type="radio" class="text-blue-600" value="abw_unwichtig" x-model="abw_grund">
-                <span>Ohne wichtigen Grund</span>
-                </label>
-            </div>
-
-            <div x-show="showGrundBox" x-cloak class="py-4">
-                <x-ui.forms.label for="grund_item" value="Grund auswählen"/>
+        <div class="space-y-2 pt-8">
+        <div class="flex justify-center">
+          <x-ui.forms.radio-btn-group label="Grund der Fehlzeit">
+              <x-ui.forms.radio-btn-group-item
+                  label="Mit wichtigem Grund"
+                  value="abw_wichtig"
+                  wire:model="abw_grund"
+                  icon="fa-check-circle"
+                  iconStyle="fad"
+              />
+              <x-ui.forms.radio-btn-group-item
+                  label="Ohne wichtigen Grund"
+                  value="abw_unwichtig"
+                  wire:model="abw_grund"
+                  icon="fa-ban"
+                  iconStyle="fad"
+              />
+          </x-ui.forms.radio-btn-group>
+          </div>
+            <div x-show="showGrundBox" x-cloak x-collapse>
+                <x-ui.forms.label for="grund_item" value="Grund auswählen" class="pt-4"/>
                 <select id="grund_item" class="mt-1 block w-full border-gray-300 rounded"
                         wire:model="grund_item">
                 <option value="">Bitte wählen …</option>
@@ -99,16 +137,20 @@
         </div>
         <x-ui.forms.input-error for="begruendung"/>
       </div>
-
+        @if($showModal)
       {{-- Livewire Upload --}}
-      <div class="border-t pt-4"   x-data="{ dropzone: null }"
+      <div class="pt-4"   x-data="{ dropzone: null }"
            x-on:open-absence-dropzone.window="$dispatch('dropzone:mount')">
         <x-ui.forms.label value="Anlagen (jpg, png, gif, pdf)"/>
-  <x-ui.filepool.drop-zone
-      :model="'attachments'"
-      :maxFiles="10"
-  />
+        <x-ui.filepool.drop-zone
+            :model="'absence_attachments'"
+            :maxFiles="10"
+            acceptedFiles=".jpg,.jpeg,.png,.gif,.pdf"
+        />
+
       </div>
+        @endif
+
 
       {{-- Submit im Formular (Enter) --}}
       <button type="submit" class="hidden"></button>

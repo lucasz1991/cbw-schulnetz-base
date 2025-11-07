@@ -28,7 +28,7 @@ class MakeupExamRegistration extends Component
     public ?string $grund = null;          // unter51 | krankMitAtest | krankOhneAtest
 
     /** @var \Livewire\Features\SupportFileUploads\TemporaryUploadedFile[]|array */
-    public array $attachments = [];
+    public array $examRegistrationAttachments = [];
 
     protected $listeners = [
         'open-request-form' => 'handleOpen',   // aus der Liste
@@ -46,7 +46,7 @@ class MakeupExamRegistration extends Component
             'nKlOrig'       => ['required','date'],
             'grund'         => ['required', Rule::in(['unter51','krankMitAtest','krankOhneAtest'])],
 
-            'attachments.*' => ['file','mimes:jpg,jpeg,png,gif,pdf','max:8192'], // 8192 KB = 8 MB
+            'examRegistrationAttachments.*' => ['file','mimes:jpg,jpeg,png,gif,pdf','max:8192'], // 8192 KB = 8 MB
         ];
     }
 
@@ -59,8 +59,8 @@ class MakeupExamRegistration extends Component
             'nKlDozent.required'    => 'Bitte Dozent angeben.',
             'nKlOrig.required'      => 'Bitte das ursprüngliche Prüfungsdatum angeben.',
             'grund.required'        => 'Bitte eine Begründung wählen.',
-            'attachments.*.mimes'   => 'Erlaubt sind: JPG, PNG, GIF, PDF.',
-            'attachments.*.max'     => 'Max. 8 MB pro Datei.',
+            'examRegistrationAttachments.*.mimes'   => 'Erlaubt sind: JPG, PNG, GIF, PDF.',
+            'examRegistrationAttachments.*.max'     => 'Max. 8 MB pro Datei.',
         ];
     }
 
@@ -79,7 +79,7 @@ class MakeupExamRegistration extends Component
     {
         $this->reset([
             'klasse','wiederholung','nachKlTermin','nKlBaust',
-            'nKlDozent','nKlOrig','grund','attachments',
+            'nKlDozent','nKlOrig','grund','examRegistrationAttachments',
         ]);
         $this->resetValidation();
         $this->resetErrorBag();
@@ -87,9 +87,9 @@ class MakeupExamRegistration extends Component
 
     public function removeAttachment(int $index): void
     {
-        if (isset($this->attachments[$index])) {
-            unset($this->attachments[$index]);
-            $this->attachments = array_values($this->attachments);
+        if (isset($this->examRegistrationAttachments[$index])) {
+            unset($this->examRegistrationAttachments[$index]);
+            $this->examRegistrationAttachments = array_values($this->examRegistrationAttachments);
         }
     }
 
@@ -146,8 +146,8 @@ class MakeupExamRegistration extends Component
         ]);
 
         // Uploads -> File-Model (morphMany: files)
-        if (!empty($this->attachments)) {
-            foreach ($this->attachments as $upload) {
+        if (!empty($this->examRegistrationAttachments)) {
+            foreach ($this->examRegistrationAttachments as $upload) {
                 $ext     = strtolower($upload->getClientOriginalExtension() ?: 'bin');
                 $orig    = $upload->getClientOriginalName();
                 $mime    = $upload->getMimeType();

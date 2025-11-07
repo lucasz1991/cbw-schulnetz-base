@@ -106,11 +106,11 @@
       <div class="border-t pt-4">
         <label class="block text-sm font-medium mb-2">Anlagen (jpg, png, gif, pdf)</label>
           <x-ui.filepool.drop-zone
-                :model="'attachments'"
+                :model="'examRegistrationAttachments'"
                 acceptedFiles=".jpg,.jpeg,.png,.gif,.pdf"
                 maxFiles="3"
             />
-        @error('attachments.*') <div class="text-xs text-red-600 mt-1">{{ $message }}</div> @enderror
+        @error('examRegistrationAttachments.*') <div class="text-xs text-red-600 mt-1">{{ $message }}</div> @enderror
       </div>
 
       <div class="prose text-sm text-gray-600">

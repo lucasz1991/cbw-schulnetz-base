@@ -1,8 +1,8 @@
 <div class=" mt-4" wire:loading.class="opacity-50 pointer-events-none">
-    <livewire:user.absences  />
-    <livewire:user.makeup-exam-registration  />
-    <livewire:user.external-makeup-registration />
-    <livewire:user.request-detail-modal />
+    <livewire:user.absences  lazy />
+    <livewire:user.makeup-exam-registration  lazy />
+    <livewire:user.external-makeup-registration lazy />
+    <livewire:user.request-detail-modal lazy />
 
 
     <div class="mb-12">

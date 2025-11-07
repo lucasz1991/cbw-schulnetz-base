@@ -3,9 +3,13 @@
 namespace App\Livewire\User;
 
 use Livewire\Component;
-use Livewire\WithFileUploads;
 use Illuminate\Validation\Rule;
 use App\Models\UserRequest;
+use App\Models\File;
+use Livewire\WithFileUploads;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use Illuminate\Support\Facades\Response;
 
 class Absences extends Component
 {
@@ -24,7 +28,7 @@ class Absences extends Component
     public ?string $begruendung = null;
 
     /** @var \Livewire\Features\SupportFileUploads\TemporaryUploadedFile[] */
-    public array $attachments = [];
+    public array $absence_attachments = [];
 
     /** Gründe lokal im Modul fest verdrahtet */
     public array $reasons = [
@@ -60,32 +64,39 @@ class Absences extends Component
         $this->showModal = true;
         $this->fehlDatum ??= now()->toDateString();
         $this->abw_grund ??= 'abw_unwichtig';
-            $this->dispatch('open-absence-dropzone', ['model' => 'attachments']);
-
+        $this->dispatch('filepool:saved', ['model' => 'attachments']);
     }
 
     public function close(): void { $this->showModal = false; }
 
     public function removeAttachment(int $index): void
     {
-        unset($this->attachments[$index]);
-        $this->attachments = array_values($this->attachments);
+        unset($this->absence_attachments[$index]);
+        $this->absence_attachments = array_values($this->absence_attachments);
     }
 
     public function rules(): array
     {
         $rules = [
-            'klasse'        => ['required','string','max:12'],
-            'fehlDatum'     => ['required','date'],
-            'abw_grund'     => ['required', Rule::in(['abw_wichtig','abw_unwichtig'])],
-            'begruendung'   => ['nullable','string','max:400'],
-            'attachments.*' => ['file','max:5120','mimes:jpg,jpeg,png,gif,pdf'],
-        ];
+            'klasse'      => ['required','string','max:12'],
 
-        if (!$this->fehltag) {
-            $rules['fehlUhrGek'] = ['required','date_format:H:i'];
-            $rules['fehlUhrGeg'] = ['required','date_format:H:i','after:fehlUhrGek'];
-        }
+            // Für <input type="date">:
+            'fehlDatum'   => ['required','date','date_format:Y-m-d','after_or_equal:today'],
+
+            // Wenn Vergangenheit erlaubt sein soll (stattdessen):
+            // 'fehlDatum' => ['required','date','date_format:Y-m-d','before_or_equal:today'],
+
+            'abw_grund'   => ['required', Rule::in(['abw_wichtig','abw_unwichtig'])],
+            'begruendung' => ['nullable','string','max:400'],
+
+            // Times nur wenn nicht ganztägig
+            'fehlUhrGek'  => ['exclude_if:fehltag,true','required','date_format:H:i'],
+            'fehlUhrGeg'  => ['exclude_if:fehltag,true','required','date_format:H:i','after:fehlUhrGek'],
+
+            // Uploads
+            'absence_attachments'   => ['array'],
+            'absence_attachments.*' => ['file','max:5120','mimes:jpg,jpeg,png,gif,pdf'],
+        ];
 
         if ($this->abw_grund === 'abw_wichtig') {
             $rules['grund_item'] = ['required', Rule::in(array_keys($this->reasons))];
@@ -99,6 +110,9 @@ class Absences extends Component
         return [
             'klasse.required'     => 'Bitte Klasse angeben.',
             'fehlDatum.required'  => 'Bitte ein Datum wählen.',
+            'fehlDatum.after_or_equal'     => 'Das Datum darf nicht in der Vergangenheit liegen.',
+            'fehlUhrGek.required' => 'Bitte eine Uhrzeit angeben.',
+            'fehlUhrGeg.required' => 'Bitte eine Uhrzeit angeben.',
             'fehlUhrGeg.after'    => 'Endzeit muss nach der Startzeit liegen.',
             'grund_item.required' => 'Bitte einen konkreten Grund auswählen.',
         ];
@@ -108,7 +122,7 @@ class Absences extends Component
     {
         $this->reset([
             'klasse','fehltag','fehlDatum','fehlUhrGek','fehlUhrGeg',
-            'abw_grund','grund_item','begruendung','attachments',
+            'abw_grund','grund_item','begruendung','absence_attachments',
         ]);
         $this->resetErrorBag();
         $this->fehlDatum = now()->toDateString();
@@ -137,7 +151,7 @@ class Absences extends Component
 
         // Attachments -> File-Model (polymorph)
         $disk = 'private';
-        foreach ($this->attachments as $up) {
+        foreach ($this->absence_attachments as $up) {
             $path = $up->store('uploads/requests/'.date('Y/m'), $disk);
             $req->files()->create([
                 'user_id'   => auth()->id(),
@@ -149,7 +163,7 @@ class Absences extends Component
                 'expires_at'=> null,
             ]);
         }
-            $this->dispatchBrowserEvent('filepool:saved', ['model' => 'attachments']);
+            $this->dispatchBrowserEvent('filepool:saved', ['model' => 'absence_attachments']);
 
 
         $this->dispatch('user-request:updated');
