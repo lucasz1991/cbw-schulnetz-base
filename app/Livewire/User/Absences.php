@@ -163,7 +163,7 @@ class Absences extends Component
                 'expires_at'=> null,
             ]);
         }
-            $this->dispatchBrowserEvent('filepool:saved', ['model' => 'absence_attachments']);
+            $this->dispatch('filepool:saved', ['model' => 'absence_attachments']);
 
 
         $this->dispatch('user-request:updated');
