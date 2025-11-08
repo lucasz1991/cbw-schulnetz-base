@@ -23,7 +23,6 @@ class ExternalMakeupRegistration extends Component
         ['key' => '55', 'label' => 'Zend PHP-Zertifizierung', 'price' => '€ 259,00'],
         ['key' => '49', 'label' => 'TOEIC® Listening and Reading-Test', 'price' => '€ 149,00'],
         ['key' => '6',  'label' => 'ICDL - Datenschutz', 'price' => '€ -25,00'],
-        // ... ergänze nach Bedarf (aus deiner Liste)
     ];
 
     public array $dateOptions = [
