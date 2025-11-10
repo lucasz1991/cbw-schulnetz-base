@@ -100,6 +100,7 @@
                                     </div>
                                 </div>
                                 <div class="shrink-0">
+
                                     {{-- temporäre öffentliche URL (10 Min) --}}
                                     <a href="{{ $f->getEphemeralPublicUrl(10) }}" target="_blank"
                                        class="text-sm px-2 py-1 rounded border hover:bg-gray-50">Öffnen</a>

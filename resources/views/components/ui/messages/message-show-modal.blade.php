@@ -67,17 +67,52 @@
                         Anhänge ({{ $message->files->count() }})
                     </h4>
 
-                    <div class="my-8 mx-2 flex flex-wrap">
-                        @forelse($message->files as $file)
-                        <div class="w-32  mb-4 mr-4">
-                            <x-ui.filepool.file-card :file="$file" />
-                        </div>
-                        @empty
-                        <div class="text-sm text-gray-500">Keine Dateien vorhanden.</div>
-                        @endforelse
+                    <div class="my-8 mx-2">
+                        <ul class="space-y-2">
+                        @foreach($message->files as $f)
+                            <li class="flex items-center justify-between gap-3 border rounded px-3 py-2">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <img src="{{ $f->icon_or_thumbnail }}" class="h-8 w-8 rounded object-cover border" alt="">
+                                    <div class="min-w-0">
+                                        <div class="truncate text-sm font-medium">{{ $f->name_with_extension }}</div>
+                                        <div class="text-xs text-gray-500">{{ $f->getMimeTypeForHumans() }} · {{ $f->size_formatted }}</div>
+                                    </div>
+                                </div>
+                                <div class="shrink-0 flex items-center gap-2">
+                                    {{-- Vorschau --}}
+                                    <button 
+                                        type="button"
+                                        title="Vorschau"
+                                        @click="window.dispatchEvent(new CustomEvent('filepool-preview', { detail: { id: {{ $f->id }} } }))"
+                                        class="inline-flex items-center gap-2 px-3 py-1.5 text-sm border rounded-lg bg-white hover:bg-gray-50 text-gray-700"
+                                    >
+                                        <i class="fal fa-eye"></i>
+                                        <span>Vorschau</span>
+                                    </button>
+
+                                    {{-- Öffnen (temporäre URL) --}}
+                                    <a 
+                                        href="{{ $f->getEphemeralPublicUrl(10) }}" 
+                                        target="_blank" 
+                                        title="In neuem Tab öffnen"
+                                        class="inline-flex items-center gap-2 px-3 py-1.5 text-sm border rounded-lg bg-white hover:bg-gray-50 text-gray-700"
+                                    >
+                                        <i class="fal fa-external-link-alt"></i>
+                                        <span>Öffnen</span>
+                                    </a>
+                                </div>
+                            </li>
+                        @endforeach
+                        </ul>
                     </div>
                 </div>
-            @endif
+                @else
+                    <div class="text-sm text-gray-500">Keine Anhänge.</div>
+                @endif
+
+
+
+
         @else
             <div class="text-sm text-gray-500">Keine Nachricht ausgewählt.</div>
         @endif

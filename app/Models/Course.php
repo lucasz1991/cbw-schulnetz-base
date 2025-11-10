@@ -213,6 +213,7 @@ class Course extends Model
     {
         return $this->morphMany(\App\Models\File::class, 'fileable');
     }
+
     /*
     |--------------------------------------------------------------------------
     | Scopes (praktisch fürs Admin-UI)
@@ -235,8 +236,6 @@ class Course extends Model
 
     public function scopeWithCounts($q)
     {
-        // performant für Listenansichten:
-        // participants_count via Subquery auf enrollments/people.type
         return $q
             ->withCount(['days as dates_count'])
             ->withCount([
