@@ -13,7 +13,7 @@
   $id = "tui-editor-{$safeWireKey}";
 @endphp
 
-{{-- Alpine-Factory einmalig bereitstellen (ohne Mehrfachdefinition) --}}
+
 <script>
   window.tuiEditorFactory = window.tuiEditorFactory || function (opts) {
     return {

@@ -17,7 +17,7 @@
       </x-ui.tabsnav.panel>
       
       <x-ui.tabsnav.panel name="reportbook">
-        <livewire:user.report-book lazy />
+        <livewire:user.report-book  />
       </x-ui.tabsnav.panel>
 
       <x-ui.tabsnav.panel name="claims">
