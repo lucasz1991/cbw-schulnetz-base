@@ -1,51 +1,61 @@
 @props([
-    'id'        => null,
-    'label'     => null,
-    'value'     => null,
-    'icon'      => null,          // e.g. "fa-circle-check"
-    'iconStyle' => 'fad',  // your FA Pro style class
-    'disabled'  => false,
-    'name'      => null,
+  'name'      => null,   // z.B. 'wiederholung'
+  'value'     => null,   // z.B. 'wiederholung_1'
+  'label'     => '',
+  'icon'      => null,   // z.B. 'fa-redo'
+  'iconStyle' => 'fas',  // 'fas'|'far'
+  'size'      => 'md',   // 'sm'|'md'|'lg'
+  'disabled'  => false,
+  'checked'   => false,
+  'class'     => '',
 ])
 
 @php
-    $inputId = $id ?: \Illuminate\Support\Str::uuid();
+  if ($name === null || $value === null) {
+    throw new InvalidArgumentException('radio-btn-group-item: "name" und "value" sind erforderlich.');
+  }
+
+  $id = $name.'__'.\Illuminate\Support\Str::slug($value, '_');
+
+  $sizeMap = [
+    'sm' => 'px-2 py-1 text-xs',
+    'md' => 'px-3 py-2 text-sm',
+    'lg' => 'px-4 py-2.5 text-base',
+  ];
+
+  $labelBase = implode(' ', [
+    'inline-flex items-center gap-2 select-none',
+    'text-sm font-medium text-gray-700 bg-white',
+    'hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500',
+    'transition-colors',
+    // Rundungen:
+    // bis md (horizontal): links/rechts abrunden
+    'first:rounded-l-md last:rounded-r-md',
+    // ab md (vertikal): oben/unten abrunden und linke/rechte Rundung zurücknehmen
+    'md:first:rounded-l-none md:last:rounded-r-none md:first:rounded-t-md md:last:rounded-b-md',
+    $sizeMap[$size] ?? $sizeMap['md'],
+    $class,
+  ]);
 @endphp
 
-{{-- Wrap each item so input (peer) and label are siblings --}}
-<div class="{{ $attributes->get('class') }}" data-rbg-item>
-    <input
-        id="{{ $inputId }}"
-        type="radio"
-        value="{{ $value }}"
-        name="{{ $name }}"
-        {{ $disabled ? 'disabled' : '' }}
-
-        {{-- Allow Livewire binding on the input (wire:model etc.) --}}
-        {{ $attributes->whereStartsWith('wire:model') }}
-
-        class="sr-only peer"
-    />
-
-    <label
-        for="{{ $inputId }}"
-        class="inline-flex items-center gap-2 select-none
-               text-sm font-medium text-gray-700 bg-white
-               hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500
-               transition-colors
-               peer-checked:bg-blue-50 peer-checked:text-blue-700
-
-               {{-- padding via CSS vars from group --}}
-               px-[var(--rbg-pad-x,1rem)] py-[var(--rbg-pad-y,0.5rem)]
-
-               {{-- full-width support if group is full --}}
-               {{ str_contains($attributes->get('class',''), 'flex-1') ? 'w-full justify-center' : '' }}
-
-               {{ $disabled ? 'opacity-50 pointer-events-none' : '' }}"
-    >
-        @if($icon)
-            <i class="{{ $iconStyle }} {{ $icon }} fa-lg"></i>
-        @endif
-        <span>{{ $label }}</span>
-    </label>
+<div class="contents">
+  <input
+    id="{{ $id }}"
+    type="radio"
+    name="{{ $name }}"
+    value="{{ $value }}"
+    class="sr-only peer"
+    {{ $disabled ? 'disabled' : '' }}
+    {{ $checked ? 'checked' : '' }}
+    {{ $attributes->whereStartsWith('wire:model') }} {{-- z.B. wire:model="wiederholung" --}}
+  />
+  <label
+    for="{{ $id }}"
+    class="{{ $labelBase }} peer-checked:bg-blue-600 peer-checked:text-white peer-checked:hover:bg-blue-700"
+  >
+    @if($icon)
+      <i class="{{ $iconStyle }} {{ $icon }}"></i>
+    @endif
+    <span>{{ $label }}</span>
+  </label>
 </div>

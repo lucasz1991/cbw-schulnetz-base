@@ -33,7 +33,7 @@
       <div>
         <div class="mb-2 font-semibold">Ich beantrage gemäß Qualifizierungsordnung:</div>
 
-<x-ui.forms.radio-btn-group aria-label="Art der Nachprüfung" breakpoint="md">
+<x-ui.forms.radio-btn-group aria-label="Art der Nachprüfung">
   <x-ui.forms.radio-btn-group-item
     name="wiederholung"
     label="Nach-/Wiederholungsprüfung (20,00 €)"
