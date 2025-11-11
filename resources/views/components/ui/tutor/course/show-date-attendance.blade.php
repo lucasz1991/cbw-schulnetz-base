@@ -138,7 +138,7 @@
           <th class="px-4 py-2 text-left">Status &amp; Zeiten</th>
 
           {{-- NEU: Aktionen rechte Spalte --}}
-          <th class="px-4 py-2 text-right">Aktionen</th>
+          <th class="px-4 py-2 text-right"></th>
         </tr>
       </thead>
 
@@ -174,7 +174,7 @@
           <tr x-data="{ lateOpen:false, noteOpen:false }" class="hover:bg-gray-50">
             {{-- 1) Teilnehmer (links) --}}
             <td class="px-4 py-2">
-              <div class="w-max">
+              <div class="w-min md:w-max">
                 @if($r['user'])
                   <x-user.public-info :person="$r['user']" />
                 @else
