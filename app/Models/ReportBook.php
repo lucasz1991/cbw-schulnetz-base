@@ -31,14 +31,6 @@ class ReportBook extends Model
     }
 
     /**
-     * Optional: falls du ein Massnahme- oder Kursmodell hast
-     */
-    public function massnahme(): BelongsTo
-    {
-        return $this->belongsTo(\App\Models\Massnahme::class, 'massnahme_id', 'id');
-    }
-
-    /**
      * Hilfsmethode: neuestes Entry abrufen
      */
     public function latestEntry(): ?ReportBookEntry

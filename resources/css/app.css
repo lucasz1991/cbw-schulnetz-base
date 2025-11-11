@@ -45,6 +45,9 @@ select:focus {
   box-shadow: none;
   border-color: inherit; /* Keine Änderung der Randfarbe */
 }
+select, select > option{
+  font-family: 'Arial' !important;
+}
 [type="text"]{
   font-size: 17px;
 }
