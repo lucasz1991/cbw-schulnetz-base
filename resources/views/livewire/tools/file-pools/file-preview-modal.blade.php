@@ -5,11 +5,25 @@
   <x-dialog-modal wire:model="open" :maxWidth="'4xl'">
 
 <x-slot name="title">
-  <div class="flex flex-wrap sm:flex-nowrap items-start sm:items-center justify-between gap-2 ">
+  
+  <div class="flex flex-wrap sm:flex-nowrap items-start sm:items-center justify-between gap-2">
     @if($file && $open)
-      {{-- Linke Spalte: darf schrumpfen & ellipsen --}}
+      @php
+            $mime    = $file->mime_type ?? '';
+            $isImage = $mime && str_starts_with($mime, 'image/');
+            $isVideo = $mime && str_starts_with($mime, 'video/');
+            $isAudio = $mime && str_starts_with($mime, 'audio/');
+            $isPdf   = $mime && str_contains($mime, 'pdf');
+            $isText  = $mime && str_contains($mime, 'text');
+            $tempUrl = $this->url;
+            $printUrl = '';
+            if($isPdf || $isText || $isImage){
+              $printUrl = isset($this->url) && $this->url ? $this->url : ($file->getEphemeralPublicUrl() ?? null);
+            }
+      @endphp
+      {{-- Linke Spalte: Infos, darf schrumpfen & ellipsen --}}
       <div class="min-w-0 flex-1">
-        <div class="text-sm text-gray-800 mb-1 truncate" title="{{ $file->name }}">
+        <div class="text-sm text-gray-800 mb-1" title="{{ $file->name }}">
           {{ $file->name }}
         </div>
         <div class="text-xs text-gray-500 mb-1 truncate" title="{{ $file->getMimeTypeForHumans() }}">
@@ -20,40 +34,64 @@
         </div>
       </div>
 
-      {{-- Rechte Spalte: Button fixbreit, bricht auf Mobil in die nächste Zeile --}}
-      <div class="shrink-0 mt-2 sm:mt-0">
+      {{-- Rechte Spalte: Actions, fixbreit, bricht auf Mobil ggf. um --}}
+      <div class="shrink-0 mt-2 sm:mt-0 flex items-center gap-2">
+        {{-- Download --}}
         <button
           wire:click="downloadFile({{ $file->id }})"
-          class="text-gray-600 hover:text-blue-600 text-sm bg-gray-300 rounded-full p-2"
+          class="inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-full p-2 focus:outline-none focus:ring focus:ring-gray-300"
           title="Download"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 aspect-square" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="7 10 12 15 17 10"/>
-            <line x1="12" y1="15" x2="12" y2="3"/>
-          </svg>
+          <i class="fas fa-download w-4 h-4 leading-none"></i>
+          <span class="sr-only">Download</span>
+        </button>
+
+        {{-- Drucken: öffnet Vorschau in neuem Tab – von dort druckbar --}}
+        @if($printUrl != '')
+          <a
+            href="{{ $printUrl }}"
+            target="_blank" rel="noopener"
+            class="inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-full p-2 focus:outline-none focus:ring focus:ring-gray-300"
+            title="Drucken"
+          >
+            <i class="fas fa-print w-4 h-4 leading-none"></i>
+            <span class="sr-only">Drucken</span>
+          </a>
+        @endif
+
+        {{-- Schließen --}}
+        <button
+          wire:click="close"
+          class="inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-full p-2 focus:outline-none focus:ring focus:ring-gray-300"
+          title="Schließen"
+        >
+          <i class="fas fa-times w-4 h-4 leading-none"></i>
+          <span class="sr-only">Schließen</span>
         </button>
       </div>
     @else
-      <span class="font-semibold">Dateivorschau</span>
+      <div class="min-w-0 flex-1">
+        <span class="font-semibold">Dateivorschau</span>
+      </div>
+      <div class="shrink-0">
+        <button
+          wire:click="close"
+          class="inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full p-2 focus:outline-none focus:ring focus:ring-gray-300"
+          title="Schließen"
+        >
+          <i class="fas fa-times w-4 h-4 leading-none"></i>
+          <span class="sr-only">Schließen</span>
+        </button>
+      </div>
     @endif
   </div>
 </x-slot>
 
 
+
     <x-slot name="content">
       @if($file && $open)
-        @php
-          $mime    = $file->mime_type ?? '';
-          $isImage = $mime && str_starts_with($mime, 'image/');
-          $isVideo = $mime && str_starts_with($mime, 'video/');
-          $isAudio = $mime && str_starts_with($mime, 'audio/');
-          $isPdf   = $mime && str_contains($mime, 'pdf');
-          $isText  = $mime && str_contains($mime, 'text');
-          // Ephemerale URL (10 Min). Wird unten zusätzlich mit Cache-Buster kombiniert.
-          $tempUrl = $this->url;
-        @endphp
+
 
         <div class="rounded-md border overflow-hidden bg-white">
           {{-- Bilder --}}
