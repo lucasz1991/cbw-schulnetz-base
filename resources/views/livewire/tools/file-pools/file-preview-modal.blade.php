@@ -88,7 +88,7 @@
             <div class="pdf-container">
               <iframe
                 key="file-preview-{{ $file->id }}-{{ $file->updated_at?->timestamp ?? $file->id }}"
-                class="w-full min-h-[40vh] max-h-[65vh]"
+                class="w-full min-h-[60vh] max-h-[70vh]"
                 src="{{ $tempUrl }}"
               ></iframe>
             </div>
