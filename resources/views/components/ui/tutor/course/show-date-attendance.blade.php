@@ -135,10 +135,10 @@
           </th>
 
           {{-- NEU: Status & Zeiten mittlere Spalte --}}
-          <th class="px-4 py-2 text-left">Status &amp; Zeiten</th>
+          <th></th>
 
           {{-- NEU: Aktionen rechte Spalte --}}
-          <th class="px-4 py-2 text-right"></th>
+          <th></th>
         </tr>
       </thead>
 
