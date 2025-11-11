@@ -179,7 +179,7 @@
                                         @elseif (optional(Auth::user())->role === 'tutor')
                                             <x-navigation.tutor-navigation-menu-links />
                                         @endif
-                                            <div class="max-md:hidden mt-6">
+                                            <div class="md:hidden block mt-6">
                                                 <div class="border-t border-gray-200 mb-6"></div>
                                                 @auth
                                                     <div class="block px-4 py-2 text-xs text-gray-400">
