@@ -94,7 +94,7 @@
     initialValue: @js($value ?? ''),
   })"
   x-init="initOnce()"
-  class="tui-editor-wrapper"
+  class="tui-editor-wrapper  text-base"
 >
   <style>.toastui-editor-mode-switch{display:none!important}</style>
 
@@ -102,7 +102,7 @@
   <div
     id="{{ $id }}"
     x-ref="holder"
-    class="border rounded-md overflow-hidden min-h-36"
+    class="border rounded-md overflow-hidden min-h-36 text-base"
     wire:ignore
   ></div>
 </div>

@@ -33,22 +33,27 @@
       <div>
         <div class="mb-2 font-semibold">Ich beantrage gemäß Qualifizierungsordnung:</div>
 
-        <x-ui.forms.radio-btn-group aria-label="Art der Nachprüfung">
-          <x-ui.forms.radio-btn-group-item
-            label="Nach-/Wiederholungsprüfung (20,00 €)"
-            value="wiederholung_1"
-            wire:model="wiederholung"
-            icon="fa-redo"
-            iconStyle="fas"
-          />
-          <x-ui.forms.radio-btn-group-item
-            label="Ergebnisverbesserung (40,00 €)"
-            value="wiederholung_2"
-            wire:model="wiederholung"
-            icon="fa-chart-line"
-            iconStyle="fas"
-          />
-        </x-ui.forms.radio-btn-group>
+<x-ui.forms.radio-btn-group aria-label="Art der Nachprüfung" breakpoint="md">
+  <x-ui.forms.radio-btn-group-item
+    name="wiederholung"
+    label="Nach-/Wiederholungsprüfung (20,00 €)"
+    value="wiederholung_1"
+    wire:model="wiederholung"
+    icon="fa-redo"
+    iconStyle="fas"
+  />
+  <x-ui.forms.radio-btn-group-item
+    name="wiederholung"
+    label="Ergebnisverbesserung (40,00 €)"
+    value="wiederholung_2"
+    wire:model="wiederholung"
+    icon="fa-chart-line"
+    iconStyle="fas"
+  />
+</x-ui.forms.radio-btn-group>
+
+
+
 
         <x-ui.forms.input-error for="wiederholung"/>
       </div>
@@ -118,7 +123,7 @@
       <div>
         <div class="mb-2 font-semibold">Begründung</div>
 
-        <x-ui.forms.radio-btn-group aria-label="Begründung">
+        <x-ui.forms.radio-btn-group aria-label="Begründung" :breakpoint="'md'">
           <x-ui.forms.radio-btn-group-item
             label="Ursprüngliche Prüfung unter 51 Punkte"
             value="unter51"
