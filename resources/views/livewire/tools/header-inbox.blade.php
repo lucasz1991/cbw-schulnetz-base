@@ -1,5 +1,5 @@
 <div class="relative" wire:poll.60s="loadInbox">
-  <x-dropdown align="right" width="md">
+  <x-ui.dropdown.dropdown align="right" width="max">
     {{-- Trigger --}}
     <x-slot name="trigger">
       <button type="button" class="block" aria-haspopup="true">
@@ -69,7 +69,7 @@
         </div>
       </div>
     </x-slot>
-  </x-dropdown>
+  </x-ui.dropdown.dropdown>
 
   {{-- Modal – bleibt unverändert --}}
   <x-ui.messages.message-show-modal
