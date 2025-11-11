@@ -30,7 +30,7 @@
     @if($model)
         <x-ui.forms.input-error :for="$model" />
     @endif
-    <div class="flex justify-center" >
+    <div class="w-max mx-auto" >
         <input
             id="{{ $inputId }}"
             type="text"
