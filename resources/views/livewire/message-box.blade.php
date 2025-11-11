@@ -53,7 +53,7 @@
                   :columns="[
                       ['label' => 'Von',        'key' => 'from',      'width' => '25%', 'sortable' => false, 'hideOn' => 'none'],
                       ['label' => 'Betreff',    'key' => 'subject',   'width' => '25%', 'sortable' => false, 'hideOn' => 'none'],
-                      ['label' => 'Nachricht',  'key' => 'snippet',   'width' => '30%', 'sortable' => false, 'hideOn' => 'none'],
+                      ['label' => 'Nachricht',  'key' => 'snippet',   'width' => '30%', 'sortable' => false, 'hideOn' => 'md'],
                       ['label' => 'Datum',      'key' => 'created_at','width' => '20%', 'sortable' => false, 'hideOn' => 'none'],
                   ]"
                   :items="$messages"

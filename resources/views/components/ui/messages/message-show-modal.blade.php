@@ -70,7 +70,7 @@
                     <div class="my-8 mx-2">
                         <ul class="space-y-2">
                         @foreach($message->files as $f)
-                            <li class="flex items-center justify-between gap-3 border rounded px-3 py-2">
+                            <li class="md:flex items-center justify-between gap-3 border rounded px-3 py-2">
                                 <div class="flex items-center gap-3 min-w-0">
                                     <img src="{{ $f->icon_or_thumbnail }}" class="h-8 w-8 rounded object-cover border" alt="">
                                     <div class="min-w-0">
@@ -78,7 +78,7 @@
                                         <div class="text-xs text-gray-500">{{ $f->getMimeTypeForHumans() }} · {{ $f->size_formatted }}</div>
                                     </div>
                                 </div>
-                                <div class="shrink-0 flex items-center gap-2">
+                                <div class="shrink-0 flex items-center gap-2 mt-4 md:mt-0">
                                     {{-- Vorschau --}}
                                     <button 
                                         type="button"

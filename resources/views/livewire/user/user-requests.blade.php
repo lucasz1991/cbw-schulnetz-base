@@ -135,7 +135,7 @@
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
             <h2 class="text-lg font-semibold">Meine Anträge</h2>
     
-            <div class="flex items-center gap-2">
+            <div class="flex items-center flex-wrap gap-2">
                 <x-tables.search-field 
                     resultsCount="{{ $requests->count() }}"
                     wire:model.live="search"
@@ -169,8 +169,8 @@
             <x-tables.table
                 :columns="[
                     ['label'=>'Typ','key'=>'type','width'=>'30%','sortable'=>false,'hideOn'=>'none'],
-                    ['label'=>'Zeitraum','key'=>'date_range','width'=>'40%','sortable'=>false,'hideOn'=>'lg'],
-                    ['label'=>'Status','key'=>'status','width'=>'30%','sortable'=>false,'hideOn'=>'md'],
+                    ['label'=>'Zeitraum','key'=>'date_range','width'=>'40%','sortable'=>false,'hideOn'=>'none'],
+                    ['label'=>'Status','key'=>'status','width'=>'30%','sortable'=>false,'hideOn'=>'none'],
                 ]"
                 :items="$requests"
                 row-view="components.tables.rows.user-requests.row"

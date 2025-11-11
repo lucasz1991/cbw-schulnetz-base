@@ -1,5 +1,5 @@
 @props([
-    'href'     => null,     // wenn gesetzt -> <a>, sonst <button>
+    'href'     => null,     
     'active'   => false,    // aktiven Zustand hervorheben
     'disabled' => false,    // disabled Zustand
     'size'     => 'md',     // sm|md|lg
@@ -19,11 +19,9 @@ $base = 'inline-flex items-center gap-2 font-medium
 
 $colors = $active
     ? 'bg-blue-600 text-white hover:bg-blue-700 focus-visible:ring-blue-400'
-    : 'bg-white text-gray-700 hover:bg-gray-50 focus-visible:ring-blue-400
-       dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700';
+    : 'bg-white text-gray-700 hover:bg-gray-50 focus-visible:ring-blue-400';
 
-$borders = 'border-l border-gray-200 first:border-l-0
-            dark:border-gray-700';
+$borders = 'border-l border-gray-200 first:border-l-0';
 
 $rounded = 'first:rounded-l-lg last:rounded-r-lg';
 

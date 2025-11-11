@@ -152,7 +152,7 @@
             </div>
             {{-- Actions rechts --}}
             @if($actionsView)
-                <div class=" absolute top-0 md:bottom-0 right-1 flex items-center">
+                <div class=" absolute top-1 md:top-0 md:bottom-0 right-1 flex items-center">
                     @include($actionsView, ['item' => $item])
                 </div>
             @endif
