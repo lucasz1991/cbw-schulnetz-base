@@ -4,8 +4,8 @@
       <x-ui.tabsnav.nav
         :tabs="[
           'basic'      => ['label' => 'Dashboard',   'icon' => 'fad fa-tachometer-alt'],
-          'claims'     => ['label' => 'Anträge',     'icon' => 'fad fa-file-invoice'],
-          'reportbook' => ['label' => 'Berichtsheft','icon' => 'fad fa-book-open']
+          'reportbook' => ['label' => 'Berichtsheft','icon' => 'fad fa-book-open'],
+          'claims'     => ['label' => 'Anträge',     'icon' => 'fad fa-file-invoice']
         ]"
         collapseAt="md"
       />
@@ -15,14 +15,15 @@
       <x-ui.tabsnav.panel name="basic">
         <livewire:user.program-show lazy />
       </x-ui.tabsnav.panel>
+      
+      <x-ui.tabsnav.panel name="reportbook">
+        <livewire:user.report-book lazy />
+      </x-ui.tabsnav.panel>
 
       <x-ui.tabsnav.panel name="claims">
         <livewire:user.user-requests lazy />
       </x-ui.tabsnav.panel>
 
-      <x-ui.tabsnav.panel name="reportbook">
-        <livewire:user.report-book lazy />
-      </x-ui.tabsnav.panel>
     </div>
   </x-ui.tabsnav.container>
 </div>

@@ -20,6 +20,10 @@ use App\Models\Course;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use App\Models\CourseRating;
 use App\Models\UserRequest;
+use App\Models\ReportBook;
+use App\Models\ReportBookEntry;
+
+
 
 class User extends Authenticatable
 {
@@ -195,5 +199,49 @@ class User extends Authenticatable
     public function filePool(): MorphOne
     {
         return $this->morphOne(FilePool::class, 'filepoolable');
+    }
+
+    /**
+     * Alle Berichtshefte des Users (z. B. je Maßnahme eins)
+     */
+    public function reportBooks()
+    {
+        return $this->hasMany(ReportBook::class);
+    }
+
+    /**
+     * Komfort-Helper: Berichtsheft zu einer bestimmten Maßnahme holen
+     */
+    public function reportBookFor(?string $massnahmeId)
+    {
+        return $this->reportBooks()
+            ->where('massnahme_id', $massnahmeId)
+            ->first();
+    }
+
+    /**
+     * Alle Berichtsheft-Einträge des Users (über alle Maßnahmen)
+     */
+    public function reportBookEntries()
+    {
+        return $this->hasManyThrough(
+            ReportBookEntry::class,
+            ReportBook::class,
+            'user_id',          // FK auf ReportBook -> users.id
+            'report_book_id',   // FK auf ReportBookEntry -> report_books.id
+            'id',               // Local key users.id
+            'id'                // Local key report_books.id
+        );
+    }
+
+    /**
+     * Neuester Eintrag (über alle Maßnahmen)
+     */
+    public function latestReportBookEntry()
+    {
+        return $this->reportBookEntries()
+            ->orderByDesc('entry_date')
+            ->orderByDesc('id')
+            ->first();
     }
 }

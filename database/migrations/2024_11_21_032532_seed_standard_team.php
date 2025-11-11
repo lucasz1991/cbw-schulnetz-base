@@ -39,14 +39,7 @@ return new class extends Migration
             ],
             [
                 'user_id' => 1,
-                'name' => 'Tutoren',
-                'personal_team' => false,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'user_id' => 1,
-                'name' => 'Teilnehmer',
+                'name' => 'Mitarbeiter (begrenzt)',
                 'personal_team' => false,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -62,6 +55,6 @@ return new class extends Migration
     public function down()
     {
         // Teams entfernen
-        Team::whereIn('name', ['Super Admins', 'Admins', 'Mitarbeiter', 'Benutzer'])->delete();
+        Team::whereIn('name', ['Super Admins', 'Admins', 'Mitarbeiter', 'Mitarbeiter (begrenzt)'])->delete();
     }
 };
