@@ -3,7 +3,7 @@
     'width'           => '48',      // 'auto' | 'min' | 'max' | '48'
     'contentClasses'  => 'py-1 bg-white',
     'dropdownClasses' => '',
-    'offset'          => 8,         // Abstand zum Trigger in px (Anchor .offset)
+    'offset'          => 0,         // Abstand zum Trigger in px (Anchor .offset)
 ])
 
 @php
