@@ -33,11 +33,11 @@
         <x-slot name="content">
             <div class="relative">
                 @if($previewUrl)
-                    <div wire:ignore>
-                        <iframe x-ref="viewer"
+                     <div class="pdf-container">
+                        <iframe title="PDF Vorschau"
+ x-ref="viewer"                            class="w-full min-h-[60vh] max-h-[70vh]"
                                 src="{{ $previewUrl }}#toolbar=0&navpanes=0&scrollbar=1"
-                                class="w-full h-[75vh] sm:h-[80vh]"
-                                title="PDF Vorschau"></iframe>
+                        ></iframe>
                     </div>
                 @else
                     <div class="p-10 text-center text-neutral-500">PDF wird vorbereitet …</div>
