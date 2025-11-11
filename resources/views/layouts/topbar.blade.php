@@ -27,12 +27,14 @@
             </button>
         </div>
         <div class="flex justify-between w-full items-center  pl-6  pr-6  border-b border-gray-300">
-            <div class="inline-block lg:hidden">
-                            <a href="{{ \App\Providers\RouteServiceProvider::home() }}" wire:navigate   class="h-full flex items-center max-sm:max-w-[160px]">
-                                 <x-logo.site-logo-horizontal  />
-
-                             </a>
-
+            <div>
+                <div class="inline-block lg:hidden">
+                                <a href="{{ \App\Providers\RouteServiceProvider::home() }}" wire:navigate   class="h-full flex items-center max-sm:max-w-[160px]">
+                                     <x-logo.site-logo-horizontal  />
+    
+                                 </a>
+    
+                </div>
             </div>
             <div class="flex items-center ">
                     
