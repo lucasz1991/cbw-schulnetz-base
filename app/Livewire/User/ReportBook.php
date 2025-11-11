@@ -11,23 +11,33 @@ use App\Models\ReportBookEntry;
 
 class ReportBook extends Component
 {
-  
+    /** Maßnahme-Context (optional; kann null sein) */
     public ?string $massnahmeId = null;
 
+    /** Aktueller Tag & aktives ReportBook */
     public string $date;
     public ?int $reportBookId = null;
 
+    /** Formularfelder */
     public ?string $title = null;
     public string $text = '';
-    public int $status = 0; // 0 = Entwurf, 1 = Eingereicht
+    /** 0 = Entwurf, 1 = Fertig */
+    public int $status = 0;
 
+    /** Sidebar */
     public array $recent = [];
+
+    /** UI-Flags */
+    public bool $isDirty = false;
+    public bool $hasDraft = false;
+
+    /** interner Snapshot für Dirty-Check */
+    protected ?string $initialHash = null;
 
     public function mount(): void
     {
         $this->date = now()->toDateString();
 
-        // ReportBook sicherstellen (pro User & Maßnahme)
         $book = $this->getOrCreateReportBook();
         $this->reportBookId = $book->id;
 
@@ -35,21 +45,40 @@ class ReportBook extends Component
         $this->loadForDate($this->date);
     }
 
-public function selectDate(string $date): void
-{
-    $this->date = $date;
-    $this->loadForDate($date);
-}
+    /** Helper: aktuellen Formularzustand hashen */
+    protected function curHash(): string
+    {
+        return md5(($this->title ?? '') . '|' . ($this->text ?? ''));
+    }
 
-public function updatedDate($value): void
-{
-    $this->loadForDate($value);
-}
+    protected function recomputeFlags(): void
+    {
+        $this->isDirty = $this->curHash() !== ($this->initialHash ?? '');
+        // $hasDraft wird in loadForDate() aus der DB gesetzt
+    }
 
+    /** Sidebar-Klick */
+    public function selectDate(string $date): void
+    {
+        $this->date = $date;
+        $this->loadForDate($date);
+    }
 
-    /**
-     * Speichern als Entwurf (status = 0)
-     */
+    /** Date-Input (rechts) */
+    public function updatedDate($value): void
+    {
+        $this->loadForDate($value);
+    }
+
+    /** Reagiere auf Eingaben (Title/Text) für Dirty-Flag */
+    public function updated($name, $value): void
+    {
+        if (in_array($name, ['title', 'text'])) {
+            $this->recomputeFlags();
+        }
+    }
+
+    /** Speichern als Entwurf */
     public function save(): void
     {
         if (!$this->reportBookId) {
@@ -65,25 +94,21 @@ public function updatedDate($value): void
         $entry->fill([
             'title'  => $this->title,
             'text'   => $this->text,
-            'status' => 0,
-        ]);
+            'status' => 0, // Entwurf
+        ])->save();
 
-        // Wenn vorher eingereicht, aber jetzt als Entwurf gespeichert werden soll:
-        if ($entry->isDirty('status') && $entry->status === 0) {
-            // submitted_at bleibt als Historie bestehen; kann man auch nullen, wenn gewünscht
-        }
+        $this->status = 0;
+        $this->hasDraft = true;
 
-        $entry->save();
+        // Nach Save ist der aktuelle Stand Basis
+        $this->initialHash = $this->curHash();
+        $this->recomputeFlags();
 
-        $this->status = $entry->status;
-
-        $this->dispatch('toast', type: 'success', message: 'Berichtsheft gespeichert (Entwurf).');
+        $this->dispatch('toast', type: 'success', message: 'Entwurf gespeichert.');
         $this->loadRecent();
     }
 
-    /**
-     * Einreichen (status = 1, submitted_at = now)
-     */
+    /** Fertigstellen */
     public function submit(): void
     {
         if (!$this->reportBookId) {
@@ -97,26 +122,32 @@ public function updatedDate($value): void
         ]);
 
         $entry->fill([
-            'title'       => $this->title,
-            'text'        => $this->text,
-            'status'      => 1,
-            'submitted_at'=> now(),
-        ]);
+            'title'        => $this->title,
+            'text'         => $this->text,
+            'status'       => 1,       // Fertig
+            'submitted_at' => now(),
+        ])->save();
 
-        $entry->save();
+        $this->status = 1;
+        $this->hasDraft = false;
 
-        $this->status = $entry->status;
+        $this->initialHash = $this->curHash();
+        $this->recomputeFlags();
 
-        $this->dispatch('toast', type: 'success', message: 'Eintrag eingereicht.');
+        $this->dispatch('toast', type: 'success', message: 'Eintrag fertiggestellt.');
         $this->loadRecent();
     }
 
+    /** Tagesdaten laden */
     protected function loadForDate(string $date): void
     {
         if (!$this->reportBookId) {
             $this->title = null;
             $this->text  = '';
             $this->status = 0;
+            $this->hasDraft = false;
+            $this->initialHash = $this->curHash();
+            $this->recomputeFlags();
             return;
         }
 
@@ -128,11 +159,17 @@ public function updatedDate($value): void
         $this->title  = $entry?->title ?? null;
         $this->text   = $entry?->text ?? '';
         $this->status = (int) ($entry?->status ?? 0);
+        $this->hasDraft = (bool) $entry && (int) $entry->status === 0;
+
+        // Snapshot für Dirty-Check
+        $this->initialHash = $this->curHash();
+        $this->recomputeFlags();
+
+        // Falls du den Toast-Editor hart füttern willst:
+        // $this->dispatch('rb-editor-set', content: $this->text);
     }
 
-
-
-
+    /** Sidebar „Letzte Einträge“ */
     protected function loadRecent(): void
     {
         if (!$this->reportBookId) {
@@ -156,37 +193,33 @@ public function updatedDate($value): void
             ->toArray();
     }
 
+    /** Ein Heft (pro User & Maßnahme) sicherstellen */
     protected function getOrCreateReportBook(): ReportBookModel
     {
-        $userId = Auth::id();
-
-        $book = ReportBookModel::query()
+        return ReportBookModel::query()
             ->firstOrCreate(
                 [
-                    'user_id'      => $userId,
-                    'massnahme_id' => $this->massnahmeId, // kann null sein
+                    'user_id'      => Auth::id(),
+                    'massnahme_id' => $this->massnahmeId,
                 ],
                 [
                     'title'       => 'Mein Berichtsheft',
                     'description' => $this->massnahmeId ? "Maßnahme: {$this->massnahmeId}" : null,
-                    'start_date'  => null,
-                    'end_date'    => null,
                 ]
             );
-
-        return $book;
     }
 
+    /** Placeholder während lazy load */
     public function placeholder()
     {
         return <<<'HTML'
             <div role="status" class="h-32 w-full relative animate-pulse">
-                    <div class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-white/70 transition-opacity">
-                        <div class="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-2 shadow">
-                            <span class="loader"></span>
-                            <span class="text-sm text-gray-700">wird geladen…</span>
-                        </div>
+                <div class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-white/70 transition-opacity">
+                    <div class="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-2 shadow">
+                        <span class="loader"></span>
+                        <span class="text-sm text-gray-700">wird geladen…</span>
                     </div>
+                </div>
             </div>
         HTML;
     }
