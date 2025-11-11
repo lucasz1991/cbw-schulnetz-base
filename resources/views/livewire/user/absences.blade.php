@@ -2,6 +2,7 @@
   <x-slot name="title">Fehlzeit entschuldigen</x-slot>
 
   <x-slot name="content">
+    @if($showModal)
     <form
       x-data="{
         fehltag: @entangle('fehltag').live,
@@ -29,13 +30,15 @@
 
       <div class="grid md:grid-cols-2 gap-8 ">
           <div>
-            <x-ui.forms.date-input
-                id="fehlDatum"
-                model="fehlDatum"
-                label="Datum"
-                :inline="true"
-                required
-            />
+            
+              <x-ui.forms.date-input
+                  id="fehlDatum"
+                  model="fehlDatum"
+                  label="Datum"
+                  :inline="true"
+                  required
+              />
+            
             <x-ui.forms.input-error for="fehlDatum"/>
           </div>
           <div class="h-full">
@@ -157,6 +160,7 @@
       {{-- Submit im Formular (Enter) --}}
       <button type="submit" class="hidden"></button>
     </form>
+    @endif
   </x-slot>
 
   <x-slot name="footer">

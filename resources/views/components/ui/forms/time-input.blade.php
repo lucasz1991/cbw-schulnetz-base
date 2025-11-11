@@ -24,7 +24,7 @@
 
 
 
-<div class="space-y-1" x-data="{
+<div class="space-y-1" wire:ignore x-data="{
     fp: null,
     init() {
         const el = this.$refs.input;

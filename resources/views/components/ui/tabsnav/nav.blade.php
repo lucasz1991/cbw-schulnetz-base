@@ -7,7 +7,7 @@
   'class' => 'flex items-end gap-2 overflow-x-auto transform -translate-y-[100%] -mb-6',
 
   // Button-Design (beibehalten!)
-  'buttonClass' => 'inline-flex items-center justify-center min-h-[38px] px-4 py-2 text-sm rounded-t-lg border-b-2 border-t border-x border-x-gray-300 border-t-gray-300 bg-white',
+  'buttonClass' => 'inline-flex items-center justify-center min-h-[38px] px-4 py-2 text-sm rounded-t-lg border-b-2 border-t border-x border-x-gray-300 border-t-gray-300 bg-white transition-all',
 
   // Unter welchem BP einklappen (aktiv + Dropdown)
   'collapseAt' => 'md',
