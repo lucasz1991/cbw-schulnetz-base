@@ -123,7 +123,7 @@
       <div>
         <div class="mb-2 font-semibold">Begründung</div>
 
-        <x-ui.forms.radio-btn-group aria-label="Begründung" :breakpoint="'md'">
+        <x-ui.forms.radio-btn-group aria-label="Begründung" breakpoint="md">
           <x-ui.forms.radio-btn-group-item
             label="Ursprüngliche Prüfung unter 51 Punkte"
             value="unter51"
