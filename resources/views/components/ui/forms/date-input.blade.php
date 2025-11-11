@@ -15,17 +15,22 @@
 ])
 
 @php
-    $inputId = $id ?: \Illuminate\Support\Str::uuid();
+    use Illuminate\Support\Str;
+
+    $inputId = $id ?: (string) Str::uuid();
+    $wireKey = 'flatpickr-'.$inputId;
 @endphp
 
-<div class="w-full" wire:ignore x-data="{ inline: @js($inline), lwModel: @js($model) }">
+<div class="w-full"
+     wire:ignore
+     wire:key="{{ $wireKey }}" x-data="{ inline: @js($inline), lwModel: @js($model) }">
     @if($label)
         <x-ui.forms.label for="{{ $inputId }}" :value="$label" />
     @endif
     @if($model)
         <x-ui.forms.input-error :for="$model" />
     @endif
-    <div class="flex justify-center">
+    <div class="flex justify-center" >
         <input
             id="{{ $inputId }}"
             type="text"
@@ -33,7 +38,6 @@
             class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 "
             :class="inline ? 'hidden' : ''"
             @if($required) required @endif
-    
             x-data="{ lwModel: @js($model) }"
             x-init="
                 const opts = {
