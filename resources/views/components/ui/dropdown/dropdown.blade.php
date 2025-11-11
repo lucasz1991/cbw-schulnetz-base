@@ -1,7 +1,7 @@
 @props([
     'align'           => 'right',   // 'left' | 'right' | 'top' | 'none'/'false'
     'width'           => '48',      // 'auto' | 'min' | 'max' | '48'
-    'contentClasses'  => 'py-1 bg-white',
+    'contentClasses'  => 'py-4 bg-white',
     'dropdownClasses' => '',
     'offset'          => 0,         // Abstand zum Trigger in px (Anchor .offset)
 ])
