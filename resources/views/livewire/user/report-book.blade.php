@@ -40,7 +40,7 @@
 
         <div class="mt-3 flex items-center flex-wrap gap-2">
           {{-- Speichern nur wenn dirty und nicht bereits Fertig --}}
-          @if($status !== 1 && $isDirty)
+          @if( $isDirty)
             <x-buttons.button-basic
               wire:click="save"
               wire:target="save"
@@ -52,7 +52,7 @@
           @endif
 
           {{-- Fertigstellen wenn (dirty ODER Draft vorhanden) und nicht schon Fertig --}}
-          @if($status !== 1 && ($isDirty || $hasDraft))
+          @if($status !== 1 || ($isDirty || $hasDraft))
             <x-buttons.button-basic
               wire:click="submit"
               wire:target="submit"
@@ -100,8 +100,13 @@
                      {{ $isActive ? 'border-primary-300 ring-2 ring-primary-200' : 'border-gray-200' }}"
             >
               <div class="flex items-center justify-between">
-                <div class="text-xs font-semibold {{ $isActive ? 'text-primary-700' : 'text-gray-700' }}">
-                  {{ \Illuminate\Support\Carbon::parse($r['date'])->format('d.m.Y') }}
+                <div class="">
+<x-ui.badge.badge 
+    :size="'md'" 
+    :color="$isActive ? 'blue' : 'gray'"
+>
+    {{ \Illuminate\Support\Carbon::parse($r['date'])->format('d.m.Y') }}
+</x-ui.badge.badge>
                 </div>
                 <span class="text-[10px] px-2 py-0.5 rounded border
                   {{ $r['status'] === 1 ? 'bg-green-50 text-green-700 border-green-200' : 'bg-slate-50 text-slate-700 border-slate-200' }}">
