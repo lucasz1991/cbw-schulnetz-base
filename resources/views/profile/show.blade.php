@@ -16,12 +16,7 @@
 
                     <x-section-border />
                 @endif
-                <!-- Customer Information Livewire-Komponente -->
-                <div class="mt-10 sm:mt-0">
-                    @livewire('profile.update-customer-information-form')
-                </div>
 
-                <x-section-border />
                 @if (Laravel\Fortify\Features::enabled(Laravel\Fortify\Features::updatePasswords()))
                     <div class="mt-10 sm:mt-0">
                         @livewire('profile.update-password-form')

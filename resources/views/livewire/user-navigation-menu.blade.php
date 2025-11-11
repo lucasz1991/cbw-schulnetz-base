@@ -179,26 +179,27 @@
                                         @elseif (optional(Auth::user())->role === 'tutor')
                                             <x-navigation.tutor-navigation-menu-links />
                                         @endif
-                                            <div class="md:hidden block mt-6">
+                                            <div class="max-md:hidden mt-6">
                                                 <div class="border-t border-gray-200 mb-6"></div>
                                                 @auth
                                                     <div class="block px-4 py-2 text-xs text-gray-400">
                                                         {{ __('Konto verwalten') }}
                                                     </div>
-                                                    <x-nav-link href="{{ route('profile.show') }}">
+                                                    <x-nav-link  href="{{ route('profile.show') }}">
                                                         <svg class="w-5 h-5  mr-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                                                             <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 9h3m-3 3h3m-3 3h3m-6 1c-.306-.613-.933-1-1.618-1H7.618c-.685 0-1.312.387-1.618 1M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm7 5a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z"/>
                                                         </svg>
                                                         {{ __('Profil') }}
                                                     </x-nav-link>
-                                                    <form method="POST" action="{{ route('logout') }}" wire:ignore>
-                                                            @csrf
-                                                            <x-nav-link as="button" type="submit">
+                                                    <form method="POST" action="{{ route('logout') }}" x-data>
+                                                        @csrf
+                                                        <button href="{{ route('logout') }}" @click.prevent="$root.submit();" class="max-md:px-3  max-md:flex max-md:text-lg max-md:w-full max-md:rounded-lg px-1 pt-1 max-md:py-1 max-md:hover:bg-gray-100 md:border-b border-transparent text-sm font-medium leading-5 text-gray-500 hover:text-gray-700 md:hover:border-gray-300 focus:outline-none focus:text-gray-700 focus:border-gray-300 transition duration-150 ease-in-out inline-flex items-center">
                                                             <svg class="w-5 h-5  mr-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                                                                 <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m15 9-6 6m0-6 6 6m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
                                                             </svg>
+                    
                                                             {{ __('Abmelden') }}
-                                                        </x-nav-link>
+                                                        </button>
                                                     </form>
                                                 @else
                                                     <x-nav-link href="/login" wire:navigate >
