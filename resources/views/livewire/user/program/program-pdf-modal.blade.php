@@ -31,7 +31,7 @@
         </x-slot>
 
         <x-slot name="content">
-            <div class="relative">
+            <div class="relative rounded-md border overflow-hidden bg-white">
                 @if($previewUrl)
                      <div class="pdf-container">
                         <iframe title="PDF Vorschau"
