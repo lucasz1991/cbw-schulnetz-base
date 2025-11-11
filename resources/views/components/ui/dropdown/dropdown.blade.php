@@ -2,7 +2,7 @@
     'align'           => 'right',   // 'left' | 'right' | 'top' | 'none'/'false'
     'width'           => '48',      // 'auto' | 'min' | 'max' | '48'
     'contentClasses'  => 'py-1 bg-white',
-    'dropdownClasses' => ' mx-2 ',
+    'dropdownClasses' => ' mx-4 ',
     'offset'          => 0,         // Abstand zum Trigger in px (Anchor .offset)
 ])
 
