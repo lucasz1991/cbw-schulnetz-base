@@ -28,11 +28,7 @@
     'text-sm font-medium text-gray-700 bg-white',
     'hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500',
     'transition-colors',
-    // Rundungen:
-    // bis md (horizontal): links/rechts abrunden
-    'first:rounded-l-md last:rounded-r-md',
-    // ab md (vertikal): oben/unten abrunden und linke/rechte Rundung zurücknehmen
-    'md:first:rounded-l-none md:last:rounded-r-none md:first:rounded-t-md md:last:rounded-b-md',
+    
     $sizeMap[$size] ?? $sizeMap['md'],
     $class,
   ]);

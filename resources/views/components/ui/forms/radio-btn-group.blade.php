@@ -5,8 +5,8 @@
 
 @php
   $base = 'inline-flex items-stretch overflow-hidden rounded-md border border-gray-200 bg-white';
-  // Bis md: horizontal + divide-x, ab md: vertikal + divide-y
-  $orientation = 'flex-row divide-x md:flex-col md:divide-x-0 md:divide-y';
+  // Bis md: vertikal + divide-y, ab md: horizontal + divide-x
+  $orientation = 'flex-col divide-y md:flex-row md:divide-y-0 md:divide-x';
 @endphp
 
 <div {{ $attributes->merge([

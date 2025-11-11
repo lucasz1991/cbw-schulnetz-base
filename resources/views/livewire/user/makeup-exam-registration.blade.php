@@ -125,6 +125,7 @@
 
         <x-ui.forms.radio-btn-group aria-label="Begründung" breakpoint="md">
           <x-ui.forms.radio-btn-group-item
+          name="grund"
             label="Ursprüngliche Prüfung unter 51 Punkte"
             value="unter51"
             wire:model="grund"
@@ -132,6 +133,7 @@
             iconStyle="fas"
           />
           <x-ui.forms.radio-btn-group-item
+          name="grund"
             label="Krankheit am Prüfungstag (mit Attest)"
             value="krankMitAtest"
             wire:model="grund"
@@ -139,6 +141,7 @@
             iconStyle="fas"
           />
           <x-ui.forms.radio-btn-group-item
+          name="grund"
             label="Krankheit am Prüfungstag (ohne Attest)"
             value="krankOhneAtest"
             wire:model="grund"

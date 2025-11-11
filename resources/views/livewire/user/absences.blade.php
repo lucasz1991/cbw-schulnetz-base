@@ -98,6 +98,7 @@
         <div class="flex justify-center">
           <x-ui.forms.radio-btn-group label="Grund der Fehlzeit">
               <x-ui.forms.radio-btn-group-item
+              name="abw_grund"
                   label="Mit wichtigem Grund"
                   value="abw_wichtig"
                   wire:model="abw_grund"
@@ -105,6 +106,7 @@
                   iconStyle="fal"
               />
               <x-ui.forms.radio-btn-group-item
+              name="abw_grund"
                   label="Ohne wichtigen Grund"
                   value="abw_unwichtig"
                   wire:model="abw_grund"

@@ -96,7 +96,13 @@
   x-init="initOnce()"
   class="tui-editor-wrapper  text-base"
 >
-  <style>.toastui-editor-mode-switch{display:none!important}</style>
+  <style>
+  .toastui-editor-mode-switch{display:none!important}
+  .tui-editor-wrapper .toastui-editor-contents {
+    font-size:1rem !important;
+    line-height: 1.5rem !important;
+  }
+  </style>
 
   {{-- Editor-Container (Livewire darf hier nicht reinfunken) --}}
   <div
