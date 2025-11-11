@@ -49,123 +49,18 @@
                 </div>
             </div>
             <div class="">
-                <table class="w-full text-sm text-left text-gray-500 table-fixed">
-                    <thead class="text-xs text-gray-700 uppercase bg-gray-50">
-                        <tr>
-                            <th scope="col" class="py-3 px-6 w-4/12">Von</th>
-                            <th scope="col" class="py-3 px-6 w-4/12">Betreff</th>
-                            <th scope="col" class="py-3 px-6 w-5/12">Nachricht</th>
-                            <th scope="col" class="py-3 px-6 w-2/12">Datum</th>
-                            <th scope="col" class="py-3 px-6 w-1/12"></th>
-                        </tr>
-                    </thead>
-<tbody>
-  @forelse($messages as $message)
-    @php
-      $isAdmin      = optional($message->sender)->role === 'admin';
-      $senderName   = $isAdmin ? 'CBW Team' : ($message->sender->name ?? 'Unbekannt');
-      $senderAvatar = $isAdmin
-          ? asset('site-images/icon.png')  // passe deinen Pfad an
-          : ($message->sender->profile_photo_url ?? asset('images/avatar-fallback.png'));
-      $isUnread     = (int)$message->status === 1;
-    @endphp
+                <x-tables.table
+                  :columns="[
+                      ['label' => 'Von',        'key' => 'from',      'width' => '25%', 'sortable' => false, 'hideOn' => 'none'],
+                      ['label' => 'Betreff',    'key' => 'subject',   'width' => '25%', 'sortable' => false, 'hideOn' => 'none'],
+                      ['label' => 'Nachricht',  'key' => 'snippet',   'width' => '30%', 'sortable' => false, 'hideOn' => 'none'],
+                      ['label' => 'Datum',      'key' => 'created_at','width' => '20%', 'sortable' => false, 'hideOn' => 'none'],
+                  ]"
+                  :items="$messages"
+                  row-view="components.tables.rows.user-messages.row"
+                  actions-view="components.tables.rows.user-messages.actions"
+              />
 
-    <tr
-      wire:key="msg-{{ $message->id }}"
-      class="group border-b cursor-pointer hover:bg-blue-50 {{ $isUnread ? 'bg-blue-50/70' : '' }}"
-      @click="$wire.showMessage({{ $message->id }})"
-      role="button"
-      aria-label="Nachricht öffnen"
-    >
-      {{-- Von --}}
-      <td class="px-4 py-3 font-medium text-gray-900 whitespace-nowrap truncate">
-        <span class="inline-flex items-center gap-2">
-          <img src="{{ $senderAvatar }}" class="w-5 h-5 rounded-full object-cover" alt="">
-          <span class="{{ $isUnread ? 'font-semibold' : '' }}">{{ $senderName }}</span>
-          @if($isUnread)
-            <span class="ml-1 inline-block w-1.5 h-1.5 rounded-full bg-blue-500" aria-hidden="true"></span>
-          @endif
-        </span>
-      </td>
-
-      {{-- Betreff --}}
-      <td class="px-4 py-3 font-medium text-gray-900 whitespace-nowrap truncate">
-        <span class="{{ $isUnread ? 'font-semibold' : '' }}">
-          {{ $message->subject }}
-        </span>
-      </td>
-
-      {{-- Nachricht (Snippet + optional Paperclip) --}}
-      <td class="px-4 py-3">
-        <div class="flex items-center gap-2 min-w-0">
-          @if($message->files_count > 0)
-            <svg class="w-4 h-4 text-gray-500 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M18.364 5.636a5 5 0 010 7.071l-7.071 7.071a5 5 0 11-7.071-7.071l6-6a3 3 0 114.243 4.243l-6 6a1 1 0 11-1.414-1.414l6-6a1 1 0 10-1.414-1.414l-6 6a3 3 0 104.243 4.243l7.071-7.071a3 3 0 10-4.243-4.243l-6 6" />
-            </svg>
-          @endif
-          <span class="truncate">
-            {{ \Illuminate\Support\Str::limit(strip_tags($message->message), 100) }}
-          </span>
-        </div>
-      </td>
-
-      {{-- Datum mit Tooltip --}}
-      <td class="px-4 py-3" title="{{ $message->created_at->format('d.m.Y H:i') }}">
-        {{ $message->created_at->diffForHumans() }}
-      </td>
-
-      {{-- Aktionen (Dropdown) --}}
-      <td class="px-3 py-3 relative" x-data="{ open:false }">
-        <button
-          type="button"
-          @click.stop="open = !open"
-          class="inline-flex items-center p-1.5 rounded hover:bg-gray-100 text-gray-600"
-          aria-haspopup="true"
-          aria-expanded="false"
-          title="Optionen"
-        >
-          <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-            <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm6-2a2 2 0 100 4 2 2 0 000-4z"/>
-          </svg>
-        </button>
-
-        <div
-          x-cloak
-          x-show="open"
-          @click.outside="open = false"
-          x-transition
-          class="absolute right-0 mt-2 z-20 w-44 bg-white rounded shadow border"
-          role="menu"
-        >
-          <button
-            type="button"
-            @click.stop="$wire.showMessage({{ $message->id }}); open=false;"
-            class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50"
-            role="menuitem"
-          >
-            Anzeigen
-          </button>
-          <button
-            type="button"
-            @click.stop="open=false"
-            class="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50"
-            role="menuitem"
-          >
-            Löschen
-          </button>
-        </div>
-      </td>
-    </tr>
-  @empty
-    <tr>
-      <td class="border-b border-gray-200 px-6 py-4" colspan="5">
-        Keine Nachrichten gefunden.
-      </td>
-    </tr>
-  @endforelse
-</tbody>
-
-                </table>
             </div> 
                 @if ($messages->hasMorePages())
                     <div class="text-center mt-10"
