@@ -4,28 +4,43 @@
 >
   <x-dialog-modal wire:model="open" :maxWidth="'4xl'">
 
-    <x-slot name="title">
-        <div class="flex items-top justify-between gap-2">
-            @if($file && $open)
-            <div>
-                <div class="text-sm text-gray-800 truncate  mb-1" title="{{ $file->name }}">{{ $file->name }}</div>
-                <div class="text-xs text-gray-500 truncate w-full mb-1" title="{{ $file->getMimeTypeForHumans() }}">
-                    <span>{{ $file->getMimeTypeForHumans() }}</span>
-                </div>
-                <div class="text-xs text-gray-500 ">
-                    <span>{{ $file?->sizeFormatted ?? '' }}</span>
-                </div>
-            </div>
-            <div>
-                <button wire:click="downloadFile({{ $file->id }})" class="text-gray-600 hover:text-blue-600 text-sm bg-gray-300 rounded-full p-2 m-2    ">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 aspect-square " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                </button>
-            </div>
-            @else
-            <span class="font-semibold">Dateivorschau</span>
-            @endif
+<x-slot name="title">
+  <div class="flex flex-wrap sm:flex-nowrap items-start sm:items-center justify-between gap-2 overflow-hidden">
+    @if($file && $open)
+      {{-- Linke Spalte: darf schrumpfen & ellipsen --}}
+      <div class="min-w-0 flex-1">
+        <div class="text-sm text-gray-800 mb-1 truncate" title="{{ $file->name }}">
+          {{ $file->name }}
         </div>
-    </x-slot>
+        <div class="text-xs text-gray-500 mb-1 truncate" title="{{ $file->getMimeTypeForHumans() }}">
+          <span class="block truncate">{{ $file->getMimeTypeForHumans() }}</span>
+        </div>
+        <div class="text-xs text-gray-500">
+          <span>{{ $file?->sizeFormatted ?? '' }}</span>
+        </div>
+      </div>
+
+      {{-- Rechte Spalte: Button fixbreit, bricht auf Mobil in die nächste Zeile --}}
+      <div class="shrink-0 mt-2 sm:mt-0">
+        <button
+          wire:click="downloadFile({{ $file->id }})"
+          class="text-gray-600 hover:text-blue-600 text-sm bg-gray-300 rounded-full p-2"
+          title="Download"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 aspect-square" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+        </button>
+      </div>
+    @else
+      <span class="font-semibold">Dateivorschau</span>
+    @endif
+  </div>
+</x-slot>
+
 
     <x-slot name="content">
       @if($file && $open)
