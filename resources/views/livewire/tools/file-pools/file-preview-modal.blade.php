@@ -5,7 +5,7 @@
   <x-dialog-modal wire:model="open" :maxWidth="'4xl'">
 
 <x-slot name="title">
-  <div class="flex flex-wrap sm:flex-nowrap items-start sm:items-center justify-between gap-2 overflow-hidden">
+  <div class="flex flex-wrap sm:flex-nowrap items-start sm:items-center justify-between gap-2 ">
     @if($file && $open)
       {{-- Linke Spalte: darf schrumpfen & ellipsen --}}
       <div class="min-w-0 flex-1">
@@ -88,7 +88,7 @@
             <div class="pdf-container">
               <iframe
                 key="file-preview-{{ $file->id }}-{{ $file->updated_at?->timestamp ?? $file->id }}"
-                class="w-full h-[75vh] min-h-[420px]"
+                class="w-full min-h-[75vh]"
                 src="{{ $tempUrl }}"
               ></iframe>
             </div>
