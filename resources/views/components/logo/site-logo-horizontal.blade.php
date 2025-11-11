@@ -1,5 +1,5 @@
 @php
-  $classes = trim('inline-block max-h-14 h-14 w-auto object-contain ' . ($class ?? ''));
+  $classes = trim('inline-block max-h-12 h-12 w-auto object-contain ' . ($class ?? ''));
 @endphp
 
 @if($src)
