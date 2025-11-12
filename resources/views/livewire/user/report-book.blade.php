@@ -72,7 +72,7 @@
             @click="open = !open"
             :aria-expanded="open ? 'true' : 'false'"
             class="w-full inline-flex items-center gap-3 px-3 py-2 rounded-md border text-sm
-                   border-gray-200 bg-white hover:bg-gray-50">
+                   border-primary-300 ring-2 ring-primary-200 bg-white hover:bg-gray-50">
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-2">
           @if($selKlasse)
@@ -102,6 +102,27 @@
                      style="width: {{ $seg['w'] }}%" title="{{ $seg['title'] }}: {{ $seg['w'] }}%"></div>
               @endforeach
             </div>
+          </div>
+          <div class="mt-1 flex flex-wrap items-center gap-3 text-[11px]">
+                  @foreach($segments as $seg)
+                    @php
+                      $count = match($seg['title']) {
+                        'Fehlend' => $missing,
+                        'Entwurf' => $draft,
+                        'Fertig'  => $finished,
+                        default   => null
+                      };
+                    @endphp
+                    @if($count)
+                      <span class="inline-flex items-center gap-1">
+                        <span class="inline-block h-2 w-2 rounded-full {{ $seg['class'] }}"></span>
+                        {{ $seg['title'] }} {{ $count }}
+                      </span>
+                    @endif
+                  @endforeach
+                  <span class="ml-auto">
+                    <span class="font-medium">{{ $finished }}/{{ $total }}</span> Tage fertig
+                  </span>
           </div>
         </div>
       </div>
@@ -187,27 +208,7 @@
                     @endforeach
                   </div>
                 </div>
-                <div class="mt-1 flex flex-wrap items-center gap-3 text-[11px] {{ $active ? 'text-primary-100' : 'text-gray-600' }}">
-                  @foreach($segments2 as $seg)
-                    @php
-                      $count = match($seg['title']) {
-                        'Fehlend' => $missing2,
-                        'Entwurf' => $draft2,
-                        'Fertig'  => $finished2,
-                        default   => null
-                      };
-                    @endphp
-                    @if($count)
-                      <span class="inline-flex items-center gap-1">
-                        <span class="inline-block h-2 w-2 rounded-full {{ $seg['class'] }}"></span>
-                        {{ $seg['title'] }} {{ $count }}
-                      </span>
-                    @endif
-                  @endforeach
-                  <span class="ml-auto">
-                    <span class="font-medium">{{ $finished2 }}/{{ $total2 }}</span> Tage fertig
-                  </span>
-                </div>
+
               </div>
 
               {{-- Badges: Phase oben rechts (wie gewünscht) + Ampel unten mit Progress --}}
