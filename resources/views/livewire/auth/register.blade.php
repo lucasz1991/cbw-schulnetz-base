@@ -34,21 +34,6 @@
                        />
                        <x-input-error for="email" class="mt-2" />
                    </div>
-                   <!-- Benutzername -->
-                   <div>
-                       <label for="username" class="block text-sm font-medium text-gray-700">Benutzername</label>
-                       <input 
-                           type="text" 
-                           id="username" 
-                           name="username" 
-                           wire:model="username"
-                           value="{{ old('username') }}" 
-                           class="w-full rounded-lg border-gray-300 p-3 mt-1 text-sm"
-                           placeholder="Benutzername" 
-                        
-                       />
-                       <x-input-error for="username" class="mt-2" />
-                   </div>
                </div>
                <!-- Datenschutz -->
                <div class="col-span-6">

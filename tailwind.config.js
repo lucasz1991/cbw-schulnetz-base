@@ -65,6 +65,7 @@ export default {
 
     plugins: [forms, typography],
     safelist: [
+          { pattern: /(bg|text|border)-(gray|amber|blue|green|red|slate)-(50|100|200|500|600|700)/ },
         'bg-green-500', 
         'bg-yellow-500', 
         'bg-red-500', 

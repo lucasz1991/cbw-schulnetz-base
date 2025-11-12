@@ -16,7 +16,7 @@ use App\Services\ApiUvs\ApiUvsService;
 
 class Register extends Component
 {
-    public $email, $username, $terms = false;
+    public $email, $terms = false;
     public $message;
     public $messageType;
     protected ApiUvsService $apiService;
@@ -28,19 +28,12 @@ class Register extends Component
         $this->validate(
             [
                 'email'    => ['required', 'email', Rule::unique('users', 'email')],
-                'username' => ['required', 'string', 'max:255', Rule::unique('users', 'name')],
                 'terms'    => 'accepted',
             ],
             [
                 'email.required'   => 'Die E-Mail-Adresse ist erforderlich.',
                 'email.email'      => 'Bitte geben Sie eine gültige E-Mail-Adresse ein.',
                 'email.unique'     => 'Für diese E-Mail-Adresse existiert bereits ein aktives Konto. Bitte nutze „Passwort vergessen“, um Zugang zu erhalten.',
-
-                'username.required' => 'Der Benutzername ist erforderlich.',
-                'username.string'   => 'Der Benutzername muss eine Zeichenkette sein.',
-                'username.max'      => 'Der Benutzername darf maximal 255 Zeichen lang sein.',
-                'username.unique'   => 'Dieser Benutzername wird bereits verwendet.',
-
                 'terms.accepted'    => 'Sie müssen den AGBs und der Datenschutzerklärung zustimmen.',
             ]
         );
@@ -120,7 +113,7 @@ class Register extends Component
             $randomPassword = Str::random(12);
 
             $newUser = User::create([
-                'name'     => $this->username,
+                'name'     => $person->vorname.' '.$person->nachname,
                 'email'    => $person->email_priv ?? $this->email,
                 'status'   => 1,
                 'role'     => $role,

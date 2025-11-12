@@ -15,7 +15,7 @@
         <livewire:user.program-show lazy />
       </x-ui.tabsnav.panel>
       <x-ui.tabsnav.panel name="reportbook">
-        <livewire:user.report-book  />
+        <livewire:user.report-book  lazy />
       </x-ui.tabsnav.panel>
       <x-ui.tabsnav.panel name="claims">
         <livewire:user.user-requests lazy />

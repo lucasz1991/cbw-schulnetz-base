@@ -4,12 +4,15 @@ namespace App\Livewire\User;
 
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use App\Models\ReportBook as ReportBookModel;
 use App\Models\ReportBookEntry;
 use App\Models\Course;
 use App\Models\CourseDay;
+use App\Models\User;
+use App\Models\Person;
 
 class ReportBook extends Component
 {
@@ -57,47 +60,145 @@ class ReportBook extends Component
         $this->loadRecent();
     }
 
-    /* ======================= Datenbeschaffung ======================= */
+
 
 protected function fetchUserCourses(): array
 {
-    $person = Auth::user()?->person;
+    $personId = Auth::user()?->person?->id;
+    if (!$personId) return [];
 
-    if ($person && method_exists($person, 'courses')) {
-        $q = $person->courses()->withCount('dates');
-        return $q->get(['courses.id','courses.title','courses.klassen_id','courses.planned_start_date','courses.planned_end_date'])
-            ->map(fn($c) => [
-                'id'                => $c->id,
-                'klassen_id'        => $c->klassen_id,
-                'title'             => $c->title ?? ('Kurs #'.$c->id),
-                'planned_start_date'=> $c->planned_start_date,
-                'planned_end_date'  => $c->planned_end_date,
-            ])
-            ->values()
-            ->all();
-    }
+    $q = DB::table('courses')
+        ->join('course_participant_enrollments as cpe', function ($join) use ($personId) {
+            $join->on('courses.id', '=', 'cpe.course_id')
+                 ->where('cpe.person_id', '=', $personId)
+                 ->whereNull('cpe.deleted_at')
+                 ->where('cpe.is_active', '=', 1);
+        })
+        ->leftJoin('course_days as cd', 'cd.course_id', '=', 'courses.id')
+        ->leftJoin('report_books as rb', function ($join) {
+            $join->on('rb.course_id', '=', 'courses.id')
+                 ->where('rb.user_id', '=', Auth::id());
+            if (!is_null($this->massnahmeId)) {
+                $join->where('rb.massnahme_id', '=', $this->massnahmeId);
+            }
+        })
+        ->leftJoin('report_book_entries as rbe', function ($join) {
+            $join->on('rbe.report_book_id', '=', 'rb.id')
+                 ->on('rbe.course_day_id', '=', 'cd.id');
+        })
+        ->whereNull('courses.deleted_at')
+        ->select([
+            'courses.id',
+            'courses.title',
+            'courses.klassen_id',
+            'courses.planned_start_date',
+            'courses.planned_end_date',
+            DB::raw('COUNT(DISTINCT cd.id) AS days_total'),
+            DB::raw('SUM(CASE WHEN rbe.id IS NOT NULL THEN 1 ELSE 0 END) AS days_with_entry'),
+            DB::raw('SUM(CASE WHEN rbe.status = 0 THEN 1 ELSE 0 END) AS days_draft'),
+            DB::raw('SUM(CASE WHEN rbe.status = 1 THEN 1 ELSE 0 END) AS days_submitted'),
+            DB::raw('SUM(CASE WHEN rbe.status >= 1 THEN 1 ELSE 0 END) AS days_finished')
+        ])
+        ->groupBy(
+            'courses.id','courses.title','courses.klassen_id',
+            'courses.planned_start_date','courses.planned_end_date'
+        )
+        ->orderBy('courses.planned_start_date','asc');
 
-    return [];
+    $today = Carbon::today();
+
+    return collect($q->get())->map(function ($c) use ($today) {
+        $start = $c->planned_start_date ? Carbon::parse($c->planned_start_date) : null;
+        $end   = $c->planned_end_date   ? Carbon::parse($c->planned_end_date)   : null;
+        $phase = 'unbekannt'; $phaseColor = 'slate';
+        if ($start && $end) {
+            if ($end->lt($today))       { $phase='beendet'; $phaseColor='gray'; }
+            elseif ($start->gt($today)) { $phase='geplant'; $phaseColor='amber'; }
+            else                        { $phase='läuft';   $phaseColor='blue'; }
+        }
+
+        $total     = (int)$c->days_total;
+        $withEntry = (int)$c->days_with_entry;
+        $finished  = (int)$c->days_finished; // jetzt >=1
+        $missing   = max(0, $total - $withEntry);
+        $hasAllFinished = ($total > 0 && $finished === $total);
+
+        if ($total === 0) {
+            $ampel = ['label'=>'Keine Kurstage','color'=>'slate','info'=>null];
+        } elseif ($hasAllFinished) {
+            $ampel = ['label'=>'Alle Tage fertig','color'=>'green','info'=>"$finished/$total"];
+        } elseif ($withEntry === $total) {
+            $ampel = ['label'=>'Alle belegt (noch nicht fertig)','color'=>'amber','info'=>"$finished/$total"];
+        } else {
+            $ampel = ['label'=>"$missing Tag(e) ohne Eintrag",'color'=>'red','info'=>"$finished/$total"];
+        }
+
+        return [
+            'id'         => $c->id,
+            'klassen_id' => $c->klassen_id,
+            'title'      => $c->title ?? ('Kurs #'.$c->id),
+            'planned_start_date' => $c->planned_start_date,
+            'planned_end_date'   => $c->planned_end_date,
+            'days_total'     => $total,
+            'days_with_entry'=> $withEntry,
+            'days_draft'     => (int)$c->days_draft,
+            'days_submitted' => (int)$c->days_submitted,
+            'days_finished'  => $finished,
+            'days_missing'   => $missing,
+            'phase'       => $phase,
+            'phase_color' => $phaseColor,
+            'ampel'       => $ampel,
+        ];
+    })->all();
 }
 
 
 
-    protected function loadCourseDays(): void
-    {
-        $this->courseDays = [];
-        if (!$this->selectedCourseId) return;
 
-        $days = CourseDay::query()
-            ->where('course_id', $this->selectedCourseId)
-            ->orderBy('date')->orderBy('start_time')
-            ->get(['id','date','start_time','end_time']);
 
-        $this->courseDays = $days->map(fn($d) => [
-            'id'   => $d->id,
-            'date' => Carbon::parse($d->date)->toDateString(),
-            'label'=> Carbon::parse($d->date)->format('d.m.Y'),
-        ])->values()->all();
-    }
+protected function loadCourseDays(): void
+{
+    $this->courseDays = [];
+    if (!$this->selectedCourseId) return;
+
+    // Left join auf RB & RBE für diesen User (und Maßnahme), um Status je Tag zu holen
+    $days = DB::table('course_days as cd')
+        ->leftJoin('report_books as rb', function ($join) {
+            $join->on('rb.course_id', '=', 'cd.course_id')
+                 ->where('rb.user_id', '=', Auth::id());
+            if (!is_null($this->massnahmeId)) {
+                $join->where('rb.massnahme_id', '=', $this->massnahmeId);
+            }
+        })
+        ->leftJoin('report_book_entries as rbe', function ($join) {
+            $join->on('rbe.report_book_id', '=', 'rb.id')
+                 ->on('rbe.course_day_id', '=', 'cd.id');
+        })
+        ->where('cd.course_id', $this->selectedCourseId)
+        ->orderBy('cd.date')->orderBy('cd.start_time')
+        ->get(['cd.id','cd.date','cd.start_time','cd.end_time','rbe.status']);
+
+    $this->courseDays = $days->map(function ($d) {
+        $date = \Illuminate\Support\Carbon::parse($d->date)->toDateString();
+        $label = \Illuminate\Support\Carbon::parse($d->date)->format('d.m.Y');
+
+        $status = is_null($d->status) ? null : (int)$d->status; // null = kein Eintrag
+        $dot = match (true) {
+            $status === null       => ['color'=>'gray',  'title'=>'Kein Eintrag'],
+            $status === 0          => ['color'=>'amber', 'title'=>'Entwurf'],
+            $status >= 1           => ['color'=>'green', 'title'=>'Fertig'],
+        };
+
+        return [
+            'id'    => $d->id,
+            'date'  => $date,
+            'label' => $label,
+            'status'=> $status,
+            'dot'   => $dot,   // {color,title}
+        ];
+    })->values()->all();
+}
+
 
     protected function guessInitialCourseDayId(): ?int
     {
@@ -137,6 +238,25 @@ protected function fetchUserCourses(): array
         }
     }
 
+    protected function reloadForCurrentCourse(): void
+    {
+        // Auswahl sichern
+        $selectedCourseId    = $this->selectedCourseId;
+        $selectedCourseDayId = $this->selectedCourseDayId;
+
+        // Kurs-Aggregate neu laden (Ampel, X/Y, Missing)
+        $this->courses = $this->fetchUserCourses();
+        $this->selectedCourseId = $selectedCourseId; // Auswahl beibehalten
+
+        // Kurstage (Status-Dots) aktualisieren
+        $this->loadCourseDays();
+        $this->selectedCourseDayId = $selectedCourseDayId; // Auswahl beibehalten
+
+        // Aktuellen Eintrag + Recent neu laden (ReportBook-ID kann gerade erst entstanden sein)
+        $this->loadCurrentEntry();
+        $this->loadRecent();
+    }
+
     /* ======================= Persistenzaktionen ======================= */
 
     public function save(): void
@@ -171,9 +291,8 @@ protected function fetchUserCourses(): array
 
         $this->initialHash = $this->curHash();
         $this->recomputeFlags();
-
+            $this->reloadForCurrentCourse();
         $this->dispatch('toast', type: 'success', message: 'Entwurf gespeichert.');
-        $this->loadRecent();
     }
 
     public function submit(): void
@@ -208,9 +327,8 @@ protected function fetchUserCourses(): array
 
         $this->initialHash = $this->curHash();
         $this->recomputeFlags();
-
+    $this->reloadForCurrentCourse();
         $this->dispatch('toast', type: 'success', message: 'Eintrag fertiggestellt.');
-        $this->loadRecent();
     }
 
     /* ======================= Loader / Helper ======================= */
@@ -294,6 +412,29 @@ protected function fetchUserCourses(): array
             ])
             ->toArray();
     }
+
+    public function selectPrevCourse(): void
+    {
+        if (empty($this->courses)) return;
+
+        $ids = array_column($this->courses, 'id');
+        $idx = array_search($this->selectedCourseId, $ids, true);
+
+        $prevIdx = is_int($idx) ? ($idx - 1 + count($ids)) % count($ids) : 0;
+        $this->selectCourse((int)$ids[$prevIdx]);
+    }
+
+    public function selectNextCourse(): void
+    {
+        if (empty($this->courses)) return;
+
+        $ids = array_column($this->courses, 'id');
+        $idx = array_search($this->selectedCourseId, $ids, true);
+
+        $nextIdx = is_int($idx) ? ($idx + 1) % count($ids) : 0;
+        $this->selectCourse((int)$ids[$nextIdx]);
+    }
+
 
     protected function curHash(): string
     {
