@@ -2,11 +2,11 @@
   $editorKey = 'rb-editor-'.($selectedCourseId ?? 'x').'-'.($selectedCourseDayId ?? 'x');
 @endphp
 
-<div class="w-full" wire:loading.class="cursor-wait opacity-50 animate-pulse">
+<div class="w-full" >
   <div class="max-w-full grid grid-cols-1 lg:grid-cols-3 gap-6 mt-4">
 
     {{-- linke Spalte: Kurswahl & CourseDays --}}
-    <aside class="space-y-4 lg:col-span-1">
+    <aside class="space-y-4 lg:col-span-1" wire:loading.class="cursor-wait opacity-50 animate-pulse">
 {{-- Kurswahl: Navigation oben + Trigger mit Panel --}}
 <div class="bg-white border border-gray-300 rounded-lg p-3 mb-4 space-y-2" x-data="{ open:false }">
 
@@ -291,7 +291,7 @@
       </div>
 
       {{-- Aktionen --}}
-      <div class="mt-1 flex items-center flex-wrap gap-2">
+      <div class="mt-1 flex items-center flex-wrap gap-2" wire:loading.class="cursor-wait opacity-50 animate-pulse pointer-events-none">
         {{-- Speichern nur wenn dirty und ein Kurstag gewählt ist --}}
         @if($selectedCourseDayId && $isDirty )
           <x-buttons.button-basic
