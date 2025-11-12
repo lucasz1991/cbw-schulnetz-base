@@ -8,99 +8,167 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use App\Models\ReportBook as ReportBookModel;
 use App\Models\ReportBookEntry;
+use App\Models\Course;
+use App\Models\CourseDay;
 
 class ReportBook extends Component
 {
-    /** Maßnahme-Context (optional; kann null sein) */
+    /** Optional: Maßnahme-Kontext */
     public ?string $massnahmeId = null;
 
-    /** Aktueller Tag & aktives ReportBook */
-    public string $date;
-    public ?int $reportBookId = null;
+    /** Kurs-/Tag-Auswahl */
+    public array $courses = [];              // [{id,title}, ...]
+    public ?int $selectedCourseId = null;
 
-    /** Formularfelder */
-    public ?string $title = null;
+    public array $courseDays = [];           // [{id,date,label}, ...]
+    public ?int $selectedCourseDayId = null; // aktueller Kurs-Tag
+
+
     public string $text = '';
+
     /** 0 = Entwurf, 1 = Fertig */
     public int $status = 0;
 
-    /** Sidebar */
+    /** Seitenleiste „Letzte Einträge“ */
     public array $recent = [];
 
     /** UI-Flags */
     public bool $isDirty = false;
     public bool $hasDraft = false;
 
-    /** interner Snapshot für Dirty-Check */
+    /** intern */
+    protected ?int $reportBookId = null;      // wird lazy ermittelt/angelegt
     protected ?string $initialHash = null;
 
     public function mount(): void
     {
-        $this->date = now()->toDateString();
+        // Kurse des Users laden
+        $this->courses = $this->fetchUserCourses();
 
-        $book = $this->getOrCreateReportBook();
-        $this->reportBookId = $book->id;
+        // Auswahl initialisieren
+        $this->selectedCourseId = $this->courses[0]['id'] ?? null;
+        $this->loadCourseDays();
 
+        // Ersten Day setzen (heute oder erster Tag)
+        $this->selectedCourseDayId = $this->guessInitialCourseDayId();
+
+        // Einträge laden (ReportBook kann noch nicht existieren → recent evtl. leer)
+        $this->loadCurrentEntry();
         $this->loadRecent();
-        $this->loadForDate($this->date);
     }
 
-    /** Helper: aktuellen Formularzustand hashen */
-    protected function curHash(): string
+    /* ======================= Datenbeschaffung ======================= */
+
+protected function fetchUserCourses(): array
+{
+    $person = Auth::user()?->person;
+
+    if ($person && method_exists($person, 'courses')) {
+        $q = $person->courses()->withCount('dates');
+        return $q->get(['courses.id','courses.title','courses.klassen_id','courses.planned_start_date','courses.planned_end_date'])
+            ->map(fn($c) => [
+                'id'                => $c->id,
+                'klassen_id'        => $c->klassen_id,
+                'title'             => $c->title ?? ('Kurs #'.$c->id),
+                'planned_start_date'=> $c->planned_start_date,
+                'planned_end_date'  => $c->planned_end_date,
+            ])
+            ->values()
+            ->all();
+    }
+
+    return [];
+}
+
+
+
+    protected function loadCourseDays(): void
     {
-        return md5(($this->title ?? '') . '|' . ($this->text ?? ''));
+        $this->courseDays = [];
+        if (!$this->selectedCourseId) return;
+
+        $days = CourseDay::query()
+            ->where('course_id', $this->selectedCourseId)
+            ->orderBy('date')->orderBy('start_time')
+            ->get(['id','date','start_time','end_time']);
+
+        $this->courseDays = $days->map(fn($d) => [
+            'id'   => $d->id,
+            'date' => Carbon::parse($d->date)->toDateString(),
+            'label'=> Carbon::parse($d->date)->format('d.m.Y'),
+        ])->values()->all();
     }
 
-    protected function recomputeFlags(): void
+    protected function guessInitialCourseDayId(): ?int
     {
-        $this->isDirty = $this->curHash() !== ($this->initialHash ?? '');
-        // $hasDraft wird in loadForDate() aus der DB gesetzt
+        if (!$this->courseDays) return null;
+        $today = now()->toDateString();
+        $hit = collect($this->courseDays)->firstWhere('date', $today);
+        return $hit['id'] ?? ($this->courseDays[0]['id'] ?? null);
     }
 
-    /** Sidebar-Klick */
-    public function selectDate(string $date): void
+    /* ======================= UI Events ======================= */
+
+    public function selectCourse(int $courseId): void
     {
-        $this->date = $date;
-        $this->loadForDate($date);
+        if ($this->selectedCourseId === $courseId) return;
+
+        $this->selectedCourseId = $courseId;
+        $this->reportBookId = null; // neues Heft-Kontext
+        $this->loadCourseDays();
+        $this->selectedCourseDayId = $this->guessInitialCourseDayId();
+
+        $this->loadCurrentEntry();
+        $this->loadRecent();
     }
 
-    /** Date-Input (rechts) */
-    public function updatedDate($value): void
+    public function selectCourseDay(int $courseDayId): void
     {
-        $this->loadForDate($value);
+        if ($this->selectedCourseDayId === $courseDayId) return;
+
+        $this->selectedCourseDayId = $courseDayId;
+        $this->loadCurrentEntry();
     }
 
-    /** Reagiere auf Eingaben (Title/Text) für Dirty-Flag */
     public function updated($name, $value): void
     {
-        if (in_array($name, ['title', 'text'])) {
+        if (in_array($name, ['title','text'])) {
             $this->recomputeFlags();
         }
     }
 
-    /** Speichern als Entwurf */
+    /* ======================= Persistenzaktionen ======================= */
+
     public function save(): void
     {
-        if (!$this->reportBookId) {
-            $this->dispatch('toast', type: 'warning', message: 'ReportBook nicht gefunden.');
+        $this->ensureReportBookId(); // legt ReportBook on-demand an
+
+        if (!$this->selectedCourseDayId) {
+            $this->dispatch('toast', type: 'warning', message: 'Kein Kurstag ausgewählt.');
             return;
         }
 
-        $entry = ReportBookEntry::query()->firstOrNew([
+        $day = CourseDay::find($this->selectedCourseDayId);
+        if (!$day) {
+            $this->dispatch('toast', type: 'warning', message: 'Kurstag nicht gefunden.');
+            return;
+        }
+
+        $entry = ReportBookEntry::firstOrNew([
             'report_book_id' => $this->reportBookId,
-            'entry_date'     => $this->date,
+            'course_day_id'  => $day->id,
         ]);
 
         $entry->fill([
-            'title'  => $this->title,
-            'text'   => $this->text,
-            'status' => 0, // Entwurf
+            'entry_date'   => $day->date,
+            'text'         => $this->text,
+            'status'       => 0,      // Entwurf
+            'submitted_at' => null,
         ])->save();
 
-        $this->status = 0;
+        $this->status   = 0;
         $this->hasDraft = true;
 
-        // Nach Save ist der aktuelle Stand Basis
         $this->initialHash = $this->curHash();
         $this->recomputeFlags();
 
@@ -108,27 +176,34 @@ class ReportBook extends Component
         $this->loadRecent();
     }
 
-    /** Fertigstellen */
     public function submit(): void
     {
-        if (!$this->reportBookId) {
-            $this->dispatch('toast', type: 'warning', message: 'ReportBook nicht gefunden.');
+        $this->ensureReportBookId();
+
+        if (!$this->selectedCourseDayId) {
+            $this->dispatch('toast', type: 'warning', message: 'Kein Kurstag ausgewählt.');
             return;
         }
 
-        $entry = ReportBookEntry::query()->firstOrNew([
+        $day = CourseDay::find($this->selectedCourseDayId);
+        if (!$day) {
+            $this->dispatch('toast', type: 'warning', message: 'Kurstag nicht gefunden.');
+            return;
+        }
+
+        $entry = ReportBookEntry::firstOrNew([
             'report_book_id' => $this->reportBookId,
-            'entry_date'     => $this->date,
+            'course_day_id'  => $day->id,
         ]);
 
         $entry->fill([
-            'title'        => $this->title,
+            'entry_date'   => $day->date,
             'text'         => $this->text,
-            'status'       => 1,       // Fertig
+            'status'       => 1,      // Fertig
             'submitted_at' => now(),
         ])->save();
 
-        $this->status = 1;
+        $this->status   = 1;
         $this->hasDraft = false;
 
         $this->initialHash = $this->curHash();
@@ -138,90 +213,96 @@ class ReportBook extends Component
         $this->loadRecent();
     }
 
-    /** Tagesdaten laden */
-    protected function loadForDate(string $date): void
+    /* ======================= Loader / Helper ======================= */
+
+    protected function ensureReportBookId(): void
     {
-        if (!$this->reportBookId) {
-            $this->title = null;
-            $this->text  = '';
-            $this->status = 0;
-            $this->hasDraft = false;
+        if ($this->reportBookId) return;
+        if (!$this->selectedCourseId) return;
+
+        $book = ReportBookModel::firstOrCreate(
+            [
+                'user_id'      => Auth::id(),
+                'course_id'    => $this->selectedCourseId,
+                'massnahme_id' => $this->massnahmeId,
+            ],
+            [
+                'title' => 'Mein Berichtsheft',
+            ]
+        );
+
+        $this->reportBookId = $book->id;
+    }
+
+    protected function loadCurrentEntry(): void
+    {
+        // Resets
+        $this->title = null;
+        $this->text  = '';
+        $this->status = 0;
+        $this->hasDraft = false;
+
+        if (!$this->selectedCourseId || !$this->selectedCourseDayId) {
             $this->initialHash = $this->curHash();
             $this->recomputeFlags();
             return;
         }
 
-        $entry = ReportBookEntry::query()
-            ->where('report_book_id', $this->reportBookId)
-            ->whereDate('entry_date', $date)
+        // vorhandenes ReportBook ermitteln (nicht erzeugen!)
+        $book = ReportBookModel::where('user_id', Auth::id())
+            ->where('course_id', $this->selectedCourseId)
+            ->when($this->massnahmeId, fn($q) => $q->where('massnahme_id', $this->massnahmeId))
             ->first();
 
-        $this->title  = $entry?->title ?? null;
-        $this->text   = $entry?->text ?? '';
-        $this->status = (int) ($entry?->status ?? 0);
-        $this->hasDraft = (bool) $entry && (int) $entry->status === 0;
+        $this->reportBookId = $book?->id;
 
-        // Snapshot für Dirty-Check
-        $this->initialHash = $this->curHash();
-        $this->recomputeFlags();
-
-        // Falls du den Toast-Editor hart füttern willst:
-        // $this->dispatch('rb-editor-set', content: $this->text);
-    }
-
-    /** Sidebar „Letzte Einträge“ */
-    protected function loadRecent(): void
-    {
-        if (!$this->reportBookId) {
-            $this->recent = [];
+        if (!$book) {
+            $this->initialHash = $this->curHash();
+            $this->recomputeFlags();
             return;
         }
+
+        $entry = ReportBookEntry::where('report_book_id', $book->id)
+            ->where('course_day_id', $this->selectedCourseDayId)
+            ->first();
+
+        if ($entry) {
+            $this->text   = $entry->text ?? '';
+            $this->status = (int) $entry->status;
+            $this->hasDraft = $this->status === 0;
+        }
+
+        $this->initialHash = $this->curHash();
+        $this->recomputeFlags();
+    }
+
+    protected function loadRecent(): void
+    {
+        $this->recent = [];
+
+        if (!$this->reportBookId) return;
 
         $this->recent = ReportBookEntry::query()
             ->where('report_book_id', $this->reportBookId)
             ->orderByDesc('entry_date')
-            ->limit(5)
-            ->get(['entry_date', 'title', 'text', 'status'])
-            ->map(function ($r) {
-                return [
-                    'date'    => Carbon::parse($r->entry_date)->toDateString(),
-                    'title'   => $r->title,
-                    'status'  => (int) $r->status,
-                    'excerpt' => Str::of(strip_tags($r->text ?? ''))->limit(80)->value(),
-                ];
-            })
+            ->limit(7)
+            ->get(['entry_date','text','status'])
+            ->map(fn($r) => [
+                'date'    => Carbon::parse($r->entry_date)->toDateString(),
+                'status'  => (int) $r->status,
+                'excerpt' => Str::of(strip_tags($r->text ?? ''))->limit(80)->value(),
+            ])
             ->toArray();
     }
 
-    /** Ein Heft (pro User & Maßnahme) sicherstellen */
-    protected function getOrCreateReportBook(): ReportBookModel
+    protected function curHash(): string
     {
-        return ReportBookModel::query()
-            ->firstOrCreate(
-                [
-                    'user_id'      => Auth::id(),
-                    'massnahme_id' => $this->massnahmeId,
-                ],
-                [
-                    'title'       => 'Mein Berichtsheft',
-                    'description' => $this->massnahmeId ? "Maßnahme: {$this->massnahmeId}" : null,
-                ]
-            );
+        return md5(($this->title ?? '') . '|' . ($this->text ?? ''));
     }
 
-    /** Placeholder während lazy load */
-    public function placeholder()
+    protected function recomputeFlags(): void
     {
-        return <<<'HTML'
-            <div role="status" class="h-32 w-full relative animate-pulse">
-                <div class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-white/70 transition-opacity">
-                    <div class="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-2 shadow">
-                        <span class="loader"></span>
-                        <span class="text-sm text-gray-700">wird geladen…</span>
-                    </div>
-                </div>
-            </div>
-        HTML;
+        $this->isDirty = $this->curHash() !== ($this->initialHash ?? '');
     }
 
     public function render()

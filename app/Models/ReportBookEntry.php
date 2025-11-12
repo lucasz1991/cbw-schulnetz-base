@@ -11,8 +11,8 @@ class ReportBookEntry extends Model
 {
     protected $fillable = [
         'report_book_id',
+        'course_day_id',
         'entry_date',
-        'title',
         'text',
         'status',
         'submitted_at',

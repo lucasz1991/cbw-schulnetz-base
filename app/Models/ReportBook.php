@@ -11,6 +11,7 @@ class ReportBook extends Model
     protected $fillable = [
         'user_id',
         'massnahme_id',
+        'course_id',
         'title',
         'description',
         'start_date',
@@ -25,10 +26,17 @@ class ReportBook extends Model
         return $this->belongsTo(User::class);
     }
 
+    /** Zugehöriger Kurs */
+    public function course(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Course::class);
+    }
+
     public function entries(): HasMany
     {
         return $this->hasMany(ReportBookEntry::class);
     }
+
 
     /**
      * Hilfsmethode: neuestes Entry abrufen
@@ -36,5 +44,31 @@ class ReportBook extends Model
     public function latestEntry(): ?ReportBookEntry
     {
         return $this->entries()->orderByDesc('entry_date')->first();
+    }
+
+        /* ---------- Nützliche Helper/Scopes ---------- */
+
+    public function scopeForCourse($q, int $courseId)
+    {
+        return $q->where('course_id', $courseId);
+    }
+
+    public function scopeForUser($q, int $userId)
+    {
+        return $q->where('user_id', $userId);
+    }
+
+    public static function getOrCreateFor(int $userId, int $courseId, string $massnahmeId): self
+    {
+        return static::firstOrCreate(
+            [
+                'user_id'   => $userId,
+                'course_id' => $courseId,
+                'massnahme_id' => $massnahmeId,
+            ],
+            [
+                'title'        => 'Mein Berichtsheft',
+            ]
+        );
     }
 }

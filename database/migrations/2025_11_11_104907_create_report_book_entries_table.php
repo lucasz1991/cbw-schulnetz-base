@@ -14,9 +14,12 @@ return new class extends Migration
             $table->foreignId('report_book_id')
                   ->constrained()
                   ->cascadeOnDelete();
+            $table->foreignId('course_day_id')
+                  ->nullable()
+                  ->nullOnDelete();
 
             $table->date('entry_date');
-            $table->string('title')->nullable();
+
             $table->longText('text')->nullable();
 
             $table->unsignedTinyInteger('status')->default(0)

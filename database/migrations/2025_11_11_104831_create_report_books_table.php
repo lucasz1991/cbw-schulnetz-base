@@ -21,6 +21,11 @@ return new class extends Migration
                   ->index()
                   ->comment('Referenz auf Bildungsmaßnahme oder Kurs (z. B. UVS-ID)');
 
+            $table->foreignId('course_id')
+                    ->nullable()
+                    ->constrained()
+                    ->nullOnDelete();
+
             $table->string('title')->default('Mein Berichtsheft');
             $table->text('description')->nullable();
             $table->date('start_date')->nullable();
@@ -29,7 +34,7 @@ return new class extends Migration
             $table->timestamps();
 
             // Ein Berichtsheft pro Teilnehmer & Maßnahme
-            $table->unique(['user_id', 'massnahme_id'], 'user_massnahme_unique');
+            $table->unique(['user_id', 'massnahme_id', 'course_id'], 'user_massnahme_course_unique');
         });
     }
 

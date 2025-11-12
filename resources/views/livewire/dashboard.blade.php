@@ -10,20 +10,16 @@
         collapseAt="md"
       />
     </div>
-
     <div class="container mx-auto px-3 md:px-5">
       <x-ui.tabsnav.panel name="basic">
         <livewire:user.program-show lazy />
       </x-ui.tabsnav.panel>
-      
       <x-ui.tabsnav.panel name="reportbook">
         <livewire:user.report-book  />
       </x-ui.tabsnav.panel>
-
       <x-ui.tabsnav.panel name="claims">
         <livewire:user.user-requests lazy />
       </x-ui.tabsnav.panel>
-
     </div>
   </x-ui.tabsnav.container>
 </div>
