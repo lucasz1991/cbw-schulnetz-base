@@ -263,10 +263,18 @@
       <div class="flex items-start justify-between">
         <div class="text-sm text-gray-600">
           @if($selectedCourseId && $selectedCourseDayId)
-            Kurs #{{ $selectedCourseId }} · Tag:
-            <span class="font-semibold">
-              {{ \Illuminate\Support\Arr::first($courseDays, fn($d) => (int)$d['id'] === (int)$selectedCourseDayId)['label'] ?? '—' }}
-            </span>
+              <div>
+                <div class="mb-2">
+                  <x-ui.badge.badge :color="'blue'">
+                    <span class="font-semibold">
+                      Tag:  {{ \Illuminate\Support\Arr::first($courseDays, fn($d) => (int)$d['id'] === (int)$selectedCourseDayId)['label'] ?? '—' }}
+                    </span>
+                  </x-ui.badge.badge>
+                </div>
+                <div class="pl-1">
+                  {{ $selTitle }}
+                </div>
+              </div>
           @else
             <span class="text-gray-500">Bitte Kurs & Kurstag wählen.</span>
           @endif
@@ -280,18 +288,17 @@
 
       {{-- Editor --}}
       <div>
-        <x-ui.forms.label value="Inhalt"/>
         <div wire:key="{{ $editorKey }}">
           <x-ui.editor.toast
             wireModel="text"
             height="28rem"
-            placeholder="Was wurde heute gemacht? (Übernahme aus Dozenten-Dokumentation ist später erweiterbar)"
+            placeholder="Bitte gebe hier dein Bericht für den Tag ein."
           />
         </div>
       </div>
 
       {{-- Aktionen --}}
-      <div class="mt-1 flex items-center flex-wrap gap-2" wire:loading.class="cursor-wait opacity-50 animate-pulse pointer-events-none">
+      <div class="mt-1 flex items-center flex-wrap gap-2" wire:loading.class="pointer-events-none">
         {{-- Speichern nur wenn dirty und ein Kurstag gewählt ist --}}
         @if($selectedCourseDayId && $isDirty )
           <x-buttons.button-basic

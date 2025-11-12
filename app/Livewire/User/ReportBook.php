@@ -22,6 +22,7 @@ class ReportBook extends Component
     /** Kurs-/Tag-Auswahl */
     public array $courses = [];              // [{id,title}, ...]
     public ?int $selectedCourseId = null;
+    public ?string $selectedCourseName = null; 
 
     public array $courseDays = [];           // [{id,date,label}, ...]
     public ?int $selectedCourseDayId = null; // aktueller Kurs-Tag
@@ -50,6 +51,7 @@ class ReportBook extends Component
 
         // Auswahl initialisieren
         $this->selectedCourseId = $this->courses[0]['id'] ?? null;
+            $this->selectedCourseName = ($this->courses[0]['title'] ?? null) ?: '—';
         $this->loadCourseDays();
 
         // Ersten Day setzen (heute oder erster Tag)
@@ -215,7 +217,12 @@ protected function loadCourseDays(): void
         if ($this->selectedCourseId === $courseId) return;
 
         $this->selectedCourseId = $courseId;
-        $this->reportBookId = null; // neues Heft-Kontext
+        if ($c = $this->courseById($courseId)) {
+            $this->selectedCourseName = $c['title'] ?? '—';
+        } else {
+            $this->selectedCourseName = Course::whereKey($courseId)->value('title') ?? '—';
+        }
+        $this->reportBookId = null;
         $this->loadCourseDays();
         $this->selectedCourseDayId = $this->guessInitialCourseDayId();
 
@@ -433,6 +440,16 @@ protected function loadCourseDays(): void
 
         $nextIdx = is_int($idx) ? ($idx + 1) % count($ids) : 0;
         $this->selectCourse((int)$ids[$nextIdx]);
+    }
+
+    protected function courseById(int $id): ?array
+    {
+        foreach ($this->courses as $c) {
+            if ((int)($c['id'] ?? 0) === $id) {
+                return $c;
+            }
+        }
+        return null;
     }
 
 
