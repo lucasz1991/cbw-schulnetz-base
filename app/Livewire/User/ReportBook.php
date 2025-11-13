@@ -442,6 +442,28 @@ protected function loadCourseDays(): void
         $this->selectCourse((int)$ids[$nextIdx]);
     }
 
+    public function selectPrevDay(): void
+    {
+        if (empty($this->courseDays) || !$this->selectedCourseDayId) return;
+
+        $ids = array_map(fn($d) => (int)$d['id'], $this->courseDays);
+        $idx = array_search((int)$this->selectedCourseDayId, $ids, true);
+
+        $prevIdx = is_int($idx) ? ($idx - 1 + count($ids)) % count($ids) : 0;
+        $this->selectCourseDay((int)$ids[$prevIdx]);
+    }
+
+    public function selectNextDay(): void
+    {
+        if (empty($this->courseDays) || !$this->selectedCourseDayId) return;
+
+        $ids = array_map(fn($d) => (int)$d['id'], $this->courseDays);
+        $idx = array_search((int)$this->selectedCourseDayId, $ids, true);
+
+        $nextIdx = is_int($idx) ? ($idx + 1) % count($ids) : 0;
+        $this->selectCourseDay((int)$ids[$nextIdx]);
+    }
+
     protected function courseById(int $id): ?array
     {
         foreach ($this->courses as $c) {

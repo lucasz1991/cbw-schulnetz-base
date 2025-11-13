@@ -2,7 +2,7 @@
   $editorKey = 'rb-editor-'.($selectedCourseId ?? 'x').'-'.($selectedCourseDayId ?? 'x');
 @endphp
 
-<div class="w-full"  wire:loading.class="cursor-wait opacity-50 animate-pulse"  wire:target="date,selectCourse,selectCourseDay,selectPrevCourse,selectNextCourse,selectedCourseId,submit,save" >
+<div class="w-full"  wire:loading.class="cursor-wait opacity-50 animate-pulse"  wire:target="date,selectCourse,selectCourseDay,selectPrevCourse,selectNextCourse,selectPrevDay,selectNextDay,selectedCourseId,submit,save" >
   <div class="max-w-full grid grid-cols-1 lg:grid-cols-3 gap-6 mt-4">
 
     {{-- linke Spalte: Kurswahl & CourseDays --}}
@@ -72,7 +72,7 @@
             @click="open = !open"
             :aria-expanded="open ? 'true' : 'false'"
             class="w-full inline-flex items-center gap-3 px-3 py-2 rounded-md border text-sm
-                   border-primary-300 ring-2 ring-primary-200 bg-white hover:bg-gray-50">
+                   border-primary-300 ring-1 ring-primary-200 bg-white hover:bg-gray-50">
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-2">
           @if($selKlasse)
@@ -235,23 +235,97 @@
         @if(!$courseDays)
           <div class="text-sm text-gray-500">Für diesen Kurs sind noch keine Kurstage vorhanden.</div>
         @else
-          <div class="grid sm:grid-cols-2 gap-2">
-              @foreach($courseDays as $d)
-                @php
-                  $isDay = (int)$d['id'] === (int)$selectedCourseDayId;
-                  $dotColor = $d['dot']['color']; // gray | amber | blue | green
-                @endphp
-                <button
-                  type="button"
-                  wire:click="selectCourseDay({{ $d['id'] }})"
-                  class="w-full flex items-center justify-between rounded-lg border p-2 text-sm
-                        {{ $isDay ? 'border-primary-300 ring-2 ring-primary-200 bg-white' : 'border-gray-200 bg-white hover:bg-gray-50' }}"
-                >
-                  <span class="font-medium">{{ $d['label'] }}</span>
-                  <span class="inline-block h-2.5 w-2.5 rounded-full bg-{{ $dotColor }}-500" title="{{ $d['dot']['title'] }}"></span>
-                </button>
-              @endforeach
-          </div>
+          {{-- Kurstage Desktop (ab md): bleibt wie aktuell --}}
+<div class="hidden md:grid sm:grid-cols-2 gap-2">
+  @foreach($courseDays as $d)
+    @php
+      $isDay = (int)$d['id'] === (int)$selectedCourseDayId;
+      $dotColor = $d['dot']['color']; // gray | amber | green
+    @endphp
+    <button
+      type="button"
+      wire:click="selectCourseDay({{ $d['id'] }})"
+      class="w-full flex items-center justify-between rounded-lg border p-2 text-sm
+            {{ $isDay ? 'border-primary-300 ring-2 ring-primary-200 bg-white' : 'border-gray-200 bg-white hover:bg-gray-50' }}"
+    >
+      <span class="font-medium truncate">{{ $d['label'] }}</span>
+      <span class="inline-block h-2.5 w-2.5 rounded-full bg-{{ $dotColor }}-500" title="{{ $d['dot']['title'] }}"></span>
+    </button>
+  @endforeach
+</div>
+
+{{-- Kurstage Mobile (unter md): Navigations-Toolbar + Dropdown --}}
+<div class="md:hidden mt-3" x-data="{ open:false }">
+  <div class="flex items-center gap-2 mb-2">
+    <button type="button"
+            wire:click="selectPrevDay"
+            wire:target="selectPrevDay,selectCourseDay"
+            wire:loading.attr="disabled"
+            class="inline-flex items-center px-3 py-2 rounded-md border text-sm
+                   border-gray-200 bg-white text-gray-700 hover:bg-gray-50">
+      <svg class="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m15 19-7-7 7-7"/>
+      </svg>
+      Zurück
+    </button>
+
+    @php
+      $cur = collect($courseDays)->firstWhere('id', $selectedCourseDayId);
+    @endphp
+
+    <div class="relative flex-1 min-w-0">
+      <button type="button"
+              @click="open = !open"
+              :aria-expanded="open ? 'true' : 'false'"
+              class="w-full inline-flex items-center justify-between gap-3 px-3 py-2 rounded-md border text-sm
+                     border-primary-300 ring-1 ring-primary-200 bg-white hover:bg-gray-50">
+        <span class="truncate text-left">
+          {{ $cur['label'] ?? 'Kurstag wählen …' }}
+        </span>
+        <svg class="w-4 h-4 shrink-0" :class="open && 'rotate-180 transition-transform'"
+             viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m6 9 6 6 6-6"/>
+        </svg>
+      </button>
+
+      <div x-cloak x-show="open" @click.outside="open=false"
+           x-transition.opacity.duration.100ms
+           class="absolute z-30 mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-[60vh] overflow-y-auto">
+        <ul class="p-2 space-y-1">
+          @foreach($courseDays as $d)
+            @php
+              $isDay = (int)$d['id'] === (int)$selectedCourseDayId;
+              $dotColor = $d['dot']['color'];
+            @endphp
+            <li>
+              <button type="button"
+                      wire:click="selectCourseDay({{ $d['id'] }})"
+                      @click="open=false"
+                      class="w-full flex items-center justify-between rounded-md px-2 py-2 text-sm
+                             {{ $isDay ? 'bg-primary-50 text-primary-700' : 'hover:bg-gray-50 text-gray-700' }}">
+                <span class="truncate">{{ $d['label'] }}</span>
+                <span class="inline-block h-2.5 w-2.5 rounded-full bg-{{ $dotColor }}-500"></span>
+              </button>
+            </li>
+          @endforeach
+        </ul>
+      </div>
+    </div>
+
+    <button type="button"
+            wire:click="selectNextDay"
+            wire:target="selectNextDay,selectCourseDay"
+            wire:loading.attr="disabled"
+            class="inline-flex items-center px-3 py-2 rounded-md border text-sm
+                   border-gray-200 bg-white text-gray-700 hover:bg-gray-50">
+      Weiter
+      <svg class="w-4 h-4 ml-1" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 5 7 7-7 7"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
         @endif
       </div>
 
