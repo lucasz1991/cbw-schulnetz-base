@@ -13,7 +13,33 @@
     {{-- linke Spalte: Kurswahl & CourseDays --}}
     <aside class="space-y-4 lg:col-span-1"  >
 {{-- Kurswahl: Navigation oben + Trigger mit Panel --}}
-<div class="bg-white border border-gray-300 rounded-lg p-3 mb-4 space-y-2" x-data="{ open:false }">
+<div
+  class="bg-white border border-gray-300 rounded-lg p-3 mb-4 space-y-2"
+  x-data="{
+    open:false,
+    headerOffset: 80, // anpassen oder 0 wenn kein Sticky-Header
+    scrollToTrigger() {
+      const el = $refs.trigger;
+      if (!el) return;
+      const y = el.getBoundingClientRect().top + window.scrollY - this.headerOffset;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+  }"
+  x-init="
+    $watch('open', (v) => {
+      if (v) {
+        $nextTick(() => {
+          // 1) Seite zum Trigger scrollen
+          scrollToTrigger();
+          // 2) Panel-Scrollcontainer nach oben
+          const sc = $refs.panelScroll;
+          if (sc) sc.scrollTo({ top: 0, behavior: 'auto' });
+        });
+      }
+    })
+  "
+  @keydown.window.escape="open=false"
+>
 
   {{-- Navigation oben --}}
   <div class="flex items-center justify-between gap-2">
@@ -72,7 +98,7 @@
   @endphp
 
   {{-- Trigger: aktueller Kurs (truncate + Mini-Progress) --}}
-  <div class="relative">
+  <div class="relative"  x-ref="trigger">
     <button type="button"
             @click="open = !open"
             :aria-expanded="open ? 'true' : 'false'"
@@ -156,10 +182,10 @@
                     x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
                     x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
          class="absolute z-30 mt-2 w-[min(640px,90vw)] bg-white border border-gray-300  rounded-xl shadow overflow-hidden">
-      <h4 class="bg-gray-100 text-base font-semibold text-gray-700 p-3 border-b">Meine Kurse</h4>
+      <h4 class="bg-gray-100 text-base font-semibold text-gray-700 p-3 border-b border-gray-400">Meine Kurse</h4>
 
-      <div class="max-h-[60vh] overflow-y-auto overflow-x-hidden w-full p-3 scroll-container">
-        <div class=" w-full space-y-2">
+      <div x-ref="panelScroll" class="max-h-[60vh] overflow-y-auto overflow-x-hidden w-full px-2 py-4 bg-white scroll-container">
+        <div class=" w-full space-y-4">
           @forelse($courses as $c)
             @php
               $active = (int)$c['id'] === (int)$selectedCourseId;
@@ -199,7 +225,7 @@
                     @click="open=false"
                     class="group block relative w-full text-left rounded-lg border p-3 transition-all duration-150
                            {{ $active ? 'bg-primary-600 text-white border-primary-600 shadow-sm'
-                                      : 'bg-white text-gray-700 border-gray-200 hover:border-primary-300 hover:bg-gray-50' }}">
+                                      : 'bg-white text-gray-700 border-gray-400 hover:border-primary-300 hover:bg-gray-50' }}">
               <div class="flex items-center justify-between">
                 <span class="text-xs font-semibold uppercase tracking-wide
                              {{ $active ? 'text-primary-100' : 'text-gray-500 group-hover:text-primary-600' }}">
@@ -352,8 +378,8 @@
     </aside>
 
     {{-- rechte, große Spalte: Editor & Aktionen --}}
-    <div class="lg:col-span-2 space-y-4 h-max bg-white border border-gray-300 rounded-lg p-4 overflow-hidden">
-      <div class="flex items-start justify-between">
+    <div class="lg:col-span-2 h-max bg-white border border-gray-300 rounded-lg p-4 overflow-hidden">
+      <div class="flex items-start justify-between mb-4">
         <div class="text-sm text-gray-600">
           @if($selectedCourseId && $selectedCourseDayId)
               <div>
@@ -373,12 +399,12 @@
           @endif
         </div>
 
-  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border
-    {{ $status === 1 
-        ? 'bg-green-50 text-green-700 border-green-200' 
-        : 'bg-slate-50 text-slate-700 border-slate-200' }}">
-    Status: {{ $status >= 1 ? 'Fertig' : ( $status === 0 ? 'Entwurf' : 'fehlend' ) }}
-  </span>
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border
+          {{ $status === 1 
+              ? 'bg-green-50 text-green-700 border-green-200' 
+              : 'bg-slate-50 text-slate-700 border-slate-200' }}">
+          Status: {{ $status >= 1 ? 'Fertig' : ( $status === 0 ? 'Entwurf' : 'fehlend' ) }}
+        </span>
       </div>
 
       {{-- Editor --}}
@@ -402,14 +428,13 @@
         <div wire:key="{{ $editorKey }}" class="relative z-20">
           <x-ui.editor.toast
             wireModel="text"
-            height="28rem"
             placeholder="Bitte gebe hier dein Bericht für den Tag ein."
           />
         </div>
       </div>
 
       {{-- Aktionen --}}
-      <div class="mt-1 flex items-center flex-wrap gap-2" wire:loading.class="pointer-events-none" wire:target="save,submit">
+      <div class="flex items-center flex-wrap gap-2" wire:loading.class="pointer-events-none" wire:target="save,submit">
         {{-- Speichern nur wenn dirty und ein Kurstag gewählt ist --}}
         @if($selectedCourseDayId && $isDirty )
           <x-buttons.button-basic
@@ -417,6 +442,7 @@
             wire:target="save"
             wire:loading.attr="disabled"
             wire:loading.class="opacity-70 cursor-wait"
+            class="mt-1 "
           >Speichern</x-buttons.button-basic>
         @endif
 
@@ -427,6 +453,7 @@
             wire:target="submit"
             wire:loading.attr="disabled"
             wire:loading.class="opacity-70 cursor-wait"
+            class="mt-1 "
           >Fertigstellen</x-buttons.button-basic>
         @endif
 
