@@ -138,13 +138,27 @@
       </svg>
     </button>
 
+
+    <div x-show="open" class="fixed inset-0 transform transition-all z-30" x-on:click="open = false" x-transition:enter="ease-out duration-300"
+                    x-transition:enter-start="opacity-0"
+                    x-transition:enter-end="opacity-100"
+                    x-transition:leave="ease-in duration-200"
+                    x-transition:leave-start="opacity-100"
+                    x-transition:leave-end="opacity-0">
+        <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+    </div>
     {{-- Panel: deine Karten + Header + Scroll --}}
     <div x-cloak x-show="open" @click.outside="open=false"
-         x-transition.opacity.duration.100ms
+                    x-transition:enter="ease-out duration-300"
+                    x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                    x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                    x-transition:leave="ease-in duration-200"
+                    x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                    x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
          class="absolute z-30 mt-2 w-[min(640px,90vw)] bg-white border border-gray-300  rounded-xl shadow overflow-hidden">
       <h4 class="bg-gray-100 text-base font-semibold text-gray-700 p-3 border-b">Meine Kurse</h4>
 
-      <div class="max-h-[70vh] overflow-y-auto overflow-x-hidden w-full p-3 scroll-container">
+      <div class="max-h-[60vh] overflow-y-auto overflow-x-hidden w-full p-3 scroll-container">
         <div class=" w-full space-y-2">
           @forelse($courses as $c)
             @php
@@ -385,7 +399,7 @@
                 Dozenten-Doku übernehmen
             </x-buttons.button-basic>
         @endif
-        <div wire:key="{{ $editorKey }}">
+        <div wire:key="{{ $editorKey }}" class="relative z-20">
           <x-ui.editor.toast
             wireModel="text"
             height="28rem"
