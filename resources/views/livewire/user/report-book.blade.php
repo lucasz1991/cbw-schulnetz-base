@@ -1,8 +1,13 @@
 @php
-  $editorKey = 'rb-editor-'.($selectedCourseId ?? 'x').'-'.($selectedCourseDayId ?? 'x');
+  $editorKey = 'rb-editor-'
+      .($selectedCourseId ?? 'x')
+      .'-'
+      .($selectedCourseDayId ?? 'x')
+      .'-'
+      .($editorVersion ?? 0);
 @endphp
 
-<div class="w-full"  wire:loading.class="cursor-wait opacity-50 animate-pulse"  wire:target="date,selectCourse,selectCourseDay,selectPrevCourse,selectNextCourse,selectPrevDay,selectNextDay,selectedCourseId,submit,save" >
+<div class="w-full"  wire:loading.class="cursor-wait opacity-50 animate-pulse"  wire:target="date,selectCourse,selectCourseDay,selectPrevCourse,selectNextCourse,selectPrevDay,selectNextDay,selectedCourseId,submit,save,importTutorDocToDraft" >
   <div class="max-w-full grid grid-cols-1 lg:grid-cols-3 gap-6 mt-4">
 
     {{-- linke Spalte: Kurswahl & CourseDays --}}
@@ -354,14 +359,32 @@
           @endif
         </div>
 
-        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border
-          {{ $status === 1 ? 'bg-green-50 text-green-700 border-green-200' : 'bg-slate-50 text-slate-700 border-slate-200' }}">
-          Status: {{ $status === 1 ? 'Fertig' : 'Entwurf' }}
-        </span>
+  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border
+    {{ $status === 1 
+        ? 'bg-green-50 text-green-700 border-green-200' 
+        : 'bg-slate-50 text-slate-700 border-slate-200' }}">
+    Status: {{ $status >= 1 ? 'Fertig' : ( $status === 0 ? 'Entwurf' : 'fehlend' ) }}
+  </span>
       </div>
 
       {{-- Editor --}}
       <div>
+        @php
+            $currentDay = collect($courseDays)
+                ->firstWhere('id', $selectedCourseDayId);
+        @endphp
+        @if($currentDay && $currentDay['hasTutorDoc'])
+            <x-buttons.button-basic
+                wire:click="importTutorDocToDraft"
+                wire:loading.attr="disabled"
+                wire:loading.class="opacity-70 cursor-wait"
+                :size="'sm'"
+                class="mb-2"
+            >
+            <i class="fad fa-file-signature text-[14px] mr-2"></i>
+                Dozenten-Doku übernehmen
+            </x-buttons.button-basic>
+        @endif
         <div wire:key="{{ $editorKey }}">
           <x-ui.editor.toast
             wireModel="text"

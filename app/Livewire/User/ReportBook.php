@@ -30,8 +30,8 @@ class ReportBook extends Component
 
     public string $text = '';
 
-    /** 0 = Entwurf, 1 = Fertig */
-    public int $status = 0;
+    /** 0 = Fehlend, 1 = Entwurf, 2 = Fertig */
+    public int $status = -1;
 
     /** Seitenleiste „Letzte Einträge“ */
     public array $recent = [];
@@ -43,6 +43,9 @@ class ReportBook extends Component
     /** intern */
     protected ?int $reportBookId = null;      // wird lazy ermittelt/angelegt
     protected ?string $initialHash = null;
+
+    public int $editorVersion = 0;
+
 
     public function mount(): void
     {
@@ -98,7 +101,6 @@ protected function fetchUserCourses(): array
             DB::raw('COUNT(DISTINCT cd.id) AS days_total'),
             DB::raw('SUM(CASE WHEN rbe.id IS NOT NULL THEN 1 ELSE 0 END) AS days_with_entry'),
             DB::raw('SUM(CASE WHEN rbe.status = 0 THEN 1 ELSE 0 END) AS days_draft'),
-            DB::raw('SUM(CASE WHEN rbe.status = 1 THEN 1 ELSE 0 END) AS days_submitted'),
             DB::raw('SUM(CASE WHEN rbe.status >= 1 THEN 1 ELSE 0 END) AS days_finished')
         ])
         ->groupBy(
@@ -144,7 +146,6 @@ protected function fetchUserCourses(): array
             'days_total'     => $total,
             'days_with_entry'=> $withEntry,
             'days_draft'     => (int)$c->days_draft,
-            'days_submitted' => (int)$c->days_submitted,
             'days_finished'  => $finished,
             'days_missing'   => $missing,
             'phase'       => $phase,
@@ -163,7 +164,6 @@ protected function loadCourseDays(): void
     $this->courseDays = [];
     if (!$this->selectedCourseId) return;
 
-    // Left join auf RB & RBE für diesen User (und Maßnahme), um Status je Tag zu holen
     $days = DB::table('course_days as cd')
         ->leftJoin('report_books as rb', function ($join) {
             $join->on('rb.course_id', '=', 'cd.course_id')
@@ -178,13 +178,21 @@ protected function loadCourseDays(): void
         })
         ->where('cd.course_id', $this->selectedCourseId)
         ->orderBy('cd.date')->orderBy('cd.start_time')
-        ->get(['cd.id','cd.date','cd.start_time','cd.end_time','rbe.status']);
+        ->get([
+            'cd.id',
+            'cd.date',
+            'cd.start_time',
+            'cd.end_time',
+            'cd.notes',          // ← Tutor-Doku
+            'rbe.status'
+        ]);
 
     $this->courseDays = $days->map(function ($d) {
-        $date = \Illuminate\Support\Carbon::parse($d->date)->toDateString();
-        $label = \Illuminate\Support\Carbon::parse($d->date)->format('d.m.Y');
 
-        $status = is_null($d->status) ? null : (int)$d->status; // null = kein Eintrag
+        $date  = Carbon::parse($d->date)->toDateString();
+        $label = Carbon::parse($d->date)->format('d.m.Y');
+
+        $status = is_null($d->status) ? null : (int)$d->status;
         $dot = match (true) {
             $status === null       => ['color'=>'gray',  'title'=>'Kein Eintrag'],
             $status === 0          => ['color'=>'amber', 'title'=>'Entwurf'],
@@ -192,14 +200,16 @@ protected function loadCourseDays(): void
         };
 
         return [
-            'id'    => $d->id,
-            'date'  => $date,
-            'label' => $label,
-            'status'=> $status,
-            'dot'   => $dot,   // {color,title}
+            'id'          => $d->id,
+            'date'        => $date,
+            'label'       => $label,
+            'status'      => $status,
+            'dot'         => $dot,
+            'hasTutorDoc' => !empty($d->notes),  // ← HIER!
         ];
     })->values()->all();
 }
+
 
 
     protected function guessInitialCourseDayId(): ?int
@@ -364,7 +374,7 @@ protected function loadCourseDays(): void
         // Resets
         $this->title = null;
         $this->text  = '';
-        $this->status = 0;
+        $this->status = -1;
         $this->hasDraft = false;
 
         if (!$this->selectedCourseId || !$this->selectedCourseDayId) {
@@ -484,6 +494,60 @@ protected function loadCourseDays(): void
     {
         $this->isDirty = $this->curHash() !== ($this->initialHash ?? '');
     }
+
+    public function importTutorDocToDraft(): void
+    {
+        if (!$this->selectedCourseDayId) {
+            $this->dispatch('toast', type: 'warning', message: 'Kein Kurstag ausgewählt.');
+            return;
+        }
+
+        // Tutor-Doku direkt aus course_days.notes
+        $day = CourseDay::find($this->selectedCourseDayId, ['id','date','notes']);
+        if (!$day) {
+            $this->dispatch('toast', type: 'warning', message: 'Kurstag nicht gefunden.');
+            return;
+        }
+
+        $doc = trim((string)($day->notes ?? ''));
+        if ($doc === '') {
+            $this->dispatch('toast', type: 'info', message: 'Keine Tutor-Dokumentation vorhanden.');
+            return;
+        }
+
+        // an deinen Text anhängen
+        if (trim($this->text) !== '') {
+            $this->text = rtrim($this->text) . "\n\n" . $doc;
+        } else {
+            $this->text = $doc;
+        }
+
+        // als Entwurf speichern
+        $this->ensureReportBookId();
+
+        $entry = ReportBookEntry::firstOrNew([
+            'report_book_id' => $this->reportBookId,
+            'course_day_id'  => $day->id,
+        ]);
+
+        $entry->fill([
+            'entry_date'   => $day->date,
+            'text'         => $this->text,
+            'status'       => 0,     // ENTWURF
+            'submitted_at' => null,
+        ])->save();
+
+        $this->status   = 0;
+        $this->hasDraft = true;
+
+        $this->initialHash = $this->curHash();
+        $this->recomputeFlags();
+        $this->reloadForCurrentCourse();
+        $this->editorVersion++;
+
+        $this->dispatch('toast', type: 'success', message: 'Tutor-Doku übernommen und als Entwurf gespeichert.');
+    }
+
 
     public function render()
     {
