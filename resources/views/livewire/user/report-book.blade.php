@@ -136,11 +136,11 @@
     {{-- Panel: deine Karten + Header + Scroll --}}
     <div x-cloak x-show="open" @click.outside="open=false"
          x-transition.opacity.duration.100ms
-         class="absolute z-30 mt-2 w-[min(640px,90vw)] bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+         class="absolute z-30 mt-2 w-[min(640px,90vw)] bg-white border border-gray-300  rounded-xl shadow overflow-hidden">
       <h4 class="bg-gray-100 text-base font-semibold text-gray-700 p-3 border-b">Meine Kurse</h4>
 
-      <div class="max-h-[70vh] overflow-y-auto p-3 scroll-container">
-        <div class="grid gap-2">
+      <div class="max-h-[70vh] overflow-y-auto overflow-x-hidden w-full p-3 scroll-container">
+        <div class=" w-full space-y-2">
           @forelse($courses as $c)
             @php
               $active = (int)$c['id'] === (int)$selectedCourseId;
@@ -178,7 +178,7 @@
             <button type="button"
                     wire:click="selectCourse({{ $c['id'] }})"
                     @click="open=false"
-                    class="group relative w-full text-left rounded-lg border p-3 transition-all duration-150
+                    class="group block relative w-full text-left rounded-lg border p-3 transition-all duration-150
                            {{ $active ? 'bg-primary-600 text-white border-primary-600 shadow-sm'
                                       : 'bg-white text-gray-700 border-gray-200 hover:border-primary-300 hover:bg-gray-50' }}">
               <div class="flex items-center justify-between">
