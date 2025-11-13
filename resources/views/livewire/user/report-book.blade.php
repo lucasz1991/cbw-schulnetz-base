@@ -17,7 +17,7 @@
   class="bg-white border border-gray-300 rounded-lg p-3 mb-4 space-y-2"
   x-data="{
     open:false,
-    headerOffset: 80, // anpassen oder 0 wenn kein Sticky-Header
+    headerOffset: 40, // anpassen oder 0 wenn kein Sticky-Header
     scrollToTrigger() {
       const el = $refs.trigger;
       if (!el) return;
