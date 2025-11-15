@@ -252,7 +252,7 @@
                   type="button"
                   wire:click="selectCourseDay({{ $d['id'] }})"
                   class="w-full flex items-center justify-between rounded-lg border p-2 text-sm
-                        {{ $isDay ? 'border-primary-300  bg-white' : 'border-gray-200 bg-white hover:bg-gray-50' }}"
+                        {{ $isDay ? 'border-primary-300 ring-2 ring-primary-200 bg-white' : 'border-gray-200 bg-white hover:bg-gray-50' }}"
                 >
                   <span class="font-medium truncate">{{ $d['label'] }}</span>
                   <span class="inline-block h-2.5 w-2.5 rounded-full bg-{{ $dotColor }}-500" title="{{ $d['dot']['title'] }}"></span>
