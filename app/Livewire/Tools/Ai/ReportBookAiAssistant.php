@@ -138,6 +138,8 @@ class ReportBookAiAssistant extends Component
 
         $this->currentText = $this->optimizedText;
         $this->feedback = '';
+                $this->optimizedText = '';
+        $this->aiComment     = '';
     }
 
     public function saveToEntry(): void
@@ -152,8 +154,7 @@ class ReportBookAiAssistant extends Component
 
         $this->entry->text = $textToSave;
         $this->entry->save();
-        $this->optimizedText = '';
-        $this->aiComment     = '';
+
     }
 
     public function render()
