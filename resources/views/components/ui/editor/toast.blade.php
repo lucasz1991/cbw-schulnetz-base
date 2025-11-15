@@ -1,7 +1,7 @@
   @props([
     'wireModel' => null,           // z. B. "notes" oder "form.notes"
     'value' => '',                 // Initialwert als Fallback (falls wireModel null ist)
-    'height' => '40vh',
+    'height' => '50vh',
     'previewStyle' => 'tab',
     'initialEditType' => 'wysiwyg',
     'disableImages' => true,
