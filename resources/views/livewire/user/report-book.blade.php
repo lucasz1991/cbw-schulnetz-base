@@ -246,12 +246,11 @@
           </x-ui.dropdown.anchor-dropdown>
       </div>
       <div
-        class="bg-white border border-gray-300 rounded-lg p-3 mb-4 space-y-2">
+        class=" mb-4 space-y-2">
 
 
       {{-- CourseDays des aktiven Kurses --}}
       <div class="">
-        <h3 class="text-sm font-semibold text-gray-700 mb-3">Kurstage</h3>
 
         @if(!$courseDays)
           <div class="text-sm text-gray-500">Für diesen Kurs sind noch keine Kurstage vorhanden.</div>
