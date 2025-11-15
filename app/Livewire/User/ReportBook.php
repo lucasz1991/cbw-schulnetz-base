@@ -44,6 +44,7 @@ class ReportBook extends Component
 
     /** intern */
     protected ?int $reportBookId = null;      // wird lazy ermittelt/angelegt
+    protected ?int $reportBookEntryId = null;      // wird lazy ermittelt/angelegt
     protected ?string $initialHash = null;
 
     public int $editorVersion = 0;
@@ -235,6 +236,7 @@ protected function loadCourseDays(): void
             $this->selectedCourseName = Course::whereKey($courseId)->value('title') ?? '—';
         }
         $this->reportBookId = null;
+        $this->reportBookEntryId = null;
         $this->loadCourseDays();
         $this->selectedCourseDayId = $this->guessInitialCourseDayId();
 
@@ -304,6 +306,7 @@ protected function loadCourseDays(): void
             'status'       => 0,      // Entwurf
             'submitted_at' => null,
         ])->save();
+        $this->reportBookEntryId = $entry->id;
 
         $this->status   = 0;
         $this->hasDraft = true;
@@ -340,6 +343,7 @@ protected function loadCourseDays(): void
             'status'       => 1,      // Fertig
             'submitted_at' => now(),
         ])->save();
+        $this->reportBookEntryId = $entry->id;
 
         $this->status   = 1;
         $this->hasDraft = false;
@@ -374,6 +378,7 @@ protected function loadCourseDays(): void
     protected function loadCurrentEntry(): void
     {
         // Resets
+        $this->reportBookEntryId = null;
         $this->title = null;
         $this->text  = '';
         $this->status = -1;
@@ -404,6 +409,7 @@ protected function loadCourseDays(): void
             ->first();
 
         if ($entry) {
+            $this->reportBookEntryId = $entry->id;
             $this->text   = $entry->text ?? '';
             $this->status = (int) $entry->status;
             $this->hasDraft = $this->status === 0;
