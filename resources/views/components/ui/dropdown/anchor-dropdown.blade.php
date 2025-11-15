@@ -7,7 +7,6 @@
   'overlay'           => false,
   'trap'              => false,
   'scrollOnOpen'      => false,
-  'showTriggerOnOpen' => false, // NEU: true => das Overlay soll vor dem Trigger stehen damit der Trigger darüber liegt wenn false dann overlay nach dem trigger wie bisher 
   'scrollOnTrigger'   => false,  
   'headerOffset'      => 0,
   'matchTriggerWidth' => false,
@@ -81,10 +80,7 @@
   @close.window.stop="open=false"
 >
 
-  {{-- Overlay --}}
-  @if($overlay && $showTriggerOnOpen)
-    <div x-show="open" x-transition.opacity class="fixed inset-0 z-30 bg-black/40" @click="open=false" style="display:none;"></div>
-  @endif
+
   {{-- Trigger --}}
   <div x-ref="trigger" @click="
       open = !open;
@@ -101,15 +97,15 @@
       }
     "
     @if($overlay && $showTriggerOnOpen)
-        class="relative z-30"
+        class="relative z-40"
     @endif
     >
     {{ $trigger }}
   </div>
 
   {{-- Overlay --}}
-  @if($overlay && !$showTriggerOnOpen)
-    <div x-show="open" x-transition.opacity class="fixed inset-0 z-30 bg-black/40" @click="open=false" style="display:none;"></div>
+  @if($overlay &&)
+    <div x-show="open" x-transition.opacity class="fixed inset-0 z-40 bg-black/40" @click="open=false" style="display:none;"></div>
   @endif
 
   {{-- Panel --}}
@@ -122,7 +118,7 @@
     x-transition:leave-start="transform opacity-100 scale-100"
     x-transition:leave-end="transform opacity-0 scale-95"
     x-anchor.{{ $anchorPos }}.offset.{{ $offset }}.flip.shift="$refs.trigger"
-    class="z-30 {{ $widthClass }} rounded-md shadow-lg {{ $dropdownClasses }}"
+    class="z-40 {{ $widthClass }} rounded-md shadow-lg {{ $dropdownClasses }}"
     style="display:none; max-width:calc(100vw - 16px); max-height:calc(100vh - 16px);"
     @click.outside="open=false"
     @if($trap) x-trap.inert.noscroll="open" @endif

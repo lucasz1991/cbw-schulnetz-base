@@ -59,7 +59,6 @@
           :trap="true"
           :offset="8"
           :scrollOnOpen="true"
-          :showTriggerOnOpen="true"
           :scrollOnTrigger="true"
           :headerOffset="20"
         >
