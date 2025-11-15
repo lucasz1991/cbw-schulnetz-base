@@ -105,6 +105,11 @@
   .tui-editor-wrapper .toastui-editor-defaultUI {
     border: 0 #fff solid !important;
   }
+  .tui-editor-wrapper .toastui-editor-defaultUI-toolbar {
+    background-color: #ffffff00 !important;
+    border-bottom: 1px rgb(156, 163, 175) solid !important;
+    padding: 0 .5rem !important;
+  }
   </style>
 
   {{-- Editor-Container (Livewire darf hier nicht reinfunken) --}}

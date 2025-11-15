@@ -332,31 +332,33 @@
     </aside>
 
     {{-- rechte, große Spalte: Editor & Aktionen --}}
-    <div class="lg:col-span-2 h-max overflow-hidden">
-      <div class="flex items-start justify-between mb-4">
-        <div class="text-sm text-gray-600">
-          @if($selectedCourseId && $selectedCourseDayId)
-              <div>
+    <div class="lg:col-span-2 h-max border bg-white border-gray-400 rounded-lg  overflow-hidden">
+<div class="flex items-center justify-between px-3 py-2 border-b border-gray-400">
 
-              </div>
-          @else
-            <span class="text-gray-500">Bitte Kurs & Kurstag wählen.</span>
-          @endif
-        </div>
+    {{-- 🔹 Linke Seite: Dummy 1 + Dummy 2 + Doku --}}
+    <div class="flex items-center gap-2 text-gray-500">
 
-        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border
-          {{ $status === 1 
-              ? 'bg-green-50 text-green-700 border-green-200' 
-              : 'bg-slate-50 text-slate-700 border-slate-200' }}">
-          Status: {{ $status >= 1 ? 'Fertig' : ( $status === 0 ? 'Entwurf' : 'fehlend' ) }}
-        </span>
-      </div>
+        {{-- Dummy Button 1 --}}
+        <x-buttons.button-basic
+            :size="'sm'"
+            class="px-2"
+            title="Aktion 1"
+        >
+            <i class="fad fa-star text-[14px]"></i>
+        </x-buttons.button-basic>
 
-      {{-- Editor --}}
-      <div>
+        {{-- Dummy Button 2 --}}
+        <x-buttons.button-basic
+            :size="'sm'"
+            class="px-2"
+            title="Aktion 2"
+        >
+            <i class="fad fa-folder text-[14px]"></i>
+        </x-buttons.button-basic>
+
+        {{-- Echter Doku-Button (nur wenn verfügbar) --}}
         @php
-            $currentDay = collect($courseDays)
-                ->firstWhere('id', $selectedCourseDayId);
+            $currentDay = collect($courseDays)->firstWhere('id', $selectedCourseDayId);
         @endphp
         @if($currentDay && $currentDay['hasTutorDoc'])
             <x-buttons.button-basic
@@ -364,13 +366,29 @@
                 wire:loading.attr="disabled"
                 wire:loading.class="opacity-70 cursor-wait"
                 :size="'sm'"
-                class="mb-2"
+                class="px-2"
+                title="Dozenten-Dokumentation übernehmen"
             >
-            <i class="fad fa-file-signature text-[14px] mr-2"></i>
-                Dozenten-Doku übernehmen
+                <i class="fad fa-file-signature text-[14px]"></i>
             </x-buttons.button-basic>
         @endif
-        <div wire:key="{{ $editorKey }}" class="relative z-20 border border-gray-300 rounded shadow overflow-hidden">
+
+    </div>
+
+    {{-- 🔸 Rechte Seite: Status-Badge --}}
+    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border
+        {{ $status === 1 
+            ? 'bg-green-50 text-green-700 border-green-200' 
+            : 'bg-slate-50 text-slate-700 border-slate-200' }}">
+        Status: {{ $status >= 1 ? 'Fertig' : ($status === 0 ? 'Entwurf' : 'Fehlend') }}
+    </span>
+
+</div>
+
+      
+      {{-- Editor --}}
+      <div>
+        <div wire:key="{{ $editorKey }}" class="relative z-20 ">
           <x-ui.editor.toast
             wireModel="text"
             placeholder="Bitte gebe hier dein Bericht für den Tag ein."
@@ -379,7 +397,7 @@
       </div>
 
       {{-- Aktionen --}}
-      <div class="flex items-center flex-wrap gap-2" wire:loading.class="pointer-events-none" wire:target="save,submit">
+      <div class="flex items-center flex-wrap gap-2 p-2" wire:loading.class="pointer-events-none" wire:target="save,submit">
         {{-- Speichern nur wenn dirty und ein Kurstag gewählt ist --}}
         @if($selectedCourseDayId && $isDirty )
           <x-buttons.button-basic
