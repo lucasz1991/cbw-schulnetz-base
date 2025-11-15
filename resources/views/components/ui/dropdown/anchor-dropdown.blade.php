@@ -95,11 +95,7 @@
           }
         });
       }
-    "
-    @if($overlay && $showTriggerOnOpen)
-        class="relative z-40"
-    @endif
-    >
+    ">
     {{ $trigger }}
   </div>
 
