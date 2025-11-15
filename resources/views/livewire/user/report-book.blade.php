@@ -91,7 +91,7 @@
             <x-slot name="trigger">
               {{-- hier kommt dein kompletter Trigger-Button rein (aktueller Kurs mit Progressbar) --}}
               <button type="button"
-                  class="relative  z-40 w-full inline-flex items-center gap-3 px-3 py-2 rounded-md border text-sm
+                  class="relative  w-full inline-flex items-center gap-3 px-3 py-2 rounded-md border text-sm
                         border-primary-300 ring-1 ring-primary-200 bg-white hover:bg-gray-50">
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2">
