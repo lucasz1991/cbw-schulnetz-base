@@ -342,11 +342,11 @@
                   wire:click="exportReportEntry"
                   wire:loading.attr="disabled"
                   wire:loading.class="opacity-70 cursor-wait"
-                  :size="'md'"
+                  :size="'sm'"
                   class="px-2"
                   title="Download"
               >
-                  <i class="fad fa-download text-[16px] h-[1.5rem]"></i>
+                  <i class="fad fa-download text-[16px] h-[1.25rem]"></i>
               </x-buttons.button-basic>
  
         
@@ -359,7 +359,7 @@
                         wire:click="importTutorDocToDraft"
                         wire:loading.attr="disabled"
                         wire:loading.class="opacity-70 cursor-wait"
-                        :size="'md'"
+                        :size="'sm'"
                         class="px-2"
                         title="Dozenten-Dokumentation übernehmen"
                         >
@@ -369,7 +369,7 @@
                 @else
                       <x-buttons.button-basic
                         disabled
-                        :size="'md'"
+                        :size="'sm'"
                         class="px-2 opacity-70 cursor-not-allowed"
                         title="Dozenten-Dokumentation noch nicht vorhanden"
                         >
@@ -381,7 +381,7 @@
                     wire:click="openAiAssist"
                     wire:loading.attr="disabled"
                     wire:loading.class="opacity-70 cursor-wait"
-                    :size="'md'"
+                    :size="'sm'"
                     class="px-2"
                     title="Assistent Tool"
                 >
