@@ -16,28 +16,7 @@
       <div
         class="bg-white border border-gray-300 rounded-lg p-3 mb-4 space-y-2">
 
-        {{-- Navigation oben --}}
-        <div class="flex items-center justify-between gap-2">
-          <button type="button"
-                  wire:click="selectPrevCourse"
-                  class="inline-flex items-center px-3 py-2 rounded-md border text-sm
-                        border-gray-200 bg-white text-gray-700 hover:bg-gray-50">
-            <svg class="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m15 19-7-7 7-7"/>
-            </svg>
-            <span class="hidden md:inline-block">Zurück</span>
-          </button>
 
-          <button type="button"
-                  wire:click="selectNextCourse"
-                  class="inline-flex items-center px-3 py-2 rounded-md border text-sm
-                        border-gray-200 bg-white text-gray-700 hover:bg-gray-50">
-            <span class="hidden md:inline-block">Weiter</span>
-            <svg class="w-4 h-4 ml-1" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 5 7 7-7 7"/>
-            </svg>
-          </button>
-        </div>
 
       </div>
       @php
