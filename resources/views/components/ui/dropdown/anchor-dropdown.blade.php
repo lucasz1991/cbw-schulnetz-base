@@ -118,7 +118,7 @@
     @if($trap) x-trap.inert.noscroll="open" @endif
     x-ref="panel"
   >
-    <div x-ref="panelScroll" class="rounded-md ring-1 ring-black ring-opacity-5 overflow-auto {{ $contentClasses }}">
+    <div x-ref="panelScroll" class="rounded-md ring-1 ring-black ring-opacity-5 overflow-hidden {{ $contentClasses }}">
       {{ $content }}
     </div>
   </div>
