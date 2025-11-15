@@ -100,7 +100,7 @@
   </div>
 
   {{-- Overlay --}}
-  @if($overlay &&)
+  @if($overlay)
     <div x-show="open" x-transition.opacity class="fixed inset-0 z-40 bg-black/40" @click="open=false" style="display:none;"></div>
   @endif
 
