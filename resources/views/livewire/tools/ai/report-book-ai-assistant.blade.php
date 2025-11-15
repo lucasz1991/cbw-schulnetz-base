@@ -20,92 +20,86 @@
                     </div>
                 @endif
 
-                @if ($entry)
-                    <div class="text-xs text-gray-500">
-                        Eintrag #{{ $entry->id }}
-                        @if($entry->entry_date)
-                            · Datum: {{ $entry->entry_date->format('d.m.Y') }}
-                        @endif
+
+                {{-- --------------------------------------------------}}
+                {{--   EINGABEBEREICH — nur zeigen, wenn KEIN Vorschlag --}}
+                {{-- --------------------------------------------------}}
+                @if (!$optimizedText)
+
+                    {{-- Basistext --}}
+                    <div>
+                        <x-ui.forms.label value="Aktueller Berichtsheft-Text" />
+                        <textarea
+                            rows="6"
+                            class="mt-1 block w-full border-gray-300 rounded text-sm shadow-sm"
+                            wire:model.defer="currentText"
+                        ></textarea>
+                        <p class="mt-1 text-[11px] text-gray-500">
+                            Dieser Text dient als Grundlage für die KI.
+                        </p>
                     </div>
+
+                    {{-- Wünsche --}}
+                    <div>
+                        <x-ui.forms.label value="Wünsche an die KI (optional)" />
+                        <textarea
+                            rows="3"
+                            class="mt-1 block w-full border-gray-300 rounded text-sm shadow-sm"
+                            wire:model.defer="feedback"
+                            placeholder="z.B: Bitte kürzer, sachlicher, strukturierter…"
+                        ></textarea>
+                    </div>
+
+                    {{-- Button: KI starten --}}
+                    <div class="flex flex-wrap items-center gap-2">
+                        <x-button
+                            type="button"
+                            wire:click="generateSuggestion"
+                            wire:loading.attr="disabled"
+                            wire:target="generateSuggestion"
+                        >
+                            <span wire:loading.remove>KI-Vorschlag erzeugen</span>
+                            <span wire:loading>KI denkt …</span>
+                        </x-button>
+                    </div>
+
                 @endif
 
-                {{-- Basistext --}}
-                <div>
-                    <x-ui.forms.label value="Aktueller Berichtsheft-Text" />
-                    <textarea
-                        rows="6"
-                        class="mt-1 block w-full border-gray-300 rounded text-sm shadow-sm focus:ring-primary-500 focus:border-primary-500"
-                        wire:model.defer="currentText"
-                    ></textarea>
-                    <p class="mt-1 text-[11px] text-gray-500">
-                        Dieser Text dient als Grundlage für die KI. Du kannst ihn vorab grob anpassen.
-                    </p>
-                </div>
 
-                {{-- Wünsche / Feedback --}}
-                <div>
-                    <x-ui.forms.label value="Wünsche an die KI (optional)" />
-                    <textarea
-                        rows="3"
-                        class="mt-1 block w-full border-gray-300 rounded text-sm shadow-sm focus:ring-primary-500 focus:border-primary-500"
-                        wire:model.defer="feedback"
-                        placeholder="z. B.: Bitte etwas kürzer formulieren, Fachbegriffe beibehalten, mehr Praxisbezug …"
-                    ></textarea>
-                </div>
+                {{-- --------------------------------------------------}}
+                {{--   KI-ERGEBNIS — nur zeigen, wenn Vorschlag existiert --}}
+                {{-- --------------------------------------------------}}
+                @if ($optimizedText)
+                    <div class="pt-4 border-t border-gray-100 space-y-3">
 
-                {{-- Aktionen: KI starten / Vorschlag als Basis --}}
-                <div class="flex flex-wrap items-center gap-2">
-                    <x-button
-                        type="button"
-                        wire:click="generateSuggestion"
-                        wire:loading.attr="disabled"
-                        wire:target="generateSuggestion"
-                    >
-                        <span wire:loading.remove wire:target="generateSuggestion">
-                            KI-Vorschlag erzeugen / verbessern
-                        </span>
-                        <span wire:loading wire:target="generateSuggestion">
-                            KI denkt …
-                        </span>
-                    </x-button>
+                        {{-- Text der KI --}}
+                        <div>
+                            <x-ui.forms.label value="Optimierter KI-Text" />
+                            <textarea
+                                rows="6"
+                                class="mt-1 block w-full border-gray-300 rounded text-sm shadow-sm"
+                                wire:model="optimizedText"
+                            ></textarea>
+                        </div>
 
-                    @if ($optimizedText)
+                        {{-- Kommentar --}}
+                        @if ($aiComment)
+                            <div class="px-3 py-2 rounded bg-slate-50 border border-slate-200 text-xs text-slate-700">
+                                <div class="font-semibold mb-1">Kommentar der KI</div>
+                                <p class="leading-relaxed">{{ $aiComment }}</p>
+                            </div>
+                        @endif
+
+                        {{-- Button UNTER dem Kommentar --}}
                         <x-buttons.button-basic
                             type="button"
                             wire:click="useSuggestionAsBase"
                             wire:loading.attr="disabled"
                             wire:target="useSuggestionAsBase"
                         >
-                            Vorschlag als neue Basis verwenden
+                            Weiter Bearbeiten
                         </x-buttons.button-basic>
-                    @endif
-                </div>
 
-                {{-- KI Ergebnis --}}
-                @if ($optimizedText)
-                    <div class="pt-4 border-t border-gray-100 space-y-3">
-                        <div>
-                            <x-ui.forms.label value="Optimierter Text der KI" />
-                            <textarea
-                                rows="6"
-                                class="mt-1 block w-full border-gray-300 rounded text-sm shadow-sm focus:ring-primary-500 focus:border-primary-500"
-                                wire:model="optimizedText"
-                            ></textarea>
-                            <p class="mt-1 text-[11px] text-gray-500">
-                                Du kannst den Vorschlag noch anpassen, bevor du ihn speicherst.
-                            </p>
-                        </div>
-
-                        @if ($aiComment)
-                            <div class="px-3 py-2 rounded-md bg-slate-50 border border-slate-200 text-xs text-slate-700">
-                                <div class="font-semibold mb-1">
-                                    Kommentar der KI
-                                </div>
-                                <p class="leading-relaxed">
-                                    {{ $aiComment }}
-                                </p>
-                            </div>
-                        @endif
                     </div>
                 @endif
 
@@ -113,13 +107,17 @@
         @endif
     </x-slot>
 
-    <x-slot name="footer">
-        <x-secondary-button wire:click="close">
-            Schließen
-        </x-secondary-button>
 
-        @if(!$optimizedText && !$currentText)
-            {{-- deaktivierter Button, wenn noch gar kein Text da ist --}}
+    {{-- FOOTER --}}
+    <x-slot name="footer">
+        <x-secondary-button wire:click="close">Schließen</x-secondary-button>
+
+        {{-- Speichern nur wenn irgendein Text existiert --}}
+        @php
+            $canSave = trim($optimizedText) !== '' || trim($currentText) !== '';
+        @endphp
+
+        @if(!$canSave)
             <x-button class="ml-2 opacity-50 cursor-not-allowed" disabled>
                 Optimierten Text speichern
             </x-button>
@@ -134,4 +132,5 @@
             </x-button>
         @endif
     </x-slot>
+
 </x-dialog-modal>
