@@ -206,7 +206,7 @@
                           wire:click="selectCourse({{ $c['id'] }})"
                           @click="open=false"
                           class="group block relative w-full text-left px-3 py-4 transition-all duration-150
-                                {{ $active ? 'bg-primary-800 text-white border-primary-600 shadow-sm'
+                                {{ $active ? 'bg-primary-800 text-white border-primary-600 shadow-sm active'
                                             : ' text-gray-700 border-gray-400 hover:border-primary-300 hover:bg-primary-50' }}">
                     <div class="flex items-center justify-between">
                       <span class="text-xs font-semibold uppercase tracking-wide
