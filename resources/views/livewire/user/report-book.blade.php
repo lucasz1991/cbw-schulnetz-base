@@ -368,7 +368,9 @@
                       </x-buttons.button-basic>
                 @else
                       <x-buttons.button-basic
-                        disabled
+                        wire:click="importTutorDocToDraft"
+                        wire:loading.attr="disabled"
+                        wire:loading.class="opacity-70 cursor-wait"
                         :size="'sm'"
                         class="px-2 opacity-70 cursor-not-allowed"
                         title="Dozenten-Dokumentation noch nicht vorhanden"
