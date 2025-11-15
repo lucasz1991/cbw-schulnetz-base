@@ -380,7 +380,7 @@
                       </x-buttons.button-basic>
                 @endif
                 <x-buttons.button-basic
-                    x-on:click="$dispatch('open-reportbook-ai-assistant', { id: {{ $reportBookEntryId ?? null }} })"
+                    @click="$dispatch('open-reportbook-ai-assistant',[ { id: {{ $reportBookEntryId ?? 'null' }} }])"
                     wire:loading.attr="disabled"
                     wire:loading.class="opacity-70 cursor-wait"
                     :size="'sm'"

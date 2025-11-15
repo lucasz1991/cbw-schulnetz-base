@@ -44,7 +44,7 @@ class ReportBook extends Component
 
     /** intern */
     protected ?int $reportBookId = null;      // wird lazy ermittelt/angelegt
-    protected ?int $reportBookEntryId = null;      // wird lazy ermittelt/angelegt
+    public ?int $reportBookEntryId = null;      // wird lazy ermittelt/angelegt
     protected ?string $initialHash = null;
 
     public int $editorVersion = 0;

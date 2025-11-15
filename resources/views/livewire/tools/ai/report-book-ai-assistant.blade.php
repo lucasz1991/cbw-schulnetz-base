@@ -108,6 +108,7 @@
                         @endif
                     </div>
                 @endif
+
             </div>
         @endif
     </x-slot>
@@ -117,14 +118,20 @@
             Schließen
         </x-secondary-button>
 
-        <x-button
-            class="ml-2"
-            wire:click="saveToEntry"
-            wire:loading.attr="disabled"
-            wire:target="saveToEntry"
-            @if(!$optimizedText && !$currentText) disabled @endif
-        >
-            Optimierten Text speichern
-        </x-button>
+        @if(!$optimizedText && !$currentText)
+            {{-- deaktivierter Button, wenn noch gar kein Text da ist --}}
+            <x-button class="ml-2 opacity-50 cursor-not-allowed" disabled>
+                Optimierten Text speichern
+            </x-button>
+        @else
+            <x-button
+                class="ml-2"
+                wire:click="saveToEntry"
+                wire:loading.attr="disabled"
+                wire:target="saveToEntry"
+            >
+                Optimierten Text speichern
+            </x-button>
+        @endif
     </x-slot>
 </x-dialog-modal>
