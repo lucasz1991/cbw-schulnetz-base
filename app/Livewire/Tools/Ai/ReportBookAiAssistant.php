@@ -152,6 +152,8 @@ class ReportBookAiAssistant extends Component
 
         $this->entry->text = $textToSave;
         $this->entry->save();
+        $this->optimizedText = '';
+        $this->aiComment     = '';
     }
 
     public function render()

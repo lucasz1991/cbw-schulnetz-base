@@ -422,9 +422,7 @@ protected function loadCourseDays(): void
     protected function loadRecent(): void
     {
         $this->recent = [];
-
         if (!$this->reportBookId) return;
-
         $this->recent = ReportBookEntry::query()
             ->where('report_book_id', $this->reportBookId)
             ->orderByDesc('entry_date')
