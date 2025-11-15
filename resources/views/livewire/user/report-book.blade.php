@@ -332,8 +332,8 @@
     </aside>
 
     {{-- rechte, große Spalte: Editor & Aktionen --}}
-    <div class="lg:col-span-2 h-max border bg-white border-gray-400 rounded-lg  overflow-hidden">
-<div class="flex items-center justify-between px-3 py-2 border-b border-gray-400">
+    <div class="lg:col-span-2 h-max border bg-white border-gray-300 rounded-lg  overflow-hidden">
+<div class="flex items-center justify-between px-3 py-2 border-b border-gray-300">
 
     {{-- 🔹 Linke Seite: Dummy 1 + Dummy 2 + Doku --}}
     <div class="flex items-center gap-2 text-gray-500">
