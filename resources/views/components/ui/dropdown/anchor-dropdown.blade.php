@@ -99,7 +99,11 @@
           }
         });
       }
-    ">
+    "
+    @if($overlay && !$showTriggerOnOpen)
+        class="z-40"
+    @endif
+    >
     {{ $trigger }}
   </div>
 
