@@ -161,6 +161,7 @@
                     axis="y"
                     snap="start"
                     snapMode="mandatory"
+                    :visibleRows="5" 
                     maxHeightClass="max-h-[60vh]"
                     containerClass=""
                 >
@@ -201,7 +202,7 @@
                   }
                 @endphp
                 @if(!empty($c['id']))
-                  <button type="button"
+                  <button type="button" 
                           wire:click="selectCourse({{ $c['id'] }})"
                           @click="open=false"
                           class="group block relative w-full text-left px-3 py-4 transition-all duration-150
