@@ -111,7 +111,7 @@
   <div
     id="{{ $id }}"
     x-ref="holder"
-    class=" border border-gray-300 rounded shadow overflow-hidden  text-base"
+    class="   text-base"
     wire:ignore
   ></div>
 </div>

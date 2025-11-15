@@ -370,7 +370,7 @@
                 Dozenten-Doku übernehmen
             </x-buttons.button-basic>
         @endif
-        <div wire:key="{{ $editorKey }}" class="relative z-20">
+        <div wire:key="{{ $editorKey }}" class="relative z-20 border border-gray-300 rounded shadow overflow-hidden">
           <x-ui.editor.toast
             wireModel="text"
             placeholder="Bitte gebe hier dein Bericht für den Tag ein."
