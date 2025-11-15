@@ -283,7 +283,7 @@
                           :aria-expanded="open ? 'true' : 'false'"
                           class="w-full inline-flex items-center justify-between gap-3 px-3 py-2 rounded-md border text-sm
                                 border-primary-300 ring-1 ring-primary-200 bg-white hover:bg-gray-50">
-                    <span class="truncate text-left">
+                    <span class="truncate text-center md:text-left">
                       {{ $cur['label'] ?? 'Kurstag wählen …' }}
                     </span>
                     <svg class="w-4 h-4 shrink-0" :class="open && 'rotate-180 transition-transform'"
