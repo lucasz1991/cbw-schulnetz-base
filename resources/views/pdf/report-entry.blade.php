@@ -12,7 +12,7 @@
         body {
             font-family: DejaVu Sans, sans-serif;
             font-size: 12px;
-            line-height: 1.45;
+            line-height: 1;
             color: #111;
         }
 
@@ -44,7 +44,11 @@
 
         .entry-text {
             margin-top: 25px;
-            white-space: pre-wrap;
+        }
+        .entry-text p{
+            margin:0px;
+            line-height: 1.5;
+
         }
 
         hr {

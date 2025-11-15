@@ -342,11 +342,11 @@
                   wire:click="exportReportEntry"
                   wire:loading.attr="disabled"
                   wire:loading.class="opacity-70 cursor-wait"
-                  :size="'sm'"
+                  :size="'md'"
                   class="px-2"
-                  title="Export"
+                  title="Download"
               >
-                  <i class="fad fa-download text-[14px]"></i>
+                  <i class="fad fa-download text-[16px] h-[1.5rem]"></i>
               </x-buttons.button-basic>
  
         
@@ -359,21 +359,21 @@
                         wire:click="importTutorDocToDraft"
                         wire:loading.attr="disabled"
                         wire:loading.class="opacity-70 cursor-wait"
-                        :size="'sm'"
+                        :size="'md'"
                         class="px-2"
                         title="Dozenten-Dokumentation übernehmen"
                         >
-                        <i class="fad fa-file-signature text-[14px]"></i>
+                        <i class="fad fa-file-signature text-[16px]"></i>
                         <span class="hidden md:inline-block ml-2">Doku</span>
                       </x-buttons.button-basic>
                 @else
                       <x-buttons.button-basic
                         disabled
-                        :size="'sm'"
+                        :size="'md'"
                         class="px-2 opacity-70 cursor-not-allowed"
                         title="Dozenten-Dokumentation noch nicht vorhanden"
                         >
-                        <i class="fad fa-file-signature text-[14px]"></i>
+                        <i class="fad fa-file-signature text-[16px]"></i>
                         <span class="hidden md:inline-block  ml-2">Doku</span>
                       </x-buttons.button-basic>
                 @endif
@@ -381,12 +381,12 @@
                     wire:click="openAiAssist"
                     wire:loading.attr="disabled"
                     wire:loading.class="opacity-70 cursor-wait"
-                    :size="'sm'"
+                    :size="'md'"
                     class="px-2"
-                    title="Ai Tool"
+                    title="Assistent Tool"
                 >
-                    <i class="fad fa-star text-[14px]"></i>
-                    <span class="hidden md:inline-block ml-2">Ai Assistent</span>
+                    <i class="fad fa-magic text-[16px]"></i>
+                    <span class="hidden md:inline-block ml-2">Assistent</span>
                 </x-buttons.button-basic>
             </div>
         
