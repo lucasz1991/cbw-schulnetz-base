@@ -14,7 +14,7 @@
   $snapClass = $snap === 'none' ? 'snap-none' : 'snap-'.$snapMode.' snap-'.$snap;
   $maxH      = $maxHeightClass ?? '';
 @endphp
-
+ 
 <div
   role="{{ $role }}" @if($ariaLabel) aria-label="{{ $ariaLabel }}" @endif
   class="overflow-y-auto scroll-container overflow-x-hidden scroll-smooth {{ $snapClass }} {{ $containerClass }} {{ $maxH }}"
