@@ -102,13 +102,16 @@
     font-size:1rem !important;
     line-height: 1.5rem !important;
   }
+  .tui-editor-wrapper .toastui-editor-defaultUI {
+    border: 0 #fff solid !important;
+  }
   </style>
 
   {{-- Editor-Container (Livewire darf hier nicht reinfunken) --}}
   <div
     id="{{ $id }}"
     x-ref="holder"
-    class="border rounded-md overflow-hidden  text-base"
+    class=" border border-gray-300 rounded shadow overflow-hidden  text-base"
     wire:ignore
   ></div>
 </div>

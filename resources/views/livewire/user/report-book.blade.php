@@ -332,21 +332,12 @@
     </aside>
 
     {{-- rechte, große Spalte: Editor & Aktionen --}}
-    <div class="lg:col-span-2 h-max bg-white border border-gray-300 rounded-lg p-4 overflow-hidden">
+    <div class="lg:col-span-2 h-max overflow-hidden">
       <div class="flex items-start justify-between mb-4">
         <div class="text-sm text-gray-600">
           @if($selectedCourseId && $selectedCourseDayId)
               <div>
-                <div class="mb-2">
-                  <x-ui.badge.badge :color="'blue'">
-                    <span class="font-semibold">
-                      Tag:  {{ \Illuminate\Support\Arr::first($courseDays, fn($d) => (int)$d['id'] === (int)$selectedCourseDayId)['label'] ?? '—' }}
-                    </span>
-                  </x-ui.badge.badge>
-                </div>
-                <div class="pl-1">
-                  {{ $selTitle }}
-                </div>
+
               </div>
           @else
             <span class="text-gray-500">Bitte Kurs & Kurstag wählen.</span>
