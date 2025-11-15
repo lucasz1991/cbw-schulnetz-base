@@ -7,7 +7,8 @@
   'overlay'           => false,
   'trap'              => false,
   'scrollOnOpen'      => false,
-  'scrollOnTrigger'   => false,  // NEU: true => zum Trigger scrollen, false => Panel zentrieren
+  'showTriggerOnOpen' => false, // NEU: true => das Overlay soll vor dem Trigger stehen damit der Trigger darüber liegt wenn false dann overlay nach dem trigger wie bisher 
+  'scrollOnTrigger'   => false,  
   'headerOffset'      => 0,
   'matchTriggerWidth' => false,
 ])
@@ -79,6 +80,11 @@
   @keydown.escape.window="open=false"
   @close.window.stop="open=false"
 >
+
+  {{-- Overlay --}}
+  @if($overlay && $showTriggerOnOpen)
+    <div x-show="open" x-transition.opacity class="fixed inset-0 z-40 bg-black/40" @click="open=false" style="display:none;"></div>
+  @endif
   {{-- Trigger --}}
   <div x-ref="trigger" @click="
       open = !open;
@@ -98,7 +104,7 @@
   </div>
 
   {{-- Overlay --}}
-  @if($overlay)
+  @if($overlay && !$showTriggerOnOpen)
     <div x-show="open" x-transition.opacity class="fixed inset-0 z-40 bg-black/40" @click="open=false" style="display:none;"></div>
   @endif
 

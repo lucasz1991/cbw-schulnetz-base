@@ -13,12 +13,7 @@
     {{-- linke Spalte: Kurswahl & CourseDays --}}
     <aside class="space-y-4 lg:col-span-1"  >
       {{-- Kurswahl: Navigation oben + Trigger mit Panel --}}
-      <div
-        class="bg-white border border-gray-300 rounded-lg p-3 mb-4 space-y-2">
 
-
-
-      </div>
       @php
         $sel = collect($courses)->firstWhere('id', $selectedCourseId);
         $selTitle  = $sel['title'] ?? 'Kurs wählen …';
@@ -64,6 +59,7 @@
           :trap="true"
           :offset="8"
           :scrollOnOpen="true"
+          :showTriggerOnOpen="true"
           :scrollOnTrigger="true"
           :headerOffset="20"
         >
@@ -134,7 +130,12 @@
             </x-slot>
 
             <x-slot name="content">
-              <h4 class="bg-gray-100 text-base font-semibold text-gray-700 p-3 border-b border-gray-400">Meine Kurse</h4>
+              <div>
+                <h4 class="bg-gray-100 text-base font-semibold text-gray-700 p-3 border-b border-gray-400">Meine Kurse</h4>
+                <button>
+
+                </button>
+              </div>
 
               <x-ui.scrollcontainer.scrollcontainer
                     axis="y"
