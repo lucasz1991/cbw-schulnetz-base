@@ -64,7 +64,7 @@
     x-transition:leave-start="transform opacity-100 scale-100"
     x-transition:leave-end="transform opacity-0 scale-95"
     x-anchor.{{ $anchorPos }}.offset.{{ $offset }}.flip.shift="$refs.trigger"
-    class="z-50 {{ $widthClass }} rounded-md shadow-lg {{ $dropdownClasses }}"
+    class="z-40 {{ $widthClass }} rounded-md shadow-lg {{ $dropdownClasses }}"
     style="display:none; max-width:calc(100vw - 16px); max-height:calc(100vh - 16px);"
     @click.outside="open=false"
     @if($trap) x-trap.inert.noscroll="open" @endif
