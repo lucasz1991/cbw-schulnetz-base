@@ -161,7 +161,7 @@
                     axis="y"
                     snap="start"
                     snapMode="mandatory"
-                    :visibleRows="5" 
+                    :visibleRows="4" 
                     maxHeightClass="max-h-[60vh]"
                     containerClass=""
                 >
