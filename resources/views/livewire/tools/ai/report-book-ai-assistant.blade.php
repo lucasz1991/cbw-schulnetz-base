@@ -1,6 +1,6 @@
 <x-dialog-modal wire:model="showModal" maxWidth="3xl">
     <x-slot name="title">
-        Berichtsheft mit KI optimieren
+        Berichtsheft optimieren
     </x-slot>
 
     <x-slot name="content">
@@ -30,20 +30,17 @@
                     <div>
                         <x-ui.forms.label value="Aktueller Berichtsheft-Text" />
                         <textarea
-                            rows="6"
+                            rows="18"
                             class="mt-1 block w-full border-gray-300 rounded text-sm shadow-sm"
                             wire:model.defer="currentText"
                         ></textarea>
-                        <p class="mt-1 text-[11px] text-gray-500">
-                            Dieser Text dient als Grundlage für die KI.
-                        </p>
                     </div>
 
                     {{-- Wünsche --}}
                     <div>
                         <x-ui.forms.label value="Wünsche an die KI (optional)" />
                         <textarea
-                            rows="3"
+                            rows="1"
                             class="mt-1 block w-full border-gray-300 rounded text-sm shadow-sm"
                             wire:model.defer="feedback"
                             placeholder="z.B: Bitte kürzer, sachlicher, strukturierter…"
@@ -76,7 +73,7 @@
                         <div>
                             <x-ui.forms.label value="Optimierter KI-Text" />
                             <textarea
-                                rows="6"
+                                rows="18"
                                 class="mt-1 block w-full border-gray-300 rounded text-sm shadow-sm"
                                 wire:model="optimizedText"
                             ></textarea>
@@ -84,7 +81,7 @@
 
                         {{-- Kommentar --}}
                         @if ($aiComment)
-                            <div class="px-3 py-2 rounded bg-slate-50 border border-slate-200 text-xs text-slate-700">
+                            <div class="px-3 py-2 rounded bg-blue-100 border border-blue-200 text-xs text-blue-700">
                                 <div class="font-semibold mb-1">Kommentar der KI</div>
                                 <p class="leading-relaxed">{{ $aiComment }}</p>
                             </div>
