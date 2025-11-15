@@ -86,6 +86,7 @@
           :trap="true"
           :offset="8"
           :scrollOnOpen="true"
+          :scrollOnTrigger="true"
           :headerOffset="20"
         >
             <x-slot name="trigger">
