@@ -31,7 +31,7 @@
                         <x-ui.forms.label value="Aktueller Berichtsheft-Text" />
                         <textarea
                             rows="18"
-                            class="mt-1 block w-full border-gray-300 rounded text-sm shadow-sm"
+                            class="mt-1 block bg-gray-50 w-full border-gray-300 rounded text-sm shadow-sm"
                             wire:model.defer="currentText"
                         ></textarea>
                     </div>
@@ -41,7 +41,7 @@
                         <x-ui.forms.label value="Wünsche an die KI (optional)" />
                         <textarea
                             rows="1"
-                            class="mt-1 block w-full border-gray-300 rounded text-sm shadow-sm"
+                            class="mt-1 block w-full bg-gray-50 border-gray-300 rounded text-sm shadow-sm"
                             wire:model.defer="feedback"
                             placeholder="z.B: Bitte kürzer, sachlicher, strukturierter…"
                         ></textarea>
@@ -74,7 +74,7 @@
                             <x-ui.forms.label value="Optimierter KI-Text" />
                             <textarea
                                 rows="18"
-                                class="mt-1 block w-full border-gray-300 rounded text-sm shadow-sm"
+                                class="mt-1 block w-full bg-gray-50 border-gray-300 rounded text-sm shadow-sm"
                                 wire:model="optimizedText"
                             ></textarea>
                         </div>
