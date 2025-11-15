@@ -6,10 +6,10 @@
   'offset'          => 0,
   'overlay'         => false,
   'trap'            => false,
-
+  'scrollOnOpen'    => false,
+  'headerOffset'    => 0,
   // NEU:
-  'scrollOnOpen'    => false, // beim Öffnen zum Trigger scrollen?
-  'headerOffset'    => 0,     // z.B. Sticky-Header-Abstand
+  'matchTriggerWidth'=> false,
 ])
 
 @php
@@ -19,10 +19,21 @@
 
 <div
   class="relative"
-  x-data="{ 
-    open:false, 
-    scrollOnOpen: @js((bool)$scrollOnOpen), 
-    headerOffset: @js((int)$headerOffset),
+  x-data="{
+    open:false,
+    scrollOnOpen:@js((bool)$scrollOnOpen),
+    headerOffset:@js((int)$headerOffset),
+    matchTriggerWidth:@js((bool)$matchTriggerWidth),
+    setPanelWidth(){
+      if (!this.matchTriggerWidth) return;
+      const t = $refs.trigger, p = $refs.panel;
+      if (!t || !p) return;
+      // Breite inkl. Border berücksichtigen, max. Viewport-Rand einhalten
+      const tw = t.getBoundingClientRect().width; // exakte Pixelbreite
+      p.style.width = tw + 'px';
+      // Optional: min/max Grenzen (sicher am kleinen Screen)
+      p.style.maxWidth = 'calc(100vw - 16px)';
+    },
     scrollToTrigger(){
       const t = $refs.trigger;
       if(!t) return;
@@ -32,24 +43,26 @@
   }"
   x-init="
     $watch('open', (v) => {
-      if(v && scrollOnOpen){
+      if (v) {
         $nextTick(() => {
-          scrollToTrigger();
-          if($refs.panelScroll){ $refs.panelScroll.scrollTo({ top: 0, behavior: 'auto' }); }
+          setPanelWidth();
+          if(scrollOnOpen){ scrollToTrigger(); if($refs.panelScroll){ $refs.panelScroll.scrollTo({top:0,behavior:'auto'}) } }
         });
       }
-    })
+    });
+    // Bei Resize nachziehen
+    window.addEventListener('resize', () => { if (open) setPanelWidth() }, { passive:true });
   "
   x-cloak
   @keydown.escape.window="open=false"
   @close.window.stop="open=false"
 >
   {{-- Trigger --}}
-  <div x-ref="trigger" @click="open=!open; if(open){ $nextTick(() => $dispatch('dropdown-open')) }">
+  <div x-ref="trigger" @click="open=!open; if(open){ $nextTick(() => { setPanelWidth(); $dispatch('dropdown-open') }) }">
     {{ $trigger }}
   </div>
 
-  {{-- Optionaler Overlay --}}
+  {{-- Overlay --}}
   @if($overlay)
     <div x-show="open" x-transition.opacity class="fixed inset-0 z-40 bg-black/40" @click="open=false" style="display:none;"></div>
   @endif
@@ -68,8 +81,8 @@
     style="display:none; max-width:calc(100vw - 16px); max-height:calc(100vh - 16px);"
     @click.outside="open=false"
     @if($trap) x-trap.inert.noscroll="open" @endif
+    x-ref="panel"  {{-- <- NEU: Panel-Ref zum Setzen der Breite --}}
   >
-    {{-- WICHTIG: eigener Container mit panelScroll-Ref --}}
     <div x-ref="panelScroll" class="rounded-md ring-1 ring-black ring-opacity-5 overflow-auto {{ $contentClasses }}">
       {{ $content }}
     </div>

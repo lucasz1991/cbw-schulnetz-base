@@ -17,7 +17,7 @@
   $maxH     = $isY ? ($maxHeightClass ?? '') : '';
 @endphp
 
-<div class="{{ $overflow }} {{ $snap === 'none' ? 'snap-none' : 'snap-'.$snapMode }} scroll-smooth {{ $containerClass }} {{ $maxH }}"
+<div class="{{ $overflow }} {{ $snap === 'none' ? 'snap-none' : 'snap-'.$snapMode }} scroll-smooth {{ $containerClass }} {{ $maxH }} scroll-container"
      role="{{ $role }}" @if($ariaLabel) aria-label="{{ $ariaLabel }}" @endif
      x-data
 >
