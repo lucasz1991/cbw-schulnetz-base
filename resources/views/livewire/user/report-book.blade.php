@@ -380,7 +380,7 @@
                       </x-buttons.button-basic>
                 @endif
                 <x-buttons.button-basic
-                    wire:click="openAiAssist"
+                    x-on:click="$dispatch('open-reportbook-ai-assistant', { id: {{ $entry->id }} })"
                     wire:loading.attr="disabled"
                     wire:loading.class="opacity-70 cursor-wait"
                     :size="'sm'"
@@ -454,4 +454,6 @@
 
     </div>
   </div>
+  <livewire:tools.ai.report-book-ai-assistant />
+
 </div>
