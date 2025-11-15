@@ -107,7 +107,7 @@
   }
   .tui-editor-wrapper .toastui-editor-defaultUI-toolbar {
     background-color: #ffffff00 !important;
-    border-bottom: 1px rgb(156, 163, 175) solid !important;
+    border-bottom: 1px rgb(209, 213, 219) solid !important;
     padding: 0 .5rem !important;
   }
   </style>

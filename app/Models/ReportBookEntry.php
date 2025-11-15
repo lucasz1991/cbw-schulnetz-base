@@ -32,6 +32,19 @@ class ReportBookEntry extends Model
         return $this->belongsTo(ReportBook::class);
     }
 
+        public function courseDay(): BelongsTo
+    {
+        return $this->belongsTo(CourseDay::class, 'course_day_id');
+    }
+
+    /**
+     * Shortcut auf den Kurs über das zugehörige ReportBook
+     */
+    public function getCourseAttribute()
+    {
+        return $this->reportBook?->course;
+    }
+
     /**
      * Accessor für lesbaren Statusnamen
      */

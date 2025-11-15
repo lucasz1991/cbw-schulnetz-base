@@ -332,96 +332,124 @@
     </aside>
 
     {{-- rechte, große Spalte: Editor & Aktionen --}}
-    <div class="lg:col-span-2 h-max border bg-white border-gray-300 rounded-lg  overflow-hidden">
-<div class="flex items-center justify-between px-3 py-2 border-b border-gray-300">
+    <div class="lg:col-span-2 h-max ">
+      <div class=" border bg-gray-50 border-gray-300 rounded-lg  overflow-hidden">
 
-    {{-- 🔹 Linke Seite: Dummy 1 + Dummy 2 + Doku --}}
-    <div class="flex items-center gap-2 text-gray-500">
-
-        {{-- Dummy Button 1 --}}
-        <x-buttons.button-basic
-            :size="'sm'"
-            class="px-2"
-            title="Aktion 1"
-        >
-            <i class="fad fa-star text-[14px]"></i>
-        </x-buttons.button-basic>
-
-        {{-- Dummy Button 2 --}}
-        <x-buttons.button-basic
-            :size="'sm'"
-            class="px-2"
-            title="Aktion 2"
-        >
-            <i class="fad fa-folder text-[14px]"></i>
-        </x-buttons.button-basic>
-
-        {{-- Echter Doku-Button (nur wenn verfügbar) --}}
-        @php
-            $currentDay = collect($courseDays)->firstWhere('id', $selectedCourseDayId);
-        @endphp
-        @if($currentDay && $currentDay['hasTutorDoc'])
-            <x-buttons.button-basic
-                wire:click="importTutorDocToDraft"
-                wire:loading.attr="disabled"
-                wire:loading.class="opacity-70 cursor-wait"
-                :size="'sm'"
-                class="px-2"
-                title="Dozenten-Dokumentation übernehmen"
-            >
-                <i class="fad fa-file-signature text-[14px]"></i>
-            </x-buttons.button-basic>
-        @endif
-
-    </div>
-
-    {{-- 🔸 Rechte Seite: Status-Badge --}}
-    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border
-        {{ $status === 1 
-            ? 'bg-green-50 text-green-700 border-green-200' 
-            : 'bg-slate-50 text-slate-700 border-slate-200' }}">
-        Status: {{ $status >= 1 ? 'Fertig' : ($status === 0 ? 'Entwurf' : 'Fehlend') }}
-    </span>
-
-</div>
-
-      
-      {{-- Editor --}}
-      <div>
-        <div wire:key="{{ $editorKey }}" class="relative z-20 ">
-          <x-ui.editor.toast
-            wireModel="text"
-            placeholder="Bitte gebe hier dein Bericht für den Tag ein."
-          />
+        <div class="flex items-center justify-between px-3 py-2 border-b border-gray-300">
+        
+            <div class="flex items-center gap-2 text-gray-500">
+              <x-buttons.button-basic
+                  wire:click="exportReportEntry"
+                  wire:loading.attr="disabled"
+                  wire:loading.class="opacity-70 cursor-wait"
+                  :size="'sm'"
+                  class="px-2"
+                  title="Export"
+              >
+                  <i class="fad fa-download text-[14px]"></i>
+              </x-buttons.button-basic>
+ 
+        
+        
+                @php
+                    $currentDay = collect($courseDays)->firstWhere('id', $selectedCourseDayId);
+                @endphp
+                @if($currentDay && $currentDay['hasTutorDoc'])
+                <x-buttons.button-basic
+                        wire:click="importTutorDocToDraft"
+                        wire:loading.attr="disabled"
+                        wire:loading.class="opacity-70 cursor-wait"
+                        :size="'sm'"
+                        class="px-2"
+                        title="Dozenten-Dokumentation übernehmen"
+                        >
+                        <i class="fad fa-file-signature text-[14px]"></i>
+                        <span class="hidden md:inline-block ml-2">Doku</span>
+                      </x-buttons.button-basic>
+                @else
+                      <x-buttons.button-basic
+                        disabled
+                        :size="'sm'"
+                        class="px-2 opacity-70 cursor-not-allowed"
+                        title="Dozenten-Dokumentation noch nicht vorhanden"
+                        >
+                        <i class="fad fa-file-signature text-[14px]"></i>
+                        <span class="hidden md:inline-block  ml-2">Doku</span>
+                      </x-buttons.button-basic>
+                @endif
+                <x-buttons.button-basic
+                    wire:click="openAiAssist"
+                    wire:loading.attr="disabled"
+                    wire:loading.class="opacity-70 cursor-wait"
+                    :size="'sm'"
+                    class="px-2"
+                    title="Ai Tool"
+                >
+                    <i class="fad fa-star text-[14px]"></i>
+                    <span class="hidden md:inline-block ml-2">Ai Assistent</span>
+                </x-buttons.button-basic>
+            </div>
+        
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border
+                {{ $status === 1 
+                    ? 'bg-green-50 text-green-700 border-green-200' 
+                    : 'bg-slate-50 text-slate-700 border-slate-200' }}">
+                Status: {{ $status >= 1 ? 'Fertig' : ($status === 0 ? 'Entwurf' : 'Fehlend') }}
+            </span>
+        
+        </div>
+        
+        <div>
+          <div wire:key="{{ $editorKey }}" class="relative z-20 ">
+            <x-ui.editor.toast
+              wireModel="text"
+              placeholder="Bitte gebe hier dein Bericht für den Tag ein."
+            />
+          </div>
         </div>
       </div>
 
       {{-- Aktionen --}}
-      <div class="flex items-center flex-wrap gap-2 p-2" wire:loading.class="pointer-events-none" wire:target="save,submit">
-        {{-- Speichern nur wenn dirty und ein Kurstag gewählt ist --}}
-        @if($selectedCourseDayId && $isDirty )
-          <x-buttons.button-basic
-            wire:click="save"
-            wire:target="save"
-            wire:loading.attr="disabled"
-            wire:loading.class="opacity-70 cursor-wait"
-            class="mt-1 "
-          >Speichern</x-buttons.button-basic>
-        @endif
+      <div class="flex items-center flex-wrap gap-2 mt-1"
+          wire:loading.class="pointer-events-none"
+          wire:target="save,submit">
 
-        {{-- Fertigstellen wenn (dirty ODER Draft) und Kurstag gewählt und nicht fertig --}}
-        @if($selectedCourseDayId && $status !== 1 && ($isDirty || $hasDraft))
-          <x-buttons.button-basic
-            wire:click="submit"
-            wire:target="submit"
-            wire:loading.attr="disabled"
-            wire:loading.class="opacity-70 cursor-wait"
-            class="mt-1 "
-          >Fertigstellen</x-buttons.button-basic>
-        @endif
+          {{-- Speichern-Button --}}
+          @if($selectedCourseDayId && $isDirty)
+              <x-buttons.button-basic
+                  wire:click="save"
+                  wire:target="save"
+                  wire:loading.attr="disabled"
+                  wire:loading.class="opacity-70 cursor-wait"
+                  class="mt-1"
+                  :size="'sm'"
+              >
+                  <i class="fad fa-save text-[14px] mr-2 text-amber-500"></i>
+                  Speichern
+              </x-buttons.button-basic>
+          @endif
 
-        <span wire:loading wire:target="save,submit" class="text-sm text-gray-500">Verarbeite …</span>
+          {{-- Fertigstellen-Button --}}
+          @if($selectedCourseDayId && $status !== 1 && ($isDirty || $hasDraft))
+              <x-buttons.button-basic
+                  wire:click="submit"
+                  wire:target="submit"
+                  wire:loading.attr="disabled"
+                  wire:loading.class="opacity-70 cursor-wait"
+                  class="mt-1"
+                  :size="'sm'"
+              >
+                  <i class="fad fa-check-circle mr-2 text-green-600"></i>
+                  Fertigstellen
+              </x-buttons.button-basic>
+          @endif
+
+          {{-- Loading --}}
+          <span wire:loading wire:target="save,submit" class="text-sm text-gray-500">
+              Verarbeite …
+          </span>
       </div>
+
     </div>
   </div>
 </div>

@@ -13,6 +13,8 @@ use App\Models\Course;
 use App\Models\CourseDay;
 use App\Models\User;
 use App\Models\Person;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportBook extends Component
 {
@@ -511,7 +513,7 @@ protected function loadCourseDays(): void
 
         $doc = trim((string)($day->notes ?? ''));
         if ($doc === '') {
-            $this->dispatch('toast', type: 'info', message: 'Keine Tutor-Dokumentation vorhanden.');
+            $this->dispatch('toast', type: 'info', message: 'Keine Dozenten-Dokumentation vorhanden.');
             return;
         }
 
@@ -545,8 +547,64 @@ protected function loadCourseDays(): void
         $this->reloadForCurrentCourse();
         $this->editorVersion++;
 
-        $this->dispatch('toast', type: 'success', message: 'Tutor-Doku übernommen und als Entwurf gespeichert.');
+        $this->dispatch('toast', type: 'success', message: 'Dozenten-Dokumentation übernommen und als Entwurf gespeichert.');
     }
+
+
+public function exportReportEntry(): ?StreamedResponse
+{
+    if (!$this->selectedCourseId || !$this->selectedCourseDayId) {
+        $this->dispatch('toast', type: 'warning', message: 'Kurs und Kurstag auswählen, bevor du exportierst.');
+        return null;
+    }
+
+    // 1) Das ReportBook des Users für den aktuellen Kurs (und optional Maßnahme) finden
+    $book = ReportBookModel::query()
+        ->where('user_id', Auth::id())
+        ->where('course_id', $this->selectedCourseId)
+        ->when($this->massnahmeId, fn($q) => $q->where('massnahme_id', $this->massnahmeId))
+        ->first();
+
+    if (!$book) {
+        $this->dispatch('toast', type: 'warning', message: 'Für diesen Kurs existiert noch kein Berichtsheft.');
+        return null;
+    }
+
+    // 2) Den passenden Entry über report_book_id + course_day_id holen
+    $entry = ReportBookEntry::query()
+        ->where('report_book_id', $book->id)
+        ->where('course_day_id', $this->selectedCourseDayId)
+        ->first();
+
+    if (!$entry) {
+        $this->dispatch('toast', type: 'warning', message: 'Für diesen Kurstag ist kein Eintrag vorhanden.');
+        return null;
+    }
+
+    // 3) PDF im Speicher erzeugen (kein Storage::put)
+    $pdf = Pdf::loadView('pdf.report-entry', [
+        'entry' => $entry,
+        'book'  => $book,
+        // optional: direkt Kurs & Person mitgeben, wenn Relationen existieren
+        // 'course' => $book->course ?? null,
+        // 'user'   => Auth::user(),
+    ]);
+
+    // 4) Dateiname aus entry_date bauen (Fallback: now)
+    $date = $entry->entry_date ?? null;
+    try {
+        $dateObj = $date ? Carbon::parse($date) : now();
+    } catch (\Throwable $e) {
+        $dateObj = now();
+    }
+
+    $fileName = 'bericht-' . $dateObj->format('Y-m-d') . '.pdf';
+
+    // 5) StreamDownload – nichts wird auf der Platte gespeichert
+    return response()->streamDownload(function () use ($pdf) {
+        echo $pdf->output();
+    }, $fileName);
+}
 
 
     public function render()
