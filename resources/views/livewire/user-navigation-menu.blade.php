@@ -46,7 +46,7 @@
     @click.away="isMobileMenuOpen = false"
     >
     <div>
-        <nav x-ref="nav"  :style="(!showNav && !isMobileMenuOpen ) ? 'margin-top: -'+navHeight+'px': 'margin-top:0px;' " class="fixed  w-screen bg-white   z-30 transition-all duration-300 ease-in-out"  
+        <nav x-ref="nav"  :style="(!showNav && !isMobileMenuOpen ) ? 'margin-top: -'+navHeight+'px': 'margin-top:0px;' " class="fixed  w-screen bg-white   z-40 transition-all duration-300 ease-in-out"  
                 wire:loading.class="cursor-wait"
                 
             >

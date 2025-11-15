@@ -83,7 +83,7 @@
 
   {{-- Overlay --}}
   @if($overlay && $showTriggerOnOpen)
-    <div x-show="open" x-transition.opacity class="fixed inset-0 z-40 bg-black/40" @click="open=false" style="display:none;"></div>
+    <div x-show="open" x-transition.opacity class="fixed inset-0 z-30 bg-black/40" @click="open=false" style="display:none;"></div>
   @endif
   {{-- Trigger --}}
   <div x-ref="trigger" @click="
@@ -100,8 +100,8 @@
         });
       }
     "
-    @if($overlay && !$showTriggerOnOpen)
-        class="z-40"
+    @if($overlay && $showTriggerOnOpen)
+        class="relative z-30"
     @endif
     >
     {{ $trigger }}
@@ -109,7 +109,7 @@
 
   {{-- Overlay --}}
   @if($overlay && !$showTriggerOnOpen)
-    <div x-show="open" x-transition.opacity class="fixed inset-0 z-40 bg-black/40" @click="open=false" style="display:none;"></div>
+    <div x-show="open" x-transition.opacity class="fixed inset-0 z-30 bg-black/40" @click="open=false" style="display:none;"></div>
   @endif
 
   {{-- Panel --}}
@@ -122,7 +122,7 @@
     x-transition:leave-start="transform opacity-100 scale-100"
     x-transition:leave-end="transform opacity-0 scale-95"
     x-anchor.{{ $anchorPos }}.offset.{{ $offset }}.flip.shift="$refs.trigger"
-    class="z-40 {{ $widthClass }} rounded-md shadow-lg {{ $dropdownClasses }}"
+    class="z-30 {{ $widthClass }} rounded-md shadow-lg {{ $dropdownClasses }}"
     style="display:none; max-width:calc(100vw - 16px); max-height:calc(100vh - 16px);"
     @click.outside="open=false"
     @if($trap) x-trap.inert.noscroll="open" @endif
