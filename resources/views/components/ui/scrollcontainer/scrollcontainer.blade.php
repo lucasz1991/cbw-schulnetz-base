@@ -59,7 +59,7 @@
     mo.observe($el, { childList: true, subtree: true });
   "
 >
-  <div class="flex flex-col w-full">
+  <div class="flex flex-col w-full  snap-y touch-pan-y scroll-smooth">
     {{ $slot }}
   </div>
 </div>

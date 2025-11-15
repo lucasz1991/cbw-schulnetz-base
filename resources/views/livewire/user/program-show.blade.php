@@ -317,26 +317,6 @@
                     </x-buttons.button-basic>
                   </div>
                 </div>
-
-                <div class="swiper-slide">
-                  <div class="grid h-full grid-cols-1 place-content-stretch">
-                    <h3 class="text-gray-800 font-semibold mb-1">Baustein Dokumentation</h3>
-                    <p class="text-xs text-gray-600 mb-2">
-                      Übersicht über deine Bausteine exportieren.
-                    </p>
-                    <x-buttons.button-basic :size="'sm'" :mode="'primary'"     
-                        @click="$dispatch('toast', { 
-                            message: 'Baustein Dokumentation ist noch in der Entwicklung....', 
-                            type: 'info' 
-                        });" 
-                        class="w-full">
-                      anzeigen
-                    </x-buttons.button-basic>
-                  </div>
-                </div>
-
-
-
               </div>
             </div>
             <!-- If we need pagination -->
