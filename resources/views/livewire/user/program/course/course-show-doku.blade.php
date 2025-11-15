@@ -1,7 +1,7 @@
 <div x-data="{ openId: @entangle('openDayId').live }" class="space-y-3 py-8  container px-5 mx-auto">
     <x-alert>
         Dokumentation der Kurstage<br>
-        Hier findest du die Notizen zu jedem Kurstag. Klicke einen Tag an, um die Details zu öffnen.
+        Hier findest du die Notizen des Dozenten zu jedem Kurstag. Klicke einen Tag an, um die Details zu öffnen.
     </x-alert>
 
     <!-- Menüleiste -->
