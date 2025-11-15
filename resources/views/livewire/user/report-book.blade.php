@@ -53,7 +53,7 @@
           align="left"
           width="auto"
           :matchTriggerWidth="true"
-          dropdownClasses="mt-2 w-[min(640px,90vw)] bg-white border border-gray-300 rounded-xl shadow overflow-hidden"
+          dropdownClasses="mt-2 w-[min(640px,90vw)] bg-white  rounded-xl shadow overflow-hidden"
           contentClasses="bg-white"
           :overlay="true"
           :trap="true"
