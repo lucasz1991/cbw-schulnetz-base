@@ -9,7 +9,7 @@
                     Berichtsheft mit KI optimieren
                 </h2>
                 <p class="text-xs text-gray-500">
-                    Lass dir deinen Eintrag sprachlich und strukturell verbessern – inklusive HTML-Struktur.
+                    Lass dir deinen Eintrag sprachlich und strukturell verbessern.
                 </p>
             </div>
         </div>
