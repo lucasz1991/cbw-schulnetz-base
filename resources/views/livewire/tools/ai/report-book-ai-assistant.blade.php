@@ -21,19 +21,28 @@
                 @endif
 
 
-                {{-- --------------------------------------------------}}
+                {{-- -------------------------------------------------- --}}
                 {{--   EINGABEBEREICH — nur zeigen, wenn KEIN Vorschlag --}}
-                {{-- --------------------------------------------------}}
+                {{-- -------------------------------------------------- --}}
                 @if (!$optimizedText)
 
-                    {{-- Basistext --}}
+                    {{-- Basistext (nur Anzeige, mit möglichem HTML) --}}
                     <div>
                         <x-ui.forms.label value="Aktueller Berichtsheft-Text" />
-                        <textarea
-                            rows="18"
-                            class="mt-1 block bg-gray-50 w-full border-gray-300 rounded text-sm shadow-sm"
-                            wire:model.defer="currentText"
-                        ></textarea>
+                        <div
+                            class="mt-1 block w-full bg-gray-50 border border-gray-300 rounded text-sm shadow-sm p-3 max-h-[500px] overflow-y-auto"
+                        >
+                            @if(trim($currentText) !== '')
+                                {{-- HTML-Struktur zulassen --}}
+                                <div class="prose prose-sm max-w-none">
+                                    {!! $currentText !!}
+                                </div>
+                            @else
+                                <p class="text-xs text-gray-400 italic">
+                                    Noch kein Text vorhanden.
+                                </p>
+                            @endif
+                        </div>
                     </div>
 
                     {{-- Wünsche --}}
@@ -63,20 +72,22 @@
                 @endif
 
 
-                {{-- --------------------------------------------------}}
+                {{-- -------------------------------------------------- --}}
                 {{--   KI-ERGEBNIS — nur zeigen, wenn Vorschlag existiert --}}
-                {{-- --------------------------------------------------}}
+                {{-- -------------------------------------------------- --}}
                 @if ($optimizedText)
                     <div class="pt-4 border-t border-gray-100 space-y-3">
 
-                        {{-- Text der KI --}}
+                        {{-- Text der KI (nur Anzeige, mit möglichem HTML) --}}
                         <div>
                             <x-ui.forms.label value="Optimierter KI-Text" />
-                            <textarea
-                                rows="18"
-                                class="mt-1 block w-full bg-gray-50 border-gray-300 rounded text-sm shadow-sm"
-                                wire:model="optimizedText"
-                            ></textarea>
+                            <div
+                                class="mt-1 block w-full bg-gray-50 border border-gray-300 rounded text-sm shadow-sm p-3 max-h-[500px] overflow-y-auto"
+                            >
+                                <div class="prose prose-sm max-w-none">
+                                    {!! $optimizedText !!}
+                                </div>
+                            </div>
                         </div>
 
                         {{-- Kommentar --}}
@@ -129,5 +140,4 @@
             </x-button>
         @endif
     </x-slot>
-
 </x-dialog-modal>
