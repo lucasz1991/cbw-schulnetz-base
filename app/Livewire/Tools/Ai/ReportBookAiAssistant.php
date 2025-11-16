@@ -15,14 +15,21 @@ class ReportBookAiAssistant extends Component
     public ?ReportBookEntry $entry = null;
 
     public string $currentText = '';
-    public string $feedback = '';
+    public string $feedback    = '';
 
     public string $optimizedText = '';
-    public string $aiComment = '';
+    public string $aiComment     = '';
 
     public bool $isLoading = false;
 
-    public $status, $assistantName, $apiUrl, $apiKey, $aiModel, $modelTitle, $refererUrl, $trainContent;
+    public $status;
+    public $assistantName;
+    public $apiUrl;
+    public $apiKey;
+    public $aiModel;
+    public $modelTitle;
+    public $refererUrl;
+    public $trainContent;
 
     protected $listeners = [
         'open-reportbook-ai-assistant' => 'openForEntry',
@@ -40,12 +47,22 @@ class ReportBookAiAssistant extends Component
         $this->trainContent  = Setting::getValue('ai_assistant', 'train_content');
     }
 
-    public function openForEntry($payload): void
+    /**
+     * Kann entweder mit einer ID oder mit Payload ['id' => X] aufgerufen werden.
+     */
+    public function openForEntry($payload = null): void
     {
-        $id = (int) ($payload['id'] ?? $payload);
+        if (is_numeric($payload)) {
+            $id = (int) $payload;
+        } elseif (is_array($payload) && isset($payload['id'])) {
+            $id = (int) $payload['id'];
+        } else {
+            return;
+        }
+
         $this->entry = ReportBookEntry::findOrFail($id);
 
-        $this->currentText  = (string) ($this->entry->text ?? '');
+        $this->currentText   = (string) ($this->entry->text ?? '');
         $this->optimizedText = '';
         $this->aiComment     = '';
         $this->feedback      = '';
@@ -59,6 +76,9 @@ class ReportBookAiAssistant extends Component
         $this->showModal = false;
     }
 
+    /**
+     * Ruft die AI auf und erwartet JSON mit "text" (HTML erlaubt) und "comment".
+     */
     public function generateSuggestion(): void
     {
         $base = trim($this->optimizedText) !== ''
@@ -70,7 +90,7 @@ class ReportBookAiAssistant extends Component
         }
 
         if (!$this->apiUrl || !$this->apiKey || !$this->aiModel) {
-            Log::warning('AI-Konfiguration unvollständig.');
+            Log::warning('ReportBookAiAssistant: AI-Konfiguration unvollständig.');
             return;
         }
 
@@ -87,6 +107,7 @@ class ReportBookAiAssistant extends Component
                 'messages' => [
                     [
                         'role'    => 'system',
+                        // kompletter Prompt inkl. HTML-Regeln kommt aus den Settings
                         'content' => trim(preg_replace('/\s+/', ' ', (string) $this->trainContent)),
                     ],
                     [
@@ -96,65 +117,91 @@ class ReportBookAiAssistant extends Component
                 ],
             ]);
 
-            $content = $response->json()['choices'][0]['message']['content'] ?? '';
+            $json = $response->json();
 
-            if ($content) {
-                $content = preg_replace('/[\p{Han}\p{Hiragana}\p{Katakana}\p{Thai}]/u', '', $content);
+            if (!isset($json['choices'][0]['message']['content'])) {
+                Log::warning('ReportBookAiAssistant: Unerwartete API-Antwortstruktur.', [
+                    'status' => $response->status(),
+                    'body'   => $response->body(),
+                ]);
+                return;
+            }
 
-                $decoded = json_decode($content, true);
+            $content = $json['choices'][0]['message']['content'];
 
-                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                    $this->optimizedText = trim((string) ($decoded['text'] ?? ''));
-                    $this->aiComment     = trim((string) ($decoded['comment'] ?? ''));
-                } else {
-                    $this->optimizedText = trim($content);
-                    $this->aiComment     = '';
-                }
+            // Nicht-deutsche Scriptblöcke rausfiltern, falls das Modell ausrastet
+            $content = preg_replace('/[\p{Han}\p{Hiragana}\p{Katakana}\p{Thai}]/u', '', $content);
+
+            $decoded = json_decode($content, true);
+
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $this->optimizedText = trim((string) ($decoded['text'] ?? ''));
+                $this->aiComment     = trim((string) ($decoded['comment'] ?? ''));
+            } else {
+                // Fallback: wenn die KI doch reinen Text zurückgibt
+                $this->optimizedText = trim($content);
+                $this->aiComment     = '';
+                Log::notice('ReportBookAiAssistant: Antwort war kein valides JSON, Fallback auf Raw-Text.', [
+                    'content' => $content,
+                ]);
             }
 
         } catch (\Throwable $e) {
-            Log::error('AI Fehler', ['message' => $e->getMessage()]);
+            Log::error('ReportBookAiAssistant: AI Fehler', [
+                'message' => $e->getMessage(),
+            ]);
+        } finally {
+            $this->isLoading = false;
         }
-
-        $this->isLoading = false;
     }
 
+    /**
+     * Baut die User-Message – nur Daten, keine Regeln.
+     * Die KI weiß aus train_content, dass "berichtText" HTML enthalten kann
+     * und wie es zu verarbeiten ist.
+     */
     protected function buildDynamicPrompt(string $base, string $feedback): string
     {
-        // KEINE Regeln, KEINE Formatvorgaben hier — alles muss in train_content stehen!
-        $data = [
-            'berichtText' => $base,
-            'feedback'    => trim($feedback) ?: null,
-        ];
-
-        return json_encode($data);
+        return json_encode([
+            'berichtText' => $base,                   // kann HTML enthalten
+            'feedback'    => trim($feedback) ?: null, // optionale Wünsche
+        ]);
     }
 
+    /**
+     * Übernimmt den AI-Vorschlag als neuen Basistext und blendet das Ergebnis wieder aus.
+     */
     public function useSuggestionAsBase(): void
     {
         if (!trim($this->optimizedText)) {
             return;
         }
 
-        $this->currentText = $this->optimizedText;
-        $this->feedback = '';
-                $this->optimizedText = '';
+        $this->currentText   = $this->optimizedText;
+        $this->feedback      = '';
+        $this->optimizedText = '';
         $this->aiComment     = '';
     }
 
+    /**
+     * Speichert den finalen Text (HTML erlaubt) in den ReportBookEntry.
+     */
     public function saveToEntry(): void
     {
-        if (!$this->entry) return;
+        if (!$this->entry) {
+            return;
+        }
 
         $textToSave = trim($this->optimizedText) !== ''
             ? $this->optimizedText
             : $this->currentText;
 
-        if ($textToSave === '') return;
+        if ($textToSave === '') {
+            return;
+        }
 
         $this->entry->text = $textToSave;
         $this->entry->save();
-
     }
 
     public function render()
