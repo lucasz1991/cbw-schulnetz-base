@@ -612,12 +612,12 @@ public function exportReportEntry(): ?StreamedResponse
 
 public function exportReportModule(): void
 {
-        $this->dispatch('toast', type: 'info', message: 'Baustein-Export noch in Entwicklung.');
+        $this->dispatch('toast', type: 'danger', message: 'Baustein-Export noch in Entwicklung.');
 }
 
 public function exportReportAll(): void
 {
-        $this->dispatch('toast', type: 'info', message: 'Alle Bausteine-Export noch in Entwicklung.');
+        $this->dispatch('toast', type: 'danger', message: 'Alle Bausteine-Export noch in Entwicklung.');
 }
 
 
