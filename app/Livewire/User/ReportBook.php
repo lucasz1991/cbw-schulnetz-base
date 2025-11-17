@@ -314,7 +314,6 @@ protected function loadCourseDays(): void
         $this->initialHash = $this->curHash();
         $this->recomputeFlags();
             $this->reloadForCurrentCourse();
-        $this->dispatch('toast', type: 'success', message: 'Entwurf gespeichert.');
     }
 
     public function submit(): void
