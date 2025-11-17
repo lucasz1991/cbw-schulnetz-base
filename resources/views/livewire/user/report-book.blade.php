@@ -343,15 +343,18 @@
                       wire:loading.attr="disabled"
                       wire:loading.class="opacity-70 cursor-wait"
                       :size="'sm'"
-                      class="px-2"
+                      class="px-2 relative  "
                       title="Entwurf speichern"
                   >
-                      <i class="fad fa-save text-[14px] mr-2 text-amber-500"></i>
-                      <span class="hidden sm:inline">Speichern</span>
+                        <i class="fad fa-save text-[14px] mr-2 text-amber-500 animate-pulse"></i>
+                        <span class="hidden sm:inline">Speichern</span>
+                      <div class="absolute -right-1 -top-1">
+                        <span class="relative flex size-3">  <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"></span>  <span class="relative inline-flex size-3 rounded-full bg-amber-500"></span></span>
+                      </div>
                   </x-buttons.button-basic>
               @endif
               {{-- Fertigstellen-Button --}}
-              @if($selectedCourseDayId && $status !== 1 && ($isDirty || $hasDraft))
+              @if($selectedCourseDayId && $status !== 1 && (!$isDirty))
                   <x-buttons.button-basic
                       wire:click="submit"
                       wire:target="submit"
@@ -384,7 +387,7 @@
                           title="Export-Optionen"
                       >
                           <i class="fad fa-download text-[16px] h-[1.25rem] mr-1"></i>
-                          <span class="hidden sm:inline">Export</span>
+                          <span class="hidden sm:inline">Download</span>
                           <i class="fal fa-angle-down ml-1 text-xs"></i>
                       </x-buttons.button-basic>
                   </x-slot>
@@ -399,7 +402,7 @@
                               class="flex w-full items-center gap-2 px-3 py-2 hover:bg-gray-50"
                           >
                               <i class="fal fa-file-pdf text-[14px] text-gray-500"></i>
-                              <span>Tag exportieren (PDF)</span>
+                              <span>Tag einzeln</span>
                           </button>
                           {{-- Baustein-Export (TODO: passende Methode implementieren) --}}
                           <button
@@ -410,7 +413,7 @@
                               class="flex w-full items-center gap-2 px-3 py-2 hover:bg-gray-50"
                           >
                               <i class="fal fa-layer-group text-[14px] text-gray-500"></i>
-                              <span>Baustein exportieren</span>
+                              <span>Baustein</span>
                           </button>
                           {{-- Alle Bausteine-Export (TODO: passende Methode implementieren) --}}
                           <button
@@ -421,7 +424,7 @@
                               class="flex w-full items-center gap-2 px-3 py-2 hover:bg-gray-50 border-t border-gray-100"
                           >
                               <i class="fal fa-file-archive text-[14px] text-gray-500"></i>
-                              <span>Alle Bausteine exportieren</span>
+                              <span>Berichtsheft komplett</span>
                           </button>
                       </div>
                   </x-slot>
