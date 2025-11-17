@@ -337,60 +337,166 @@
 
         <div class="flex items-center justify-between px-3 py-2 border-b border-gray-300">
         
-            <div class="flex items-center gap-2 text-gray-500">
-              <x-buttons.button-basic
-                  wire:click="exportReportEntry"
-                  wire:loading.attr="disabled"
-                  wire:loading.class="opacity-70 cursor-wait"
-                  :size="'sm'"
-                  class="px-2"
-                  title="Download"
-              >
-                  <i class="fad fa-download text-[16px] h-[1.25rem]"></i>
-              </x-buttons.button-basic>
- 
-        
-        
-                @php
-                    $currentDay = collect($courseDays)->firstWhere('id', $selectedCourseDayId);
-                @endphp
-                @if($currentDay && $currentDay['hasTutorDoc'])
+    <div class="flex flex-wrap items-center gap-2 text-gray-500">
+
+        {{-- Speichern-Button (nur wenn dirty) --}}
+        @if($selectedCourseDayId && $isDirty)
+            <x-buttons.button-basic
+                wire:click="save"
+                wire:target="save"
+                wire:loading.attr="disabled"
+                wire:loading.class="opacity-70 cursor-wait"
+                :size="'sm'"
+                class="px-2"
+                title="Entwurf speichern"
+            >
+                <i class="fad fa-save text-[14px] mr-2 text-amber-500"></i>
+                <span class="hidden sm:inline">Speichern</span>
+            </x-buttons.button-basic>
+        @endif
+
+        {{-- Fertigstellen-Button --}}
+        @if($selectedCourseDayId && $status !== 1 && ($isDirty || $hasDraft))
+            <x-buttons.button-basic
+                wire:click="submit"
+                wire:target="submit"
+                wire:loading.attr="disabled"
+                wire:loading.class="opacity-70 cursor-wait"
+                :size="'sm'"
+                class="px-2"
+                title="Eintrag als fertig markieren"
+            >
+                <i class="fad fa-check-circle mr-2 text-green-600"></i>
+                <span class="hidden sm:inline">Fertigstellen</span>
+            </x-buttons.button-basic>
+        @endif
+
+        {{-- Export-Dropdown (statt einfachem Download-Button) --}}
+        <x-ui.dropdown.anchor-dropdown
+            align="left"
+            width="48"
+            dropdownClasses="mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden"
+            contentClasses="bg-white"
+            :overlay="false"
+            :trap="false"
+            :scrollOnOpen="false"
+            :offset="6"
+        >
+            <x-slot name="trigger">
                 <x-buttons.button-basic
-                        wire:click="importTutorDocToDraft"
-                        wire:loading.attr="disabled"
-                        wire:loading.class="opacity-70 cursor-wait"
-                        :size="'sm'"
-                        class="px-2"
-                        title="Dozenten-Dokumentation übernehmen"
-                        >
-                        <i class="fad fa-file-signature text-[16px]"></i>
-                        <span class="hidden md:inline-block ml-2">Doku</span>
-                      </x-buttons.button-basic>
-                @else
-                      <x-buttons.button-basic
-                        wire:click="importTutorDocToDraft"
-                        wire:loading.attr="disabled"
-                        wire:loading.class="opacity-70 cursor-wait"
-                        :size="'sm'"
-                        class="px-2 opacity-70 cursor-not-allowed"
-                        title="Dozenten-Dokumentation noch nicht vorhanden"
-                        >
-                        <i class="fad fa-file-signature text-[16px]"></i>
-                        <span class="hidden md:inline-block  ml-2">Doku</span>
-                      </x-buttons.button-basic>
-                @endif
-                <x-buttons.button-basic
-                    @click="$dispatch('open-reportbook-ai-assistant',[ { id: {{ $reportBookEntryId ?? 'null' }} }])"
-                    wire:loading.attr="disabled"
-                    wire:loading.class="opacity-70 cursor-wait"
+                    type="button"
                     :size="'sm'"
                     class="px-2"
-                    title="Assistent Tool"
+                    title="Export-Optionen"
                 >
-                    <i class="fad fa-magic text-[16px]"></i>
-                    <span class="hidden md:inline-block ml-2">Assistent</span>
+                    <i class="fad fa-download text-[16px] h-[1.25rem] mr-1"></i>
+                    <span class="hidden sm:inline">Export</span>
+                    <i class="fal fa-angle-down ml-1 text-xs"></i>
                 </x-buttons.button-basic>
-            </div>
+            </x-slot>
+
+            <x-slot name="content">
+                <div class="py-1 text-sm text-gray-700">
+                    {{-- Tag-Export --}}
+                    <button
+                        type="button"
+                        wire:click="exportReportEntry"
+                        wire:target="exportReportEntry"
+                        wire:loading.attr="disabled"
+                        class="flex w-full items-center gap-2 px-3 py-2 hover:bg-gray-50"
+                    >
+                        <i class="fal fa-file-pdf text-[14px] text-gray-500"></i>
+                        <span>Tag exportieren (PDF)</span>
+                    </button>
+
+                    {{-- Baustein-Export (TODO: passende Methode implementieren) --}}
+                    <button
+                        type="button"
+                        wire:click="exportReportModule"
+                        wire:target="exportReportModule"
+                        wire:loading.attr="disabled"
+                        class="flex w-full items-center gap-2 px-3 py-2 hover:bg-gray-50"
+                    >
+                        <i class="fal fa-layer-group text-[14px] text-gray-500"></i>
+                        <span>Baustein exportieren</span>
+                    </button>
+
+                    {{-- Alle Bausteine-Export (TODO: passende Methode implementieren) --}}
+                    <button
+                        type="button"
+                        wire:click="exportReportAll"
+                        wire:target="exportReportAll"
+                        wire:loading.attr="disabled"
+                        class="flex w-full items-center gap-2 px-3 py-2 hover:bg-gray-50 border-t border-gray-100"
+                    >
+                        <i class="fal fa-file-archive text-[14px] text-gray-500"></i>
+                        <span>Alle Bausteine exportieren</span>
+                    </button>
+                </div>
+            </x-slot>
+        </x-ui.dropdown.anchor-dropdown>
+
+        {{-- Dozenten-Doku übernehmen --}}
+        @php
+            $currentDay = collect($courseDays)->firstWhere('id', $selectedCourseDayId);
+        @endphp
+
+        @if($currentDay && $currentDay['hasTutorDoc'])
+            <x-buttons.button-basic
+                wire:click="importTutorDocToDraft"
+                wire:loading.attr="disabled"
+                wire:loading.class="opacity-70 cursor-wait"
+                :size="'sm'"
+                class="px-2"
+                title="Dozenten-Dokumentation übernehmen"
+            >
+                <i class="fad fa-file-signature text-[16px]"></i>
+                <span class="hidden md:inline-block ml-2">Doku</span>
+            </x-buttons.button-basic>
+        @else
+            <x-buttons.button-basic
+                :size="'sm'"
+                class="px-2 opacity-60 cursor-not-allowed"
+                title="Dozenten-Dokumentation noch nicht vorhanden"
+            >
+                <i class="fad fa-file-signature text-[16px]"></i>
+                <span class="hidden md:inline-block ml-2">Doku</span>
+            </x-buttons.button-basic>
+        @endif
+
+        {{-- KI-Assistent --}}
+        @if($reportBookEntryId)
+            <x-buttons.button-basic
+                @click="$dispatch('open-reportbook-ai-assistant',[ { id: {{ $reportBookEntryId ?? 'null' }} }])"                  
+                wire:loading.attr="disabled"
+                wire:loading.class="opacity-70 cursor-wait"
+                :size="'sm'"
+                class="px-2"
+                title="KI-Assistent für diesen Eintrag"
+            >
+                <i class="fad fa-magic text-[16px]"></i>
+                <span class="hidden md:inline-block ml-2">Assistent</span>
+            </x-buttons.button-basic>
+        @else
+            <x-buttons.button-basic
+                :size="'sm'"
+                class="px-2 opacity-60 cursor-not-allowed"
+                title="Assistent erst verfügbar, wenn ein Entwurf gespeichert wurde"
+            >
+                <i class="fad fa-magic text-[16px]"></i>
+                <span class="hidden md:inline-block ml-2">Assistent</span>
+            </x-buttons.button-basic>
+        @endif
+
+        {{-- Optional: kleiner Loading-Hinweis direkt in der Toolbar --}}
+        <span
+            wire:loading
+            wire:target="save,submit,exportReportEntry,exportReportModule,exportReportAll,importTutorDocToDraft"
+            class="text-[11px] text-gray-500 ml-1"
+        >
+            Verarbeite …
+        </span>
+    </div>
         
             <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border
                 {{ $status === 1 
@@ -411,46 +517,7 @@
         </div>
       </div>
 
-      {{-- Aktionen --}}
-      <div class="flex items-center flex-wrap gap-2 mt-1"
-          wire:loading.class="pointer-events-none"
-          wire:target="save,submit">
 
-          {{-- Speichern-Button --}}
-          @if($selectedCourseDayId && $isDirty)
-              <x-buttons.button-basic
-                  wire:click="save"
-                  wire:target="save"
-                  wire:loading.attr="disabled"
-                  wire:loading.class="opacity-70 cursor-wait"
-                  class="mt-1"
-                  :size="'sm'"
-              >
-                  <i class="fad fa-save text-[14px] mr-2 text-amber-500"></i>
-                  Speichern
-              </x-buttons.button-basic>
-          @endif
-
-          {{-- Fertigstellen-Button --}}
-          @if($selectedCourseDayId && $status !== 1 && ($isDirty || $hasDraft))
-              <x-buttons.button-basic
-                  wire:click="submit"
-                  wire:target="submit"
-                  wire:loading.attr="disabled"
-                  wire:loading.class="opacity-70 cursor-wait"
-                  class="mt-1"
-                  :size="'sm'"
-              >
-                  <i class="fad fa-check-circle mr-2 text-green-600"></i>
-                  Fertigstellen
-              </x-buttons.button-basic>
-          @endif
-
-          {{-- Loading --}}
-          <span wire:loading wire:target="save,submit" class="text-sm text-gray-500">
-              Verarbeite …
-          </span>
-      </div>
 
     </div>
   </div>

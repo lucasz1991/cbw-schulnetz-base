@@ -9,8 +9,7 @@
         abw_grund: @entangle('abw_grund').live,
         get showGrundBox(){ return this.abw_grund === 'abw_wichtig' }
       }"
-        x-effect="if (fehltag) { $wire.set('fehlUhrGek', null); $wire.set('fehlUhrGeg', null); }"
-
+      x-effect="if (fehltag) { $wire.set('fehlUhrGek', null); $wire.set('fehlUhrGeg', null); }"
       class="space-y-6"
       wire:submit.prevent="save"
     >
@@ -27,10 +26,8 @@
           <x-ui.forms.input-error for="klasse"/>
         </div>
       </div>
-
       <div class="grid md:grid-cols-2 gap-8 ">
           <div>
-            
               <x-ui.forms.date-input
                   id="fehlDatum"
                   model="fehlDatum"
@@ -38,7 +35,6 @@
                   :inline="true"
                   required
               />
-            
             <x-ui.forms.input-error for="fehlDatum"/>
           </div>
           <div class="h-full">
@@ -51,12 +47,9 @@
                       id="fehltag"
                       label="Ganztägig gefehlt"
                       wire:model="fehltag"
-                          :toggle="true"
+                      :toggle="true"
                   />
-  
                 </div>
-                
-                {{-- Zeiten-Bereich nur zeigen, wenn NICHT ganztägig --}}
                 <div
                     x-show="!fehltag"
                     x-cloak
@@ -87,15 +80,12 @@
                             wire:model="fehlUhrGeg"
                             :inline="true"
                         />
-    
                       </div>
                     </div>
                 </div>
             </div>
           </div>
       </div>
-
-
         {{-- Grund der Fehlzeit --}}
         <div class="space-y-2 pt-8">
         <div class="flex justify-center">
@@ -130,7 +120,6 @@
                 <x-ui.forms.input-error for="grund_item"/>
             </div>
         </div>
-
       <div>
         <x-ui.forms.label for="begruendung" value="Sonstige Begründung"/>
         <textarea id="begruendung" maxlength="400"
@@ -152,17 +141,13 @@
             :maxFiles="10"
             acceptedFiles=".jpg,.jpeg,.png,.gif,.pdf"
         />
-
       </div>
         @endif
-
-
       {{-- Submit im Formular (Enter) --}}
       <button type="submit" class="hidden"></button>
     </form>
     @endif
   </x-slot>
-
   <x-slot name="footer">
     <x-secondary-button wire:click="close">Schließen</x-secondary-button>
     <x-button class="ml-2" wire:click="save">Speichern</x-button>
