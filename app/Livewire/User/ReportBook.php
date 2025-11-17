@@ -610,6 +610,16 @@ public function exportReportEntry(): ?StreamedResponse
     }, $fileName);
 }
 
+public function exportReportModule(): void
+{
+        $this->dispatch('toast', type: 'info', message: 'Baustein-Export noch in Entwicklung.');
+}
+
+public function exportReportAll(): void
+{
+        $this->dispatch('toast', type: 'info', message: 'Alle Bausteine-Export noch in Entwicklung.');
+}
+
 
     public function render()
     {

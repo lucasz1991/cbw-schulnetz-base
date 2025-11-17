@@ -280,6 +280,7 @@
           <div class="relative h-full pb-2">
             <div class="swiper h-full" x-ref="swiper">
               <div class="swiper-wrapper h-full">
+                
                 <div class="swiper-slide">
                   <div class="grid h-full grid-cols-1 place-content-stretch">
                     <h3 class="text-gray-800 font-semibold mb-1">Qualiprogramm als PDF</h3>
@@ -317,6 +318,7 @@
                     </x-buttons.button-basic>
                   </div>
                 </div>
+
               </div>
             </div>
             <!-- If we need pagination -->
