@@ -533,7 +533,7 @@ class ParticipantsTable extends Component
     }
 
 
-        public function placeholder()
+    public function placeholder()
     {
         return <<<'HTML'
             <div role="status" class="h-32 w-full relative animate-pulse">

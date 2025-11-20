@@ -54,7 +54,7 @@
     </div>
   </div>
 
-  <div class="mt-6">
+  <div class="mt-6 border border-gray-300 shadow rounded-lg overflow-hidden">
     <x-ui.editor.toast
       wire:key="tui-editor-{{ $selectedDayId }}" 
       wireModel="dayNotes"

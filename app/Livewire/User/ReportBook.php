@@ -344,7 +344,7 @@ protected function loadCourseDays(): void
             'text'         => $this->text,
             'submitted_at' => now(),
         ])->save();
-        
+         
         $this->reportBookEntryId = $entry->id;
         $needsSignature = $this->checkCourseCompletionAndDispatchSignature();
 
