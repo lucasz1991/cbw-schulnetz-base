@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use App\Models\File;
 
 class ReportBook extends Model
 {
@@ -37,6 +39,11 @@ class ReportBook extends Model
         return $this->hasMany(ReportBookEntry::class);
     }
 
+    public function files(): MorphMany
+    {
+        return $this->morphMany(File::class, 'fileable');
+    }
+
 
     /**
      * Hilfsmethode: neuestes Entry abrufen
@@ -44,6 +51,14 @@ class ReportBook extends Model
     public function latestEntry(): ?ReportBookEntry
     {
         return $this->entries()->orderByDesc('entry_date')->first();
+    }
+
+    public function participantSignatureFile(): ?File
+    {
+        return $this->files()
+            ->where('type', 'participant_signature')
+            ->latest('id')
+            ->first();
     }
 
         /* ---------- Nützliche Helper/Scopes ---------- */

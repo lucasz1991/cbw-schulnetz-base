@@ -49,6 +49,9 @@ class ReportBook extends Component
 
     public int $editorVersion = 0;
 
+    protected $listeners = [
+        'signatureCompleted' => 'signatureCompleted',
+    ];
 
     public function mount(): void
     {
@@ -335,22 +338,55 @@ protected function loadCourseDays(): void
             'report_book_id' => $this->reportBookId,
             'course_day_id'  => $day->id,
         ]);
-
+        /* ======================= bevor status änderung ======================= */
         $entry->fill([
             'entry_date'   => $day->date,
             'text'         => $this->text,
-            'status'       => 1,      // Fertig
             'submitted_at' => now(),
         ])->save();
+        
         $this->reportBookEntryId = $entry->id;
+        $needsSignature = $this->checkCourseCompletionAndDispatchSignature();
 
-        $this->status   = 1;
-        $this->hasDraft = false;
+        if(!$needsSignature){
+            $entry->fill([
+                'status'       => 1,
+            ])->save();
+    
+            $this->status   = 1;
+            $this->hasDraft = false;
+    
+            $this->initialHash = $this->curHash();
+            $this->recomputeFlags();
+            $this->reloadForCurrentCourse();
+            $this->dispatch('toast', type: 'success', message: 'Eintrag fertiggestellt.');
+        }
 
-        $this->initialHash = $this->curHash();
-        $this->recomputeFlags();
-    $this->reloadForCurrentCourse();
-        $this->dispatch('toast', type: 'success', message: 'Eintrag fertiggestellt.');
+    }
+
+    public function signatureCompleted(): void
+    {
+        $day = CourseDay::find($this->selectedCourseDayId);
+        if (!$day) {
+            $this->dispatch('toast', type: 'warning', message: 'Kurstag nicht gefunden.');
+            return;
+        }
+
+        $entry = ReportBookEntry::firstOrNew([
+            'report_book_id' => $this->reportBookId,
+            'course_day_id'  => $day->id,
+        ]);
+        $entry->fill([
+            'status' => 1,
+        ])->save();
+    
+            $this->status   = 1;
+            $this->hasDraft = false;
+    
+            $this->initialHash = $this->curHash();
+            $this->recomputeFlags();
+            $this->reloadForCurrentCourse();
+            $this->dispatch('toast', type: 'success', message: 'Berichtsheft für diesen Kurs wurde unterschrieben.');
     }
 
     /* ======================= Loader / Helper ======================= */
@@ -373,6 +409,52 @@ protected function loadCourseDays(): void
 
         $this->reportBookId = $book->id;
     }
+
+    protected function checkCourseCompletionAndDispatchSignature(): bool
+    {
+        if (!$this->selectedCourseId || !$this->reportBookId) {
+            return false;
+        }
+
+        // Wie viele Kurstage im Kurs?
+        $totalDays = DB::table('course_days')
+            ->where('course_id', $this->selectedCourseId)
+            ->count();
+
+        if ($totalDays === 0) {
+            return false;
+        }
+
+        // Wie viele Tage haben einen fertigen Eintrag (status >= 1)?
+        $finishedDays = ReportBookEntry::query()
+            ->where('report_book_id', $this->reportBookId)
+            ->where('status', '>=', 1)
+            ->distinct('course_day_id')
+            ->count('course_day_id');
+
+        if ($finishedDays !== $totalDays) {
+            return false;
+        }
+
+        // Optional: schon unterschrieben? (File-Modell aus ReportBook)
+        $book = ReportBookModel::with('files')->find($this->reportBookId);
+        if ($book && method_exists($book, 'participantSignatureFile') && $book->participantSignatureFile()) {
+            // Kurs ist schon unterschrieben → kein erneutes Modal
+            return false;
+        }
+
+        // Jetzt: alle Tage fertig & noch keine Signatur → Event feuern
+        $this->dispatch(
+            'open-reportbook-signature',
+            reportBookId: $this->reportBookId,
+            courseId: $this->selectedCourseId,
+            courseName: $this->selectedCourseName,
+            entryId: $this->reportBookEntryId,   // der gerade fertiggestellte Eintrag
+        );
+
+        return true;
+    }
+
 
     protected function loadCurrentEntry(): void
     {
