@@ -241,7 +241,7 @@ class CourseRatingFormModal extends Component
     {
         $participantId = Auth::id();
 
-        $existing = CourseRating::where('course_id', $this->course->id)
+        $existing = CourseRating::where('course_id', $this->course?->id)
             ->where('participant_id', $participantId)
             ->first();
 

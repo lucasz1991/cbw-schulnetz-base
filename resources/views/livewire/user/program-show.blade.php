@@ -541,17 +541,10 @@
                     <div class="flex items-center space-x-2">
                       @if(!$hasCurrentCourseRating)
 
-                      <x-buttons.button-basic :size="'sm'" @click="$dispatch('open-course-rating-modal', [{ course_id: '{{ $aktuellesModul['klassen_id'] }}' }]);isClicked = true; setTimeout(() => isClicked = false, 100)"   >
+                      <x-buttons.button-basic :size="'sm'" @click="$dispatch('open-course-rating-modal', [{ course_id: '{{ $aktuellesModul['klassen_id'] }}' }]);isClicked = true; setTimeout(() => isClicked = false, 100)" @dblclick="$dispatch('open-course-rating-required-modal', { course_id: '{{ $aktuellesModul['klassen_id'] }}' });isClicked = true; setTimeout(() => isClicked = false, 100)"  >
                         Bewerten  
-                        <svg
-                            class="ml-2 w-5 transition-colors duration-150 text-gray-400 hover:text-yellow-400"
-                            fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.204 3.698a1 1 0 00.95.69h3.894c.969 0 1.371 1.24.588 1.81l-3.15 2.286a1 1 0 00-.364 1.118l1.204 3.698c.3.921-.755 1.688-1.54 1.118l-3.15-2.286a1 1 0 00-1.176 0l-3.15 2.286c-.784.57-1.838-.197-1.539-1.118l1.203-3.698a1 1 0 00-.364-1.118L2.414 9.125c-.783-.57-.38-1.81.588-1.81h3.894a1 1 0 00.951-.69l1.202-3.698z"/>
-                        </svg>                  
-                      </x-buttons.button-basic>
-                      <x-buttons.button-basic :size="'sm'" @click="$dispatch('open-course-rating-required-modal', { course_id: '{{ $aktuellesModul['klassen_id'] }}' });isClicked = true; setTimeout(() => isClicked = false, 100)"  title="Button um den letzten Tag des Bausteins zu simulieren sodass die Bewertung pflicht ist. Der Button wird nach dem Testen entfernt...">
-                        
-                        <i class="fal fa-star  text-[18px] text-gray-400 hover:text-yellow-400 animate-pulse"></i>           
+                        <i class="fa fa-star  text-[18px] text-gray-400 ml-2 hover:text-yellow-400 animate-pulse"></i>           
+                
                       </x-buttons.button-basic>
                       @endif
                     </div>
