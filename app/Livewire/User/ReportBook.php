@@ -557,67 +557,112 @@ protected function loadCourseDays(): void
 public function exportReportEntry(): ?StreamedResponse
 {
     if (!$this->selectedCourseId || !$this->selectedCourseDayId) {
-        $this->dispatch('toast', type: 'warning', message: 'Kurs und Kurstag auswählen, bevor du exportierst.');
+        $this->dispatch('toast', type: 'warning', message: 'Kurs und Kurstag auswählen.');
         return null;
     }
 
-    // 1) Das ReportBook des Users für den aktuellen Kurs (und optional Maßnahme) finden
-    $book = ReportBookModel::query()
-        ->where('user_id', Auth::id())
+    $book = ReportBookModel::where('user_id', Auth::id())
         ->where('course_id', $this->selectedCourseId)
         ->when($this->massnahmeId, fn($q) => $q->where('massnahme_id', $this->massnahmeId))
         ->first();
 
     if (!$book) {
-        $this->dispatch('toast', type: 'warning', message: 'Für diesen Kurs existiert noch kein Berichtsheft.');
+        $this->dispatch('toast', type: 'warning', message: 'Kein Berichtsheft vorhanden.');
         return null;
     }
 
-    // 2) Den passenden Entry über report_book_id + course_day_id holen
-    $entry = ReportBookEntry::query()
-        ->where('report_book_id', $book->id)
+    $entry = ReportBookEntry::where('report_book_id', $book->id)
         ->where('course_day_id', $this->selectedCourseDayId)
         ->first();
 
     if (!$entry) {
-        $this->dispatch('toast', type: 'warning', message: 'Für diesen Kurstag ist kein Eintrag vorhanden.');
+        $this->dispatch('toast', type: 'warning', message: 'Kein Eintrag vorhanden.');
         return null;
     }
 
-    // 3) PDF im Speicher erzeugen (kein Storage::put)
-    $pdf = Pdf::loadView('pdf.report-entry', [
-        'entry' => $entry,
-        'book'  => $book,
-        // optional: direkt Kurs & Person mitgeben, wenn Relationen existieren
-        // 'course' => $book->course ?? null,
-        // 'user'   => Auth::user(),
+    $entry->entry_date = \Carbon\Carbon::parse($entry->entry_date);
+
+    $pdf = Pdf::loadView('pdf.report-book', [
+        'mode'   => 'single',
+        'entry'  => $entry,
+        'course' => $book->course,
+        'user'   => Auth::user(),
+        'title'  => 'Bericht '.$entry->entry_date->format('d.m.Y'),
     ]);
 
-    // 4) Dateiname aus entry_date bauen (Fallback: now)
-    $date = $entry->entry_date ?? null;
-    try {
-        $dateObj = $date ? Carbon::parse($date) : now();
-    } catch (\Throwable $e) {
-        $dateObj = now();
+    return response()->streamDownload(
+        fn() => print($pdf->output()),
+        'bericht-'.$entry->entry_date->format('Y-m-d').'.pdf'
+    );
+}
+
+
+public function exportReportModule(): ?StreamedResponse
+{
+    $book = ReportBookModel::with(['course','entries' => fn($q) => $q->orderBy('entry_date')])
+        ->where('user_id', Auth::id())
+        ->where('course_id', $this->selectedCourseId)
+        ->when($this->massnahmeId, fn ($q) => $q->where('massnahme_id', $this->massnahmeId))
+        ->first();
+
+    if (!$book || $book->entries->isEmpty()) {
+        $this->dispatch('toast', type: 'warning', message: 'Keine Einträge vorhanden.');
+        return null;
     }
 
-    $fileName = 'bericht-' . $dateObj->format('Y-m-d') . '.pdf';
+    foreach ($book->entries as $e) {
+        $e->entry_date = \Carbon\Carbon::parse($e->entry_date);
+    }
 
-    // 5) StreamDownload – nichts wird auf der Platte gespeichert
-    return response()->streamDownload(function () use ($pdf) {
-        echo $pdf->output();
-    }, $fileName);
+    $pdf = Pdf::loadView('pdf.report-book', [
+        'mode'    => 'module',
+        'entries' => $book->entries,
+        'course'  => $book->course,
+        'user'    => Auth::user(),
+        'title'   => 'Berichtsheft – '.$book->course->klassen_id,
+    ]);
+
+    return response()->streamDownload(
+        fn() => print($pdf->output()),
+        'berichtsheft-'.$book->course->klassen_id.'.pdf'
+    );
 }
 
-public function exportReportModule(): void
+public function exportReportAll(): ?StreamedResponse
 {
-        $this->dispatch('toast', type: 'danger', message: 'Baustein-Export noch in Entwicklung.');
+    $books = ReportBookModel::with([
+            'course',
+            'entries' => fn($q) => $q->orderBy('entry_date'),
+        ])
+        ->where('user_id', Auth::id())
+        ->when($this->massnahmeId, fn($q) => $q->where('massnahme_id', $this->massnahmeId))
+        ->whereHas('entries')
+        ->get();
+
+    if ($books->isEmpty()) {
+        $this->dispatch('toast', type: 'warning', message: 'Keine Einträge vorhanden.');
+        return null;
+    }
+
+    foreach ($books as $book) {
+        foreach ($book->entries as $e) {
+            $e->entry_date = \Carbon\Carbon::parse($e->entry_date);
+        }
+    }
+
+    $pdf = Pdf::loadView('pdf.report-book', [
+        'mode'  => 'all',
+        'books' => $books,
+        'user'  => Auth::user(),
+        'title' => 'Berichtsheft – Alle Kurse',
+    ]);
+
+    return response()->streamDownload(
+        fn() => print($pdf->output()),
+        'berichtsheft-alle-kurse.pdf'
+    );
 }
 
-public function exportReportAll(): void
-{
-        $this->dispatch('toast', type: 'danger', message: 'Alle Bausteine-Export noch in Entwicklung.');
-}
 
 
     public function render()

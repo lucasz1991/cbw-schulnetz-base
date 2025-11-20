@@ -1,19 +1,41 @@
 <div>
-    <x-dialog-modal wire:model="showModal">
-        <x-slot name="title">
-            Baustein Bewertung
-        </x-slot>
+    <x-dialog-modal wire:model="showModal" :trapClose="true">
     
+        <x-slot name="title">
+            <div class="flex flex-wrap sm:flex-nowrap items-start sm:items-center justify-between gap-2 ">
+                {{-- Linke Spalte: Titel (ellipsen auf kleinen Screens) --}}
+                <div class="min-w-0 flex-1">
+                <span class="text-sm text-gray-800 block truncate" title="Baustein Bewertung">Baustein Bewertung</span>
+                </div>
+
+                {{-- Rechte Spalte: Actions (fixbreit) --}}
+                <div class="shrink-0  flex items-center gap-2">
+                    @if(!$isRequired)
+                        <button
+                            wire:click="$set('showModal', false)"
+                            class="inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-full p-2 focus:outline-none focus:ring focus:ring-gray-300"
+                            title="Schließen"
+                        >
+                            <i class="fal fa-times w-4 h-4 leading-none"></i>
+                            <span class="sr-only">Schließen</span>
+                        </button>
+                    @endif
+                </div>
+            </div>
+        </x-slot>
         <x-slot name="content">
+            @if($isRequired)
+                <div class="rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800 mb-4">
+                    Heute ist der letzte Tag, um diesen Baustein zu bewerten. Bitte nehmen Sie sich kurz Zeit und erledigen Sie die Bewertung umgehend. Vielen Dank!                
+                </div>
+            @endif
             @if($alreadyRated)
-                <div class="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                <div class="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 mb-4">
                     Ihre Bewertung zu diesem Baustein wurde bereits gespeichert. Vielen Dank!
                 </div>
             @else
                 {{-- Stepper State in Alpine, entangled mit Livewire --}}
                 <div x-data="{ step: @entangle('currentStep') }" class="">
-    
-                    {{-- Fortschrittsanzeige / Progressbar + Step-Pills --}}
                     <div>
                         <div class="flex items-center justify-between text-xs font-medium text-gray-600 mb-2">
                             <span>Schritt <span x-text="step"></span> von 5</span>
@@ -44,7 +66,6 @@
                     </div>
     
                     @if($currentStep === 1)
-                    {{-- Anonym-Checkbox (global) --}}
                     <label class="inline-flex items-center space-x-2 mt-6">
                         <input type="checkbox" wire:model="is_anonymous" class="rounded border-gray-300">
                         <span>Ich möchte anonym bewerten (ohne Personen-Daten).</span>
@@ -52,36 +73,8 @@
                     @endif
     
                     {{-- Bewertungsblöcke oder Nachricht je nach Step --}}
-                    {{-- Definieren der Blöcke und Fragen als Array --}}
-                    @php
-                        $blocks = [
-                            1 => ['title' => 'Kundenbetreuung', 'rows' => [
-                                'kb_1' => 'Wie kompetent sind die Mitarbeiter/-innen der Kundenbetreuung?',
-                                'kb_2' => 'Werden Ihre Probleme ernst genommen und zeitnah erledigt?',
-                                'kb_3' => 'Sind die Mitarbeiter/-innen freundlich und höflich?',
-                            ]],
-                            2 => ['title' => 'Systemadministration', 'rows' => [
-                                'sa_1' => 'Wie kompetent sind die Mitarbeiter/-innen der Systemadministration?',
-                                'sa_2' => 'Werden Ihre Probleme ernst genommen und zeitnah erledigt?',
-                                'sa_3' => 'Sind die Mitarbeiter/-innen freundlich und höflich?',
-                            ]],
-                            3 => ['title' => 'Institutsleitung', 'rows' => [
-                                'il_1' => 'Wie beurteilen Sie die Organisation im Institut?',
-                                'il_2' => 'Werden Ihre Probleme ernst genommen und zeitnah erledigt?',
-                                'il_3' => 'Sind die Mitarbeiter/-innen freundlich und höflich?',
-                            ]],
-                            4 => ['title' => 'Dozent/-in', 'rows' => [
-                                'do_1' => 'War der/die Dozent/-in Ihnen gegenüber freundlich und höflich?',
-                                'do_2' => 'Wie beurteilen Sie die Fachkompetenz?',
-                                'do_3' => 'Wie beurteilen Sie die methodischen und didaktischen Fähigkeiten?',
-                            ]],
-                        ];
-                    @endphp
-    
-    
+
                     <div class="my-6">
-    
-                        {{-- Schritte 1-4: Bewertungsblöcke --}}
                         @foreach($blocks as $idx => $block)
                             <div x-show="step === {{ $idx }}" x-collapse class="rounded-lg border overflow-hidden ">
                                 <div class="bg-gray-100 px-4 py-2 font-semibold">{{ $block['title'] }}</div>
@@ -149,10 +142,14 @@
     
                     {{-- Navigation unten (innerhalb content, damit immer unterhalb des sichtbaren Steps) --}}
                     <div class="flex items-center justify-between mt-6">
-                        <x-secondary-button
-                            x-bind:disabled="step===1"
-                            @click="if(step>1) step--"
-                        >Zurück</x-secondary-button>
+                        <div>
+                            <div  x-show="step != 1" x-collapse>
+                                <x-secondary-button
+                                    x-bind:disabled="step===1"
+                                    @click="if(step>1) step--"
+                                >Zurück</x-secondary-button>
+                            </div>
+                        </div>
     
                         <div class="flex items-center space-x-2">
                             <x-secondary-button

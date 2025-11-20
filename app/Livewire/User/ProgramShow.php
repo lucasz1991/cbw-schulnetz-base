@@ -9,6 +9,9 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\RateLimiter;
 use App\Models\User;
 use App\Models\Person;
+use App\Models\Course;
+use App\Models\CourseRating;
+
 
 
 
@@ -31,6 +34,9 @@ class ProgramShow extends Component
     public int $bestandenBausteine = 0;
     public int $progress = 0;
     public int $currentProgress = 0;
+
+    public bool $hasCurrentCourseRating = false;
+
 
     public array $excludeFromProgress = ['FERI', 'PRAK', 'PRUE']; // alles, was nicht als Kurs zählt
 
@@ -329,7 +335,62 @@ class ProgramShow extends Component
         fn ($x) => $x['label'].' · '.$x['end']->format('d.m.')
     )->all();                                                               // ["Modul · 03.10.", ...]
     $this->bausteinColors = array_fill(0, count($this->bausteinSerie), '#2b5c9e'); // optional: einfarbig
+
+    // ----------  Wichtig: heute letzter Kurstag? ----------
+    if ($this->aktuellesModul) {
+        $ende = $this->toCarbon($this->aktuellesModul['ende']);
+
+        // zuerst prüfen, ob schon eine Bewertung existiert
+        $this->hasCurrentCourseRating = $this->checkHasRatingForModule($this->aktuellesModul);
+
+        // Nur wenn heute letzter Tag UND noch keine Bewertung → Modal erzwingen
+        if ($ende && $ende->isToday() && ! $this->hasCurrentCourseRating) {
+            $this->dispatch(
+                'open-course-rating-required-modal',
+                course_id: $this->aktuellesModul['baustein_id'],
+            );
+        }
+    } else {
+        $this->hasCurrentCourseRating = false;
+    }
+
+    
 }
+
+private function checkHasRatingForModule(?array $modul): bool
+{
+    if (!$modul) {
+        return false;
+    }
+
+    $userId = Auth::id();
+    if (!$userId) {
+        return false;
+    }
+
+    // Klassen-ID kommt aus den UVS-Rohdaten / Baustein
+    $klassenId = $modul['klassen_id'] ?? null;
+    if (!$klassenId) {
+        return false;
+    }
+
+    // Alle passenden Courses zu dieser Klassen-ID holen
+    $courseIds = Course::query()
+        ->where('klassen_id', $klassenId)
+        ->pluck('id');
+
+    if ($courseIds->isEmpty()) {
+        return false;
+    }
+
+    // Prüfen, ob für einen dieser Kurse bereits eine Bewertung des Users existiert
+    return CourseRating::query()
+        ->where('user_id', $userId)
+        ->whereIn('course_id', $courseIds)
+        ->exists();
+}
+
+
 
 private function calcCurrentProgress(?array $modul): int
 {
@@ -441,6 +502,8 @@ private function calcCurrentProgress(?array $modul): int
             'bausteinSerie'            => $this->bausteinSerie,
             'bausteinLabels'            => $this->bausteinLabels,
             'bausteinColors'            => $this->bausteinColors,
+            'hasCurrentCourseRating' => $this->hasCurrentCourseRating,
+
         ]);
     }
 }

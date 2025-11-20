@@ -82,20 +82,16 @@
 
 
   {{-- Trigger --}}
-  <div x-ref="trigger" @click="
-      open = !open;
-      if (open) {
-        $nextTick(() => {
-          setPanelWidth();
-          $dispatch('dropdown-open');
-          // optional sofort scrollen, falls scrollOnOpen nicht aktiv ist, aber du on-click direkt möchtest:
-          if (!scrollOnOpen) {
-            if (scrollOnTrigger) { scrollToTrigger(); }
-            else { scrollPanelCentered(); }
-          }
-        });
-      }
-    ">
+<div x-ref="trigger" @click="
+    open = !open;
+    if (open) {
+      $nextTick(() => {
+        setPanelWidth();
+        $dispatch('dropdown-open');
+      });
+    }
+  "
+>
     {{ $trigger }}
   </div>
 

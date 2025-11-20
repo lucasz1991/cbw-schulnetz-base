@@ -231,10 +231,7 @@
             </x-slot>
           </x-ui.dropdown.anchor-dropdown>
       </div>
-      <div
-        class=" mb-4 space-y-2">
-
-
+      <div class=" mb-4 space-y-2">
       {{-- CourseDays des aktiven Kurses --}}
       <div class="">
 
