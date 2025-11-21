@@ -33,6 +33,28 @@ class File extends Model
         'expires_at' => 'datetime',
     ];
 
+
+    protected static function booted(): void
+    {
+        static::deleting(function (File $file) {
+            $disk = 'private';
+
+            if ($file->path && Storage::disk($disk)->exists($file->path)) {
+                try {
+                    Storage::disk($disk)->delete($file->path);
+                } catch (\Throwable $e) {
+                    Log::warning('Konnte Datei beim Löschen des File-Modells nicht entfernen', [
+                        'file_id' => $file->id,
+                        'disk'    => $disk,
+                        'path'    => $file->path,
+                        'error'   => $e->getMessage(),
+                    ]);
+                }
+            }
+        });
+    }
+
+
     /* ------------------------------------------
      * zentrale Dateitypen-Definition
      * ----------------------------------------*/

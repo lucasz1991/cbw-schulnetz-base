@@ -1,5 +1,5 @@
 <div>
-    <x-dialog-modal wire:model="open" :maxWidth="'4xl'">
+    <x-dialog-modal wire:model="open" :maxWidth="'4xl'"  :trapClose="true">
         <x-slot name="title">
             Berichtsheft unterschreiben
         </x-slot>
@@ -157,7 +157,7 @@
                     <button
                         type="button"
                         class="px-3 py-1.5 rounded border text-sm"
-                        @click="$wire.set('open', false)"
+                        wire:click="cancel"
                     >
                         Abbrechen
                     </button>

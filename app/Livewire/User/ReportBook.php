@@ -44,14 +44,23 @@ class ReportBook extends Component
 
     /** intern */
     protected ?int $reportBookId = null;      // wird lazy ermittelt/angelegt
-    public ?int $reportBookEntryId = null;      // wird lazy ermittelt/angelegt
+    public ?int $reportBookEntryId = null;    // wird lazy ermittelt/angelegt
     protected ?string $initialHash = null;
 
     public int $editorVersion = 0;
 
-    protected $listeners = [
-        'signatureCompleted' => 'signatureCompleted',
-    ];
+    // Signatur-Modal (direkt per Variablen gesteuert)
+    public bool $signatureModalOpen = false;
+    public ?int $signatureReportBookId = null;
+    public ?int $signatureCourseId = null;
+    public ?int $signatureEntryId = null;
+    public ?string $signatureCourseName = null;
+
+protected $listeners = [
+    'signatureCompleted' => 'signatureCompleted',
+    'signatureAborted' => 'signatureAborted',
+];
+
 
     public function mount(): void
     {
@@ -283,41 +292,68 @@ protected function loadCourseDays(): void
 
     /* ======================= Persistenzaktionen ======================= */
 
-    public function save(): void
-    {
-        $this->ensureReportBookId(); // legt ReportBook on-demand an
+public function save(): void
+{
+    $this->ensureReportBookId(); // legt ReportBook on-demand an
 
-        if (!$this->selectedCourseDayId) {
-            $this->dispatch('toast', type: 'warning', message: 'Kein Kurstag ausgewählt.');
-            return;
-        }
-
-        $day = CourseDay::find($this->selectedCourseDayId);
-        if (!$day) {
-            $this->dispatch('toast', type: 'warning', message: 'Kurstag nicht gefunden.');
-            return;
-        }
-
-        $entry = ReportBookEntry::firstOrNew([
-            'report_book_id' => $this->reportBookId,
-            'course_day_id'  => $day->id,
-        ]);
-
-        $entry->fill([
-            'entry_date'   => $day->date,
-            'text'         => $this->text,
-            'status'       => 0,      // Entwurf
-            'submitted_at' => null,
-        ])->save();
-        $this->reportBookEntryId = $entry->id;
-
-        $this->status   = 0;
-        $this->hasDraft = true;
-
-        $this->initialHash = $this->curHash();
-        $this->recomputeFlags();
-            $this->reloadForCurrentCourse();
+    if (!$this->selectedCourseDayId) {
+        $this->dispatch('toast', type: 'warning', message: 'Kein Kurstag ausgewählt.');
+        return;
     }
+
+    $day = CourseDay::find($this->selectedCourseDayId);
+    if (!$day) {
+        $this->dispatch('toast', type: 'warning', message: 'Kurstag nicht gefunden.');
+        return;
+    }
+
+    $entry = ReportBookEntry::firstOrNew([
+        'report_book_id' => $this->reportBookId,
+        'course_day_id'  => $day->id,
+    ]);
+
+    // ----------------------------------------------------------
+    // 🆕 NEU: Wenn der Eintrag auf ENTWURF geht → Signatur löschen
+    // ----------------------------------------------------------
+
+    $book = ReportBookModel::with('files')->find($this->reportBookId);
+
+    if ($book) {
+        // falls Modell-Hilfsmethode existiert (empfohlen)
+        if (method_exists($book, 'participantSignatureFile')) {
+            $sig = $book->participantSignatureFile();
+        } else {
+            // Fallback auf dateityp
+            $sig = $book->files()
+                ->where('type', 'participant_signature')
+                ->latest()
+                ->first();
+        }
+
+        if ($sig) {
+            $sig->delete(); // Model + Datei weg
+        }
+    }
+
+    // ----------------------------------------------------------
+
+    // Entwurf speichern
+    $entry->fill([
+        'entry_date'   => $day->date,
+        'text'         => $this->text,
+        'status'       => 0,      // ENTWURF
+        'submitted_at' => null,
+    ])->save();
+
+    $this->reportBookEntryId = $entry->id;
+
+    $this->status   = 0;
+    $this->hasDraft = true;
+
+    $this->initialHash = $this->curHash();
+    $this->recomputeFlags();
+    $this->reloadForCurrentCourse();
+}
 
     public function submit(): void
     {
@@ -346,9 +382,9 @@ protected function loadCourseDays(): void
         ])->save();
          
         $this->reportBookEntryId = $entry->id;
-        $needsSignature = $this->checkCourseCompletionAndDispatchSignature();
+        $needsSignature = $this->checkCourseCompletionAndOpenSignature();
 
-        if(!$needsSignature){
+        if (!$needsSignature) {
             $entry->fill([
                 'status'       => 1,
             ])->save();
@@ -364,30 +400,53 @@ protected function loadCourseDays(): void
 
     }
 
-    public function signatureCompleted(): void
-    {
-        $day = CourseDay::find($this->selectedCourseDayId);
-        if (!$day) {
-            $this->dispatch('toast', type: 'warning', message: 'Kurstag nicht gefunden.');
-            return;
-        }
+public function signatureCompleted(): void
+{
+    // Modal im Parent schließen
+    $this->signatureModalOpen = false;
 
-        $entry = ReportBookEntry::firstOrNew([
-            'report_book_id' => $this->reportBookId,
-            'course_day_id'  => $day->id,
-        ]);
-        $entry->fill([
-            'status' => 1,
-        ])->save();
-    
-            $this->status   = 1;
-            $this->hasDraft = false;
-    
-            $this->initialHash = $this->curHash();
-            $this->recomputeFlags();
-            $this->reloadForCurrentCourse();
-            $this->dispatch('toast', type: 'success', message: 'Berichtsheft für diesen Kurs wurde unterschrieben.');
+    $day = CourseDay::find($this->selectedCourseDayId);
+    if (!$day) {
+        $this->dispatch('toast', type: 'warning', message: 'Kurstag nicht gefunden.');
+        return;
     }
+
+    // Versuche den Eintrag direkt per ID zu holen (solltest du haben)
+    if ($this->reportBookEntryId) {
+        $entry = ReportBookEntry::find($this->reportBookEntryId);
+    } else {
+        // Fallback: per Kombination aus report_book_id + course_day_id
+        $entry = ReportBookEntry::where('report_book_id', $this->reportBookId)
+            ->where('course_day_id', $day->id)
+            ->first();
+    }
+
+    if (!$entry) {
+        // Hier sollte man lieber abbrechen als einen neuen Eintrag ohne entry_date anzulegen
+        $this->dispatch('toast', type: 'warning', message: 'Kein Eintrag zum Unterschreiben gefunden.');
+        return;
+    }
+
+    $entry->status = 1;
+    // optional: falls submitted_at noch null ist, jetzt setzen
+    if (!$entry->submitted_at) {
+        $entry->submitted_at = now();
+    }
+    $entry->save();
+
+    $this->status   = 1;
+    $this->hasDraft = false;
+
+    $this->initialHash = $this->curHash();
+    $this->recomputeFlags();
+    $this->reloadForCurrentCourse();
+    $this->dispatch('toast', type: 'success', message: 'Berichtsheft für diesen Kurs wurde unterschrieben.');
+}
+
+public function signatureAborted(): void
+{
+    $this->signatureModalOpen = false;
+}
 
     /* ======================= Loader / Helper ======================= */
 
@@ -410,50 +469,57 @@ protected function loadCourseDays(): void
         $this->reportBookId = $book->id;
     }
 
-    protected function checkCourseCompletionAndDispatchSignature(): bool
-    {
-        if (!$this->selectedCourseId || !$this->reportBookId) {
-            return false;
-        }
-
-        // Wie viele Kurstage im Kurs?
-        $totalDays = DB::table('course_days')
-            ->where('course_id', $this->selectedCourseId)
-            ->count();
-
-        if ($totalDays === 0) {
-            return false;
-        }
-
-        // Wie viele Tage haben einen fertigen Eintrag (status >= 1)?
-        $finishedDays = ReportBookEntry::query()
-            ->where('report_book_id', $this->reportBookId)
-            ->where('status', '>=', 1)
-            ->distinct('course_day_id')
-            ->count('course_day_id');
-
-        if ($finishedDays !== $totalDays) {
-            return false;
-        }
-
-        // Optional: schon unterschrieben? (File-Modell aus ReportBook)
-        $book = ReportBookModel::with('files')->find($this->reportBookId);
-        if ($book && method_exists($book, 'participantSignatureFile') && $book->participantSignatureFile()) {
-            // Kurs ist schon unterschrieben → kein erneutes Modal
-            return false;
-        }
-
-        // Jetzt: alle Tage fertig & noch keine Signatur → Event feuern
-        $this->dispatch(
-            'open-reportbook-signature',
-            reportBookId: $this->reportBookId,
-            courseId: $this->selectedCourseId,
-            courseName: $this->selectedCourseName,
-            entryId: $this->reportBookEntryId,   // der gerade fertiggestellte Eintrag
-        );
-
-        return true;
+protected function checkCourseCompletionAndOpenSignature(): bool
+{
+    if (!$this->reportBookId || !$this->selectedCourseDayId) {
+        return false;
     }
+
+    $book = ReportBookModel::with(['course.days'])->find($this->reportBookId);
+    if (!$book || !$book->course) {
+        return false;
+    }
+
+    // Alle Kurstage des Kurses
+    $totalDays = $book->course->days->count();
+    if ($totalDays === 0) {
+        return false;
+    }
+
+    // Safety: aktueller Tag muss zu diesem Kurs gehören
+    $isCurrentDayInCourse = $book->course->days->contains('id', $this->selectedCourseDayId);
+    if (!$isCurrentDayInCourse) {
+        return false;
+    }
+
+    // Fertige Einträge (status >= 1) – OHNE den gerade bearbeiteten Tag mitzuzählen
+    $finishedDays = ReportBookEntry::query()
+        ->where('report_book_id', $this->reportBookId)
+        ->where('status', '>=', 1)
+        ->distinct('course_day_id')
+        ->count('course_day_id');
+
+    // Aktueller Tag hat jetzt einen Eintrag (Entwurf / Submitted),
+    // ist aber noch nicht "fertig" (status 1). Für "alles fertig"
+    // gilt dann: finishedDays + 1 === totalDays.
+    if ($finishedDays + 1 !== $totalDays) {
+        return false;
+    }
+
+    // Prüfen: gibt es für dieses Berichtsheft schon eine Teilnehmer-Signatur?
+    if ($book->participantSignatureFile()) {
+        return false;
+    }
+
+    // Jetzt Modal öffnen – alle anderen Tage fertig, dieser hier der letzte.
+    $this->signatureReportBookId = $book->id;
+    $this->signatureCourseId     = $book->course->id;
+    $this->signatureCourseName   = $book->course->title;
+    $this->signatureEntryId      = $this->reportBookEntryId;
+    $this->signatureModalOpen    = true;
+
+    return true;
+}
 
 
     protected function loadCurrentEntry(): void

@@ -20,22 +20,31 @@ class SignatureForm extends Component
     public ?string $signatureDataUrl = null;
     public ?string $errorMsg = null;
 
-    protected $listeners = [
-        // kommt aus der ReportBook-Komponente:
-        // $this->dispatch('open-reportbook-signature', reportBookId: ..., courseId: ..., courseName: ..., entryId: ...)
-        'open-reportbook-signature' => 'openSignature',
-    ];
-
-    public function openSignature(int $reportBookId, int $courseId, ?string $courseName = null, ?int $entryId = null): void
-    {
+    // NEU: Props aus dem Parent übernehmen
+    public function mount(
+        ?int $reportBookId = null,
+        ?int $courseId = null,
+        ?string $courseName = null,
+        ?int $entryId = null,
+        bool $open = false,
+    ): void {
         $this->reportBookId = $reportBookId;
         $this->courseId     = $courseId;
         $this->courseName   = $courseName;
         $this->entryId      = $entryId;
+        $this->open         = $open;
+    }
 
-        $this->errorMsg         = null;
-        $this->signatureDataUrl = null;
-        $this->open             = true;
+    public function cancel(): void
+    {
+        // Reset alles, was zum geöffneten Dialog gehört
+        $this->reset(['signatureDataUrl', 'errorMsg']);
+
+        // Modal schließen
+        $this->open = false;
+
+        // Parent informieren, falls er state zurücksetzen soll
+        $this->dispatch('signatureAborted');
     }
 
     public function save(): void
