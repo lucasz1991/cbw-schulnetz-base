@@ -13,7 +13,7 @@ return new class extends Migration {
             $table->foreignId('user_id')
                 ->nullable()
                 ->constrained('users')
-                ->cascadeOnDelete();
+                ->nullOnDelete();
 
             $table->string('person_id')->unique();
             $table->string('institut_id');

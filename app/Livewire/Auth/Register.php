@@ -71,6 +71,12 @@ class Register extends Component
             ]);
         }
 
+        // Duplikate aus der API nach person_id rausfiltern (falls der Endpoint mal doppelt liefert)
+        $persons = collect($persons)
+            ->unique('person_id')
+            ->values()
+            ->all();
+
         // "Hauptperson" für Status/Rollenermittlung = erste gefundene Person
         $person = $persons[0];
 
@@ -142,20 +148,22 @@ class Register extends Component
             // Alle gefundenen Personen aus UVS durchlaufen und in unserer persons-Tabelle upserten
             foreach ($persons as $p) {
 
-                $personQuery = Person::where('person_id', $p->person_id);
+                // 1. Priorität: person_id – wenn die existiert, wird NIEMALS ein neuer Datensatz mit gleicher person_id angelegt
+                $personModel = Person::where('person_id', $p->person_id)->first();
 
-                $email = isset($p->email_priv) ? trim($p->email_priv) : null;
+                // 2. Fallback: nach email_priv matchen (inkl. zusammengesetzten Mails wie "a@b.de/c@d.de")
+                if (!$personModel && !empty($p->email_priv)) {
+                    $email = trim($p->email_priv);
 
-                if ($email !== null && $email !== '') {
-                    $personQuery->where(function ($q) use ($email) {
-                        $q->where('email_priv', $email)
-                          ->orWhere('email_priv', 'like', $email.'/%')
-                          ->orWhere('email_priv', 'like', '%/'.$email)
-                          ->orWhere('email_priv', 'like', '%/'.$email.'/%');
-                    });
+                    $personModel = Person::whereNotNull('email_priv')
+                        ->where(function ($q) use ($email) {
+                            $q->where('email_priv', $email)
+                              ->orWhere('email_priv', 'like', $email.'/%')
+                              ->orWhere('email_priv', 'like', '%/'.$email)
+                              ->orWhere('email_priv', 'like', '%/'.$email.'/%');
+                        })
+                        ->first();
                 }
-
-                $personModel = $personQuery->first();
 
                 $mapped = $this->mapPersonPayload($p, $role);
 
