@@ -103,6 +103,52 @@ class Person extends Model
                 $person->apiupdate();
             }
         });
+        static::updated(function (Person $person) {
+            // nur wenn mit User verknüpft
+            if (empty($person->user_id)) {
+                return;
+            }
+
+            // Referenzzeit: bevorzugt updated_at, sonst created_at
+            $ref = $person->updated_at ?? $person->created_at ?? now();
+
+            $thresholdSec = 10 * 60;
+            $ageSec = now()->diffInSeconds($ref);
+
+            if ($ageSec >= $thresholdSec) {
+                // älter als 10 Min -> sofort
+                $person->apiupdate();
+            }
+        });
+        static::retrieved(function (Person $person) {
+        // nur sinnvoll, wenn mit User verknüpft
+        if (empty($person->user_id)) {
+            return;
+        }
+
+        // Wenn noch nie via API aktualisiert wurde, nimm updated_at/created_at als Fallback
+        $last = $person->last_api_update
+            ?? $person->updated_at
+            ?? $person->created_at;
+
+        if (!$last instanceof \Illuminate\Support\Carbon) {
+            return;
+        }
+
+        // Schwelle: z.B. 60 Minuten seit letztem API-Update
+        $thresholdMinutes = 60;
+
+        if ($last->lt(now()->subMinutes($thresholdMinutes))) {
+            // Debug optional
+            // Log::info('Person: last_api_update älter als Threshold, apiupdate()', [
+            //     'person_id' => $person->person_id,
+            //     'id'        => $person->id,
+            //     'last_api_update' => $person->last_api_update,
+            // ]);
+
+            $person->apiupdate();
+        }
+    });
     }
 
     public function apiupdate()
