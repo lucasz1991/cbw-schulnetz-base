@@ -146,33 +146,33 @@ class Register extends Component
             ]);
 
             // Alle gefundenen Personen aus UVS durchlaufen und in unserer persons-Tabelle upserten
-// Alle gefundenen Personen aus UVS durchlaufen und in unserer persons-Tabelle upserten
-foreach ($persons as $p) {
+            // Alle gefundenen Personen aus UVS durchlaufen und in unserer persons-Tabelle upserten
+            foreach ($persons as $p) {
 
-    // 1. und einzige Priorität: person_id
-    //    → wenn es diese person_id schon gibt, IMMER diesen Datensatz updaten
-    //    → keine E-Mail-Vergleiche hier, weil die Mail in UVS „unsauber“ sein kann
-    $personModel = Person::firstWhere('person_id', $p->person_id);
+                // 1. und einzige Priorität: person_id
+                //    → wenn es diese person_id schon gibt, IMMER diesen Datensatz updaten
+                //    → keine E-Mail-Vergleiche hier, weil die Mail in UVS „unsauber“ sein kann
+                $personModel = Person::firstWhere('person_id', $p->person_id);
 
-    $mapped = $this->mapPersonPayload($p, $role);
+                $mapped = $this->mapPersonPayload($p, $role);
 
-    if ($personModel) {
-        // Update vorhandener Datensatz
-        $personModel->fill($mapped);
+                if ($personModel) {
+                    // Update vorhandener Datensatz
+                    $personModel->fill($mapped);
 
-        // user_id nur setzen, wenn noch frei (niemals stillschweigend überschreiben)
-        if (empty($personModel->user_id)) {
-            $personModel->user_id = $newUser->id;
-        }
+                    // user_id nur setzen, wenn noch frei (niemals stillschweigend überschreiben)
+                    if (empty($personModel->user_id)) {
+                        $personModel->user_id = $newUser->id;
+                    }
 
-        $personModel->save();
-    } else {
-        // Neu anlegen inkl. Verknüpfung
-        Person::create(array_merge($mapped, [
-            'user_id' => $newUser->id,
-        ]));
-    }
-}
+                    $personModel->save();
+                } else {
+                    // Neu anlegen inkl. Verknüpfung
+                    Person::create(array_merge($mapped, [
+                        'user_id' => $newUser->id,
+                    ]));
+                }
+            }
 
 
             // Passwort-Setzen-Mail versenden

@@ -129,8 +129,8 @@
             </x-slot>
 
             <x-slot name="content">
-              <div class="relative">
-                <h4 class="bg-gray-100 text-base font-semibold text-gray-700 p-3 border-b border-gray-400 flex items-center justify-between">
+              <div class="relative bg-gray-100 text-base font-semibold text-gray-700 p-3 border-b border-gray-400 flex items-center justify-between">
+                <h4>
                   <span>Meine Kurse</span>
                 </h4>
                 <button
