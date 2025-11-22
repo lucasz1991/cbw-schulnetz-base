@@ -562,13 +562,13 @@
     </div>
   </div>
   <livewire:tools.ai.report-book-ai-assistant />
-<livewire:user.report-book.signature-form
-    :reportBookId="$signatureReportBookId"
-    :courseId="$signatureCourseId"
-    :courseName="$signatureCourseName"
-    :entryId="$signatureEntryId"
-    :open="$signatureModalOpen"
-    :wire:key="'signature-form-' . ($signatureReportBookId ?? 'x') . '-' . ($signatureModalOpen ? 'open' : 'closed')"
-/>
+    <livewire:user.report-book.signature-form
+        :reportBookId="$signatureReportBookId"
+        :courseId="$signatureCourseId"
+        :courseName="$signatureCourseName"
+        :entryId="$signatureEntryId"
+        :open="$signatureModalOpen"
+        :wire:key="'signature-form-' . ($signatureReportBookId ?? 'x') . '-' . ($signatureModalOpen ? 'open' : 'closed')"
+    />
 
 </div>
