@@ -5,6 +5,7 @@ namespace App\Jobs\ApiUpdates;
 use App\Models\Course;
 use App\Models\CourseDay;
 use App\Models\Person;
+use App\Models\User;
 use App\Services\ApiUvs\ApiUvsService;
 use App\Jobs\ApiUpdates\UpsertCourseParticipantEnrollment;
 use Illuminate\Support\Carbon;
@@ -29,7 +30,7 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
     public $backoff = [10, 60, 180];
 
     /** Cooldown: innerhalb dieses Fensters nicht erneut syncen */
-    private const COOLDOWN_MINUTES = 15;
+    private const COOLDOWN_MINUTES = 3;
 
     public function __construct(string $klassenId)
     {
@@ -106,6 +107,7 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
             $parseDate = fn($v) => $v ? Carbon::parse($v)->toDateString() : null;
             $parseDateTime = fn($v) => $v ? Carbon::parse($v)->toDateTimeString() : null;
 
+            // Person anhand person_id upserten (jede UVS-Person -> eigener Datensatz)
             $tutorPerson = Person::updateOrCreate(
                 ['person_id' => $tp['person_id']], // UVS-Person-ID als eindeutiger Schlüssel
                 [
@@ -141,6 +143,17 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
                 ]
             );
 
+            // Falls der Dozent bereits ein User-Konto (Register-Flow) besitzt:
+            // user_id nur setzen, wenn leer (niemals stillschweigend überschreiben)
+            if (empty($tutorPerson->user_id) && !empty($tp['email_priv'])) {
+                $user = User::where('email', $tp['email_priv'])->first();
+                if ($user) {
+                    $tutorPerson->user_id = $user->id;
+                    $tutorPerson->save();
+                    Log::info("CreateOrUpdateCourse: Tutor-Person {$tutorPerson->person_id} mit User #{$user->id} verknüpft.");
+                }
+            }
+
             $tutorPersonId = $tutorPerson->id;
         }
 
@@ -173,16 +186,17 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
         // participants einzeln verarbeiten
         foreach (($participantsData ?? []) as $pRow) {
             Log::info("UpsertCourseParticipantEnrollment: Participant #{$pRow['person_id']} in Klasse ({$this->klassenId}) dispatch.");
+
             UpsertCourseParticipantEnrollment::dispatch(
                 courseId: $course->id,
                 klassenId: $this->klassenId,
                 participantRow: $pRow,
                 courseMeta: [
-                    'termin_id'         => $coursedata['termin_id']      ?? null,
-                    'vtz'               => $coursedata['vtz_kennz_ks']   ?? null,
-                    'kurzbez_ba'        => $courseData['kurzbez']        ?? ($courseData['kurzbez_ba'] ?? null),
-                    'baustein_id'       => $coursedata['baustein_id']    ?? null,
-                    'participantsdata'  => $participantsData             ??  [],
+                    'termin_id'        => $courseData['termin_id']        ?? null,
+                    'vtz'              => $courseData['vtz_kennz_ks']     ?? null,
+                    'kurzbez_ba'       => $courseData['kurzbez']          ?? ($courseData['kurzbez_ba'] ?? null),
+                    'baustein_id'      => $courseData['baustein_id']      ?? null,
+                    'participantsdata' => $participantsData               ?? [],
                 ]
             );
         }

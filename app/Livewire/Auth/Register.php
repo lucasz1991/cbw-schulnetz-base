@@ -34,16 +34,30 @@ class Register extends Component
                 'email.required'   => 'Die E-Mail-Adresse ist erforderlich.',
                 'email.email'      => 'Bitte geben Sie eine gültige E-Mail-Adresse ein.',
                 'email.unique'     => 'Für diese E-Mail-Adresse existiert bereits ein aktives Konto. Bitte nutze „Passwort vergessen“, um Zugang zu erhalten.',
-                'terms.accepted'    => 'Sie müssen den AGBs und der Datenschutzerklärung zustimmen.',
+                'terms.accepted'   => 'Sie müssen den AGBs und der Datenschutzerklärung zustimmen.',
             ]
         );
 
         // 2) Person aus UVS per Mail holen
-        $person = null;
+        //    (jetzt: ggf. mehrere Personen, z. B. bei mehreren institut_id-Einträgen)
+        $persons = [];
         try {
             $personRequest = app(ApiUvsService::class)->getParticipantbyMail($this->email);
-            if (!empty($personRequest['ok']) && !empty($personRequest['data']['person'])) {
-                $person = (object) $personRequest['data']['person'];
+
+            if (!empty($personRequest['ok']) && !empty($personRequest['data'])) {
+                $data = $personRequest['data'];
+
+                // a) Altes Format: einzelne Person unter 'person'
+                if (!empty($data['person'])) {
+                    $persons[] = (object) $data['person'];
+                }
+
+                // b) Neues Format: mehrere Personen unter 'persons'
+                if (!empty($data['persons']) && is_array($data['persons'])) {
+                    foreach ($data['persons'] as $p) {
+                        $persons[] = (object) $p;
+                    }
+                }
             }
         } catch (\Throwable $e) {
             throw ValidationException::withMessages([
@@ -51,11 +65,14 @@ class Register extends Component
             ]);
         }
 
-        if (!$person) {
+        if (empty($persons)) {
             throw ValidationException::withMessages([
                 'email' => 'Die angegebene E-Mail-Adresse wurde nicht in unserer Teilnehmerdatenbank gefunden. Bitte kontaktiere den Support, wenn du glaubst, dass dies ein Fehler ist.',
             ]);
         }
+
+        // "Hauptperson" für Status/Rollenermittlung = erste gefundene Person
+        $person = $persons[0];
 
         // 3) Benutzer-Existenz prüfen:
         //    a) Unvollständiger Benutzer (z. B. Onboarding nicht abgeschlossen)
@@ -65,18 +82,18 @@ class Register extends Component
 
         if ($existingIncomplete) {
             // Link zum Setzen des Passworts erneut senden
-             // $existingIncomplete->notify(new SetPasswordNotification($existingIncomplete, $this->generateResetToken($existingIncomplete)));
+            // $existingIncomplete->notify(new SetPasswordNotification($existingIncomplete, $this->generateResetToken($existingIncomplete)));
 
-                $this->dispatch('showAlert', [
-                    'type' => 'warning',
-                    'title' => 'Konto bereits vorhanden',
-                    'text' => 'Dein Konto wurde bereits erstellt, ist aber noch nicht aktiviert. 
+            $this->dispatch('showAlert', [
+                'type' => 'warning',
+                'title' => 'Konto bereits vorhanden',
+                'text' => 'Dein Konto wurde bereits erstellt, ist aber noch nicht aktiviert. 
                             Wir haben dir den Link zum Setzen deines Passworts erneut gesendet.',
-                    'confirmText' => 'Zum Login',
-                    'allowOutsideClick' => false,
-                    'redirectTo' => route('login'),
-                    'redirectOn' => 'confirm',
-                ]);
+                'confirmText' => 'Zum Login',
+                'allowOutsideClick' => false,
+                'redirectTo' => route('login'),
+                'redirectOn' => 'confirm',
+            ]);
             return;
         }
 
@@ -108,8 +125,8 @@ class Register extends Component
         // 5) Rolle bestimmen
         $role = $statusData['mitarbeiter_nr'] !== null ? 'tutor' : 'guest';
 
-        // 6) Erstellen in Transaktion: User anlegen, Person upserten + verknüpfen, Mail verschicken
-        DB::transaction(function () use ($person, $role) {
+        // 6) Erstellen in Transaktion: User anlegen, Person(en) upserten + verknüpfen, Mail verschicken
+        DB::transaction(function () use ($persons, $person, $role) {
             $randomPassword = Str::random(12);
 
             $newUser = User::create([
@@ -122,48 +139,58 @@ class Register extends Component
                 'email_verified_at' => now(),
             ]);
 
-            // Person anhand person_id (präferiert) oder email_priv finden
-            $personModel = Person::where('person_id', $person->person_id)->first()
-                ?: (isset($person->email_priv)
-                    ? Person::whereNotNull('email_priv')->where('email_priv', $person->email_priv)->first()
-                    : null);
+            // Alle gefundenen Personen aus UVS durchlaufen und in unserer persons-Tabelle upserten
+            foreach ($persons as $p) {
 
-            $mapped = $this->mapPersonPayload($person, $role);
+                $personQuery = Person::where('person_id', $p->person_id);
 
-            if ($personModel) {
-                // Update vorhandener Datensatz
-                $personModel->fill($mapped);
+                $email = isset($p->email_priv) ? trim($p->email_priv) : null;
 
-                // user_id nur setzen, wenn noch frei (niemals stillschweigend überschreiben)
-                if (empty($personModel->user_id)) {
-                    $personModel->user_id = $newUser->id;
+                if ($email !== null && $email !== '') {
+                    $personQuery->where(function ($q) use ($email) {
+                        $q->where('email_priv', $email)
+                          ->orWhere('email_priv', 'like', $email.'/%')
+                          ->orWhere('email_priv', 'like', '%/'.$email)
+                          ->orWhere('email_priv', 'like', '%/'.$email.'/%');
+                    });
                 }
 
-                $personModel->save();
-            } else {
-                // Neu anlegen inkl. Verknüpfung
-                Person::create(array_merge($mapped, [
-                    'user_id' => $newUser->id,
-                ]));
+                $personModel = $personQuery->first();
+
+                $mapped = $this->mapPersonPayload($p, $role);
+
+                if ($personModel) {
+                    // Update vorhandener Datensatz
+                    $personModel->fill($mapped);
+
+                    // user_id nur setzen, wenn noch frei (niemals stillschweigend überschreiben)
+                    if (empty($personModel->user_id)) {
+                        $personModel->user_id = $newUser->id;
+                    }
+
+                    $personModel->save();
+                } else {
+                    // Neu anlegen inkl. Verknüpfung
+                    Person::create(array_merge($mapped, [
+                        'user_id' => $newUser->id,
+                    ]));
+                }
             }
 
             // Passwort-Setzen-Mail versenden
-            //$newUser->notify(new SetPasswordNotification($newUser, $this->generateResetToken($newUser)));
+            // $newUser->notify(new SetPasswordNotification($newUser, $this->generateResetToken($newUser)));
         });
 
         // 7) Erfolgsmeldung
-$this->dispatch('showAlert', [
-    'type' => 'success',
-    'title' => 'Konto erstellt',
-    'text' => 'Bitte prüfe deine E-Mails, um dein Passwort zu setzen und dein Konto zu aktivieren.',
-    'confirmText' => 'Zum Login',
-    'allowOutsideClick' => false,
-    'redirectTo' => route('login'),
-    'redirectOn' => 'confirm', 
-]);
-
-
-
+        $this->dispatch('showAlert', [
+            'type' => 'success',
+            'title' => 'Konto erstellt',
+            'text' => 'Bitte prüfe deine E-Mails, um dein Passwort zu setzen und dein Konto zu aktivieren.',
+            'confirmText' => 'Zum Login',
+            'allowOutsideClick' => false,
+            'redirectTo' => route('login'),
+            'redirectOn' => 'confirm', 
+        ]);
     }
 
     // === Hilfsfunktionen ===

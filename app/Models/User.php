@@ -11,6 +11,8 @@ use Laravel\Jetstream\HasProfilePhoto;
 use Laravel\Jetstream\HasTeams;
 use Laravel\Sanctum\HasApiTokens;
 use App\Models\Message;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\Person;
 use App\Notifications\CustomVerifyEmail;
 use Illuminate\Support\Facades\Log;
@@ -76,6 +78,11 @@ class User extends Authenticatable
     public function person()
     {
         return $this->hasOne(Person::class, 'user_id');
+    }
+
+    public function persons(): HasMany
+    {
+        return $this->hasMany(Person::class, 'user_id');
     }
     
     public function receivedMessages()
