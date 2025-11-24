@@ -86,7 +86,7 @@
             const c = this.$refs.c;
             if (!c || c.width === 0 || c.height === 0) return null;
             return c.toDataURL('image/png');
-        },
+        }, 
 
         initCanvas(){
             this.$nextTick(() => {
