@@ -100,7 +100,7 @@
             });
         }
     }"
-
+ 
     
 >
     <x-dialog-modal wire:model="open" :maxWidth="'4xl'" :trapClose="true">
