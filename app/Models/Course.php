@@ -103,6 +103,7 @@ class Course extends Model
     {
         return $this->materialAcknowledgements()
                     ->where('person_id', $personId)
+                    ->whereNotNull('acknowledged_at')
                     ->exists();
     }
 
