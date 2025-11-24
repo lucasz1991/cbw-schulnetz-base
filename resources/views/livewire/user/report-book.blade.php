@@ -340,10 +340,10 @@
                       wire:loading.attr="disabled"
                       wire:loading.class="opacity-70 cursor-wait"
                       :size="'sm'"
-                      class="px-2 relative  "
+                      class="px-2 relative  !text-gray-500 hover:!text-gray-700"
                       title="Entwurf speichern"
                   >
-                        <i class="fad fa-save text-[16px] h-[1.25rem] mr-2 text-amber-500 animate-pulse"></i>
+                        <i class="fad fa-save text-[16px]  sm:mr-2 text-amber-500 animate-pulse"></i>
                         <span class="hidden sm:inline">Speichern</span>
                       <div class="absolute -right-1 -top-1">
                         <span class="relative flex size-3">  <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"></span>  <span class="relative inline-flex size-3 rounded-full bg-amber-500"></span></span>
@@ -358,10 +358,10 @@
                       wire:loading.attr="disabled"
                       wire:loading.class="opacity-70 cursor-wait"
                       :size="'sm'"
-                      class="px-2"
+                      class="px-2 !text-gray-500 hover:!text-gray-700"
                       title="Eintrag als fertig markieren"
                   >
-                      <i class="fad fa-check-circle text-[16px] h-[1.25rem] mr-2 text-green-600"></i>
+                      <i class="fad fa-check-circle text-[16px]   sm:mr-2 text-green-600"></i>
                       <span class="hidden sm:inline">Fertigstellen</span>
                   </x-buttons.button-basic>
               @endif
@@ -380,10 +380,10 @@
                       <x-buttons.button-basic
                           type="button"
                           :size="'sm'"
-                          class="px-2"
+                          class="px-2 !text-gray-500"
                           title="Export-Optionen"
                       >
-                          <i class="fad fa-download text-[16px] h-[1.25rem] mr-1"></i>
+                          <i class="fad fa-download text-[16px]  mr-1"></i>
                           <span class="hidden sm:inline">Download</span>
                           <i class="fal fa-angle-down ml-1 text-xs"></i>
                       </x-buttons.button-basic>
@@ -396,9 +396,9 @@
                               wire:click="exportReportEntry"
                               wire:target="exportReportEntry"
                               wire:loading.attr="disabled"
-                              class="flex w-full items-center gap-2 px-3 py-2 hover:bg-gray-50"
+                              class="flex w-full items-center gap-2 px-3 py-2 hover:bg-gray-50 "
                           >
-                              <i class="fal fa-file-pdf text-[14px] text-gray-500"></i>
+                              <i class="fal fa-file-pdf text-[14px] "></i>
                               <span>Tag einzeln</span>
                           </button>
                           {{-- Baustein-Export (TODO: passende Methode implementieren) --}}
@@ -407,9 +407,9 @@
                               wire:click="exportReportModule"
                               wire:target="exportReportModule"
                               wire:loading.attr="disabled"
-                              class="flex w-full items-center gap-2 px-3 py-2 hover:bg-gray-50"
+                              class="flex w-full items-center gap-2 px-3 py-2 hover:bg-gray-50 "
                           >
-                              <i class="fal fa-layer-group text-[14px] text-gray-500"></i>
+                              <i class="fal fa-layer-group text-[14px] "></i>
                               <span>Baustein</span>
                           </button>
                           {{-- Alle Bausteine-Export (TODO: passende Methode implementieren) --}}
@@ -418,9 +418,9 @@
                               wire:click="exportReportAll"
                               wire:target="exportReportAll"
                               wire:loading.attr="disabled"
-                              class="flex w-full items-center gap-2 px-3 py-2 hover:bg-gray-50 border-t border-gray-100"
+                              class="flex w-full items-center gap-2 px-3 py-2 hover:bg-gray-50 border-t border-gray-100 "
                           >
-                              <i class="fal fa-file-archive text-[14px] text-gray-500"></i>
+                              <i class="fal fa-file-archive text-[14px] "></i>
                               <span>Berichtsheft komplett</span>
                           </button>
                       </div>
@@ -448,7 +448,7 @@
             <x-buttons.button-basic
                 type="button"
                 :size="'sm'"
-                class="px-2"
+                class="px-2  text-gray-500"
                 title="Dozenten-Dokumentation übernehmen"
             >
                 <i class="fad fa-file-signature text-[16px]"></i>
@@ -464,9 +464,9 @@
                     wire:click="importTutorDocToDraft"
                     wire:loading.attr="disabled"
                     @click="open = false"
-                    class="flex w-full items-center gap-2 px-3 py-2 hover:bg-gray-50"
+                    class="flex w-full items-center gap-2 px-3 py-2 hover:bg-gray-50  "
                 >
-                    <i class="fal fa-file-import text-[14px] text-gray-500"></i>
+                    <i class="fal fa-file-import text-[14px] "></i>
                     <span>Dozenten-Doku einfügen</span>
                 </button>
             </div>
@@ -476,11 +476,11 @@
     {{-- disabled Variante bleibt ein normaler Button --}}
     <x-buttons.button-basic
         :size="'sm'"
-        class="px-2 opacity-60 cursor-not-allowed"
+        class="px-2 opacity-40 cursor-not-allowed !text-gray-500"
         title="Dozenten-Dokumentation noch nicht vorhanden"
     >
-        <i class="fad fa-file-signature text-[16px]"></i>
-        <span class="hidden md:inline-block ml-2">Doku</span>
+        <i class="fad fa-file-signature text-[16px] "></i>
+        <span class="hidden md:inline-block ml-2 ">Doku</span>
     </x-buttons.button-basic>
 @endif
 
@@ -501,11 +501,11 @@
             <x-buttons.button-basic
                 type="button"
                 :size="'sm'"
-                class="px-2"
+                class="px-2 "
                 title="KI-Assistent für diesen Eintrag"
             >
-                <i class="fad fa-magic text-[16px]"></i>
-                <span class="hidden md:inline-block ml-2">Assistent</span>
+                <i class="fad fa-magic text-[16px] text-gray-500"></i>
+                <span class="hidden md:inline-block ml-2 text-gray-500">Assistent</span>
             </x-buttons.button-basic>
         </x-slot>
 
@@ -517,8 +517,8 @@
                     @click="$dispatch('open-reportbook-ai-assistant', [{ id: {{ $reportBookEntryId }} }]); open = false"
                     class="flex w-full items-center gap-2 px-3 py-2 hover:bg-gray-50"
                 >
-                    <i class="fal fa-comments-alt text-[14px] text-gray-500"></i>
-                    <span>KI-Assistent öffnen</span>
+                    <i class="fal fa-comments-alt text-[14px] "></i>
+                    <span class="">KI-Assistent öffnen</span>
                 </button>
             </div>
         </x-slot>
