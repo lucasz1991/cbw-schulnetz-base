@@ -56,43 +56,45 @@ class SignatureForm extends Component
     }
 
 
-    #[On('openSignatureForm')]
-    public function openSignatureForm(array $payload): void
-    {
-        // fileableType / fileableId optional aus Payload übernehmen
-        if (isset($payload['fileableType'])) {
-            $this->fileableType = $payload['fileableType'];
-        }
-
-        if (isset($payload['fileableId'])) {
-            $this->fileableId = (int) $payload['fileableId'];
-        }
-
-        // Optional: fileType überschreiben
-        if (isset($payload['fileType'])) {
-            $this->fileType = $payload['fileType'];
-        }
-
-        // Optional: Label
-        if (isset($payload['label'])) {
-            $this->label = $payload['label'];
-        }
-
-        // Optional: Kontext-Text
-        if (isset($payload['contextName'])) {
-            $this->contextName = $payload['contextName'];
-        }
-
-        if (isset($payload['signForName'])) {     
-            $this->signForName = $payload['signForName'];
-        }
-
-        // Reset 
-        $this->reset(['signatureDataUrl', 'upload', 'errorMsg']);
-
-        // Modal öffnen
-        $this->open = true;
+#[On('openSignatureForm')]
+public function openSignatureForm(array $payload): void
+{
+    if (isset($payload['fileableType'])) {
+        $this->fileableType = $payload['fileableType'];
     }
+
+    if (isset($payload['fileableId'])) {
+        $this->fileableId = (int) $payload['fileableId'];
+    }
+
+    if (isset($payload['fileType'])) {
+        $this->fileType = $payload['fileType'];
+    }
+
+    if (isset($payload['label'])) {
+        $this->label = $payload['label'];
+    }
+
+    if (isset($payload['contextName'])) {
+        $this->contextName = $payload['contextName'];
+    }
+
+    if (isset($payload['signForName'])) {
+        $this->signForName = $payload['signForName'];
+    }
+
+    if (isset($payload['confirmText'])) {
+        $this->confirmText = $payload['confirmText'];   // 👈 WICHTIG
+    } else {
+        // wenn kein eigener Text mitgegeben wurde, alten evtl. resetten,
+        // damit getDefaultConfirmTextProperty wieder greift
+        $this->confirmText = null;
+    }
+
+    $this->reset(['signatureDataUrl', 'upload', 'errorMsg']);
+
+    $this->open = true;
+}
 
     protected function resolveFileable(): ?Model
     {
