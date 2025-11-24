@@ -105,11 +105,6 @@ class MaterialsAcknowledgement extends Component
 
         $ack = $this->materialsAcknowledgement;
 
-        // Wenn bereits bestätigt -> nicht löschen
-        if ($ack->acknowledged_at !== null) {
-            $this->materialsAcknowledgement = null;
-            return;
-        }
 
         // Alle Signaturdateien löschen (File::booted kümmert sich um Storage)
         foreach ($ack->files as $file) {
