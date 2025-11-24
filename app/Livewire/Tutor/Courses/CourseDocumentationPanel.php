@@ -166,10 +166,8 @@ public function saveNotes(): void
                 'fileableType' => CourseDay::class,
                 'fileableId'   => $this->selectedDayId,
                 'fileType'     => 'sign_courseday_doku_tutor',
-                'signForName'  => 'Unterrichtstag Dokumentation',
                 'label'        => 'Unterrichtstag Dokumentation bestätigen',
-                'contextName'  => $this->selectedDay?->date?->format('d.m.Y') 
-                                    . ' – ' . ($this->course->title ?? ''),
+                'confirmText'  => 'Ich bestätige, dass meine Angaben zu der <br><strong>Unterrichtstag Dokumentation <br>('. ($this->selectedDay?->date?->format('d.m.Y') ?? '') . ')</strong><br> vollständig und korrekt sind.',
             ]);
     }
 

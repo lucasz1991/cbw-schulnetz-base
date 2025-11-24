@@ -84,7 +84,7 @@
           wire:loading.class="opacity-70 cursor-wait"
           title="Notizen speichern (Entwurf)"
       >
-          <i class="fad fa-save text-[16px] h-[1.25rem] mr-1 text-amber-500"></i>
+          <i class="fad fa-save text-[16px] h-[1.25rem] sm:mr-1 text-amber-500"></i>
           <span class="hidden sm:inline">Speichern</span>
       </x-buttons.button-basic>
   @endif
@@ -101,7 +101,7 @@
           wire:loading.class="opacity-70 cursor-wait"
           title="Dokumentation fertigstellen und unterschreiben"
       >
-          <i class="fad fa-check-circle text-[16px] h-[1.25rem] mr-1 text-green-600"></i>
+          <i class="fad fa-check-circle text-[16px] h-[1.25rem] sm:mr-1 text-green-600"></i>
           <span class="hidden sm:inline">Fertigstellen</span>
       </x-buttons.button-basic>
   @endif
