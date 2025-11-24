@@ -6,32 +6,37 @@
         ratio:Math.max(window.devicePixelRatio||1,1),
         bound:false,
         openState: @entangle('open').live,
-    aspectW: 16, // oder 19
-    aspectH: 6,
+        aspectW: 16,
+        aspectH: 6,
 
-    sync(){
-        const c = this.$refs.c;
-        if (!c) return;
+        sync(){
+            const c = this.$refs.c;
+            if (!c) return;
 
-        const container = c.parentElement;
-        const availableWidth = container ? container.clientWidth : c.getBoundingClientRect().width;
-        if (!availableWidth) return;
+            const container = c.parentElement;
+            const availableWidth = container ? container.clientWidth : c.getBoundingClientRect().width;
+            if (!availableWidth) return;
 
-        // statt 16:9 / 6:16 jetzt generisch:
-        const cssWidth  = availableWidth;
-        const cssHeight = availableWidth * this.aspectH / this.aspectW;
+            const cssWidth  = availableWidth;
+            const cssHeight = availableWidth * this.aspectH / this.aspectW;
 
-        c.style.width  = cssWidth + 'px';
-        c.style.height = cssHeight + 'px';
+            c.style.width  = cssWidth + 'px';
+            c.style.height = cssHeight + 'px';
 
-        c.width  = Math.round(cssWidth * this.ratio);
-        c.height = Math.round(cssHeight * this.ratio);
+            c.width  = Math.round(cssWidth * this.ratio);
+            c.height = Math.round(cssHeight * this.ratio);
 
-        this.ctx = c.getContext('2d');
-        this.ctx.setTransform(this.ratio,0,0,this.ratio,0,0);
-        this.ctx.lineWidth = 2;
-        this.ctx.lineCap   = 'round';
-    },
+            this.ctx = c.getContext('2d');
+            this.ctx.setTransform(this.ratio,0,0,this.ratio,0,0);
+            this.ctx.lineWidth = 2;
+            this.ctx.lineCap   = 'round';
+        },
+
+        onResize() {
+            // Nur neu syncen, wenn Dialog offen und im Draw-Modus
+            if (!this.openState || this.mode !== 'draw') return;
+            this.sync();
+        },
 
         pos(e){
             const c = this.$refs.c;
@@ -94,12 +99,10 @@
 
                     this.sync();
                     this.bind();
-                }, 0); // an deine Dialog-Animation anpassen
+                }, 0);
             });
         }
     }"
- 
-    
 >
     <x-dialog-modal wire:model="open" :maxWidth="'4xl'" :trapClose="true">
         <x-slot name="title">
@@ -159,7 +162,9 @@
                                             initCanvas();
                                         }
                                     });
-                                ">
+                                "
+                                x-resize="onResize()"
+                                >
                             <canvas x-ref="c" class="bg-white rounded w-full" wire:ignore></canvas>
                         </div>
                     </div>
