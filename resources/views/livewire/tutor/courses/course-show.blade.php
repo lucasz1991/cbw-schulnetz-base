@@ -39,6 +39,9 @@
                 </span>
                 @endif
             </div>
+            <p class="text-base sm:text-md font-semibold text-gray-700 truncate">
+                {{ $course->source_snapshot['course']['kurzbez'] ?: 'Ohne Kurzbezeichnung' }}
+            </p>
             <h1 class="text-2xl font-bold text-gray-800">{{ $course->title }}</h1>
             @if($course->description)
             <div class="grid sm:grid-cols-2 gap-4 text-gray-700">

@@ -70,11 +70,11 @@
                 {{-- Titel --}}
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div class="min-w-0">
+                        <p class="text-base sm:text-md  text-gray-700 truncate">
+                            {{ $course->source_snapshot['course']['kurzbez'] ?: 'Ohne Kurzbezeichnung' }}
+                        </p>
                         <h3 class="text-base sm:text-md font-semibold text-gray-700 truncate">
                             {{ $course->title ?: 'Ohne Titel' }}
-                        </h3>
-                        <h3 class="text-base sm:text-md font-semibold text-gray-700 truncate">
-                            {{ $course->title ?: 'Ohne Kurzbezeichnung' }}
                         </h3>
                         {{-- Zusatzbadges unter dem Titel (Platz für weitere Infos) --}}
                         <div class="mt-2 flex flex-wrap items-center gap-2"></div>
