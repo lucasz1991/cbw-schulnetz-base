@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
+use App\Jobs\ReportBook\CheckReportBooks;
 
 class ReportBookEntry extends Model
 {
@@ -23,6 +24,50 @@ class ReportBookEntry extends Model
         'submitted_at' => 'datetime',
         'status'       => 'integer',
     ];
+
+
+    protected static function booted(): void
+    {
+        static::updated(function (ReportBookEntry $entry) {
+            // Nur reagieren, wenn sich der Status geändert hat
+            if (! $entry->wasChanged('status')) {
+                return;
+            }
+
+            // Nur interessant, wenn der neue Status "Eingereicht" (1) ist
+            if ($entry->status !== 1) {
+                return;
+            }
+
+            // Ohne ReportBook macht der Check keinen Sinn
+            if (! $entry->report_book_id) {
+                return;
+            }
+
+            $bookId = $entry->report_book_id;
+
+            // Gibt es überhaupt Einträge zu diesem ReportBook?
+            $hasAny = static::where('report_book_id', $bookId)->exists();
+            if (! $hasAny) {
+                return;
+            }
+
+            // Gibt es Einträge, die NICHT Status 1 haben?
+            $hasNonSubmitted = static::where('report_book_id', $bookId)
+                ->where('status', '!=', 1)
+                ->exists();
+
+            // Wenn noch andere Stati existieren -> noch nicht komplett eingereicht
+            if ($hasNonSubmitted) {
+                return;
+            }
+
+            // An dieser Stelle: alle Einträge dieses ReportBooks haben Status 1
+            // -> Job für genau dieses ReportBook starten
+            CheckReportBooks::dispatch([$bookId])
+                ->delay(now()->addMinutes(5));
+        });
+    }
 
     /**
      * Beziehungen
