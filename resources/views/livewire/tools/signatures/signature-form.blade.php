@@ -6,34 +6,32 @@
         ratio:Math.max(window.devicePixelRatio||1,1),
         bound:false,
         openState: @entangle('open').live,
+    aspectW: 16, // oder 19
+    aspectH: 6,
 
-        sync(){
-            const c = this.$refs.c;
-            if (!c) return;
+    sync(){
+        const c = this.$refs.c;
+        if (!c) return;
 
-            // Breite vom umgebenden Container nehmen (die graue Box)
-            const container = c.parentElement;
-            const availableWidth = container ? container.clientWidth : c.getBoundingClientRect().width;
+        const container = c.parentElement;
+        const availableWidth = container ? container.clientWidth : c.getBoundingClientRect().width;
+        if (!availableWidth) return;
 
-            if (!availableWidth) return;
+        // statt 16:9 / 6:16 jetzt generisch:
+        const cssWidth  = availableWidth;
+        const cssHeight = availableWidth * this.aspectH / this.aspectW;
 
-            // 16:9 Verhältnis
-            const cssWidth  = availableWidth;
-            const cssHeight = availableWidth * 9 / 16;
+        c.style.width  = cssWidth + 'px';
+        c.style.height = cssHeight + 'px';
 
-            // CSS-Größe (sichtbar)
-            c.style.width  = cssWidth + 'px';
-            c.style.height = cssHeight + 'px';
+        c.width  = Math.round(cssWidth * this.ratio);
+        c.height = Math.round(cssHeight * this.ratio);
 
-            // interne Pixelgröße für HiDPI
-            c.width  = Math.round(cssWidth * this.ratio);
-            c.height = Math.round(cssHeight * this.ratio);
-
-            this.ctx = c.getContext('2d');
-            this.ctx.setTransform(this.ratio,0,0,this.ratio,0,0);
-            this.ctx.lineWidth = 2;
-            this.ctx.lineCap   = 'round';
-        },
+        this.ctx = c.getContext('2d');
+        this.ctx.setTransform(this.ratio,0,0,this.ratio,0,0);
+        this.ctx.lineWidth = 2;
+        this.ctx.lineCap   = 'round';
+    },
 
         pos(e){
             const c = this.$refs.c;
@@ -96,7 +94,7 @@
 
                     this.sync();
                     this.bind();
-                }, 100); // an deine Dialog-Animation anpassen
+                }, 0); // an deine Dialog-Animation anpassen
             });
         }
     }"
@@ -150,12 +148,12 @@
                 <div x-show="mode === 'draw'" x-cloak class="space-y-3">
                     <div class="border bg-gray-50 p-2 rounded w-full">
                         {{-- keine feste Höhe, Breite läuft über JS --}}
-                        <div class="aspect-video w-full relative"
+                        <div class="aspect-[16/6] w-full relative"
                             x-init="
                                     // Wenn 'open' von Livewire auf true springt und wir im draw-Modus sind -> Canvas initialisieren
                                     setTimeout(() => {
                                         initCanvas();
-                                    }, 200);
+                                    }, 0);
                                     $watch('openState', value => {
                                         if (value && mode === 'draw') {
                                             initCanvas();
@@ -167,19 +165,19 @@
                     </div>
                 </div>
 
-<div x-show="mode === 'upload'" x-cloak class="space-y-3">
+                <div x-show="mode === 'upload'" x-cloak class="space-y-3">
 
-    <x-ui.filepool.drop-zone
-        :model="'upload'"
-        mode="single"
-        acceptedFiles="image/*"
-        :maxFilesize="4" 
-    />
+                    <x-ui.filepool.drop-zone
+                        :model="'upload'"
+                        mode="single"
+                        acceptedFiles="image/*"
+                        :maxFilesize="4" 
+                    />
 
-    <div wire:loading wire:target="upload" class="text-xs mt-1 text-gray-500">
-        Upload läuft…
-    </div>
-</div>
+                    <div wire:loading wire:target="upload" class="text-xs mt-1 text-gray-500">
+                        Upload läuft…
+                    </div>
+                </div>
 
 
                 @if($errorMsg)
