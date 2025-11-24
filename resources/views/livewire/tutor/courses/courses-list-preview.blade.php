@@ -11,8 +11,6 @@
     <div class="grid gap-4 grid-cols-1">
         @forelse ($courses as $course)
             @php
-                /** @var \Illuminate\Support\Carbon|null $start */
-                /** @var \Illuminate\Support\Carbon|null $end */
                 $start = $course->planned_start_date ? \Illuminate\Support\Carbon::parse($course->planned_start_date)->timezone('Europe/Berlin') : null;
                 $end   = $course->planned_end_date   ? \Illuminate\Support\Carbon::parse($course->planned_end_date)->timezone('Europe/Berlin')   : null;
 
@@ -75,7 +73,9 @@
                         <h3 class="text-base sm:text-md font-semibold text-gray-700 truncate">
                             {{ $course->title ?: 'Ohne Titel' }}
                         </h3>
-
+                        <h3 class="text-base sm:text-md font-semibold text-gray-700 truncate">
+                            {{ $course->title ?: 'Ohne Kurzbezeichnung' }}
+                        </h3>
                         {{-- Zusatzbadges unter dem Titel (Platz für weitere Infos) --}}
                         <div class="mt-2 flex flex-wrap items-center gap-2"></div>
                     </div>

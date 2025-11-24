@@ -25,6 +25,8 @@ class CourseDay extends Model
         'attendance_data',
         'topic',
         'notes',
+        'note_status',
+        'settings',
         'type',
     ];
 
@@ -34,23 +36,32 @@ class CourseDay extends Model
         'end_time'        => 'datetime:H:i',
         'day_sessions'    => 'array', // wichtig für JSON
         'attendance_data' => 'array', // wichtig für JSON
+        'note_status'     => 'integer',
+        'settings'       => 'array',
     ];
 
 
-    /**
-     * Beim Erstellen Defaults für Sessions & Attendance setzen.
-     */
+    public const NOTE_STATUS_MISSING   = 0;
+    public const NOTE_STATUS_DRAFT     = 1;
+    public const NOTE_STATUS_COMPLETED = 2;
+
     protected static function booted(): void
     {
         static::creating(function (CourseDay $day) {
-            // Sessions nur setzen, wenn nicht bereits befüllt
             if (empty($day->day_sessions)) {
                 $day->day_sessions = self::makeDefaultSessions($day);
             }
 
-            // Attendance nur setzen, wenn nicht bereits befüllt
             if (empty($day->attendance_data)) {
                 $day->attendance_data = self::makeDefaultAttendance($day);
+            }
+
+            if ($day->note_status === null) {
+                $day->note_status = self::NOTE_STATUS_MISSING;
+            }
+
+            if ($day->settings === null) {
+                $day->settings = [];
             }
         });
     }
@@ -242,5 +253,30 @@ public static function makeDefaultAttendance(self $day): array
     public function course()
     {
         return $this->belongsTo(Course::class);
+    }
+
+    public function files()
+    {
+        return $this->morphMany(File::class, 'fileable');
+    }
+
+    /** Tutor-Signaturen für diesen Tag (Typ z. B. sign_courseday_tutor) */
+    public function tutorSignatures()
+    {
+        return $this->files()->where('type', 'sign_courseday_tutor');
+    }
+
+    public function latestTutorSignature(): ?File
+    {
+        return $this->tutorSignatures()->latest()->first();
+    }
+
+    public function getNoteStatusLabelAttribute(): string
+    {
+        return match ($this->note_status) {
+            self::NOTE_STATUS_DRAFT     => 'Entwurf',
+            self::NOTE_STATUS_COMPLETED => 'Fertig & unterschrieben',
+            default                     => 'Fehlend',
+        };
     }
 }

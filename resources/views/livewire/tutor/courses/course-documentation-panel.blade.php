@@ -10,6 +10,7 @@
             :dayNotes="$dayNotes"
             :selectPreviousDayPossible="$selectPreviousDayPossible"
             :selectNextDayPossible="$selectNextDayPossible"
+            :isDirty="$isDirty"
           />
         @else
           <p class="text-sm text-gray-500">Kein Datum ausgewählt.</p>
@@ -33,5 +34,9 @@
     </div>
   @else
     <p class="text-sm text-gray-500">Keine Termine vorhanden.</p>
+  @endif
+    {{-- Signature-Form für den aktuell ausgewählten Tag --}}
+  @if($selectedDayId)
+    <livewire:tools.signatures.signature-form lazy />
   @endif
 </div>

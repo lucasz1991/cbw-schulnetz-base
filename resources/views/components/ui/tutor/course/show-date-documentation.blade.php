@@ -1,7 +1,15 @@
-<div class="transition-opacity duration-300"  wire:key="doc-panel-{{ $selectedDayId }}">
+@php
+    use Illuminate\Support\Carbon;
+    use App\Models\CourseDay;
+
+    $isToday = $selectedDay?->date ? Carbon::parse($selectedDay->date)->isToday() : false;
+@endphp
+
+<div class="transition-opacity duration-300" wire:key="doc-panel-{{ $selectedDayId }}">
   <div class="flex max-md:flex-wrap items-center space-x-3 justify-between mb-8">
     <div class="flex justify-between items-center space-x-3 w-full">
       <div class="flex items-center gap-2">
+        {{-- Navigation Tag zurück / vor --}}
         <div class="flex items-stretch rounded-md border border-gray-200 shadow-sm overflow-hidden h-max w-max max-md:mb-4">
           @if($selectPreviousDayPossible)
             <button type="button" wire:click="selectPreviousDay"
@@ -26,17 +34,14 @@
           @endif
         </div>
 
-        @php
-          use Illuminate\Support\Carbon;
-          $isToday = $selectedDay?->date ? Carbon::parse($selectedDay->date)->isToday() : false;
-        @endphp
         @if($isToday)
           <span class="h-max rounded-lg bg-green-100 border border-green-700 text-green-700 text-xs px-1.5 py-0.5 shadow"
                 title="Heutiger Tag">Heute</span>
         @endif
       </div>
 
-      <div>
+      <div class="flex items-center gap-3">
+        {{-- Kalender-Toggle --}}
         <button type="button"
                 @click="showSelectDayCalendar = !showSelectDayCalendar"
                 class="inline-flex items-center gap-2 text-sm border rounded-md px-2 py-1 bg-white shadow-sm transition"
@@ -50,6 +55,73 @@
                   :class="showSelectDayCalendar ? 'translate-x-4' : 'translate-x-0'"></span>
           </span>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <div class=" mb-2">
+    <div class="flex max-md:flex-wrap items-center space-x-3 justify-between">
+@php
+
+    $ns = $selectedDay?->note_status ?? CourseDay::NOTE_STATUS_MISSING;
+    $canFinalize =
+        !$isDirty &&
+        trim(strip_tags($dayNotes ?? '')) !== '' &&
+        $ns !== CourseDay::NOTE_STATUS_COMPLETED;
+@endphp
+
+<div class="flex items-center gap-3">
+  {{-- Aktionen: Speichern / Fertigstellen --}}
+  @if($selectedDayId && $isDirty)
+      {{-- Speichern-Button nur wenn dirty --}}
+      <x-buttons.button-basic
+          type="button"
+          :size="'sm'"
+          class="px-2"
+          wire:click="saveNotes"
+          wire:target="saveNotes"
+          wire:loading.attr="disabled"
+          wire:loading.class="opacity-70 cursor-wait"
+          title="Notizen speichern (Entwurf)"
+      >
+          <i class="fad fa-save text-[16px] h-[1.25rem] mr-1 text-amber-500"></i>
+          <span class="hidden sm:inline">Speichern</span>
+      </x-buttons.button-basic>
+  @endif
+
+  @if($selectedDayId && $canFinalize && !$isDirty)
+      {{-- Fertigstellen-Button nur, wenn gespeichert & nicht dirty --}}
+      <x-buttons.button-basic
+          type="button"
+          :size="'sm'"
+          class="px-2"
+          wire:click="finalizeDay"
+          wire:target="finalizeDay"
+          wire:loading.attr="disabled"
+          wire:loading.class="opacity-70 cursor-wait"
+          title="Dokumentation fertigstellen und unterschreiben"
+      >
+          <i class="fad fa-check-circle text-[16px] h-[1.25rem] mr-1 text-green-600"></i>
+          <span class="hidden sm:inline">Fertigstellen</span>
+      </x-buttons.button-basic>
+  @endif
+</div>
+        <div class="flex items-center gap-3">
+          
+
+        {{-- Status-Badge --}}
+        @php
+            $ns = $selectedDay?->note_status ?? CourseDay::NOTE_STATUS_MISSING;
+            [$statusLabel, $statusClasses] = match($ns) {
+                CourseDay::NOTE_STATUS_DRAFT     => ['Entwurf', 'bg-amber-50 text-amber-700 border-amber-200'],
+                CourseDay::NOTE_STATUS_COMPLETED => ['Fertig & unterschrieben', 'bg-green-50 text-green-700 border-green-200'],
+                default                          => ['Fehlend', 'bg-slate-50 text-slate-700 border-slate-200'],
+            };
+        @endphp
+
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border {{ $statusClasses }}">
+            Status: {{ $statusLabel }}
+        </span>
       </div>
     </div>
   </div>
