@@ -37,6 +37,6 @@
   @endif
     {{-- Signature-Form für den aktuell ausgewählten Tag --}}
   @if($selectedDayId)
-    <livewire:tools.signatures.signature-form lazy />
+    <livewire:tools.signatures.signature-form :key="'signature-form-'.$selectedDayId" lazy />
   @endif
 </div>

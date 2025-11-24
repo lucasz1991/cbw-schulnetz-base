@@ -80,7 +80,7 @@
     @if($selectedDay)
       <div class="flex flex-wrap gap-2 text-xs">
         <span class="inline-flex items-center rounded bg-green-100 text-green-800 px-2 py-0.5">Anwesend: {{ $stats['present'] }}</span>
-        <span class="inline-flex items-center rounded bg-yellow-100 text-yellow-800 px-2 py-0.5">Verspätet: {{ $stats['late'] }}</span>
+        <span class="inline-flex items-center rounded bg-yellow-100 text-yellow-800 px-2 py-0.5">Teilweise anwesend: {{ $stats['late'] }}</span>
         <span class="inline-flex items-center rounded bg-blue-100 text-blue-800 px-2 py-0.5">Entschuldigt: {{ $stats['excused'] }}</span>
         <span class="inline-flex items-center rounded bg-red-100 text-red-800 px-2 py-0.5">Fehlend: {{ $stats['absent'] }}</span>
         <span class="inline-flex items-center rounded bg-gray-100 text-gray-800 px-2 py-0.5">Gesamt: {{ $stats['total'] }}</span>
@@ -158,7 +158,7 @@
                 $statusLabel = 'Entschuldigt';
                 $badge = 'bg-blue-100 text-blue-800';
             } elseif ($d['present'] && $late > 0) {
-                $statusLabel = 'Verspätet';
+                $statusLabel = 'Teilweise anwesend';
                 $badge = 'bg-yellow-100 text-yellow-800';
             } elseif ($d['present']) {
                 $statusLabel = 'Anwesend';
@@ -198,7 +198,7 @@
                 $statusLabel = 'Entschuldigt';
                 $badge = 'bg-blue-100 text-blue-800';
             } elseif ($d['present'] && $late > 0) {
-                $statusLabel = 'Verspätet';
+                $statusLabel = 'Teilweise anwesend';
                 $badge = 'bg-yellow-100 text-yellow-800';
             } elseif ($d['present']) {
                 $statusLabel = 'Anwesend';

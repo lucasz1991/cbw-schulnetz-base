@@ -34,6 +34,7 @@
     </head>
     
         <body data-mode="light" data-sidebar-size="lg" class="group font-notosans">
+                        @livewire('user-alert')
         <!-- sidebar -->
         @include('layouts.sidebar')
         <!-- topbar -->

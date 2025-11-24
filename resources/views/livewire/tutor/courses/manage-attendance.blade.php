@@ -171,7 +171,7 @@
             $statusLabel = 'Entschuldigt';
             $badge = 'bg-blue-100 text-blue-800';
         } elseif ($d['present'] && ($d['late_minutes'] ?? 0) > 0) {
-            $statusLabel = 'Verspätet';
+            $statusLabel = 'teilweise anwesend';
             $badge = 'bg-yellow-100 text-yellow-800';
         } elseif ($d['present']) {
             $statusLabel = 'Anwesend';

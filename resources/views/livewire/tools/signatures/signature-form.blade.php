@@ -111,35 +111,41 @@
         <x-slot name="content">
             <div class="space-y-4">
                 <p class="text-sm text-gray-700">
-                    {{ $this->defaultConfirmText }}
+                    {!! $this->defaultConfirmText !!}
                 </p>
+<div class="flex items-center gap-4 justify-center mb-2">
+    <div class="inline-flex rounded-md overflow-hidden border border-gray-300 text-sm">
+        <!-- Draw -->
+        <button
+            type="button"
+            class="px-4 py-1.5 flex items-center gap-1 transition"
+            :class="mode === 'draw'
+                ? 'bg-blue-600 text-white border-blue-600'
+                : 'bg-white text-gray-700 hover:bg-gray-50'"
+            @click="
+                mode = 'draw';
+                initCanvas();
+            "
+        >
+            <i class="fad fa-pen mr-2"></i>
+            Zeichnen
+        </button>
+    
+        <!-- Upload -->
+        <button
+            type="button"
+            class="px-4 py-1.5 flex items-center gap-1 border-l border-gray-300 transition"
+            :class="mode === 'upload'
+                ? 'bg-blue-600 text-white border-blue-600'
+                : 'bg-white text-gray-700 hover:bg-gray-50'"
+            @click="mode = 'upload'"
+        >
+            <i class="fad fa-upload mr-2"></i>
+            Hochladen
+        </button>
+    </div>
+</div>
 
-                <div class="flex gap-2 text-sm">
-                    <button
-                        type="button"
-                        class="px-3 py-1.5 rounded border"
-                        :class="mode === 'draw'
-                            ? 'bg-blue-600 text-white border-blue-600'
-                            : 'bg-white text-gray-700 border-gray-300'"
-                        @click="
-                            mode='draw';
-                            initCanvas();
-                        "
-                    >
-                        Unterschrift zeichnen
-                    </button>
-
-                    <button
-                        type="button"
-                        class="px-3 py-1.5 rounded border"
-                        :class="mode === 'upload'
-                            ? 'bg-blue-600 text-white border-blue-600'
-                            : 'bg-white text-gray-700 border-gray-300'"
-                        @click="mode='upload'"
-                    >
-                        Bild hochladen
-                    </button>
-                </div>
                 
                 <div x-show="mode === 'draw'" x-cloak class="space-y-3">
                     <div class="border bg-gray-50 p-2 rounded w-full">
@@ -156,22 +162,25 @@
                                         }
                                     });
                                 ">
-                            <canvas x-ref="c" class="bg-white rounded w-full"></canvas>
+                            <canvas x-ref="c" class="bg-white rounded w-full" wire:ignore></canvas>
                         </div>
                     </div>
                 </div>
 
-                <div x-show="mode === 'upload'" x-cloak class="space-y-3">
-                    <input type="file"
-                           wire:model="upload"
-                           accept="image/*"
-                           class="block w-full text-sm text-gray-700
-                                  file:rounded file:bg-gray-100 file:px-3 file:py-1.5" />
+<div x-show="mode === 'upload'" x-cloak class="space-y-3">
 
-                    <div wire:loading wire:target="upload" class="text-xs mt-1 text-gray-500">
-                        Upload läuft…
-                    </div>
-                </div>
+    <x-ui.filepool.drop-zone
+        :model="'upload'"
+        mode="single"
+        acceptedFiles="image/*"
+        :maxFilesize="4" 
+    />
+
+    <div wire:loading wire:target="upload" class="text-xs mt-1 text-gray-500">
+        Upload läuft…
+    </div>
+</div>
+
 
                 @if($errorMsg)
                     <p class="text-sm text-red-600">{{ $errorMsg }}</p>
@@ -200,6 +209,7 @@
                                 class="px-3 py-1.5 rounded bg-blue-600 text-white text-sm hover:bg-blue-700"
                                 @click="
                                     if(!hasInk()){
+                                        clear();
                                         $wire.set('errorMsg','Bitte unterschreiben Sie im Feld.');
                                         return;
                                     }

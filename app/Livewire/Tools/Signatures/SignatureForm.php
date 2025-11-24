@@ -118,7 +118,7 @@ class SignatureForm extends Component
             ?: ($this->fileableType ? class_basename($this->fileableType) : 'diesem Eintrag');
 
         if ($this->contextName) {
-            return "Ich bestätige, dass meine Angaben zu {$subject} ({$this->contextName}) vollständig und korrekt sind.";
+            return "Ich bestätige, dass meine Angaben zu der <br><strong>{$subject} <br>({$this->contextName})</strong><br> vollständig und korrekt sind.";
         }
 
         return "Ich bestätige, dass meine Angaben zu {$subject} vollständig und korrekt sind.";
