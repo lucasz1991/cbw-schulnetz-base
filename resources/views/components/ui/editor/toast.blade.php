@@ -110,6 +110,18 @@
     border-bottom: 1px rgb(209, 213, 219) solid !important;
     padding: 0 .5rem !important;
   }
+  @media only screen and (max-width: 480px) {
+    .tui-editor-wrapper .toastui-editor-defaultUI .toastui-editor-toolbar {
+      position:relative !important;
+    }
+    .tui-editor-wrapper .toastui-editor-popup {
+      margin-left: 10px !important;
+    }
+    .tui-editor-wrapper .toastui-editor-popup.toastui-editor-popup-add-heading{
+      width: auto !important;
+      left: unset  !important;
+    }
+  }
   </style>
 
   {{-- Editor-Container (Livewire darf hier nicht reinfunken) --}}
