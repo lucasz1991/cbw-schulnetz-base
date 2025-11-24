@@ -50,7 +50,6 @@ class CheckReportBooks implements ShouldQueue
         // --- Prüfen ---------------------------------------------------------
         foreach ($books as $book) {
 
-            // Wenn *alle* Entries Status 1 (Eingereicht) haben
             $allSubmitted = $book->entries->count() > 0 &&
                             $book->entries->every(fn ($e) => $e->status === 1);
 
@@ -58,7 +57,6 @@ class CheckReportBooks implements ShouldQueue
                 continue;
             }
 
-            // --- Prüfen ob es schon einen AdminTask gibt --------------------
             $existing = AdminTask::where('task_type', 'reportbook_review')
                 ->where('description', 'LIKE', "%ReportBook {$book->id}%")
                 ->first();
@@ -69,16 +67,15 @@ class CheckReportBooks implements ShouldQueue
 
             // --- AdminTask erstellen ----------------------------------------
             AdminTask::create([
-
-                'created_by'  => $book->user_id,
-                'context_type'  => 'App\Models\ReportBook',
-                'context_id'    => $book->id,
-                'task_type'   => 'reportbook_review',
-                'description' => "ReportBook {$book->id} vollständig eingereicht – Prüfung & Freigabe erforderlich.",
-                'status'      => AdminTask::STATUS_OPEN,
+                'created_by'   => $book->user_id,
+                'context_type' => ReportBook::class,
+                'context_id'   => $book->id,
+                'task_type'    => 'reportbook_review',
+                'description'  => "Baustein Berichtsheft {$book->id} vollständig eingereicht – Prüfung & Freigabe erforderlich.",
+                'status'       => AdminTask::STATUS_OPEN,
             ]);
 
-            Log::info("CheckReportBooks: AdminTask für ReportBook {$book->id} erstellt.");
+            Log::info("CheckReportBooks: AdminTask für Berichtsheft {$book->id} erstellt.");
         }
     }
 }
