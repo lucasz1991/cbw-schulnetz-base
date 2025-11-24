@@ -15,8 +15,6 @@ class CourseMaterialAcknowledgement extends Model
         'person_id',
         'enrollment_id',
         'acknowledged_at',
-        'signature_path',
-        'signature_hash',
         'meta',
     ];
 
@@ -43,6 +41,28 @@ class CourseMaterialAcknowledgement extends Model
     public function enrollment()
     {
         return $this->belongsTo(CourseParticipantEnrollment::class, 'enrollment_id');
+    }
+
+    /**
+     * Generische Files (neue Signatur-Handling)
+     */
+    public function files()
+    {
+        return $this->morphMany(File::class, 'fileable');
+    }
+
+    /**
+     * Teilnehmer-Signaturen (Materialbestätigung)
+     * type = sign_materials_ack
+     */
+    public function participantSignatures()
+    {
+        return $this->files()->where('type', 'sign_materials_ack');
+    }
+
+    public function latestParticipantSignature(): ?File
+    {
+        return $this->participantSignatures()->latest()->first();
     }
 
     /*

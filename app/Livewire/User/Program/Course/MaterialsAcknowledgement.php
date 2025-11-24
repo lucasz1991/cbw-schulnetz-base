@@ -4,17 +4,15 @@ namespace App\Livewire\User\Program\Course;
 
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use App\Models\Course;
 use App\Models\CourseMaterialAcknowledgement;
 use Carbon\Carbon;
+use Livewire\Attributes\On;
+use Illuminate\Support\Facades\Storage;
 
 class MaterialsAcknowledgement extends Component
 {
     public Course $course;
-    public bool $open = false;
-    public ?string $signatureDataUrl = null;
-    public ?string $errorMsg = null;
 
     public function getAlreadyAcknowledgedProperty(): bool
     {
@@ -22,44 +20,116 @@ class MaterialsAcknowledgement extends Component
         return $personId ? $this->course->isMaterialsAcknowledgedBy($personId) : false;
     }
 
-    public function save(): void
+    public function startAcknowledgement(): void
     {
         $user = Auth::user();
         $personId = $user?->person?->id;
 
         if (!$personId) {
-            $this->errorMsg = 'Kein Teilnehmerkonto verknüpft.';
+            $this->dispatch('toast', type: 'error', message: 'Kein Teilnehmerkonto verknüpft.');
             return;
         }
 
-        if (!$this->signatureDataUrl || !str_starts_with($this->signatureDataUrl, 'data:image/png;base64,')) {
-            $this->errorMsg = 'Bitte unterschreiben Sie im Feld.';
-            return;
-        }
+        // Ack-Datensatz für Kurs + Person vorbereiten (falls noch nicht vorhanden)
+        $ack = CourseMaterialAcknowledgement::firstOrCreate(
+            [
+                'course_id' => $this->course->id,
+                'person_id' => $personId,
+            ],
+            [
+                'acknowledged_at' => null,
+            ]
+        );
 
-        $png = base64_decode(explode(',', $this->signatureDataUrl, 2)[1]);
-        if ($png === false || strlen($png) < 200) {
-            $this->errorMsg = 'Unterschrift ungültig.';
-            return;
-        }
-
-        $disk = 'private';
-        $dir  = "courses/{$this->course->id}/materials_ack";
-        $filename = 'sig_'.$personId.'_'.time().'.png';
-        $path = $dir.'/'.$filename;
-        Storage::disk($disk)->put($path, $png);
-
-        CourseMaterialAcknowledgement::create([
-            'course_id'       => $this->course->id,
-            'person_id'       => $personId,
-            'acknowledged_at' => Carbon::now('Europe/Berlin'),
-            'signature_path'  => $path,
-            'signature_hash'  => hash('sha256', $png),
+        // Generisches Signature-Modal öffnen
+        $this->dispatch('openSignatureForm', [
+            'fileableType' => CourseMaterialAcknowledgement::class,
+            'fileableId'   => $ack->id,
+            'fileType'     => 'sign_materials_ack',
+            'label'        => 'Bereitstellung der Kursmaterialien bestätigen',
+            'confirmText'  => 'Ich bestätige, dass ich die oben aufgeführten Kursmaterialien erhalten habe und zur Kenntnis genommen habe.',
         ]);
-
-        $this->reset(['signatureDataUrl','open']);
-        $this->dispatch('toast', type:'success', message:'Bereitstellung bestätigt.');
     }
+
+    #[On('signatureCompleted')]
+    public function handleSignatureCompleted(array $payload): void
+    {
+        $fileableType = data_get($payload, 'fileableType');
+        $fileableId   = (int) data_get($payload, 'fileableId');
+
+        if ($fileableType !== CourseMaterialAcknowledgement::class) {
+            return;
+        }
+
+        $user = Auth::user();
+        $personId = $user?->person?->id;
+        if (!$personId) {
+            return;
+        }
+
+        $ack = CourseMaterialAcknowledgement::find($fileableId);
+        if (
+            !$ack ||
+            $ack->course_id !== $this->course->id ||
+            $ack->person_id !== $personId
+        ) {
+            return;
+        }
+
+        // Teilnehmer-Bestätigung stempeln
+        $ack->acknowledged_at = Carbon::now('Europe/Berlin');
+        $ack->save();
+
+        $this->dispatch('toast', type: 'success', message: 'Bereitstellung der Kursmaterialien wurde bestätigt.');
+    }
+
+
+
+
+#[On('signatureAborted')]
+public function handleSignatureAborted(array $payload): void
+{
+    $fileableType = data_get($payload, 'fileableType');
+    $fileableId   = (int) data_get($payload, 'fileableId');
+    $fileType     = data_get($payload, 'fileType');
+
+    // Nur reagieren, wenn es unsere Material-Bestätigung ist
+    if (
+        $fileableType !== CourseMaterialAcknowledgement::class ||
+        $fileType !== 'sign_materials_ack'
+    ) {
+        return;
+    }
+
+    $user = Auth::user();
+    $personId = $user?->person?->id;
+    if (!$personId) {
+        return;
+    }
+
+    $ack = CourseMaterialAcknowledgement::find($fileableId);
+    if (
+        !$ack ||
+        $ack->course_id !== $this->course->id ||
+        $ack->person_id !== $personId
+    ) {
+        return;
+    }
+
+    // Wenn schon bestätigt, nichts löschen
+    if ($ack->acknowledged_at !== null) {
+        return;
+    }
+
+    // Falls doch schon Files dranhängen sollten, mit aufräumen
+    foreach ($ack->files as $file) {
+        $file->delete();
+    }
+
+    // Ack-Datensatz wieder entfernen
+    $ack->delete();
+}
+
 
     public function render()
     {
