@@ -149,6 +149,19 @@ class Course extends Model
         return $q->where('planned_start_date', '>', $at);
     }
 
+
+    public function getSetting(string $key, $default = null)
+    {
+        return $this->settings[$key] ?? $default;
+    }
+
+    public function setSetting(string $key, $value): void
+    {
+        $s = $this->settings ?? [];
+        $s[$key] = $value;
+        $this->settings = $s;
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Beziehungen

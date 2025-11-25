@@ -11,6 +11,8 @@ class ManageCourseResults extends Component
 {
     public Course $course;
 
+    public bool $isExternalExam = false;
+
     /** @var array<int|string, array{name:string|null, result:string|null}> */
     public array $rows = [];
 
@@ -31,6 +33,7 @@ class ManageCourseResults extends Component
     public function mount(Course $course): void
     {
         $this->course = $course;
+        $this->isExternalExam = (bool) $this->course->getSetting('isExternalExam', false);
         $this->loadRows();
         $this->prefillResults();
 
@@ -53,31 +56,31 @@ class ManageCourseResults extends Component
         $this->dispatch('notify', type: 'success', message: 'Alle Ergebnisse gespeichert.');
     }
 
-public function saveOne(string $personId, bool $silent = false): void
-{
-    $this->validate([
-        "results.$personId" => ['nullable', 'string', 'max:50'],
-        "statuses.$personId" => ['nullable', 'string', 'max:100'],
-    ]);
+    public function saveOne(string $personId, bool $silent = false): void
+    {
+        $this->validate([
+            "results.$personId" => ['nullable', 'string', 'max:50'],
+            "statuses.$personId" => ['nullable', 'string', 'max:100'],
+        ]);
 
-    $value  = $this->results[$personId] ?? null;
-    $status = $this->statuses[$personId] ?? null;
+        $value  = $this->results[$personId] ?? null;
+        $status = $this->statuses[$personId] ?? null;
 
-    // Wenn Punkte gesetzt und kein Status → automatisch "An Prüfung teilgenommen"
-    if (!empty($value) && empty($status)) {
-        $status = 'An Prüfung teilgenommen';
-        $this->statuses[$personId] = $status; // auch UI aktualisieren
+        // Wenn Punkte gesetzt und kein Status → automatisch "An Prüfung teilgenommen"
+        if (!empty($value) && empty($status)) {
+            $status = 'An Prüfung teilgenommen';
+            $this->statuses[$personId] = $status; // auch UI aktualisieren
+        }
+
+        CourseResult::updateOrCreate(
+            ['course_id' => $this->course->id, 'person_id' => $personId],
+            ['result' => $value, 'status' => $status, 'updated_by' => auth()->id()]
+        );
+
+        if (!$silent) {
+            $this->dispatch('notify', type: 'success', message: "Gespeichert für Person #$personId.");
+        }
     }
-
-    CourseResult::updateOrCreate(
-        ['course_id' => $this->course->id, 'person_id' => $personId],
-        ['result' => $value, 'status' => $status, 'updated_by' => auth()->id()]
-    );
-
-    if (!$silent) {
-        $this->dispatch('notify', type: 'success', message: "Gespeichert für Person #$personId.");
-    }
-}
 
 
     public function sort(string $col): void
@@ -124,7 +127,22 @@ public function saveOne(string $personId, bool $silent = false): void
         $this->rows = $rows;
     }
 
-        public function placeholder()
+public function updatedIsExternalExam($value): void
+{
+    // in JSON settings speichern
+    $this->course->setSetting('isExternalExam', (bool) $value);
+    $this->course->save();
+
+    $this->dispatch(
+        'notify',
+        type: 'success',
+        message: 'Prüfungsmodus aktualisiert.'
+    );
+}
+
+
+
+    public function placeholder()
     {
         return <<<'HTML'
             <div role="status" class="h-32 w-full relative animate-pulse">
