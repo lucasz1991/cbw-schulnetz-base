@@ -1,7 +1,7 @@
 <div class="space-y-4 transition-opacity duration-300  pt-6" wire:loading.class="opacity-30" x-data>
     <x-ui.forms.toggle-button 
         model="isExternalExam"
-        label="{{ $isExternalExam ? 'Externe Prüfung aktiviert' : 'Interne Prüfung' }}"
+        label="Externe Prüfung"
     />
 
     @if($isExternalExam)
