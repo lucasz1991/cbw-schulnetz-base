@@ -100,32 +100,29 @@ class CourseDay extends Model
      * - Wenn jünger als 15 Minuten → kein neuer Job
      * - Schreibt Logs für Nachvollziehbarkeit
      */
-    protected static function dispatchSyncIfNotThrottled(CourseDay $day): void
-    {
-        if (!$day->id) {
+protected static function dispatchSyncIfNotThrottled(CourseDay $day): void
+{
+    if (!$day->id) {
+        return;
+    }
+
+    $cacheKey = "courseday_sync_last_run_{$day->id}";
+    $now = now();
+
+    $lastRun = Cache::get($cacheKey);
+
+    if ($lastRun instanceof Carbon) {
+        $diffMinutes = $lastRun->diffInMinutes($now);
+
+        // Wenn in den letzten 25 Minuten bereits gesynct wurde → abbrechen
+        if ($diffMinutes < 25) {
             return;
         }
-
-        $cacheKey = "courseday_sync_last_run_{$day->id}";
-        $now      = now();
-
-        $lastRun = Cache::get($cacheKey);
-
-        if ($lastRun instanceof Carbon) {
-            $diffMinutes = $now->diffInMinutes($lastRun);
-
-            if ($diffMinutes < 25) {
-                return;
-            }
-        }
-
-        // neuen Timestamp setzen (TTL 30 Min – danach kann neu gesynct werden)
-        Cache::put($cacheKey, $now, $now->addMinutes(30));
-
-        Log::info("Model::dispatchSyncIfNotThrottled() -  CourseDay #{$day->id}: Sync-Job dispatched .");
-
-        SyncCourseDayAttendanceJob::dispatch($day);
     }
+    // Timestamp speichern, Cache hält 60 Minuten
+    Cache::put($cacheKey, $now, now()->diffInSeconds(now()->addMinutes(60)));
+    SyncCourseDayAttendanceJob::dispatch($day);
+}
 
     public static function makeDefaultSessions(self $day): array
     {

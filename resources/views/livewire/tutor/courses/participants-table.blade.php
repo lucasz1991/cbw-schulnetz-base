@@ -1,6 +1,5 @@
 <div
     x-data="{ showSelectDayCalendar: $persist(false) }"
-    wire:poll.5s
     @class([
         'opacity-50 pointer-events-none cursor-wait' => $isLoadingApi,
     ])
