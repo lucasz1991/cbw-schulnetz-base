@@ -78,7 +78,7 @@ class CourseDay extends Model
         //  Beim Access (vorsichtig, kann viel sein – ggf. später throttlen)
         static::retrieved(function (CourseDay $day) {
             if ($day->attendance_last_synced_at === null ||
-                $day->attendance_last_synced_at->lt(Carbon::now()->subMinutes(30))
+                $day->attendance_last_synced_at->lt(Carbon::now()->subMinutes(15))
             ) {
                 self::dispatchSyncIfNotThrottled($day);
             }
@@ -114,8 +114,8 @@ protected static function dispatchSyncIfNotThrottled(CourseDay $day): void
     if ($lastRun instanceof Carbon) {
         $diffMinutes = $lastRun->diffInMinutes($now);
 
-        // Wenn in den letzten 25 Minuten bereits gesynct wurde → abbrechen
-        if ($diffMinutes < 25) {
+        // Wenn in den letzten 15 Minuten bereits gesynct wurde → abbrechen
+        if ($diffMinutes < 15) {
             return;
         }
     }

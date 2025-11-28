@@ -69,19 +69,42 @@ class ParticipantsTable extends Component
         $this->updatePrevNextFlags();
     }
 
-    /**
-     * Hilfsfunktion: setzt $isDirty anhand der Timestamps des CourseDay.
-     * Dirty, wenn attendance_updated_at > attendance_last_synced_at.
-     */
-    protected function syncDirtyFlagFromDay(CourseDay $day): void
-    {
-        $updated = $day->attendance_updated_at;
-        $synced  = $day->attendance_last_synced_at;
+protected function syncDirtyFlagFromDay(CourseDay $day): void
+{
+    $updated = $day->attendance_updated_at;
+    $synced  = $day->attendance_last_synced_at;
 
-        $this->isDirty = $updated && (
-            !$synced || $synced->lt($updated)
-        );
+    $this->isDirty = $updated && (
+        !$synced || $synced->lt($updated)
+    );
+
+    if ($synced && $updated && $synced->lt($updated->copy()->subMinutes(15))) {
+        $this->isLoadingApi = true;
     }
+}
+
+public function checkSyncStatus(): void
+{
+    if (!$this->selectedDay) {
+        $this->isLoadingApi = false;
+        return;
+    }
+
+    $day = $this->selectedDay->fresh();
+
+    $this->selectedDay = $day;
+    $this->rebuildAttendanceMap();
+    $this->syncDirtyFlagFromDay($day);
+
+    // wenn updated >= last_synced -> fertig
+    $updated = $day->attendance_updated_at;
+    $synced  = $day->attendance_last_synced_at;
+
+    if ($synced && $updated && $synced->gte($updated)) {
+        $this->isLoadingApi = false;
+    }
+}
+
 
     // ---- Events / Auswahl ----
     /** Auswahl per Kalenderklick (nimmt ID oder { id: ... } entgegen) */
@@ -459,7 +482,6 @@ class ParticipantsTable extends Component
             ]);
             $this->dispatch('notify', type: 'error', message: 'Fehler beim UVS-Sync. Bitte später erneut versuchen.');
         } finally {
-            $this->isLoadingApi = false;
         }
     }
 

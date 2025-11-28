@@ -1,4 +1,4 @@
-<div class="space-y-4 transition-opacity duration-300" wire:loading.class="pointer-events-none  cursor-wait" wire:target="isLoadingApi">
+<div class="space-y-4 transition-opacity duration-300">
     <div class="flex  max-md:flex-wrap  items-center space-x-3  justify-between mb-8">
         <div class="flex  justify-between items-center space-x-3 w-full">
           <div class="flex items-center gap-2 ">

@@ -1,8 +1,9 @@
 <div
     x-data="{ showSelectDayCalendar: $persist(false) }"
-    @class([
-        'opacity-50 pointer-events-none cursor-wait' => $isLoadingApi,
-    ])
+    @if($isLoadingApi)
+        wire:poll.visible.2000ms="checkSyncStatus"
+        class="opacity-50 pointer-events-none cursor-wait"
+    @endif
 >
     @if($course->dates->count() > 0)
         <div class="flex space-x-8">
