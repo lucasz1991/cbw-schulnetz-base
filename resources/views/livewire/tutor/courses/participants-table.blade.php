@@ -1,7 +1,7 @@
 <div
     x-data="{ showSelectDayCalendar: $persist(false) }"
     @if($isLoadingApi)
-        wire:poll.visible.2000ms="checkSyncStatus"
+        wire:poll.visible.2000ms
         class="opacity-50 pointer-events-none cursor-wait"
     @endif
 >

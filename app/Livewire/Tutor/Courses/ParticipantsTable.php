@@ -13,6 +13,7 @@ use Livewire\WithoutUrlPagination;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use App\Services\ApiUvs\CourseApiServices\CourseDayAttendanceSyncService;
+use App\Jobs\ApiUpdates\SyncCourseDayAttendanceJob;
 
 class ParticipantsTable extends Component
 {
@@ -79,6 +80,7 @@ protected function syncDirtyFlagFromDay(CourseDay $day): void
     );
 
     if ($synced && $updated && $synced->lt($updated->copy()->subMinutes(15))) {
+        SyncCourseDayAttendanceJob::dispatch($day);
         $this->isLoadingApi = true;
     }
 }

@@ -52,6 +52,9 @@ class CourseDay extends Model
     public const NOTE_STATUS_DRAFT     = 1;
     public const NOTE_STATUS_COMPLETED = 2;
 
+
+    public const AUTO_SYNC_THRESHOLD_MINUTES = 15;
+
     protected static function booted(): void
     {
         // deine bisherigen Defaults beim Erzeugen
@@ -96,29 +99,28 @@ class CourseDay extends Model
      * - Wenn jünger als 15 Minuten → kein neuer Job
      * - Schreibt Logs für Nachvollziehbarkeit
      */
-protected static function dispatchSyncIfNotThrottled(CourseDay $day): void
-{
-    if (!$day->id) {
-        return;
-    }
-
-    $cacheKey = "courseday_sync_last_run_{$day->id}";
-    $now = now();
-
-    $lastRun = Cache::get($cacheKey);
-
-    if ($lastRun instanceof Carbon) {
-        $diffMinutes = $lastRun->diffInMinutes($now);
-
-        // Wenn in den letzten 15 Minuten bereits gesynct wurde → abbrechen
-        if ($diffMinutes < 15) {
+    protected static function dispatchSyncIfNotThrottled(CourseDay $day): void
+    {
+        if (!$day->id) {
             return;
         }
+
+        $cacheKey = "courseday_sync_last_run_{$day->id}";
+        $now = now();
+
+        $lastRun = Cache::get($cacheKey);
+
+        if ($lastRun instanceof Carbon) {
+            $diffMinutes = $lastRun->diffInMinutes($now);
+
+            if ($diffMinutes < self::AUTO_SYNC_THRESHOLD_MINUTES) {
+                return;
+            }
+        }
+        // Timestamp speichern, Cache hält 60 Minuten
+        Cache::put($cacheKey, $now, now()->diffInSeconds(now()->addMinutes(60)));
+        SyncCourseDayAttendanceJob::dispatch($day);
     }
-    // Timestamp speichern, Cache hält 30 Minuten
-    Cache::put($cacheKey, $now, now()->diffInSeconds(now()->addMinutes(30)));
-    SyncCourseDayAttendanceJob::dispatch($day);
-}
 
     public static function makeDefaultSessions(self $day): array
     {
