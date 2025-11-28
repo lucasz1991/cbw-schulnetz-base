@@ -77,11 +77,7 @@ class CourseDay extends Model
 
         //  Beim Access (vorsichtig, kann viel sein – ggf. später throttlen)
         static::retrieved(function (CourseDay $day) {
-            if ($day->attendance_last_synced_at === null ||
-                $day->attendance_last_synced_at->lt(Carbon::now()->subMinutes(15))
-            ) {
                 self::dispatchSyncIfNotThrottled($day);
-            }
         });
 
         //  Beim Update: wenn attendance_data geändert wurde → nach UVS pushen
@@ -119,8 +115,8 @@ protected static function dispatchSyncIfNotThrottled(CourseDay $day): void
             return;
         }
     }
-    // Timestamp speichern, Cache hält 60 Minuten
-    Cache::put($cacheKey, $now, now()->diffInSeconds(now()->addMinutes(60)));
+    // Timestamp speichern, Cache hält 30 Minuten
+    Cache::put($cacheKey, $now, now()->diffInSeconds(now()->addMinutes(30)));
     SyncCourseDayAttendanceJob::dispatch($day);
 }
 
