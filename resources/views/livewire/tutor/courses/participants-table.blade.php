@@ -1,8 +1,10 @@
 <div
     x-data="{ showSelectDayCalendar: $persist(false) }"
     @if($isLoadingApi)
-        wire:poll.visible.2000ms
+        wire:poll.visible.2000ms="checkSyncStatus"
         class="opacity-50 pointer-events-none cursor-wait"
+    @else
+        wire:poll.visible.10000ms="checkSyncStatus"
     @endif
 >
     @if($course->dates->count() > 0)

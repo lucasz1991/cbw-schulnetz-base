@@ -79,8 +79,7 @@ protected function syncDirtyFlagFromDay(CourseDay $day): void
         !$synced || $synced->lt($updated)
     );
 
-    if ($synced && $updated && $synced->lt($updated->copy()->subMinutes(15))) {
-        SyncCourseDayAttendanceJob::dispatch($day);
+    if ($synced && $updated && $synced->lt($updated->copy()->subMinutes(CourseDay::AUTO_SYNC_THRESHOLD_MINUTES))) {
         $this->isLoadingApi = true;
     }
 }
