@@ -1,4 +1,4 @@
-<div class="space-y-4 transition-opacity duration-300" wire:loading.class="opacity-30">
+<div class="space-y-4 transition-opacity duration-300" wire:loading.class="pointer-events-none  cursor-wait" wire:target="isLoadingApi">
     <div class="flex  max-md:flex-wrap  items-center space-x-3  justify-between mb-8">
         <div class="flex  justify-between items-center space-x-3 w-full">
           <div class="flex items-center gap-2 ">
@@ -104,7 +104,7 @@
   </div>
 
   {{-- Tabelle: pro Tag alle TN mit Aktionen --}}
-  <div class="overflow-x-auto border rounded bg-white">
+  <div class=" border rounded bg-white">
     <table class="min-w-full text-sm table-fixed">
       <thead class="bg-gray-50">
         <tr>

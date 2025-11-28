@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 
-
 class Course extends Model
 {
     use HasFactory, SoftDeletes;
@@ -71,6 +70,8 @@ class Course extends Model
     | Accessors
     |--------------------------------------------------------------------------
     */
+
+
     public function getParticipantsCountAttribute(): int
     {
         // zählt nur Teilnehmer (people.type = 'participant')
@@ -207,7 +208,7 @@ class Course extends Model
             ->as('enrollment')
             ->wherePivotNull('deleted_at')
             ->wherePivot('is_active', true);
-    }
+    } 
 
 
     // Falls du Kursbewertungen behalten willst

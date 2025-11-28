@@ -11,6 +11,8 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\WithoutUrlPagination;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
+use App\Services\ApiUvs\CourseApiServices\CourseDayAttendanceSyncService;
 
 class ParticipantsTable extends Component
 {
@@ -37,6 +39,9 @@ class ParticipantsTable extends Component
     public bool $selectPreviousDayPossible = false;
     public bool $selectNextDayPossible     = false;
 
+    public bool $isLoadingApi = false;
+    public bool $isDirty      = false;
+
     // ---- Mount ----
     public function mount(int $courseId, ?int $selectedDayId = null): void
     {
@@ -56,11 +61,26 @@ class ParticipantsTable extends Component
             if ($day) {
                 $this->selectedDay   = $day;
                 $this->selectedDayId = $day->id;
+                $this->syncDirtyFlagFromDay($day);
             }
         }
 
         $this->rebuildAttendanceMap();
         $this->updatePrevNextFlags();
+    }
+
+    /**
+     * Hilfsfunktion: setzt $isDirty anhand der Timestamps des CourseDay.
+     * Dirty, wenn attendance_updated_at > attendance_last_synced_at.
+     */
+    protected function syncDirtyFlagFromDay(CourseDay $day): void
+    {
+        $updated = $day->attendance_updated_at;
+        $synced  = $day->attendance_last_synced_at;
+
+        $this->isDirty = $updated && (
+            !$synced || $synced->lt($updated)
+        );
     }
 
     // ---- Events / Auswahl ----
@@ -85,6 +105,9 @@ class ParticipantsTable extends Component
         $day = CourseDay::where('course_id', $this->courseId)->findOrFail($courseDayId);
         $this->selectedDay   = $day;
         $this->selectedDayId = $day->id;
+
+        $this->syncDirtyFlagFromDay($day);
+        $this->isLoadingApi = false;
 
         $this->rebuildAttendanceMap();
         $this->updatePrevNextFlags();
@@ -224,12 +247,25 @@ class ParticipantsTable extends Component
         return Arr::get($this->selectedDay?->attendance_data, "participants.$participantId");
     }
 
-
+    /**
+     * Zentrale Apply-Methode:
+     * - setzt state='dirty' für den Teilnehmer
+     * - merkt die Komponente insgesamt als dirty
+     * - ruft CourseDay::setAttendance()
+     * - aktualisiert die lokale $attendanceMap
+     */
     protected function apply(int $participantId, array $patch): void
     {
         $day = $this->dayOrFail();
+
+        // jeden Patch als "dirty" markieren, damit der Sync-Service ihn berücksichtigt
+        $patch['state'] = 'dirty';
+
         // Persistieren im Model
         $day->setAttendance($participantId, $patch);
+
+        // Komponente auf "dirty" stellen
+        $this->isDirty = true;
 
         // Lokales ViewModel mergen
         $existing = $this->attendanceMap[$participantId] ?? [];
@@ -389,6 +425,44 @@ class ParticipantsTable extends Component
         }
     }
 
+    /**
+     * Manueller Sync-Button des Dozenten.
+     */
+    public function saveChanges(): void
+    {
+        $day = $this->dayOrFail();
+
+        $this->isLoadingApi = true;
+
+        try {
+            /** @var CourseDayAttendanceSyncService $service */
+            $service = app(CourseDayAttendanceSyncService::class);
+
+            $ok = $service->syncToRemote($day);
+
+            // CourseDay neu einlesen (attendance_data, timestamps, etc.)
+            $day->refresh();
+            $this->selectedDay = $day;
+
+            $this->rebuildAttendanceMap();
+            $this->syncDirtyFlagFromDay($day);
+
+            if ($ok) {
+                $this->dispatch('notify', type: 'success', message: 'Anwesenheit erfolgreich mit UVS synchronisiert.');
+            } else {
+                $this->dispatch('notify', type: 'error', message: 'UVS-Sync konnte nicht durchgeführt werden.');
+            }
+        } catch (\Throwable $e) {
+            Log::error('ParticipantsTable.saveChanges: Fehler beim UVS-Sync', [
+                'day_id' => $day->id ?? null,
+                'error'  => $e->getMessage(),
+            ]);
+            $this->dispatch('notify', type: 'error', message: 'Fehler beim UVS-Sync. Bitte später erneut versuchen.');
+        } finally {
+            $this->isLoadingApi = false;
+        }
+    }
+
     public function getRowsProperty(): Collection
     {
         $day = $this->selectedDay;
@@ -405,7 +479,7 @@ class ParticipantsTable extends Component
             $allIds       = $allIds->merge($rel->pluck($qualifiedKey)->all());
         }
 
-        $allIds      = $allIds->map(fn ($id) => (int) $id)->unique()->values();
+        $allIds       = $allIds->map(fn ($id) => (int) $id)->unique()->values();
         $participants = collect();
 
         if ($day->course && method_exists($day->course, 'participants') && $allIds->isNotEmpty()) {
@@ -466,8 +540,6 @@ class ParticipantsTable extends Component
             'total'    => $total,
         ];
     }
-
-
 
     // ---- Helpers ----
 
@@ -532,7 +604,6 @@ class ParticipantsTable extends Component
         return [$start?->format('H:i'), $end?->format('H:i')];
     }
 
-
     public function placeholder()
     {
         return <<<'HTML'
@@ -561,10 +632,11 @@ class ParticipantsTable extends Component
             'selectedDayId'             => $this->selectedDayId,
             'selectPreviousDayPossible' => $this->selectPreviousDayPossible,
             'selectNextDayPossible'     => $this->selectNextDayPossible,
-
+            'isLoadingApi'              => $this->isLoadingApi,
+            'isDirty'                   => $this->isDirty,
             // Neu: Defaults für Timepicker
             'plannedStart'              => $plannedStart, // 'H:i'
             'plannedEnd'                => $plannedEnd,   // 'H:i'
         ]);
     }
-} 
+}

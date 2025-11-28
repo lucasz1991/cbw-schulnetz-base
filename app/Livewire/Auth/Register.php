@@ -154,7 +154,7 @@ class Register extends Component
                 //    → keine E-Mail-Vergleiche hier, weil die Mail in UVS „unsauber“ sein kann
                 $personModel = Person::firstWhere('person_id', $p->person_id);
 
-                $mapped = $this->mapPersonPayload($p, $role);
+                $mapped = Person::mapFromUvsPayload($p, $role);
 
                 if ($personModel) {
                     // Update vorhandener Datensatz
@@ -168,9 +168,10 @@ class Register extends Component
                     $personModel->save();
                 } else {
                     // Neu anlegen inkl. Verknüpfung
-                    Person::create(array_merge($mapped, [
+                    $newPerson = new Person(array_merge($mapped, [
                         'user_id' => $newUser->id,
                     ]));
+                    $newPerson->save();
                 }
             }
 
@@ -198,72 +199,7 @@ class Register extends Component
         return Password::createToken($user);
     }
 
-    private function safeDate(?string $value, string $mode = 'date'): ?string
-    {
-        try {
-            if (!$value) return null;
-            return $mode === 'datetime'
-                ? Carbon::parse($value)->toDateTimeString()
-                : Carbon::parse($value)->toDateString();
-        } catch (\Throwable $e) {
-            return null;
-        }
-    }
-
-    private function mapPersonPayload(object $p, string $role): array
-    {
-        return [
-            'person_id'        => $p->person_id,
-            'institut_id'      => $p->institut_id ?? null,
-            'person_nr'        => $p->person_nr ?? null,
-            'role'             => $role,
-            'status'           => $p->status ?? null,
-            'upd_date'         => $this->safeDate($p->upd_date ?? null, 'datetime'),
-            'nachname'         => $p->nachname ?? null,
-            'vorname'          => $p->vorname ?? null,
-            'geschlecht'       => $p->geschlecht ?? null,
-            'titel_kennz'      => $p->titel_kennz ?? null,
-            'nationalitaet'    => $p->nationalitaet ?? null,
-            'familien_stand'   => $p->familien_stand ?? null,
-            'geburt_datum'     => $this->safeDate($p->geburt_datum ?? null, 'date'),
-            'geburt_name'      => $p->geburt_name ?? null,
-            'geburt_land'      => $p->geburt_land ?? null,
-            'geburt_ort'       => $p->geburt_ort ?? null,
-            'lkz'              => $p->lkz ?? null,
-            'plz'              => $p->plz ?? null,
-            'ort'              => $p->ort ?? null,
-            'strasse'          => $p->strasse ?? null,
-            'adresszusatz1'    => $p->adresszusatz1 ?? null,
-            'adresszusatz2'    => $p->adresszusatz2 ?? null,
-            'plz_pf'           => $p->plz_pf ?? null,
-            'postfach'         => $p->postfach ?? null,
-            'plz_gk'           => $p->plz_gk ?? null,
-            'telefon1'         => $p->telefon1 ?? null,
-            'telefon2'         => $p->telefon2 ?? null,
-            'person_kz'        => $p->person_kz ?? null,
-            'plz_alt'          => $p->plz_alt ?? null,
-            'ort_alt'          => $p->ort_alt ?? null,
-            'strasse_alt'      => $p->strasse_alt ?? null,
-            'telefax'          => $p->telefax ?? null,
-            'kunden_nr'        => $p->kunden_nr ?? null,
-            'stamm_nr_aa'      => $p->stamm_nr_aa ?? null,
-            'stamm_nr_bfd'     => $p->stamm_nr_bfd ?? null,
-            'stamm_nr_sons'    => $p->stamm_nr_sons ?? null,
-            'stamm_nr_kst'     => $p->stamm_nr_kst ?? null,
-            'kostentraeger'    => $p->kostentraeger ?? null,
-            'bkz'              => $p->bkz ?? null,
-            'email_priv'       => $p->email_priv ?? null,
-            'email_cbw'        => $p->email_cbw ?? null,
-            'geb_mmtt'         => $p->geb_mmtt ?? null,
-            'org_zeichen'      => $p->org_zeichen ?? null,
-            'personal_nr'      => $p->personal_nr ?? null,
-            'kred_nr'          => $p->kred_nr ?? null,
-            'angestellt_von'   => $this->safeDate($p->angestellt_von ?? null, 'datetime'),
-            'angestellt_bis'   => $this->safeDate($p->angestellt_bis ?? null, 'datetime'),
-            'leer'             => $p->leer ?? null,
-            'last_api_update'  => now(),
-        ];
-    }
+    
 
     public function mount()
     {

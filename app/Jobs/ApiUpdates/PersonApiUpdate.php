@@ -81,14 +81,18 @@ class PersonApiUpdate implements ShouldQueue, ShouldBeUnique
             }
         }
 
+
         // 3) Persist
         $person->fill([
+            'teilnehmer_nr'   => $programData['teilnehmer_nr'] ?? null,
+            'teilnehmer_id'   => $programData['teilnehmer_id'] ?? null,
             'role'            => $role,
             'statusdata'      => $statusData,
             'programdata'     => $programData ?? null,
             'last_api_update' => now(),
         ])->save();
-
-        CheckPersonsCourses::dispatch($person->id);
+        if ($person->user_id != null) {
+            CheckPersonsCourses::dispatch($person->id);
+        }
     }
 }

@@ -8,8 +8,10 @@ use App\Models\Course;
 use Carbon\Carbon;
 use Illuminate\Support\Fluent;
 use Illuminate\Database\Eloquent\SoftDeletes;
-
-
+use App\Jobs\ApiUpdates\SyncCourseDayAttendanceJob;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use App\Models\File;
 
 class CourseDay extends Model
 {
@@ -23,11 +25,14 @@ class CourseDay extends Model
         'std',
         'day_sessions',
         'attendance_data',
+        'attendance_updated_at',
+        'attendance_last_synced_at',
         'topic',
         'notes',
         'note_status',
         'settings',
         'type',
+
     ];
 
     protected $casts = [
@@ -36,6 +41,8 @@ class CourseDay extends Model
         'end_time'        => 'datetime:H:i',
         'day_sessions'    => 'array', // wichtig für JSON
         'attendance_data' => 'array', // wichtig für JSON
+        'attendance_updated_at' => 'datetime',
+        'attendance_last_synced_at' => 'datetime',
         'note_status'     => 'integer',
         'settings'       => 'array',
     ];
@@ -47,6 +54,7 @@ class CourseDay extends Model
 
     protected static function booted(): void
     {
+        // deine bisherigen Defaults beim Erzeugen
         static::creating(function (CourseDay $day) {
             if (empty($day->day_sessions)) {
                 $day->day_sessions = self::makeDefaultSessions($day);
@@ -64,63 +72,80 @@ class CourseDay extends Model
                 $day->settings = [];
             }
         });
+
+
+
+        //  Beim Access (vorsichtig, kann viel sein – ggf. später throttlen)
+        static::retrieved(function (CourseDay $day) {
+            if ($day->attendance_last_synced_at === null ||
+                $day->attendance_last_synced_at->lt(Carbon::now()->subMinutes(30))
+            ) {
+                self::dispatchSyncIfNotThrottled($day);
+            }
+        });
+
+        //  Beim Update: wenn attendance_data geändert wurde → nach UVS pushen
+        //static::updated(function (CourseDay $day) {
+        //    if ($day->wasChanged('attendance_data')) {
+        //        SyncCourseDayAttendanceJob::dispatch($day);
+        //        Log::info("Model:: CourseDay #{$day->id}: Sync-Job dispatched nach Änderung der Attendance-Daten.");
+        //    }
+        //});
+    }
+
+        /**
+     * Zentraler Cache-Guard für das Dispatchen des Sync-Jobs.
+     *
+     * - Speichert letzten Sync-Zeitpunkt im Cache
+     * - Wenn jünger als 15 Minuten → kein neuer Job
+     * - Schreibt Logs für Nachvollziehbarkeit
+     */
+    protected static function dispatchSyncIfNotThrottled(CourseDay $day): void
+    {
+        if (!$day->id) {
+            return;
+        }
+
+        $cacheKey = "courseday_sync_last_run_{$day->id}";
+        $now      = now();
+
+        $lastRun = Cache::get($cacheKey);
+
+        if ($lastRun instanceof Carbon) {
+            $diffMinutes = $now->diffInMinutes($lastRun);
+
+            if ($diffMinutes < 25) {
+                return;
+            }
+        }
+
+        // neuen Timestamp setzen (TTL 30 Min – danach kann neu gesynct werden)
+        Cache::put($cacheKey, $now, $now->addMinutes(30));
+
+        Log::info("Model::dispatchSyncIfNotThrottled() -  CourseDay #{$day->id}: Sync-Job dispatched .");
+
+        SyncCourseDayAttendanceJob::dispatch($day);
     }
 
     public static function makeDefaultSessions(self $day): array
     {
+        return [];
+    }
+
+    public static function makeDefaultAttendance(self $day): array
+    {
         return [
-            '1' => [
-                'label' => '8:00',
-                'start' => '08:00',
-                'end'   => '09:30',
-                'break' => '09:30-09:45',
-                'room'  => '101',
-                'topic' => '',
-                'notes' => ''
-            ],
-            '2' => [
-                'label' => '9:45',
-                'start' => '09:45',
-                'end'   => '11:15',
-                'break' => '11:15-11:30',
-                'room'  => '101',
-                'topic' => '',
-                'notes' => ''
-            ],
-            '3' => [
-                'label' => '11:30',
-                'start' => '11:30',
-                'end'   => '13:00',
-                'break' => '13:00-13:15',
-                'room'  => '101',
-                'topic' => '',
-                'notes' => ''
-            ],
-            '4' => [
-                'label' => '13:15',
-                'start' => '13:15',
-                'end'   => '14:45',
-                'break' => '',
-                'room'  => '101',
-                'topic' => '',
-                'notes' => ''
+            // Wichtig: leer lassen, damit "kein Eintrag" = Default "anwesend" im UI bedeuten kann
+            'participants' => [],
+            'status' => [
+                'start'      => 0,
+                'end'        => 0,
+                'state' => null,
+                'created_at' => null,
+                'updated_at' => null,
             ],
         ];
     }
-
-public static function makeDefaultAttendance(self $day): array
-{
-    return [
-        // Wichtig: leer lassen, damit "kein Eintrag" = Default "anwesend" im UI bedeuten kann
-        'participants' => [],
-        'status' => [
-            'start'      => 0,
-            'end'        => 0,
-            'created_at' => null,
-            'updated_at' => null,
-        ],
-    ];
-}
 
 
     /**
@@ -144,8 +169,9 @@ public static function makeDefaultAttendance(self $day): array
         }
         if (!isset($att['status']) || !is_array($att['status'])) {
             $att['status'] = [
-                'start' => 0,
-                'end' => 0,
+                'start'      => 0,
+                'end'        => 0,
+                'state'      => null,
                 'created_at' => null,
                 'updated_at' => null,
             ];
@@ -157,10 +183,15 @@ public static function makeDefaultAttendance(self $day): array
             'late_minutes'       => 0,
             'left_early_minutes' => 0,
             'excused'            => false,
-            'note'               => null,
+            'note'               => '',
             'timestamps'         => ['in' => null, 'out' => null],
             'created_at'         => null,
             'updated_at'         => null,
+            'src_api_id'         => null,  // uid aus UVS-Datenbank
+            'state'              => null,  // 'draft' | 'synced' | 'pulled' ...
+            // optional: arrived_at/left_at, falls du sie im JSON mitführst
+            'arrived_at'         => null,
+            'left_at'            => null,
         ];
 
         // Aktuelle Zeile oder Default
@@ -168,12 +199,16 @@ public static function makeDefaultAttendance(self $day): array
 
         // Timestamps nested mergen (nicht platt überbügeln)
         if (isset($data['timestamps']) && is_array($data['timestamps'])) {
-            $row['timestamps'] = array_merge($row['timestamps'] ?? ['in' => null, 'out' => null], $data['timestamps']);
+            $row['timestamps'] = array_merge(
+                $row['timestamps'] ?? ['in' => null, 'out' => null],
+                $data['timestamps']
+            );
             unset($data['timestamps']);
         }
 
         // Restliche Felder mergen
         $row = array_merge($row, $data);
+        $row['note'] = (string)($row['note'] ?? '');
 
         // Touch created/updated
         $now = now()->toDateTimeString();
@@ -182,19 +217,26 @@ public static function makeDefaultAttendance(self $day): array
         }
         $row['updated_at'] = $now;
 
-        // Speichern in Struktur
+        // WICHTIG:
+        // jede manuelle Änderung durch den Dozenten = "draft"/"dirty"
+        // (wird später vom Sync-Service auf 'synced' gesetzt)
+        $row['state'] = 'draft';
+
+        // Speichern in Struktur (JETZT mit state)
         $att['participants'][$participantId] = $row;
 
-        // Status-Updated timestamp pflegen (Zähler start/end lässt du nach Bedarf unverändert)
+        // Status-Updated timestamp pflegen
         $att['status']['updated_at'] = $now;
-
-        if ($att['status']['start'] == 0) {
-            $att['status']['start'] = 1; // status auf 1 setzen für 'in bearbeitung'
+        if ((int)($att['status']['start'] ?? 0) === 0) {
+            $att['status']['start'] = 1; // "in Bearbeitung"
         }
 
         $this->attendance_data = $att;
+        $this->attendance_updated_at = now();
+
         $this->save();
     }
+
 
 
     public function getSessions()
@@ -245,10 +287,7 @@ public static function makeDefaultAttendance(self $day): array
         $this->save(); // Speichern, damit Änderungen persistiert werden
     }
 
-    public function getAttendanceData()
-    {
-        return $this->attendance_data ?? [];
-    }
+
 
     public function course()
     {

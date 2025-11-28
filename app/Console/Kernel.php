@@ -5,6 +5,7 @@ namespace App\Console;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
+
 class Kernel extends ConsoleKernel
 {
     /**
@@ -20,6 +21,9 @@ class Kernel extends ConsoleKernel
 
         // Schedule the exports command to run monthly on the 1st at 2:00 AM
         // $schedule->command('exports:run')->monthlyOn(1, '02:00');
+          $schedule->command('uvs:update-persons')->dailyAt('01:46');
+
+
     }
 
     /**

@@ -1,4 +1,10 @@
-<div x-data="{ showSelectDayCalendar: $persist(false) }" class="">
+<div
+    x-data="{ showSelectDayCalendar: $persist(false) }"
+    wire:poll.5s
+    @class([
+        'opacity-50 pointer-events-none cursor-wait' => $isLoadingApi,
+    ])
+>
     @if($course->dates->count() > 0)
         <div class="flex space-x-8">
             <div class="mt-6 w-full transition-all duration-600 ease-in-out"
@@ -21,7 +27,16 @@
                         :plannedStart="$plannedStart" 
                         :plannedEnd="$plannedEnd"    
                     />
-
+                    @if($isDirty)
+                        <x-button
+                            class="disabled:opacity-60 disabled:cursor-wait mt-2"
+                            wire:click="saveChanges"
+                            wire:loading.attr="disabled"
+                            wire:target="saveChanges"
+                        >
+                            Änderungen senden
+                        </x-button>
+                    @endif
                 @else
                     <p class="text-sm text-gray-500">Kein Datum ausgewählt.</p>
                 @endif
