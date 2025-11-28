@@ -173,7 +173,7 @@
 
           <tr x-data="{ lateOpen:false, noteOpen:false }" class="hover:bg-gray-50">
             {{-- 1) Teilnehmer (links) --}}
-            <td class="px-4 py-2">
+            <td class="px-1 md:px-4 py-2">
               <div class="w-min md:w-max">
                 @if($r['user'])
                   <x-user.public-info :person="$r['user']" />
@@ -211,7 +211,7 @@
           @endphp
 
 
-          <td class="px-4 py-2">
+          <td class="px-1 md:px-4 py-2">
             <div class="flex items-center gap-2 flex-wrap">
               {{-- Status-Badge --}}
               <span class="inline-flex rounded px-2 py-0.5 text-xs {{ $badge }}">
@@ -241,7 +241,7 @@
             // Abwesend nur, wenn Eintrag existiert und present=false & !excused
             $isAbsent = ($r['hasEntry'] ?? false) && ($d['present'] === false) && !($d['excused'] ?? false);
           @endphp
-            <td class="px-4 py-2">
+            <td class="px-1 md:px-4 py-2">
               <div class="flex items-center justify-end gap-1">
 
                 {{-- Anwesend / Abwesend: nur Flags setzen --}}
