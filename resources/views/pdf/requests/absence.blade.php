@@ -4,7 +4,8 @@
     <meta charset="utf-8">
     <title>Entschuldigung von Fehlzeiten</title>
     <style>
-        @page { margin: 28px 28px 32px 28px; }
+        /* --- Seitenränder VERDOPPELT --- */
+        @page { margin: 56px 56px 64px 56px; }
 
         body {
             font-family: DejaVu Sans, sans-serif;
@@ -36,7 +37,7 @@
         }
 
         .logo-cell img {
-            max-height: 50px; /* KLEINERES LOGO */
+            max-height: 50px;
         }
 
         /* Meta-Felder */
@@ -66,7 +67,7 @@
         }
         .block-box {
             border: 0.6px solid #000;
-            padding: 8px 6px; /* ← LEICHTES PADDING FÜR INHALTSZELLEN */
+            padding: 8px 6px;
             min-height: 32px;
         }
 
@@ -77,7 +78,7 @@
 
         .signature-line {
             border-bottom: 0.6px solid #000;
-            margin-bottom: 4px; /* Strich direkt über den Linienüberschriften */
+            margin-bottom: 4px;
         }
 
         .signature-row {
@@ -186,8 +187,8 @@
 <div class="block">
     <div class="block-title">Grund der Abwesenheit:</div>
     <div class="block-box">
-        {{ $request->reason === 'abw_unwichtig' ? '' : 'Wichtig = ' }} {{ $request->reason_item  ?? 'Fehlzeit ohne wichtigen Grund'}}
-    </div> 
+        {{ $request->reason === 'abw_unwichtig' ? '' : 'Wichtig = ' }} {{ $request->reason_item ?? 'Fehlzeit ohne wichtigen Grund' }}
+    </div>
 </div>
 
 {{-- sonstige Begründung --}}
@@ -198,12 +199,12 @@
     </div>
 </div>
 
- 
+
 {{-- Unterschriftenbereich --}}
 <div class="signature-wrapper" style="margin-top: 22px;">
 
     <table class="signature-row" style="width:100%; border-collapse:collapse;">
-        
+
         {{-- Obere Zeile: Köln - Datum | Name --}}
         <tr>
             <td style="width:50%; padding:2px 0; vertical-align:bottom;">
@@ -214,14 +215,14 @@
             </td>
         </tr>
 
-        {{-- Strich zwischen oberer und unterer Zeile --}}
+        {{-- Trennstrich --}}
         <tr>
             <td colspan="2" style="padding:0;">
                 <div style="border-bottom: 0.6px solid #000; width:100%; margin:4px 0;"></div>
             </td>
         </tr>
 
-        {{-- Untere Zeile: Ort - Datum | Unterschrift --}}
+        {{-- Untere Zeile --}}
         <tr>
             <td style="padding-top:2px; vertical-align:top;">
                 Ort – Datum
@@ -234,7 +235,6 @@
     </table>
 
 </div>
-
 
 
 {{-- CBW-Bereich --}}
