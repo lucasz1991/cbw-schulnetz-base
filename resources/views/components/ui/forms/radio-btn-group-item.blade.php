@@ -47,7 +47,7 @@
   />
   <label
     for="{{ $id }}"
-    class="{{ $labelBase }} peer-checked:bg-blue-600 peer-checked:text-white peer-checked:hover:bg-blue-700"
+    class="{{ $labelBase }} peer-checked:bg-secondary peer-checked:text-white peer-checked:hover:bg-secondary"
   >
     @if($icon)
       <i class="{{ $iconStyle }} {{ $icon }}"></i>
