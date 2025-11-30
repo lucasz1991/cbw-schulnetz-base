@@ -41,6 +41,8 @@
         }
         .lmz-flatpickr .flatpickr-calendar.inline .flatpickr-day.selected{
             color:#fff;
+            background-color:rgb(46, 91, 158);
+            border-color:rgb(46, 91, 158);
         }
     </style>
     <div class="w-max mx-auto  pb-2" :class="inline ? ' ' : ''">

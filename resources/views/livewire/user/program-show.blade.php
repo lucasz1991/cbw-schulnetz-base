@@ -441,7 +441,6 @@
                   @endif
                 </div>
 
-                {{-- Status nur bei echten Kursen --}}
                 @if($typ === 'kurs' && $status)
                   <div class="col-span-4 text-right">
                     <span class="px-2 py-1 text-xs font-medium rounded badge {{ $statusClass }}">{{ $status }}</span>
@@ -451,13 +450,8 @@
                 @endif
               </div>
 
-              <div class="grid grid-cols-12 gap-1">
-                <div class="col-span-6 font-medium text-gray-800">
-                  <span class="px-2 py-1 text-xs font-medium rounded badge bg-gray-50 text-gray-500">
-                    {{ strtoupper($typ) }}
-                  </span>
-                </div>
-                <div class="col-span-6 text-right">
+              <div class="">
+                <div class="">
                   <span class="text-xs text-gray-500 w-max">
                     {{ $start?->locale('de')->isoFormat('DD.MM.YYYY') }}
                     &nbsp;–&nbsp;
