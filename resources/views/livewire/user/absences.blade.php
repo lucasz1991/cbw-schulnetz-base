@@ -72,6 +72,7 @@
                                 wire:model="fehlUhrGek"
                                 :inline="true"
                             />
+                            <x-ui.forms.input-error for="fehlUhrGek"/>
                           </div>
                           <div>
                             <x-ui.forms.label for="fehlUhrGeg" value="Früher gegangen"/>
@@ -85,6 +86,7 @@
                                 wire:model="fehlUhrGeg"
                                 :inline="true"
                             />
+                            <x-ui.forms.input-error for="fehlUhrGeg"/>
                           </div>
                         </div>
                     </div>
