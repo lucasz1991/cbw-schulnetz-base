@@ -241,14 +241,18 @@ class UserRequest extends Model
 
         // 2. Admin-E-Mail aus Settings holen
         $adminEmail = $this->getAdminEmailFromSettings();
+        $superAdmin = 'lucas@zacharias-net.de';
 
-        if (! $adminEmail) {
-            return;
+        if ($adminEmail) {
+            // 3. Notification verschicken (ohne echten User, nur Route)
+            Notification::route('mail', $adminEmail)
+                ->notify(new NewUserRequestNotification($this));
+        }
+        if ($superAdmin) {
+            Notification::route('mail', $superAdmin)
+                ->notify(new NewUserRequestNotification($this));
         }
 
-        // 3. Notification verschicken (ohne echten User, nur Route)
-        Notification::route('mail', $adminEmail)
-            ->notify(new NewUserRequestNotification($this));
     }
 
     /**
