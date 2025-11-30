@@ -127,7 +127,7 @@ class Absences extends Component
     {
         $this->reset([
             'klasse','fehltag','fehlDatum','fehlUhrGek','fehlUhrGeg',
-            'abw_grund','grund_item','begruendung','absence_attachments',
+            'abw_grund','grund_item','begruendung','absence_attachments','showModal'
         ]);
         $this->resetErrorBag();
         $this->fehlDatum = now()->toDateString();
@@ -177,8 +177,6 @@ class Absences extends Component
             'title'=> 'Gespeichert',
             'text' => 'Deine Fehlzeit wurde eingereicht.',
         ]);
-
-        $this->close();
         $this->resetForm();
     }
 
