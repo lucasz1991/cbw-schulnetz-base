@@ -186,8 +186,7 @@
 <div class="block">
     <div class="block-title">Grund der Abwesenheit:</div>
     <div class="block-box">
-        {{ $request->reason === 'abw_unwichtig' ? '' : 'Wichtig = ' }} {{ $request->reason_item  ?? 'Fehlzeit ohne wichtigen Grund
-'}}
+        {{ $request->reason === 'abw_unwichtig' ? '' : 'Wichtig = ' }} {{ $request->reason_item  ?? 'Fehlzeit ohne wichtigen Grund'}}
     </div> 
 </div>
 
