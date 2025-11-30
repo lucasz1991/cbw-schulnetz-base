@@ -31,6 +31,14 @@ class CourseRating extends Model
         'is_anonymous' => 'boolean',
     ];
 
+    protected static function booted(): void
+    {
+        // deine bisherigen Defaults beim Erzeugen
+        //static::created(function (CourseRating $rating) {
+
+        //});
+    }
+
     /**
      * Beziehungen
      */

@@ -297,7 +297,7 @@ class CourseDay extends Model
     /** Tutor-Signaturen für diesen Tag (Typ z. B. sign_courseday_tutor) */
     public function tutorSignatures()
     {
-        return $this->files()->where('type', 'sign_courseday_tutor');
+        return $this->files()->where('type', 'sign_courseday_doku_tutor');
     }
 
     public function latestTutorSignature(): ?File

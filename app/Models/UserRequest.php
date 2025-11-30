@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Casts\AsArrayObject;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use App\Models\AdminTask;
+
 
 class UserRequest extends Model
 {
@@ -85,6 +87,21 @@ class UserRequest extends Model
         'data'               => AsArrayObject::class,
     ];
 
+
+    protected static function booted(): void
+    {
+        // deine bisherigen Defaults beim Erzeugen
+        static::created(function (UserRequest $request) {
+            AdminTask::create([
+                'created_by'   => $request->user_id,
+                'context_type' => UserRequest::class,
+                'context_id'   => $request->id,
+                'task_type'    => 'user_request_review',
+                'description'  => "Teilnehmerantrag {$request->title} von {$request->user->name} eingereicht – Prüfung & Freigabe erforderlich.",
+                'status'       => AdminTask::STATUS_OPEN,
+            ]);
+        });
+    }
     /**
      * -------------------------------------------------------------------------
      *  Beziehungen
