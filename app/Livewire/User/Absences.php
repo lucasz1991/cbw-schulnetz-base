@@ -132,6 +132,7 @@ class Absences extends Component
         $this->resetErrorBag();
         $this->fehlDatum = now()->toDateString();
         $this->abw_grund = 'abw_unwichtig';
+        $this->showModal = false;
     }
 
     public function save(): void
