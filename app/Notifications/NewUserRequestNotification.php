@@ -71,7 +71,7 @@ class NewUserRequestNotification extends Notification implements ShouldQueue
                 'pdf.requests.absence',
                 'Fehlzeitmeldung.pdf',
             ],
-            'exam' => [
+            'makeup' => [
                 'pdf.requests.exam-registration',
                 'Nachpruefung_Anmeldung.pdf',
             ],
@@ -80,8 +80,8 @@ class NewUserRequestNotification extends Notification implements ShouldQueue
                 'Externe_Pruefung_Anmeldung.pdf',
             ],
             default => [
-                'pdf.requests.generic',
-                'Antrag.pdf',
+                'none',
+                'none.pdf',
             ],
         };
     }
@@ -93,7 +93,7 @@ class NewUserRequestNotification extends Notification implements ShouldQueue
     {
         return match ($this->request->type ?? '') {
             'absence'       => 'Fehlzeitmeldung',
-            'exam'          => 'Anmeldung Nachprüfung',
+            'makeup'        => 'Anmeldung Nachprüfung',
             'external_exam' => 'Anmeldung Externe Prüfung',
             default         => 'Antrag',
         };
