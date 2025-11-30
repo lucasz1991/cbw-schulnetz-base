@@ -50,7 +50,6 @@ class Absences extends Component
     protected $listeners = [
         'open-request-form' => 'handleOpen',
         'open-absence-form' => 'open',
-        'close-modal' => 'close',
     ];
 
     public function handleOpen($payload = []): void

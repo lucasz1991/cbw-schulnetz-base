@@ -26,7 +26,7 @@
      wire:ignore
      wire:key="{{ $wireKey }}" x-data="{ inline: @js($inline), lwModel: @js($model) }">
     @if($label)
-        <x-ui.forms.label for="{{ $inputId }}" :value="$label" />
+        <x-ui.forms.label for="{{ $inputId }}" :value="$label" class="text-secondary font-semibold" />
     @endif
     @if($model)
         <x-ui.forms.input-error :for="$model" />
@@ -43,7 +43,7 @@
             color:#fff;
         }
     </style>
-    <div class="w-max mx-auto pb-2" :class="inline ? 'border border-gray-300 shadow-sm rounded-md focus:ring-indigo-500 focus:border-indigo-500 ' : ''">
+    <div class="w-max mx-auto  pb-2" :class="inline ? ' ' : ''">
         <input
             id="{{ $inputId }}"
             type="text"

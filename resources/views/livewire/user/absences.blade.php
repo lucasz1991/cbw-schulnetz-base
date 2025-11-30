@@ -1,6 +1,6 @@
-<x-modal.modal wire:model="showModal" maxWidth="2xl">
+<x-modal.modal wire:model="showModal" maxWidth="2xl" >
   <x-slot name="title">
-      Fehlzeit entschuldigen
+      Fehlzeit melden
   </x-slot>
 
   <x-slot name="content">
@@ -58,7 +58,7 @@
                     aria-hidden="false">
                     <div class="space-y-4">
                       <div>
-                         <x-ui.forms.label for="fehlUhrGek" value="Später gekommen (Uhrzeit)"/>
+                         <x-ui.forms.label for="fehlUhrGek" value="Später gekommen"/>
                           <x-ui.forms.time-input
                             id="fehlUhrGek"
                             name="fehlUhrGek"
@@ -71,7 +71,7 @@
                         />
                       </div>
                       <div>
-                        <x-ui.forms.label for="fehlUhrGeg" value="Früher gegangen (Uhrzeit)"/>
+                        <x-ui.forms.label for="fehlUhrGeg" value="Früher gegangen"/>
                         <x-ui.forms.time-input
                             id="fehlUhrGeg"
                             name="fehlUhrGeg"
