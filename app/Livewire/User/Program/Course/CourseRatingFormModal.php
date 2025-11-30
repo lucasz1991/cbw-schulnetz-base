@@ -307,9 +307,8 @@ class CourseRatingFormModal extends Component
         CourseRating::create([
             'user_id'        => Auth::id(),
             'course_id'      => $this->course->id,
-            'class_id'       => $this->classId,
-            'tutor_id'       => $this->tutorId,
-            'participant_id' => $this->is_anonymous ? null : ($participant?->id),
+            'is_anonymous'   => $this->is_anonymous,
+            'participant_id' => $participant?->id,
 
             'kb_1' => $this->kb_1, 'kb_2' => $this->kb_2, 'kb_3' => $this->kb_3,
             'sa_1' => $this->sa_1, 'sa_2' => $this->sa_2, 'sa_3' => $this->sa_3,

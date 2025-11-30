@@ -70,7 +70,10 @@ class Course extends Model
     | Accessors
     |--------------------------------------------------------------------------
     */
-
+    public function getCourseShortNameAttribute(): string
+    {
+        return data_get($this->source_snapshot, 'course.kurzbez', '');
+    }
 
     public function getParticipantsCountAttribute(): int
     {
