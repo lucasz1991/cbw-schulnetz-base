@@ -36,7 +36,7 @@
         }
 
         .logo-cell img {
-            max-height: 32px; /* KLEINERES LOGO */
+            max-height: 50px; /* KLEINERES LOGO */
         }
 
         /* Meta-Felder */
@@ -137,13 +137,12 @@
 
 @php
     $user   = $user ?? $request->user ?? null;
-    $course = $course ?? $request->course ?? null;
 
     $name   = $user?->person
         ? ($user->person->nachname . ', ' . $user->person->vorname)
         : ($user?->name ?? '—');
 
-    $klasse = $course->courseShortName ?? '—';
+    $klasse = $request->class_code ?? '—';
 
     $date   = optional($request->date_from ?? $request->created_at)->format('d.m.Y');
 @endphp
@@ -202,20 +201,36 @@
 
 {{-- Unterschriftenbereich --}}
 <div class="signature-wrapper">
+
+    {{-- Linie zwischen Inhalt und Signaturzeile --}}
     <div class="signature-line"></div>
 
-    <table class="signature-row">
+    <table class="signature-row" style="width:100%; margin-top:6px;">
         <tr>
-            <td>
-                Köln - {{ optional($request->created_at)->format('d.m.Y - H:i') }}<br>
+            {{-- Linke Seite: Ort + Datum --}}
+            <td style="width:50%; vertical-align:top;">
+                Köln - {{ optional($request->created_at)->format('d.m.Y - H:i') }}
+            </td>
+
+            {{-- Rechte Seite: Name --}}
+            <td style="width:50%; text-align:right; vertical-align:top;">
+                {{ $name }}
+            </td>
+        </tr>
+
+        <tr>
+            {{-- Linke Seite: Label Ort–Datum --}}
+            <td style="vertical-align:top;">
                 Ort – Datum
             </td>
-            <td style="text-align:right;">
-                {{ $name }}<br>
+
+            {{-- Rechte Seite: Label Unterschrift --}}
+            <td style="text-align:right; vertical-align:top;">
                 Unterschrift
             </td>
         </tr>
     </table>
+
 </div>
 
 

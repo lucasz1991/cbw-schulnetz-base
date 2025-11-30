@@ -8,6 +8,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
+use App\Models\File;
+use App\Models\CourseDay;
+use App\Models\CourseResult;
+use App\Models\CourseRating;
 
 class Course extends Model
 {
@@ -75,6 +81,12 @@ class Course extends Model
     {
         return data_get($this->source_snapshot, 'course.kurzbez', '');
     }
+
+    public function getCourseClassNameAttribute(): string
+    {
+        return data_get($this->source_snapshot, 'course.klassen_co_ks', '');
+    }
+
 
     public function getParticipantsCountAttribute(): int
     {
