@@ -200,38 +200,41 @@
 
 
 {{-- Unterschriftenbereich --}}
-<div class="signature-wrapper">
+<div class="signature-wrapper" style="margin-top: 22px;">
 
-    {{-- Linie zwischen Inhalt und Signaturzeile --}}
-    <div class="signature-line"></div>
-
-    <table class="signature-row" style="width:100%; margin-top:6px;">
+    <table class="signature-row" style="width:100%; border-collapse:collapse;">
+        
+        {{-- Obere Zeile: Köln - Datum | Name --}}
         <tr>
-            {{-- Linke Seite: Ort + Datum --}}
-            <td style="width:50%; vertical-align:top;">
+            <td style="width:50%; padding:2px 0; vertical-align:bottom;">
                 Köln - {{ optional($request->created_at)->format('d.m.Y - H:i') }}
             </td>
-
-            {{-- Rechte Seite: Name --}}
-            <td style="width:50%; text-align:right; vertical-align:top;">
+            <td style="width:50%; padding:2px 0; text-align:right; vertical-align:bottom;">
                 {{ $name }}
             </td>
         </tr>
 
+        {{-- Strich zwischen oberer und unterer Zeile --}}
         <tr>
-            {{-- Linke Seite: Label Ort–Datum --}}
-            <td style="vertical-align:top;">
+            <td colspan="2" style="padding:0;">
+                <div style="border-bottom: 0.6px solid #000; width:100%; margin:4px 0;"></div>
+            </td>
+        </tr>
+
+        {{-- Untere Zeile: Ort - Datum | Unterschrift --}}
+        <tr>
+            <td style="padding-top:2px; vertical-align:top;">
                 Ort – Datum
             </td>
-
-            {{-- Rechte Seite: Label Unterschrift --}}
-            <td style="text-align:right; vertical-align:top;">
+            <td style="padding-top:2px; text-align:right; vertical-align:top;">
                 Unterschrift
             </td>
         </tr>
+
     </table>
 
 </div>
+
 
 
 {{-- CBW-Bereich --}}
