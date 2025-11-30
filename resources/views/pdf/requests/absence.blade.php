@@ -26,7 +26,7 @@
         ?? '—';
 
     $extraReason = $request->message
-        ?? $request->data['extra_reason'] ?? null
+        ?? ($request->data['extra_reason'] ?? null)
         ?? $request->reason
         ?? '—';
 
@@ -50,35 +50,36 @@
 
         table { border-collapse: collapse; width: 100%; }
 
-        /* Kopf mit Formblatt + Logo */
+        /* Kopf mit Formblatt links + Logo rechts */
         .header-layout td {
             vertical-align: top;
         }
-        .header-left  { width: 20%; }
-        .header-center{ width: 55%; text-align: center; }
-        .header-right { width: 25%; text-align: right; }
+        .header-left  { width: 45%; }
+        .header-center{ width: 20%; }
+        .header-right { width: 35%; text-align: right; }
 
         .formbox {
             border: 0.6px solid #000;
-            width: 100%;
+            border-collapse: collapse;
+            width: 230px;
         }
         .formbox td {
             padding: 4px 6px;
             text-align: center;
         }
-        .formbox-title {
+        .formbox-top td {
             font-weight: bold;
             font-size: 12px;
+            border-bottom: 0.6px solid #000;
         }
-        .formbox-subtitle {
+        .formbox-bottom td {
             font-size: 10px;
         }
 
         .logo-cell img { max-height: 40px; }
 
-        /* große Infotabelle */
+        /* Name / Klasse / Datum + Uhrzeit-Block */
         .info-table {
-            margin-top: 14px;
             font-size: 10px;
         }
         .info-table td {
@@ -90,21 +91,49 @@
             font-weight: bold;
         }
 
+        .block-separator {
+            height: 8px;
+        }
+
+        /* einspaltige Blöcke für Grund / Begründung */
+        .full-block-table {
+            margin-top: 4px;
+            font-size: 10px;
+        }
+        .full-block-table td {
+            border: 0.6px solid #000;
+            padding: 4px 6px;
+        }
+        .full-block-label {
+            font-weight: bold;
+        }
+        .full-block-content {
+            height: 40px;
+        }
+
         /* Footer-Zeile (Ort/Datum + Unterschrift) */
         .footer-line {
-            margin-top: 14px;
+            margin-top: 16px;
             font-size: 9px;
         }
-        .footer-line td {
-            padding-top: 10px;
+        .footer-line .line-cell {
+            padding-bottom: 4px;
+            border-bottom: 0.6px solid #000;
         }
-        .footer-small {
+        .footer-small-row td {
+            padding-top: 2px;
             font-size: 8px;
+        }
+
+        /* horizontale Linie über CBW-Block */
+        .cbw-separator {
+            margin-top: 14px;
+            border-top: 0.6px solid #000;
         }
 
         /* CBW-Block mit Checkboxen */
         .cbw-block-title {
-            margin-top: 22px;
+            margin-top: 6px;
             margin-bottom: 6px;
             font-size: 10px;
             font-weight: bold;
@@ -127,20 +156,20 @@
 </head>
 <body>
 
-{{-- Kopf: Formblatt + Logo --}}
+{{-- Kopf: Formblatt links, Logo rechts --}}
 <table class="header-layout">
     <tr>
-        <td class="header-left"></td>
-        <td class="header-center">
+        <td class="header-left">
             <table class="formbox">
-                <tr>
-                    <td class="formbox-title">Formblatt</td>
+                <tr class="formbox-top">
+                    <td>Formblatt</td>
                 </tr>
-                <tr>
-                    <td class="formbox-subtitle">Entschuldigung von Fehlzeiten</td>
+                <tr class="formbox-bottom">
+                    <td>Entschuldigung von Fehlzeiten</td>
                 </tr>
             </table>
         </td>
+        <td class="header-center"></td>
         <td class="header-right logo-cell">
             @if(file_exists($logoPath))
                 <img src="{{ $logoPath }}" alt="CBW Logo">
@@ -149,8 +178,8 @@
     </tr>
 </table>
 
-{{-- Daten- / Infotabelle --}}
-<table class="info-table">
+{{-- Name / Klasse / Datum --}}
+<table class="info-table" style="margin-top: 16px;">
     <tr>
         <td class="info-label">Name:</td>
         <td>{{ $name }}</td>
@@ -163,7 +192,12 @@
         <td class="info-label">Datum:</td>
         <td>{{ $date }}</td>
     </tr>
+</table>
 
+<div class="block-separator"></div>
+
+{{-- Uhrzeit / ganztags --}}
+<table class="info-table">
     <tr>
         <td class="info-label">Uhrzeit – später gekommen:</td>
         <td>{{ $lateTime }}</td>
@@ -176,43 +210,54 @@
         <td class="info-label">ganztags gefehlt:</td>
         <td>{{ $fullDay }}</td>
     </tr>
+</table>
 
+<div class="block-separator"></div>
+
+{{-- Grund der Abwesenheit – einspaltig --}}
+<table class="full-block-table">
     <tr>
-        <td class="info-label">Grund der Abwesenheit:</td>
-        <td style="height: 40px;">
+        <td class="full-block-label">Grund der Abwesenheit:</td>
+    </tr>
+    <tr>
+        <td class="full-block-content">
             {{ $absenceReason }}
         </td>
     </tr>
+</table>
 
+<div class="block-separator"></div>
+
+{{-- sonst. Begründung – einspaltig --}}
+<table class="full-block-table">
     <tr>
-        <td class="info-label">sonst. Begründung:</td>
-        <td style="height: 40px;">
+        <td class="full-block-label">sonst. Begründung:</td>
+    </tr>
+    <tr>
+        <td class="full-block-content">
             {{ $extraReason }}
         </td>
     </tr>
 </table>
 
-{{-- Fußzeile mit Ort / Datum / Unterschrift --}}
+{{-- Fußzeile mit Linie --}}
 <table class="footer-line">
     <tr>
-        <td style="width: 50%;">
+        <td class="line-cell" style="width: 50%;">
             {{ $place }} - {{ $createdLabel }}
         </td>
-        <td style="width: 50%; text-align: right;">
+        <td class="line-cell" style="width: 50%; text-align: right;">
             {{ $name }}
         </td>
     </tr>
-    <tr>
-        <td class="footer-small">
-            Ort - Datum
-        </td>
-        <td class="footer-small" style="text-align: right;">
-            Unterschrift
-        </td>
+    <tr class="footer-small-row">
+        <td>Ort - Datum</td>
+        <td style="text-align: right;">Unterschrift</td>
     </tr>
 </table>
 
-{{-- CBW-Ausfüllbereich --}}
+<div class="cbw-separator"></div>
+
 <div class="cbw-block-title">
     Wird von CBW ausgefüllt!
 </div>
