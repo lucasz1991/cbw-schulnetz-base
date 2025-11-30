@@ -23,7 +23,7 @@
         </div>
         <div>
           <x-ui.forms.label for="klasse" value="Klasse"/>
-          <x-ui.forms.input id="klasse" type="text" maxlength="12" placeholder="z. B. INF23A"
+          <x-ui.forms.input     x-init="$nextTick(() => $el.focus())" id="klasse" type="text" maxlength="12" placeholder="z. B. INF23A"
                    wire:model.live.debounce.300ms="klasse"/>
           <x-ui.forms.input-error for="klasse"/>
         </div>

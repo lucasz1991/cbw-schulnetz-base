@@ -1,4 +1,4 @@
-<x-dialog-modal wire:model="showModal" maxWidth="2xl">
+<x-modal.modal wire:model="showModal" maxWidth="2xl">
   <x-slot name="title">Antrag auf externe Nachprüfung</x-slot>
 
   <x-slot name="content">
@@ -116,4 +116,4 @@
     <x-secondary-button wire:click="close">Schließen</x-secondary-button>
     <x-button class="ml-2" wire:click="save">Antrag senden</x-button>
   </x-slot>
-</x-dialog-modal>
+</x-modal.modal>
