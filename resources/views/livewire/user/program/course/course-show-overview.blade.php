@@ -128,7 +128,7 @@
 <section class="bg-blue-50 overflow-x-hidden">
   <div class="container mx-auto px-5 py-10  pb-24" >
     <div class="flex items-center justify-between mb-8">
-      <h3 class="text-lg font-semibold">Weitere Kurse</h3>
+      <h3 class="text-lg font-semibold">Weitere Bausteine</h3>
       <div class="flex items-center gap-2">
         @if($prev)
           <x-buttons.button-basic :size="'sm'"
@@ -143,7 +143,7 @@
       </div>
     </div>
 
-    {{-- SWIPER: Weitere Kurse --}}
+    {{-- SWIPER: Weitere Bausteine --}}
     <div
       x-data="{
         swiper: null,
@@ -218,7 +218,7 @@
                   </svg>
                 </div>
                 <div class="h-16 flex items-end justify-center text-center text-xs font-medium text-gray-600">
-                  alle Kurse ansehen
+                  alle Bausteine ansehen
                 </div>
               </div>
             </a>

@@ -4,7 +4,7 @@
      @accordion-toggle.window="if ($event.detail.group === group) activeId = (activeId === $event.detail.id ? null : $event.detail.id)">
 <x-alert>
     <p class="text-sm">
-        Vorschau & Download der Kursmedien und des „Roten Fadens“. 
+        Vorschau & Download der Bausteinmedien und des „Roten Fadens“. 
         Direkte Links sind aus Sicherheitsgründen nur kurz gültig. 
         Bei Anzeigeproblemen bitte „In neuem Tab öffnen“ nutzen oder den Dozenten kontaktieren.
     </p>

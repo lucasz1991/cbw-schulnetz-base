@@ -21,7 +21,8 @@
     $wireKey = 'flatpickr-'.$inputId;
 @endphp
 
-<div class="w-full"
+<div class="w-full lmz-flatpickr"
+    
      wire:ignore
      wire:key="{{ $wireKey }}" x-data="{ inline: @js($inline), lwModel: @js($model) }">
     @if($label)
@@ -30,7 +31,13 @@
     @if($model)
         <x-ui.forms.input-error :for="$model" />
     @endif
-    <div class="w-max mx-auto" >
+    <style >
+        .lmz-flatpickr .flatpickr-calendar.inline {
+            box-shadow: unset !important;
+            border: 0px solid #fff !important;
+        }
+    </style>
+    <div class="w-max mx-auto pb-2" :class="inline ? 'border border-gray-300 shadow-sm rounded-md focus:ring-indigo-500 focus:border-indigo-500 ' : ''">
         <input
             id="{{ $inputId }}"
             type="text"

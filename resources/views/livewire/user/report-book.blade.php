@@ -131,7 +131,7 @@
             <x-slot name="content">
               <div class="relative bg-gray-100 text-base font-semibold text-gray-700 p-3 border-b border-gray-400 flex items-center justify-between">
                 <h4>
-                  <span>Meine Kurse</span>
+                  <span>Meine Bausteine</span>
                 </h4>
                 <button
                   type="button"
@@ -236,7 +236,7 @@
       <div class="">
 
         @if(!$courseDays)
-          <div class="text-sm text-gray-500">Für diesen Kurs sind noch keine Kurstage vorhanden.</div>
+          <div class="text-sm text-gray-500">Für diesen Baustein sind noch keine Bausteintage vorhanden.</div>
         @else
           {{-- Kurstage Desktop (ab md): bleibt wie aktuell --}}
             <div class="hidden md:grid sm:grid-cols-2 gap-2">

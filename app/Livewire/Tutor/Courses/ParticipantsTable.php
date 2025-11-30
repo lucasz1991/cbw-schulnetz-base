@@ -68,6 +68,7 @@ class ParticipantsTable extends Component
 
         $this->rebuildAttendanceMap();
         $this->updatePrevNextFlags();
+        $this->saveChanges();
     }
 
 protected function syncDirtyFlagFromDay(CourseDay $day): void
@@ -452,12 +453,56 @@ public function checkSyncStatus(): void
     /**
      * Manueller Sync-Button des Dozenten.
      */
+    
     public function saveChanges(): void
     {
         $day = $this->dayOrFail();
 
         $this->isLoadingApi = true;
 
+        try {
+            /** @var CourseDayAttendanceSyncService $service */
+            $service = app(CourseDayAttendanceSyncService::class);
+
+            $ok = $service->syncToRemote($day);
+
+            // CourseDay neu einlesen (attendance_data, timestamps, etc.)
+            $day->refresh();
+            $this->selectedDay = $day;
+
+            $this->rebuildAttendanceMap();
+            $this->syncDirtyFlagFromDay($day);
+
+            if ($ok) {
+                $this->dispatch('notify', type: 'success', message: 'Anwesenheit erfolgreich mit UVS synchronisiert.');
+            } else {
+                $this->dispatch('notify', type: 'error', message: 'UVS-Sync konnte nicht durchgeführt werden.');
+            }
+        } catch (\Throwable $e) {
+            Log::error('ParticipantsTable.saveChanges: Fehler beim UVS-Sync', [
+                'day_id' => $day->id ?? null,
+                'error'  => $e->getMessage(),
+            ]);
+            $this->dispatch('notify', type: 'error', message: 'Fehler beim UVS-Sync. Bitte später erneut versuchen.');
+        } finally {
+        }
+    }
+
+    public function deleteChanges(): void
+    {
+        $day = $this->dayOrFail();
+
+        $this->isLoadingApi = true;
+    // attendance_data als Array holen (oder leeres Array falls null)
+    $data = $day->attendance_data ?? [];
+
+    // Teilnehmer-Liste leeren
+    $data['participants'] = [];
+
+    // komplettes Array zurück ins Model schreiben
+    $day->attendance_data = $data;
+    $day->attendance_updated_at = now();
+    $day->save();
         try {
             /** @var CourseDayAttendanceSyncService $service */
             $service = app(CourseDayAttendanceSyncService::class);

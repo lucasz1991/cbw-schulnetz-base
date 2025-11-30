@@ -36,6 +36,14 @@
                         >
                             Änderungen senden
                         </x-button>
+                        <x-button
+                            class="disabled:opacity-60 disabled:cursor-wait mt-2"
+                            wire:click="deleteChanges"
+                            wire:loading.attr="disabled"
+                            wire:target="deleteChanges"
+                        >
+                            Änderungen Löschen
+                        </x-button>
                     @endif
                 @else
                     <p class="text-sm text-gray-500">Kein Datum ausgewählt.</p>

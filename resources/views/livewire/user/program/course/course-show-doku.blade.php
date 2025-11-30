@@ -1,7 +1,7 @@
 <div x-data="{ openId: @entangle('openDayId').live }" class="space-y-3 py-8  container px-5 mx-auto">
     <x-alert>
-        Dokumentation der Kurstage<br>
-        Hier findest du die Notizen des Dozenten zu jedem Kurstag. Klicke einen Tag an, um die Details zu öffnen.
+        Dokumentation der Bausteintage<br>
+        Hier findest du die Notizen des Dozenten zu jedem Bausteintag. Klicke einen Tag an, um die Details zu öffnen.
     </x-alert>
 
     <!-- Menüleiste -->
@@ -81,6 +81,6 @@
             </div>
         </div>
     @empty
-        <p class="text-sm text-gray-500">Keine Kurstage vorhanden.</p>
+        <p class="text-sm text-gray-500">Keine Bausteintage vorhanden.</p>
     @endforelse
 </div>
