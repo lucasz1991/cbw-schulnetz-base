@@ -65,7 +65,8 @@ class Absences extends Component
         $this->showModal = true;
         $this->fehlDatum ??= now()->toDateString();
         $this->abw_grund ??= 'abw_unwichtig';
-        $this->klasse ??= data_get(Auth::user()?->person?->programdata, 'stammklasse');
+        $user = Auth::user() ?? null;
+        $this->klasse ??= data_get($user?->person?->programdata, 'stammklasse');
         $this->dispatch('filepool:saved', ['model' => 'attachments']);
     }
 

@@ -8,12 +8,16 @@ use Illuminate\Database\Eloquent\Casts\AsArrayObject;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use App\Models\AdminTask;
+use App\Models\Setting;
+use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Notification;
+use App\Notifications\NewUserRequestNotification;
 
 
 class UserRequest extends Model
 {
     use HasFactory;
-
+    use Notifiable;
     /**
      * -------------------------------------------------------------------------
      *  Typen und Status (optionale Konstanten)
@@ -94,6 +98,7 @@ class UserRequest extends Model
     {
         // deine bisherigen Defaults beim Erzeugen
         static::created(function (UserRequest $request) {
+            $request->notifyAdminIfEnabled();
             AdminTask::create([
                 'created_by'   => $request->user_id,
                 'context_type' => UserRequest::class,
@@ -219,6 +224,68 @@ class UserRequest extends Model
             'admin_comment' => $adminComment,
         ])->save();
     }
+    // -------------------------------------------------------------------------
+    // Admin-E-Mail Notification Helper
+    // -------------------------------------------------------------------------
 
+    /**
+     * Prüft Settings und schickt ggf. eine NewUserRequestNotification
+     * an die hinterlegte Admin-E-Mail.
+     */
+    public function notifyAdminIfEnabled(): void
+    {
+        // 1. Ist die Benachrichtigung für User-Requests aktiviert?
+        if (! $this->isNewUserRequestNotificationEnabled()) {
+            return;
+        }
+
+        // 2. Admin-E-Mail aus Settings holen
+        $adminEmail = $this->getAdminEmailFromSettings();
+
+        if (! $adminEmail) {
+            return;
+        }
+
+        // 3. Notification verschicken (ohne echten User, nur Route)
+        Notification::route('mail', $adminEmail)
+            ->notify(new NewUserRequestNotification($this));
+    }
+
+    /**
+     * Liest die Admin-E-Mail aus den Mail-Settings.
+     *
+     * Erwartet Setting:
+     *   type = 'mails'
+     *   key  = 'admin_email'
+     */
+    protected function getAdminEmailFromSettings(): ?string
+    {
+        return Setting::where('type', 'mails')
+            ->where('key', 'admin_email')
+            ->value('value');
+    }
+
+    /**
+     * Prüft, ob das Notification-Setting für neue User-Requests gesetzt ist.
+     *
+     * Erwartet Setting:
+     *   type = 'admin_notifications'
+     *   key  = 'new_user_request'
+     * und ein truthy value (1, true, "on", "yes", "true").
+     */
+    protected function isNewUserRequestNotificationEnabled(): bool
+    {
+        $raw = Setting::where('type', 'mails')
+            ->where('key', 'new_user_request')
+            ->value('value');
+
+        if ($raw === null) {
+            return false;
+        }
+
+        $normalized = strtolower(trim((string) $raw));
+
+        return in_array($normalized, ['1', 'true', 'yes', 'on'], true);
+    }
     
 }
