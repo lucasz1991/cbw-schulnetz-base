@@ -36,6 +36,12 @@
             box-shadow: unset !important;
             border: 0px solid #fff !important;
         }
+        .lmz-flatpickr .flatpickr-calendar.inline *{
+            color:rgb(107, 114, 128);
+        }
+        .lmz-flatpickr .flatpickr-calendar.inline .flatpickr-day.selected{
+            color:#fff;
+        }
     </style>
     <div class="w-max mx-auto pb-2" :class="inline ? 'border border-gray-300 shadow-sm rounded-md focus:ring-indigo-500 focus:border-indigo-500 ' : ''">
         <input

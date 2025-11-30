@@ -10,6 +10,7 @@ use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\Auth;
 
 class Absences extends Component
 {
@@ -49,6 +50,7 @@ class Absences extends Component
     protected $listeners = [
         'open-request-form' => 'handleOpen',
         'open-absence-form' => 'open',
+        'close-modal' => 'close',
     ];
 
     public function handleOpen($payload = []): void
@@ -64,6 +66,7 @@ class Absences extends Component
         $this->showModal = true;
         $this->fehlDatum ??= now()->toDateString();
         $this->abw_grund ??= 'abw_unwichtig';
+        $this->klasse ??= data_get(Auth::user()?->person?->programdata, 'stammklasse');
         $this->dispatch('filepool:saved', ['model' => 'attachments']);
     }
 

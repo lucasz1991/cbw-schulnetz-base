@@ -24,6 +24,8 @@ class UserRequest extends Model
     public const TYPE_EXTERNAL_MAKEUP = 'external_makeup';
     public const TYPE_GENERAL         = 'general';
 
+
+
     public const STATUS_PENDING   = 'pending';
     public const STATUS_APPROVED  = 'approved';
     public const STATUS_REJECTED  = 'rejected';
@@ -152,6 +154,18 @@ class UserRequest extends Model
         };
     }
 
+
+    /** Kurze Typ-Beschreibung */
+    public function getTypeLabelAttribute(): string
+    {
+        return match ($this->type) {
+            self::TYPE_ABSENCE         => 'Fehlzeit Meldung',
+            self::TYPE_MAKEUP          => 'Nachholtermin Anfrage',
+            self::TYPE_EXTERNAL_MAKEUP => 'Externer Nachholtermin',
+            self::TYPE_GENERAL         => 'Allgemeine Anfrage',
+            default                    => 'Sonstiger Antrag',
+        };
+    }
     /**
      * -------------------------------------------------------------------------
      *  Scopes / Query Helpers

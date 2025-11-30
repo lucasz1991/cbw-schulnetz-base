@@ -1,5 +1,7 @@
-<x-dialog-modal wire:model="showModal" maxWidth="2xl">
-  <x-slot name="title">Fehlzeit entschuldigen</x-slot>
+<x-modal.modal wire:model="showModal" maxWidth="2xl">
+  <x-slot name="title">
+      Fehlzeit entschuldigen
+  </x-slot>
 
   <x-slot name="content">
     @if($showModal)
@@ -120,17 +122,25 @@
                 <x-ui.forms.input-error for="grund_item"/>
             </div>
         </div>
-      <div>
-        <x-ui.forms.label for="begruendung" value="Sonstige Begründung"/>
-        <textarea id="begruendung" maxlength="400"
-                  class="mt-1 block w-full border-gray-300 rounded"
-                  wire:model.lazy="begruendung"
-                  placeholder="max. 400 Zeichen"></textarea>
-        <div class="text-xs text-gray-500 text-right">
-          {{ strlen($begruendung ?? '') }}/400
-        </div>
-        <x-ui.forms.input-error for="begruendung"/>
-      </div>
+<div 
+    x-data="{
+        text: @entangle('begruendung').defer,
+        get count() { return this.text ? this.text.length : 0 }
+    }"
+>
+    <x-ui.forms.label for="begruendung" value="Sonstige Begründung"/>
+
+    <textarea id="begruendung" maxlength="400"
+              class="mt-1 block w-full border-gray-300 rounded"
+              x-model="text"
+              wire:model.lazy="begruendung"
+              placeholder="max. 400 Zeichen"></textarea>
+
+    <div class="text-xs text-gray-500 text-right" x-text="count + '/400'"></div>
+
+    <x-ui.forms.input-error for="begruendung"/>
+</div>
+
         @if($showModal)
       {{-- Livewire Upload --}}
       <div class="pt-4"   x-data="{ dropzone: null }"
@@ -152,4 +162,4 @@
     <x-secondary-button wire:click="close">Schließen</x-secondary-button>
     <x-button class="ml-2" wire:click="save">Speichern</x-button>
   </x-slot>
-</x-dialog-modal>
+</x-modal.modal>
