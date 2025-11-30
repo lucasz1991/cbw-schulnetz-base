@@ -4,7 +4,6 @@
     <meta charset="utf-8">
     <title>Entschuldigung von Fehlzeiten</title>
     <style>
-        /* DIN-A4 typische Seitenränder */
         @page { margin: 28px 28px 32px 28px; }
 
         body {
@@ -13,11 +12,10 @@
             color: #000;
         }
 
-        /* --- Kopfbereich --- */
         .header-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 22px; /* doppelt so groß wie vorher */
+            margin-bottom: 22px;
         }
         .header-table td {
             padding: 2px 4px;
@@ -38,14 +36,14 @@
         }
 
         .logo-cell img {
-            max-height: 45px;
+            max-height: 32px; /* KLEINERES LOGO */
         }
 
-        /* --- Meta-Infos --- */
+        /* Meta-Felder */
         .meta-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 18px; /* doppelt */
+            margin-bottom: 18px;
         }
         .meta-table td {
             padding: 6px 4px;
@@ -58,9 +56,9 @@
             background: #fafafa;
         }
 
-        /* --- Abschnittskästen --- */
+        /* Abschnittskästen */
         .block {
-            margin-top: 18px; /* doppelt */
+            margin-top: 18px;
         }
         .block-title {
             font-weight: bold;
@@ -68,30 +66,34 @@
         }
         .block-box {
             border: 0.6px solid #000;
-            padding: 6px 4px;
+            padding: 8px 6px; /* ← LEICHTES PADDING FÜR INHALTSZELLEN */
             min-height: 32px;
         }
 
-        /* --- Footer Bereich --- */
-        .footer-line {
+        /* Footer – Unterschriftenbereich */
+        .signature-wrapper {
             margin-top: 22px;
+        }
+
+        .signature-line {
             border-bottom: 0.6px solid #000;
-            margin-bottom: 8px;
+            margin-bottom: 4px; /* Strich direkt über den Linienüberschriften */
         }
 
         .signature-row {
             width: 100%;
-            margin-top: 6px;
             font-size: 10px;
         }
+
         .signature-row td {
-            padding-top: 6px;
+            padding-top: 2px;
+            vertical-align: top;
         }
 
-        /* --- CBW-Ausgefüllt-Bereich --- */
+        /* CBW-Ausgefüllt */
         .cbw-section {
-            margin-top: 40px; /* deutlich größer */
-            font-size: 12px;  /* größer wie gewünscht */
+            margin-top: 40px;
+            font-size: 12px;
             font-weight: bold;
         }
 
@@ -124,7 +126,7 @@
             </div>
         </td>
 
-        <td style="width: 45%; text-align:right;">
+        <td style="width: 45%; text-align:right;" class="logo-cell">
             @php $logoPath = public_path('site-images/logo.png'); @endphp
             @if(file_exists($logoPath))
                 <img src="{{ $logoPath }}" alt="Logo">
@@ -141,7 +143,7 @@
         ? ($user->person->nachname . ', ' . $user->person->vorname)
         : ($user?->name ?? '—');
 
-    $klasse = $course->course_short_name ?? '—';
+    $klasse = $course->courseShortName ?? '—';
 
     $date   = optional($request->date_from ?? $request->created_at)->format('d.m.Y');
 @endphp
@@ -164,7 +166,7 @@
 </table>
 
 
-{{-- Abschnitt Uhrzeiten --}}
+{{-- Uhrzeiten --}}
 <table class="meta-table">
     <tr>
         <td class="label">Uhrzeit – später gekommen:</td>
@@ -189,7 +191,7 @@
     </div>
 </div>
 
-{{-- Sonstige Begründung --}}
+{{-- sonstige Begründung --}}
 <div class="block">
     <div class="block-title">sonst. Begründung:</div>
     <div class="block-box">
@@ -197,37 +199,35 @@
     </div>
 </div>
 
-{{-- Datum – Ort – Unterschrift --}}
-<div class="footer-line"></div>
 
-<table class="signature-row">
-    <tr>
-        <td>
-            Köln - {{ optional($request->created_at)->format('d.m.Y - H:i') }}<br>
-            Ort – Datum
-        </td>
-        <td style="text-align:right;">
-            {{ $name }}<br>
-            Unterschrift
-        </td>
-    </tr>
-</table>
+{{-- Unterschriftenbereich --}}
+<div class="signature-wrapper">
+    <div class="signature-line"></div>
 
-{{-- CBW-Ausfüllt-Bereich --}}
+    <table class="signature-row">
+        <tr>
+            <td>
+                Köln - {{ optional($request->created_at)->format('d.m.Y - H:i') }}<br>
+                Ort – Datum
+            </td>
+            <td style="text-align:right;">
+                {{ $name }}<br>
+                Unterschrift
+            </td>
+        </tr>
+    </table>
+</div>
+
+
+{{-- CBW-Bereich --}}
 <div class="cbw-section">
     Wird von CBW ausgefüllt!
 </div>
 
 <table class="checkbox-table">
-    <tr>
-        <td><span class="checkbox"></span> wichtiger Grund</td>
-    </tr>
-    <tr>
-        <td><span class="checkbox"></span> krank mit Attest</td>
-    </tr>
-    <tr>
-        <td><span class="checkbox"></span> ohne wichtigen Grund</td>
-    </tr>
+    <tr><td><span class="checkbox"></span> wichtiger Grund</td></tr>
+    <tr><td><span class="checkbox"></span> krank mit Attest</td></tr>
+    <tr><td><span class="checkbox"></span> ohne wichtigen Grund</td></tr>
 </table>
 
 </body>

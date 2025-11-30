@@ -68,6 +68,7 @@ class Course extends Model
     /*
     |--------------------------------------------------------------------------
     | Accessors
+    | $course->course_short_name 
     |--------------------------------------------------------------------------
     */
     public function getCourseShortNameAttribute(): string
