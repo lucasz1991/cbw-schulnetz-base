@@ -186,15 +186,15 @@
 <div class="block">
     <div class="block-title">Grund der Abwesenheit:</div>
     <div class="block-box">
-        {{ $request->reason ?? '—' }}
-    </div>
+        {{ $request->reason === 'abw_unwichtig' ? 'Unwichtig = ' : 'Wichtig = ' }} {{ $request->reason_item  ?? '-'}}
+    </div> 
 </div>
 
 {{-- sonstige Begründung --}}
 <div class="block">
     <div class="block-title">sonst. Begründung:</div>
     <div class="block-box">
-        {{ $request->reason_item ?? '—' }}
+        {{ $request->message ?? '—' }}
     </div>
 </div>
 
