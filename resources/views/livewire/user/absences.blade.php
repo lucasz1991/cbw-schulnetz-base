@@ -1,4 +1,5 @@
 <div x-cloak>
+  @if($showModal)
 
   <x-modal.modal wire:model="showModal" maxWidth="2xl" >
     <x-slot name="title">
@@ -7,7 +8,6 @@
   
     <x-slot name="content">
       <div>
-        @if($showModal)
         <form
           x-data="{
             fehltag: @entangle('fehltag').live,
@@ -161,7 +161,6 @@
           {{-- Submit im Formular (Enter) --}}
           <button type="submit" class="hidden"></button>
         </form>
-        @endif
       </div>
     </x-slot>
     <x-slot name="footer">
@@ -169,4 +168,5 @@
       <x-button class="ml-2" wire:click="save">Speichern</x-button>
     </x-slot>
   </x-modal.modal>
+  @endif
 </div>
