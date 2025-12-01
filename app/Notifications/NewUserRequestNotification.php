@@ -7,38 +7,29 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Storage;
 
 class NewUserRequestNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public $request; // Der Antrag (Fehlzeit, Prüfung etc.)
+    public $request;
 
-    /**
-     * Create a new notification instance.
-     */
     public function __construct($request)
     {
         $this->request = $request;
     }
 
-    /**
-     * Get the notification's delivery channels.
-     */
     public function via(object $notifiable): array
     {
         return ['mail'];
     }
 
-    /**
-     * Build the PDF and mail.
-     */
     public function toMail(object $notifiable): MailMessage
     {
-        // Welches PDF sollen wir verwenden?
+        // PDF-View & Dateiname ermitteln
         [$view, $filename] = $this->resolvePdfViewAndName();
 
-        // Daten für das PDF
         $data = [
             'request' => $this->request,
             'user'    => $this->request->user ?? null,
@@ -46,22 +37,55 @@ class NewUserRequestNotification extends Notification implements ShouldQueue
         ];
 
         // PDF generieren
-        $pdf = Pdf::loadView($view, $data)->setPaper('a4', 'portrait');
+        $pdf     = Pdf::loadView($view, $data)->setPaper('a4', 'portrait');
         $pdfData = $pdf->output();
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject('Neuer Antrag eines Teilnehmers')
-            ->greeting('Hallo Admin-Team,')
+            ->greeting('Hallo CBW Admin-Team,')
             ->line('Ein neuer Antrag wurde eingereicht.')
             ->line('Typ: ' . $this->getReadableType())
             ->line('Teilnehmer: ' . ($this->request->user?->person?->full_name ?? $this->request->user?->name ?? 'Unbekannt'))
-            ->line('Der Antrag ist als PDF im Anhang.')
-            ->attachData($pdfData, $filename, ['mime' => 'application/pdf']);
+            ->line('Der Antrag ist als PDF im Anhang.');
+
+        // Haupt-PDF anhängen
+        $mail->attachData($pdfData, $filename, ['mime' => 'application/pdf']);
+
+        // ---------------------------------------------------------
+        // Zusätzliche Dateien des UserRequest als Anhänge
+        // ---------------------------------------------------------
+        // Relationen: UserRequest::files() -> morphMany(File::class, 'fileable')
+        $disk = 'private';
+
+        foreach ($this->request->files as $file) {
+            if (! $file->path) {
+                continue;
+            }
+
+            if (! Storage::disk($disk)->exists($file->path)) {
+                continue;
+            }
+
+            // schöner Dateiname (inkl. Extension, über dein Accessor)
+            $attachName = $file->name_with_extension ?? $file->name ?? basename($file->path);
+
+            // MIME-Typ bestimmen
+            $mime = $file->mime_type
+                ?: (Storage::disk($disk)->mimeType($file->path) ?: 'application/octet-stream');
+
+            // Variante mit lokalem Pfad
+            $mail->attach(
+                Storage::disk($disk)->path($file->path),
+                [
+                    'as'   => $attachName,
+                    'mime' => $mime,
+                ]
+            );
+        }
+
+        return $mail;
     }
 
-    /**
-     * Resolve which PDF view to use based on request type.
-     */
     protected function resolvePdfViewAndName(): array
     {
         $type = $this->request->type ?? 'unknown';
@@ -86,9 +110,6 @@ class NewUserRequestNotification extends Notification implements ShouldQueue
         };
     }
 
-    /**
-     * Human readable type name.
-     */
     protected function getReadableType(): string
     {
         return match ($this->request->type ?? '') {
@@ -99,9 +120,6 @@ class NewUserRequestNotification extends Notification implements ShouldQueue
         };
     }
 
-    /**
-     * Optional: Database array representation.
-     */
     public function toArray(object $notifiable): array
     {
         return [
