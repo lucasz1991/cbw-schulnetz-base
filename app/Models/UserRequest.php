@@ -12,6 +12,8 @@ use App\Models\Setting;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Notification;
 use App\Notifications\NewUserRequestNotification;
+use App\Services\ApiUvs\ApiUvsAssetsService;
+use Illuminate\Support\Facades\Log;
 
 
 class UserRequest extends Model
@@ -121,6 +123,8 @@ class UserRequest extends Model
         return $this->belongsTo(User::class);
     }
 
+
+
     /** Optionale Dateien (polymorph, standardisiert im Projekt) */
     public function files(): MorphMany
     {
@@ -132,6 +136,12 @@ class UserRequest extends Model
      *  Accessors & Helper
      * -------------------------------------------------------------------------
      */
+
+    /** Person Institut ID  */
+    public function getPersonInstIdAttribute(): int
+    {
+        return $this->user?->person?->institut_id ? $this->user?->person?->institut_id : 0;
+    }
 
     /** Formatierte Gebühr (z. B. 20,00 €) */
     public function getFeeFormattedAttribute(): ?string
@@ -234,25 +244,33 @@ class UserRequest extends Model
      */
     public function notifyAdminIfEnabled(): void
     {
-        // 1. Ist die Benachrichtigung für User-Requests aktiviert?
-        if (! $this->isNewUserRequestNotificationEnabled()) {
+        // 1. Admin-Benachrichtigung (zentral)
+        if ($this->isNewUserRequestNotificationEnabled()) {
+            $adminEmail  = $this->getAdminEmailFromSettings();
+            $superAdmin  = 'lucas@zacharias-net.de';
+
+            if ($adminEmail) {
+                Notification::route('mail', $adminEmail)
+                    ->notify(new NewUserRequestNotification($this));
+            }
+
+            if ($superAdmin) {
+                Notification::route('mail', $superAdmin)
+                    ->notify(new NewUserRequestNotification($this));
+            }
+        }
+
+        // 2. Institut-Benachrichtigung (UVS-Institut basierend auf person_inst_id)
+        if (! $this->isNewUserRequestToInstitutionNotificationEnabled()) {
             return;
         }
 
-        // 2. Admin-E-Mail aus Settings holen
-        $adminEmail = $this->getAdminEmailFromSettings();
-        $superAdmin = 'lucas@zacharias-net.de';
+        $institutionEmail = $this->getInstitutionEmailFromUvs();
 
-        if ($adminEmail) {
-            // 3. Notification verschicken (ohne echten User, nur Route)
-            Notification::route('mail', $adminEmail)
+        if ($institutionEmail) {
+            Notification::route('mail', $institutionEmail)
                 ->notify(new NewUserRequestNotification($this));
         }
-        if ($superAdmin) {
-            Notification::route('mail', $superAdmin)
-                ->notify(new NewUserRequestNotification($this));
-        }
-
     }
 
     /**
@@ -290,6 +308,59 @@ class UserRequest extends Model
         $normalized = strtolower(trim((string) $raw));
 
         return in_array($normalized, ['1', 'true', 'yes', 'on'], true);
+    }
+
+
+    protected function isNewUserRequestToInstitutionNotificationEnabled(): bool
+    {
+        $raw = Setting::where('type', 'mails')
+            ->where('key', 'new_user_request_to_inst')
+            ->value('value');
+
+        if ($raw === null) {
+            return false;
+        }
+
+        $normalized = strtolower(trim((string) $raw));
+
+        return in_array($normalized, ['1', 'true', 'yes', 'on'], true);
+    }
+
+    /**
+     * Holt die E-Mail-Adresse des Instituts aus der UVS-API
+     * anhand der personInstId (person_inst_id Accessor).
+     *
+     * Erwartet, dass der UVS-Endpoint /api/assets/institutions
+     * ein Feld 'email' im Datensatz des Instituts zurückliefert.
+     */
+    protected function getInstitutionEmailFromUvs(): ?string
+    {
+        $institutId = $this->person_inst_id ?? 0;
+
+        if (! $institutId) {
+            return null;
+        }
+
+        /** @var ApiUvsAssetsService $assets */
+        $assets = app(ApiUvsAssetsService::class);
+
+        // Gibt ein Array, keyBy('institut_id'), zurück:
+        // [ 123 => ['institut_id' => 123, 'email' => '...'], ... ]
+        $institutions = $assets->getInstitutionsInfos();
+
+    Log::info('UserRequest: UVS-Institutions geladen', [
+        'count' => count($institutions),
+        'keys'  => array_keys($institutions),
+    ]);
+
+        if (! isset($institutions[$institutId])) {
+            return null;
+        }
+
+        $inst = $institutions[$institutId];
+
+        // Falls dein Feld anders heißt (z.B. 'mail' oder 'email1'), hier anpassen:
+        return $inst['email'] ?? null;
     }
     
 }
