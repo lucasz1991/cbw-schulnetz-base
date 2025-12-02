@@ -3,6 +3,7 @@
 namespace App\Services\ApiUvs;
 
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class ApiUvsAssetsService
 {
@@ -38,6 +39,9 @@ class ApiUvsAssetsService
             // z.B. /api/assets/institutions oder /api/assets/institut-infos
             $response = $this->api->request('GET', '/api/assets/institutions');
 
+            Log::info('getInstitutionsInfos: UVS-Institutions geladen', [
+                'response'  => $response,
+            ]);
             if (!($response['ok'] ?? false)) {
                 return [];
             }
@@ -52,7 +56,7 @@ class ApiUvsAssetsService
                 ->toArray();
         });
     }
-    
+
     /**
      * Status-Optionen abrufen (mit optionalem Caching)
      */
