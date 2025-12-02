@@ -18,8 +18,8 @@
         ? \Carbon\Carbon::parse($request->original_exam_date)->format('d.m.Y')
         : '—';
 
-    $requestedExam = $request->exam_date
-        ? \Carbon\Carbon::parse($request->exam_date)->format('d.m.Y')
+    $requestedExam = $request->scheduled_at
+        ? \Carbon\Carbon::parse($request->scheduled_at)->format('d.m.Y H:i')
         : '—';
 
     $module = $request->module_code ?? '—';
@@ -184,21 +184,21 @@
     <table class="checkbox-table">
         <tr>
             <td>
-                <span class="checkbox">@if($request->reason_item === 'noten_unter_51') X @endif</span>
+                <span class="checkbox">@if($request->reason === 'unter51') X @endif</span>
                 ursprüngliche Prüfung unter 51 Punkte
             </td>
         </tr>
 
         <tr>
             <td>
-                <span class="checkbox">@if($request->reason_item === 'krank_mit_attest') X @endif</span>
+                <span class="checkbox">@if($request->reason === 'krankMitAtest') X @endif</span>
                 Krankheit am Prüfungstag, mit Attest
             </td>
         </tr>
 
         <tr>
             <td>
-                <span class="checkbox">@if($request->reason_item === 'krank_ohne_attest') X @endif</span>
+                <span class="checkbox">@if($request->reason === 'krankOhneAtest') X @endif</span>
                 Krankheit am Prüfungstag, ohne Attest
             </td>
         </tr>

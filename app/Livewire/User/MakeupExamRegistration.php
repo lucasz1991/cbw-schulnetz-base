@@ -126,6 +126,12 @@ class MakeupExamRegistration extends Component
         // Titel für Übersicht
         $title = 'Nachprüfung ' . ($this->nKlBaust ?: '');
 
+        $exam_modality =  match ($this->wiederholung) {
+            'wiederholung_1' => 'retake',
+            'wiederholung_2' => 'improvement', 
+            default => null,
+        };
+
         // Create UserRequest
         $request = UserRequest::create([
             'user_id'            => Auth::id(),
@@ -144,6 +150,7 @@ class MakeupExamRegistration extends Component
             'scheduled_at'       => $scheduledAt,
 
             // Gründe / Gebühren
+            'exam_modality'      => $exam_modality,
             'reason'             => $this->grund,      // unter51 | krankMitAtest | krankOhneAtest
             'with_attest'        => $withAttest,
             'fee_cents'          => $feeCents,
