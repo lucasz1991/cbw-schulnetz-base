@@ -18,48 +18,52 @@
         </div>
       </div>
 
-      {{-- Zertifizierungsauswahl --}}
-      <div>
-        <label for="cert" class="block text-sm font-medium">Zertifizierung</label>
-        <select id="cert"
-                class="mt-1 block w-full border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                wire:model="certification_key">
-          <option value="">– Bitte wählen –</option>
-          @foreach($certOptions as $opt)
-            <option value="{{ $opt['key'] }}">
-              {{ $opt['price'] }} | {{ $opt['label'] }}
-            </option>
-          @endforeach
-        </select>
-        @if($certification_label)
-          <p class="text-xs text-gray-500 mt-1">Ausgewählt: {{ $certification_label }}</p>
-        @endif
-      </div>
+{{-- Zertifizierungsauswahl --}}
+<div>
+  <label for="cert" class="block text-sm font-medium">Zertifizierung</label>
+  <select id="cert"
+          class="mt-1 block w-full border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500"
+          wire:model.live="certification_key">
+    <option value="">– Bitte wählen –</option>
+    @foreach($certOptions as $opt)
+      <option value="{{ $opt['key'] }}">
+        {{ $opt['price'] }} | {{ $opt['label'] }}
+      </option>
+    @endforeach
+  </select>
+  @if($certification_label)
+    <p class="text-xs text-gray-500 mt-1">Ausgewählt: {{ $certification_label }}</p>
+  @endif
+</div>
 
-      {{-- Termin + Modus --}}
-      <div class="grid md:grid-cols-2 gap-4">
-        <div>
-          <label for="termin" class="block text-sm font-medium">Prüfungstermin</label>
-          <select id="termin"
-                  class="mt-1 block w-full border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                  wire:model.defer="scheduled_at">
-            <option value="">– Bitte Termin wählen –</option>
-            @foreach($dateOptions as $d)
-              <option value="{{ $d['ts'] }}">{{ $d['label'] }}</option>
-            @endforeach
-          </select>
-        </div>
-        <div>
-          <label for="modality" class="block text-sm font-medium">Durchführungs-Ort</label>
-          <select id="modality"
-                  class="mt-1 block w-full border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                  wire:model.defer="exam_modality">
-            <option value="">– Bitte wählen –</option>
-            <option value="online">online</option>
-            <option value="praesenz">Präsenz (CBW)</option>
-          </select>
-        </div>
-      </div>
+
+{{-- Termin + Modus --}}
+<div class="grid md:grid-cols-2 gap-4">
+  <div>
+    <label for="termin" class="block text-sm font-medium">Prüfungstermin</label>
+    <select id="termin"
+            class="mt-1 block w-full border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500"
+            wire:model.live="scheduled_at">
+      <option value="">– Bitte Termin wählen –</option>
+      @forelse($dateOptions as $d)
+        <option value="{{ $d['ts'] }}">{{ $d['label'] }}</option>
+      @empty
+        <option value="" disabled>Keine Termine verfügbar – bitte Zertifizierung wählen</option>
+      @endforelse
+    </select>
+  </div>
+  <div>
+    <label for="modality" class="block text-sm font-medium">Durchführungs-Ort</label>
+    <select id="modality"
+            class="mt-1 block w-full border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500"
+            wire:model.defer="exam_modality">
+      <option value="">– Bitte wählen –</option>
+      <option value="online">online</option>
+      <option value="praesenz">Präsenz (CBW)</option>
+    </select>
+  </div>
+</div>
+
 
       {{-- Begründung --}}
       <div>

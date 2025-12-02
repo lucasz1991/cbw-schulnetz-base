@@ -14,9 +14,14 @@ return new class extends Migration
             // intern | extern
             $table->enum('type', ['intern', 'extern'])->index();
 
-            $table->string('name');                    // Bezeichnung des Prüfungstermins
-            $table->decimal('preis', 10, 2)->nullable(); // Preis (optional)
-            $table->dateTime('termin')->index();       // Termin/Zeitpunkt
+            $table->string('name');                       // Bezeichnung des Prüfungstermins
+            $table->decimal('preis', 10, 2)->nullable();  // Preis (optional)
+
+
+            $table->json('dates');                        // kein termin mehr
+
+            // NEU: Raum
+            $table->string('room', 100)->nullable()->index();
 
             // Pflicht: 6 Wochen vorher anmelden?
             $table->boolean('pflicht_6w_anmeldung')->default(false)->index();

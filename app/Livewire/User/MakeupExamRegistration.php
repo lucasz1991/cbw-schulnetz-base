@@ -11,6 +11,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use App\Models\UserRequest;
 use App\Models\File;
+use App\Models\ExamAppointment;
 
 class MakeupExamRegistration extends Component
 {
@@ -72,7 +73,16 @@ class MakeupExamRegistration extends Component
         }
     }
 
-    public function open(): void  { $this->showModal = true; }
+    public function open(): void  
+    { 
+        $this->resetForm();
+        $this->wiederholung = 'wiederholung_1';
+        $user = Auth::user() ?? null;
+        $this->klasse ??= data_get($user?->person?->programdata, 'stammklasse');
+        $this->showModal = true;
+
+    }
+
     public function close(): void { $this->showModal = false; }
 
     public function resetForm(): void
@@ -174,8 +184,59 @@ class MakeupExamRegistration extends Component
         $this->resetForm();
     }
 
+        /**
+     * Liefert alle zukünftigen Slots aus internen ExamAppointments
+     * als Array: [['timestamp' => 1234567890, 'label' => '06.06.2025 – 13:15 (Raum ...)'], ...]
+     */
+    protected function getInternalExamSlots(): array
+    {
+        $now = Carbon::now();
+
+        $appointments = ExamAppointment::query()
+            ->where('type', 'intern')
+            ->orderBy('dates->0->datetime')
+            ->get();
+
+        $slots = [];
+
+        foreach ($appointments as $ap) {
+            if (!is_array($ap->dates)) {
+                continue;
+            }
+
+            foreach ($ap->dates as $entry) {
+                $dtStr = $entry['datetime'] ?? $entry['from'] ?? null;
+                if (!$dtStr) {
+                    continue;
+                }
+
+                $dt = Carbon::parse($dtStr);
+
+                // nur zukünftige Termine
+                if ($dt->lt($now)) {
+                    continue;
+                }
+
+                $slots[] = [
+                    'timestamp' => $dt->timestamp,
+                    'label'     => $dt->format('d.m.Y').' – '.$dt->format('H:i')
+                                   .($ap->room ? ' ('.$ap->room.')' : ''),
+                ];
+            }
+        }
+
+        // nach Datum sortieren (falls nötig)
+        usort($slots, fn($a, $b) => $a['timestamp'] <=> $b['timestamp']);
+
+        return $slots;
+    }
+
     public function render()
     {
-        return view('livewire.user.makeup-exam-registration')->layout('layouts.app');
+        $examSlots = $this->getInternalExamSlots();
+
+        return view('livewire.user.makeup-exam-registration', [
+            'examSlots' => $examSlots,
+        ])->layout('layouts.app');
     }
 }

@@ -62,19 +62,22 @@
       <div class="grid md:grid-cols-2 gap-6">
         <div>
           <x-ui.forms.label for="nachKlTermin" value="Nachprüfungstermin"/>
-          <select
-            id="nachKlTermin"
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-            wire:model.defer="nachKlTermin"
-          >
-            <option value="">Bitte Termin wählen</option>
-            <option value="1749208500">06.06.2025 – 13:15</option>
-            <option value="1750411800">20.06.2025 – 11:30</option>
-            <option value="1751621400">04.07.2025 – 11:30</option>
-            <option value="1752831000">18.07.2025 – 11:30</option>
-            <option value="1754040600">01.08.2025 – 11:30</option>
-          </select>
-          <x-ui.forms.input-error for="nachKlTermin"/>
+<select
+  id="nachKlTermin"
+  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+  wire:model.defer="nachKlTermin"
+>
+  <option value="">Bitte Termin wählen</option>
+
+  @forelse($examSlots as $slot)
+    <option value="{{ $slot['timestamp'] }}">
+      {{ $slot['label'] }}
+    </option>
+  @empty
+    <option value="" disabled>Keine internen Nachprüfungstermine verfügbar</option>
+  @endforelse
+</select>
+<x-ui.forms.input-error for="nachKlTermin"/>
         </div>
 
         <div>
