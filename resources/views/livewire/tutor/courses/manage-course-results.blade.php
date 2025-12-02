@@ -1,15 +1,15 @@
 <div class="space-y-4 transition-opacity duration-300  pt-6" wire:loading.class="opacity-30" x-data>
     <x-ui.forms.toggle-button 
         model="isExternalExam"
-        label="Externe Prüfung"
+        label="Keine Klausurpflicht"
     />
 
     @if($isExternalExam)
 
         <x-alert type="info" class="!mb-0">
-            <strong>Externe Prüfung:</strong>
+            <strong>Keine Klausurpflicht:</strong>
               <br>
-            Die Ergebnisse für externe Prüfungen können nur durch die Institutsverwaltung eingetragen werden.
+           Für diesen Baustein besteht keine Klausurpflicht.
         </x-alert>
     @else
         {{-- Content for internal exam --}}
