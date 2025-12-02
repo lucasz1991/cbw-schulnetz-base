@@ -10,19 +10,8 @@
               <br>
            Für diesen Baustein besteht keine Klausurpflicht.
         </x-alert>
-    @else
-        {{-- Content for internal exam --}}
-        <div class="flex max-md:flex-wrap items-center justify-between gap-3">
-          <div class="flex items-center gap-2">
-            <div class="relative">
-              <input type="text" wire:model.debounce.400ms="search" placeholder="Teilnehmer suchen…" class="rounded-md border-gray-300 pr-8"/>
-              <svg class="w-4 h-4 absolute right-2 top-1/2 -translate-y-1/2 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="m21 21-4.3-4.3M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16Z"/>
-              </svg>
-            </div>
+    @else 
 
-          </div>
-        </div>
 
         <div class="border rounded bg-white">
           <table class="min-w-full text-sm table-fixed">
