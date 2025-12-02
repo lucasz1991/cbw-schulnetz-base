@@ -38,15 +38,10 @@ class ApiUvsAssetsService
             // Endpoint ggf. an deine UVS-API anpassen:
             // z.B. /api/assets/institutions oder /api/assets/institut-infos
             $response = $this->api->request('GET', '/api/assets/institutions');
-
-            Log::info('getInstitutionsInfos: UVS-Institutions geladen', [
-                'response'  => $response,
-            ]);
             if (!($response['ok'] ?? false)) {
                 return [];
             }
-
-            $data = $response['data'] ?? [];
+            $data = $response['data']['data'] ?? [];
 
             // sinnvoll: nach institut_id indizieren
             // falls das Feld anders heißt -> anpassen
