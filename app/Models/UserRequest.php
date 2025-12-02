@@ -346,7 +346,7 @@ class UserRequest extends Model
 
         // Gibt ein Array, keyBy('institut_id'), zurück:
         // [ 123 => ['institut_id' => 123, 'email' => '...'], ... ]
-        $institutions = $assets->getInstitutionsInfos();
+        $institutions = $assets->getInstitutionsInfos(true);
 
     Log::info('UserRequest: UVS-Institutions geladen', [
         'count' => count($institutions),
