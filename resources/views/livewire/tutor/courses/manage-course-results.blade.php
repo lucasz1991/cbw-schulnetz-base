@@ -1,8 +1,10 @@
 <div class="space-y-4 transition-opacity duration-300  pt-6" wire:loading.class="opacity-30" x-data>
-    <x-ui.forms.toggle-button 
-        model="isExternalExam"
-        label="Keine Klausurpflicht"
-    />
+    <div class="w-max">
+      <x-ui.forms.toggle-button 
+          model="isExternalExam"
+          label="Keine Klausurpflicht"
+      />
+    </div>
 
     @if($isExternalExam)
         <x-alert type="info" class="!mb-0">
