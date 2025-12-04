@@ -30,20 +30,23 @@ class ManageCourseResults extends Component
     public string $sortDir = 'asc';
 
     /*
-    |--------------------------------------------------------------------------
+    |----------------------------------------------------------------------
     | Lifecycle
-    |--------------------------------------------------------------------------
+    |----------------------------------------------------------------------
     */
 
     public function mount(Course $course): void
     {
-        $this->course        = $course;
+        $this->course         = $course;
         $this->isExternalExam = (bool) $this->course->getSetting('isExternalExam', false);
-        if(!$this->isExternalExam){
-            $this->syncResults();
-            $this->loadRows();
-            $this->prefillResults();
+
+        // Beim Öffnen, wenn interne Prüfung: UVS ist Master → hart laden
+        if (! $this->isExternalExam) {
+            $this->performLoadFromRemote(silent: true);
         }
+
+        $this->loadRows();
+        $this->prefillResults();
     }
 
     public function render(): View
@@ -52,11 +55,17 @@ class ManageCourseResults extends Component
     }
 
     /*
-    |--------------------------------------------------------------------------
+    |----------------------------------------------------------------------
     | Actions
-    |--------------------------------------------------------------------------
+    |----------------------------------------------------------------------
     */
 
+    /**
+     * Einzelnes Ergebnis speichern + SYNC-Modus:
+     * - lokal setzen (sync_state = DIRTY)
+     * - danach syncToRemote() → UVS bekommt Änderungen,
+     *   und evtl. Anpassungen aus UVS kommen zurück.
+     */
     public function saveOne(string $personId, bool $silent = false): void
     {
         $this->validate([
@@ -73,23 +82,26 @@ class ManageCourseResults extends Component
             $this->statuses[$personId] = $status;
         }
 
-        // Lokale Speicherung
-        CourseResult::updateOrCreate(
+        // Lokale Speicherung + als "DIRTY" markieren
+        $courseResult = CourseResult::updateOrCreate(
             [
                 'course_id' => $this->course->id,
                 'person_id' => $personId,
             ],
             [
-                'result'     => $value,
-                'status'     => $status,
-                'updated_by' => auth()->id(),
+                'result'          => $value,
+                'status'          => $status,
+                'updated_by'      => auth()->id(),
+                'sync_state'      => CourseResult::SYNC_STATE_DIRTY,
+                'remote_upd_date' => null,
             ]
         );
 
-        // ---- UVS SYNC DIREKT NACH JEDEM EINZELNEN SPEICHERN ----
         try {
             /** @var CourseResultsSyncService $syncService */
             $syncService = app(CourseResultsSyncService::class);
+
+            // SYNC-Modus: nur DIRTY/unsynced Ergebnisse hochladen
             $ok = $syncService->syncToRemote($this->course);
 
             if (! $ok) {
@@ -99,14 +111,15 @@ class ManageCourseResults extends Component
                     message: "UVS-Sync für Person #$personId fehlgeschlagen."
                 );
             } else {
-                // Nach Pull erneut Ergebnisse laden, falls UVS etwas geändert hat
+                // Nach Pull erneut Ergebnisse laden, falls UVS etwas angepasst hat
                 $this->prefillResults();
             }
         } catch (\Throwable $e) {
-            Log::error('CourseResultsSyncService Fehler', [
-                'course_id' => $this->course->id,
-                'person_id' => $personId,
-                'error'     => $e->getMessage(),
+            Log::error('CourseResultsSyncService Fehler im saveOne', [
+                'course_id'   => $this->course->id,
+                'person_id'   => $personId,
+                'error'       => $e->getMessage(),
+                'trace_short' => substr($e->getTraceAsString(), 0, 1000),
             ]);
 
             $this->dispatch(
@@ -125,38 +138,70 @@ class ManageCourseResults extends Component
         }
     }
 
+    /**
+     * Manueller SYNC-Button:
+     * - Lädt nur DIRTY/unsynced Einträge hoch (syncToRemote)
+     * - Holt danach evtl. geänderte UVS-Werte zurück (SYNC-Modus).
+     */
     public function syncResults(): void
     {
-                // ---- UVS SYNC DIREKT NACH JEDEM EINZELNEN SPEICHERN ----
         try {
             /** @var CourseResultsSyncService $syncService */
             $syncService = app(CourseResultsSyncService::class);
+
             $ok = $syncService->syncToRemote($this->course);
 
             if (! $ok) {
                 $this->dispatch(
                     'notify',
                     type: 'error',
-                    message: "UVS-Sync für Person #$personId fehlgeschlagen."
+                    message: 'UVS-Sync für diesen Kurs ist fehlgeschlagen.'
                 );
             } else {
-                // Nach Pull erneut Ergebnisse laden, falls UVS etwas geändert hat
                 $this->prefillResults();
+
+                $this->dispatch(
+                    'notify',
+                    type: 'success',
+                    message: 'Ergebnisse wurden mit UVS synchronisiert.'
+                );
             }
         } catch (\Throwable $e) {
-            Log::error('CourseResultsSyncService Fehler', [
-                'course_id' => $this->course->id,
-                'person_id' => $personId,
-                'error'     => $e->getMessage(),
+            Log::error('CourseResultsSyncService Fehler im syncResults', [
+                'course_id'   => $this->course->id,
+                'error'       => $e->getMessage(),
+                'trace_short' => substr($e->getTraceAsString(), 0, 1000),
             ]);
 
             $this->dispatch(
                 'notify',
                 type: 'error',
-                message: "UVS-Sync Fehler für Person #$personId."
+                message: 'UVS-Sync Fehler bei der Kurs-Synchronisation.'
             );
         }
-            
+    }
+
+    /**
+     * Optionaler Button in der UI möglich:
+     * - UVS ist Master → ALLES hart aus UVS laden (LOAD-Modus).
+     * - Überschreibt lokale CourseResults für diesen Kurs.
+     */
+    public function reloadFromUvs(): void
+    {
+        if ($this->isExternalExam) {
+            // Bei externen Prüfungen kein automatischer Load
+            return;
+        }
+
+        $this->performLoadFromRemote(silent: false);
+
+        $this->prefillResults();
+
+        $this->dispatch(
+            'notify',
+            type: 'success',
+            message: 'Ergebnisse wurden vollständig aus UVS neu geladen.'
+        );
     }
 
     public function sort(string $col): void
@@ -176,11 +221,16 @@ class ManageCourseResults extends Component
     {
         $this->course->setSetting('isExternalExam', (bool) $value);
         $this->course->save();
-        if(! $value){
-            $this->syncResults();
-            $this->loadRows();
-            $this->prefillResults();
+
+        // Wenn von extern → intern gewechselt wird:
+        // einmal hart aus UVS laden, damit wir mit dem UVS-Stand starten.
+        if (! $value) {
+            $this->performLoadFromRemote(silent: true);
         }
+
+        $this->loadRows();
+        $this->prefillResults();
+
         $this->dispatch(
             'notify',
             type: 'success',
@@ -189,10 +239,53 @@ class ManageCourseResults extends Component
     }
 
     /*
-    |--------------------------------------------------------------------------
+    |----------------------------------------------------------------------
     | Helpers
-    |--------------------------------------------------------------------------
+    |----------------------------------------------------------------------
     */
+
+    /**
+     * UVS-LOAD-Modus:
+     * - Ruft im Service loadFromRemote() auf.
+     * - UVS überschreibt alle CourseResults des Kurses (Master).
+     */
+    private function performLoadFromRemote(bool $silent = false): void
+    {
+        try {
+            /** @var CourseResultsSyncService $syncService */
+            $syncService = app(CourseResultsSyncService::class);
+
+            $ok = $syncService->loadFromRemote($this->course);
+
+            if (! $ok && ! $silent) {
+                $this->dispatch(
+                    'notify',
+                    type: 'error',
+                    message: 'Ergebnisse konnten nicht aus UVS geladen werden.'
+                );
+            }
+
+            if (! $ok) {
+                Log::warning('CourseResultsSyncService.loadFromRemote meldet false', [
+                    'course_id' => $this->course->id,
+                ]);
+            }
+        } catch (\Throwable $e) {
+            Log::error('CourseResultsSyncService Fehler im performLoadFromRemote', [
+                'course_id'   => $this->course->id,
+                'error'       => $e->getMessage(),
+                'trace_short' => substr($e->getTraceAsString(), 0, 1000),
+            ]);
+
+            if (! $silent) {
+                $this->dispatch(
+                    'notify',
+                    type: 'error',
+                    message: 'Fehler beim Laden der Ergebnisse aus UVS.'
+                );
+            }
+        }
+    }
 
     private function loadRows(): void
     {
@@ -217,6 +310,7 @@ class ManageCourseResults extends Component
             ];
         }
 
+        // Sortierung nach Name (asc/desc)
         uasort($rows, function ($a, $b) {
             $A = mb_strtolower($a['name'] ?? '');
             $B = mb_strtolower($b['name'] ?? '');
@@ -256,9 +350,8 @@ class ManageCourseResults extends Component
         return <<<'HTML'
             <div role="status" class="h-32 w-full relative animate-pulse">
                 <div class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-white/70 transition-opacity">
-                    <div class="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-2 shadow">
+                    <div class="flex items-center gap-3  px-4 py-2 ">
                         <span class="loader"></span>
-                        <span class="text-sm text-gray-700">wird geladen…</span>
                     </div>
                 </div>
             </div>

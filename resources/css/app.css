@@ -1653,4 +1653,39 @@ section.home-banner{
           box-shadow: .2em -.2em 0 0 currentcolor;
         }
       }
-   
+
+      
+    
+.loader2 {
+    position: relative;
+    display: inline-block;
+    aspect-ratio: 1 / 1; /* immer quadratisch */
+    color: #2f5da0;
+}
+
+.loader2::before,
+.loader2::after {
+    content: "";
+    position: absolute;
+    inset: 0;                 /* nimmt genau die Tailwind-Größe ein */
+    border-radius: 50%;
+    transform: rotateX(70deg);
+    animation: loader2-spin 1s linear infinite;
+}
+
+.loader2::after {
+    color: #3b9548;
+    transform: rotateY(70deg);
+    animation-delay: .4s;
+}
+
+@keyframes loader2-spin {
+    0%, 100% { box-shadow: .2em 0      0 0 currentcolor; }
+    12%      { box-shadow: .2em .2em  0 0 currentcolor; }
+    25%      { box-shadow: 0    .2em  0 0 currentcolor; }
+    37%      { box-shadow: -.2em .2em 0 0 currentcolor; }
+    50%      { box-shadow: -.2em 0    0 0 currentcolor; }
+    62%      { box-shadow: -.2em -.2em 0 0 currentcolor; }
+    75%      { box-shadow: 0    -.2em 0 0 currentcolor; }
+    87%      { box-shadow: .2em -.2em 0 0 currentcolor; }
+}
