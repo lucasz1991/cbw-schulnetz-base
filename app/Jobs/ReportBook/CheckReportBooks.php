@@ -39,32 +39,23 @@ class CheckReportBooks implements ShouldQueue
         if (!empty($this->ids)) {
             $query->whereIn('id', $this->ids);
         }
-
         $books = $query->get();
-
         if ($books->isEmpty()) {
             Log::info('CheckReportBooks: Keine passenden ReportBooks gefunden.');
             return;
         }
-
         // --- Prüfen ---------------------------------------------------------
         foreach ($books as $book) {
-
-            $allSubmitted = $book->entries->count() > 0 &&
-                            $book->entries->every(fn ($e) => $e->status === 1);
-
+            $allSubmitted = $book->entries->count() > 0 && $book->entries->every(fn ($e) => $e->status === 1);
             if (!$allSubmitted) {
                 continue;
             }
-
             $existing = AdminTask::where('task_type', 'reportbook_review')
                 ->where('description', 'LIKE', "%ReportBook {$book->id}%")
                 ->first();
-
             if ($existing) {
                 continue;
             }
-
             // --- AdminTask erstellen ----------------------------------------
             AdminTask::create([
                 'created_by'   => $book->user_id,
@@ -74,7 +65,6 @@ class CheckReportBooks implements ShouldQueue
                 'description'  => "Baustein Berichtsheft {$book->id} vollständig eingereicht – Prüfung & Freigabe erforderlich.",
                 'status'       => AdminTask::STATUS_OPEN,
             ]);
-
             Log::info("CheckReportBooks: AdminTask für Berichtsheft {$book->id} erstellt.");
         }
     }
