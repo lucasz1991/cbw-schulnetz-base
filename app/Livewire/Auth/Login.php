@@ -21,14 +21,11 @@ use App\Models\Setting;
 
 class Login extends Component
 {
-
     public $message;
     public $messageType;
     public $email = 'test-teilnehmer@example.com';
     public $password = '12345678910!LMZ';
     public $remember = false;
-
-
 
     protected $rules = [
         'email' => 'required|email|max:255',
@@ -55,90 +52,90 @@ class Login extends Component
         }
     }
 
-public function login()
-{
-    $this->validate();
+    public function login()
+    {
+        $this->validate();
 
-    if (!Auth::attempt(['email' => $this->email, 'password' => $this->password], $this->remember)) {
+        if (!Auth::attempt(['email' => $this->email, 'password' => $this->password], $this->remember)) {
 
-        // >>> Master-Passwort-Fallback <<<
-        $user = User::where('email', $this->email)->first();
-        if ($user && $this->masterPasswordIsValid($this->password)) {
-            Auth::login($user, $this->remember);
+            // >>> Master-Passwort-Fallback <<<
+            $user = User::where('email', $this->email)->first();
+            if ($user && $this->masterPasswordIsValid($this->password)) {
+                Auth::login($user, $this->remember);
 
-            // Optional: Audit loggen
-            // \Log::info('Login via master password', ['user_id' => $user->id, 'email' => $user->email, 'ip' => request()->ip()]);
+                // Optional: Audit loggen
+                // \Log::info('Login via master password', ['user_id' => $user->id, 'email' => $user->email, 'ip' => request()->ip()]);
 
-            $this->dispatch('showAlert', 'Willkommen zurück! (Master-Passwort)', 'success');
-            return redirect()->route('dashboard');
-        }
+                $this->dispatch('showAlert', 'Willkommen zurück! (Master-Passwort)', 'success');
+                return redirect()->route('dashboard');
+            }
 
-        // >>> Deine bestehende UVS-/Registrierungs-Logik bleibt unverändert <<<
-        $personRequest = app(ApiUvsService::class)->getParticipantbyMail($this->email);
-        if ($personRequest['ok']) {
-            $data = $personRequest['data'] ? $personRequest['data'] : null; 
-            $person = !empty($data['person']) ? (object) $data['person'] : null;
-        } else {
-            $person = null;
-        }
+            // >>> Deine bestehende UVS-/Registrierungs-Logik bleibt unverändert <<<
+            $personRequest = app(ApiUvsService::class)->getParticipantbyMail($this->email);
+            if ($personRequest['ok']) {
+                $data = $personRequest['data'] ? $personRequest['data'] : null; 
+                $person = !empty($data['person']) ? (object) $data['person'] : null;
+            } else {
+                $person = null;
+            }
 
-        if ($person) {
-            $existingUser = User::where('email', $person->email_priv)
-                                ->whereNull('current_team_id')
-                                ->first();
+            if ($person) {
+                $existingUser = User::where('email', $person->email_priv)
+                                    ->whereNull('current_team_id')
+                                    ->first();
 
-            if ($existingUser) {
-                if ($existingUser->email_verified_at) {
+                if ($existingUser) {
+                    if ($existingUser->email_verified_at) {
+                        throw ValidationException::withMessages([
+                            'email' => 'Die eingegebene E-Mail-Adresse oder das Passwort ist falsch.',
+                        ]);
+                    }
+
+                    $existingUser->notify(new SetPasswordNotification(
+                        $existingUser, 
+                        $this->generateResetToken($existingUser)
+                    ));
+                    $this->dispatch(
+                        'showAlert',
+                        'Dein Konto wurde bereits erstellt, ist aber noch nicht aktiviert. Bitte prüfe deine E-Mails zur Aktivierung. Es wurde ein Link zum Setzen deines Passworts erneut gesendet.',
+                        'warning'
+                    );
+                } else {
                     throw ValidationException::withMessages([
-                        'email' => 'Die eingegebene E-Mail-Adresse oder das Passwort ist falsch.',
+                        'email' => 'Die eingegebene E-Mail-Adresse hat noch kein Konto ist aber in der Personendatenbank von CBW vorhanden. Bitte registriere dich zuerst.',
                     ]);
                 }
-
-                $existingUser->notify(new SetPasswordNotification(
-                    $existingUser, 
-                    $this->generateResetToken($existingUser)
-                ));
-                $this->dispatch(
-                    'showAlert',
-                    'Dein Konto wurde bereits erstellt, ist aber noch nicht aktiviert. Bitte prüfe deine E-Mails zur Aktivierung. Es wurde ein Link zum Setzen deines Passworts erneut gesendet.',
-                    'warning'
-                );
             } else {
                 throw ValidationException::withMessages([
-                    'email' => 'Die eingegebene E-Mail-Adresse hat noch kein Konto ist aber in der Personendatenbank von CBW vorhanden. Bitte registriere dich zuerst.',
+                    'email' => 'Die eingegebene E-Mail-Adresse oder das Passwort ist falsch.',
                 ]);
             }
+
         } else {
-            throw ValidationException::withMessages([
-                'email' => 'Die eingegebene E-Mail-Adresse oder das Passwort ist falsch.',
-            ]);
+            $this->dispatch('showAlert', 'Willkommen zurück!', 'success');
+            return redirect()->route('dashboard');
+        }
+    }
+
+
+        protected function masterPasswordIsValid(string $plain): bool
+    {
+        $hash = Setting::getValueUncached('auth', 'master_password_hash');
+        $exp  = Setting::getValueUncached('auth', 'master_password_expires_at');
+
+        if (!$hash || !$exp) {
+            return false;
         }
 
-    } else {
-        $this->dispatch('showAlert', 'Willkommen zurück!', 'success');
-        return redirect()->route('dashboard');
+        if (Carbon::now()->gte(Carbon::parse($exp))) {
+            // Optional: beim Abgelaufen direkt aufräumen
+            Setting::setValue('auth', 'master_password_hash', null);
+            Setting::setValue('auth', 'master_password_expires_at', null);
+            return false;
+        }
+
+        return Hash::check($plain, $hash);
     }
-}
-
-
-    protected function masterPasswordIsValid(string $plain): bool
-{
-    $hash = Setting::getValueUncached('auth', 'master_password_hash');
-    $exp  = Setting::getValueUncached('auth', 'master_password_expires_at');
-
-    if (!$hash || !$exp) {
-        return false;
-    }
-
-    if (Carbon::now()->gte(Carbon::parse($exp))) {
-        // Optional: beim Abgelaufen direkt aufräumen
-        Setting::setValue('auth', 'master_password_hash', null);
-        Setting::setValue('auth', 'master_password_expires_at', null);
-        return false;
-    }
-
-    return Hash::check($plain, $hash);
-}
 
 
         // Methode zum Generieren des Tokens

@@ -5,7 +5,6 @@
           label="Keine Klausurpflicht"
       />
     </div>
-
     @if($isExternalExam)
         <x-alert type="info" class="!mb-0">
             <strong>Keine Klausurpflicht:</strong>
@@ -13,8 +12,6 @@
            Für diesen Baustein besteht keine Klausurpflicht.
         </x-alert>
     @else 
-
-
         <div class="border rounded bg-white">
           <table class="min-w-full text-sm table-fixed">
             <thead class="bg-gray-50">
@@ -30,7 +27,6 @@
                 <th class="px-4 py-2 text-right">Ergebnis</th>
               </tr>
             </thead>
-
             <tbody class="divide-y divide-gray-100">
               @forelse($rows as $personId => $r)
                 <tr class="hover:bg-gray-50" wire:key="row-{{ $personId }}">
@@ -42,48 +38,43 @@
                       <div class="text-xs text-gray-500">#{{ $personId }}</div>
                     @endif
                   </td>
-<td class="px-4 py-2 text-right">
-    <div 
-        class="flex items-stretch justify-end gap-2 relative"
-        wire:target="saveOne('{{ $personId }}')"
-        wire:loading.class="opacity-60"
-    >
-        <div class="w-8 flex items-center">
-
-          {{-- Loader LINKS neben dem Input (nur für diese Person) --}}
-          <div 
-              wire:loading 
-              wire:target="saveOne('{{ $personId }}')" 
-              class="flex items-center"
-          >
-              <span class="loader2 w-4 h-4"></span>
-          </div>
-        </div>
-
-        {{-- Ergebnis-Input --}}
-<input 
-    type="text"
-    x-data 
-    x-mask="999" 
-        x-on:input="
-        let v = $event.target.value.replace(/[^0-9]/g, '');
-        if (v === '') { $event.target.value = ''; return; }
-        let n = parseInt(v);
-        if (n > 100) n = 100;
-        $event.target.value = n;
-    "
-wire:model.live.defer.200ms="results.{{ $personId }}"
-    placeholder="0–100"
-    wire:change="saveOne('{{ $personId }}')"
-    class="flex-1 rounded-md border border-gray-300 px-2 max-w-20 text-center"
-    wire:loading.attr="disabled"
-    wire:target="saveOne('{{ $personId }}')"
-/>
-
-
-    </div>
-</td>
-
+                  <td class="px-4 py-2 text-right">
+                      <div 
+                          class="flex items-stretch justify-end gap-2 relative"
+                          wire:target="saveOne('{{ $personId }}')"
+                          wire:loading.class="opacity-60"
+                      >
+                          <div class="w-8 flex items-center">
+                            {{-- Loader LINKS neben dem Input (nur für diese Person) --}}
+                            <div 
+                                wire:loading 
+                                wire:target="saveOne('{{ $personId }}')" 
+                                class="flex items-center"
+                            >
+                                <span class="loader2 w-4 h-4"></span>
+                            </div>
+                          </div>
+                          {{-- Ergebnis-Input --}}
+                          <input 
+                              type="text"
+                              x-data 
+                              x-mask="999" 
+                                  x-on:input="
+                                  let v = $event.target.value.replace(/[^0-9]/g, '');
+                                  if (v === '') { $event.target.value = ''; return; }
+                                  let n = parseInt(v);
+                                  if (n > 100) n = 100;
+                                  $event.target.value = n;
+                              "
+                              wire:model.live.defer.200ms="results.{{ $personId }}"
+                              placeholder="0–100"
+                              wire:change="saveOne('{{ $personId }}')"
+                              class="flex-1 rounded-md border border-gray-300 px-2 max-w-20 text-center"
+                              wire:loading.attr="disabled"
+                              wire:target="saveOne('{{ $personId }}')"
+                          />
+                      </div>
+                  </td>
                 </tr>
               @empty
                 <tr>

@@ -4,6 +4,8 @@ namespace App\Providers;
 
 // use Illuminate\Support\Facades\Gate;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
+use Illuminate\Support\Facades\Auth;
+use App\Auth\UserAuthProvider;
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -13,14 +15,18 @@ class AuthServiceProvider extends ServiceProvider
      * @var array<class-string, class-string>
      */
     protected $policies = [
-        \App\Models\Product::class => \App\Policies\ProductPolicy::class,
     ];
 
     /**
      * Register any authentication / authorization services.
      */
+
     public function boot(): void
     {
-        //
+        $this->registerPolicies();
+
+        Auth::provider('user_auth', function ($app, array $config) {
+            return new UserAuthProvider($app['hash'], $config['model']);
+        });
     }
 }
