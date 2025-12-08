@@ -21,7 +21,7 @@ class CheckPersonsCourses implements ShouldQueue, ShouldBeUniqueUntilProcessing
     public $backoff = [10, 60, 180];
 
     // Fenster konfigurieren: Vergangenheit/Zukunft
-    private const PAST_YEARS   = 1; // ab jetzt -2 Jahre
+    private const PAST_YEARS   = 1; // ab jetzt -1 Jahr
     private const FUTURE_YEARS = 1; // bis jetzt +1 Jahr
 
     public function __construct(public int $personPk) {}
@@ -33,17 +33,46 @@ class CheckPersonsCourses implements ShouldQueue, ShouldBeUniqueUntilProcessing
 
     public function handle(): void
     {
+        // Fenster einmal berechnen (für Log)
+        $windowStart = $this->windowStart();
+        $windowEnd   = $this->windowEnd();
+
+        // Zentrales Log-Array
+        $log = [
+            'person_pk'    => $this->personPk,
+            'person_id'    => null,
+            'role'         => null,
+            'status'       => null,
+            'messages'     => [],
+            'window_start' => $windowStart->toDateString(),
+            'window_end'   => $windowEnd->toDateString(),
+            'klassen_ids'  => [],
+            'jobs_dispatched' => 0,
+        ];
+
+        $writeLog = function (string $level = 'info') use (&$log) {
+            $log['messages'] = array_values(array_unique($log['messages']));
+            Log::$level('CheckPersonsCourses summary', $log);
+        };
+
         $person = Person::find($this->personPk);
         if (! $person) {
-            Log::warning("CheckPersonsCourses: Person {$this->personPk} nicht gefunden.");
+            $log['status']    = 'person_not_found';
+            $log['messages'][] = "Person nicht gefunden.";
+            $writeLog('warning');
             return;
         }
 
         $role = $person->role ?? 'guest';
         $pd   = $person->programdata ?? null;
 
+        $log['person_id'] = $person->id;
+        $log['role']      = $role;
+
         if (empty($pd)) {
-            Log::info("CheckPersonsCourses: Keine programdata für Person #{$person->id} (role={$role}).");
+            $log['status']    = 'no_programdata';
+            $log['messages'][] = "Keine programdata vorhanden.";
+            $writeLog('info');
             return;
         }
 
@@ -52,18 +81,36 @@ class CheckPersonsCourses implements ShouldQueue, ShouldBeUniqueUntilProcessing
             : $this->extractGuestKlassenIds($pd);
 
         if ($klassenIds->isEmpty()) {
-            Log::info("CheckPersonsCourses: Keine klassen_id im Fenster {$this->windowStart()->toDateString()} bis {$this->windowEnd()->toDateString()} (role={$role}, person #{$person->id}).");
+            $log['status']    = 'no_klassen_ids';
+            $log['messages'][] = "Keine klassen_id im Fenster.";
+            $writeLog('info');
             return;
         }
 
+        // Jobs dispatchen (ohne Einzel-Logs)
         foreach ($klassenIds as $kid) {
-            Log::info("CheckPersonsCourses: Dispatch CreateOrUpdateCourse für klassen_id={$kid} (person #{$person->id}).");
             CreateOrUpdateCourse::dispatch($kid);
         }
+
+        $log['status']          = 'ok';
+        $log['klassen_ids']     = $klassenIds->values()->all();
+        $log['jobs_dispatched'] = $klassenIds->count();
+        $log['messages'][]      = "CreateOrUpdateCourse Jobs dispatched.";
+
+        $writeLog('info');
     }
 
-    protected function windowStart(): Carbon { return now()->startOfDay()->subMonths(6); }
-    protected function windowEnd(): Carbon   { return now()->endOfDay()->addMonths(6); }
+    protected function windowStart(): Carbon
+    {
+        // aktuell 6 Monate zurück – wenn du die YEAR-Const nutzen willst,
+        // kannst du das hier leicht umbauen.
+        return now()->startOfDay()->subMonths(6);
+    }
+
+    protected function windowEnd(): Carbon
+    {
+        return now()->endOfDay()->addMonths(6);
+    }
 
     /**
      * Versucht ein Datum aus Strings wie "YYYY/MM/DD", "YYYY-MM-DD",

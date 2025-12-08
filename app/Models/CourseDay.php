@@ -12,6 +12,8 @@ use App\Jobs\ApiUpdates\SyncCourseDayAttendanceJob;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use App\Models\File;
+use Illuminate\Support\Facades\Route;
+
 
 class CourseDay extends Model
 {
@@ -57,7 +59,6 @@ class CourseDay extends Model
 
     protected static function booted(): void
     {
-        // deine bisherigen Defaults beim Erzeugen
         static::creating(function (CourseDay $day) {
             if (empty($day->day_sessions)) {
                 $day->day_sessions = self::makeDefaultSessions($day);
@@ -76,20 +77,33 @@ class CourseDay extends Model
             }
         });
 
-
-
-        //  Beim Access (vorsichtig, kann viel sein – ggf. später throttlen)
         static::retrieved(function (CourseDay $day) {
-                self::dispatchSyncIfNotThrottled($day);
-        });
+            // In Queue/CLI gibt es keine Route => hier früh raus
+            if (app()->runningInConsole()) {
+                return;
+            }
 
-        //  Beim Update: wenn attendance_data geändert wurde → nach UVS pushen
-        //static::updated(function (CourseDay $day) {
-        //    if ($day->wasChanged('attendance_data')) {
-        //        SyncCourseDayAttendanceJob::dispatch($day);
-        //        Log::info("Model:: CourseDay #{$day->id}: Sync-Job dispatched nach Änderung der Attendance-Daten.");
-        //    }
-        //});
+            // Request kann null sein (z.B. in manchen Tests)
+            $route = request()?->route();
+            if (! $route) {
+                return;
+            }
+
+            // Route-Name holen
+            $routeName = $route->getName();
+
+            // Beispiel: nur auf bestimmten Routen Auto-Sync
+            if (! in_array($routeName, [
+                'tutor.courses.show',
+            ], true)) {
+                return;
+            }
+
+            // oder kürzer:
+            // if (! request()->routeIs('tutor.courses.*')) return;
+
+            self::dispatchSyncIfNotThrottled($day);
+        });
     }
 
         /**
