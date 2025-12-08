@@ -89,7 +89,10 @@ class Person extends Model
         parent::boot();
 
         static::created(function (Person $person) {
-            $person->apiupdate();
+            // nur wenn mit User verknüpft
+            if (empty($person->user_id)) {
+                return;
+            }
         });
         static::updated(function (Person $person) {
             // nur wenn mit User verknüpft

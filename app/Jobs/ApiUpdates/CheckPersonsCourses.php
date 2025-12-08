@@ -100,17 +100,15 @@ class CheckPersonsCourses implements ShouldQueue, ShouldBeUniqueUntilProcessing
         $writeLog('info');
     }
 
-    protected function windowStart(): Carbon
-    {
-        // aktuell 6 Monate zurück – wenn du die YEAR-Const nutzen willst,
-        // kannst du das hier leicht umbauen.
-        return now()->startOfDay()->subMonths(6);
-    }
+protected function windowStart(): Carbon
+{
+    return now()->startOfDay()->subYears(self::PAST_YEARS);
+}
 
-    protected function windowEnd(): Carbon
-    {
-        return now()->endOfDay()->addMonths(6);
-    }
+protected function windowEnd(): Carbon
+{
+    return now()->endOfDay()->addYears(self::FUTURE_YEARS);
+}
 
     /**
      * Versucht ein Datum aus Strings wie "YYYY/MM/DD", "YYYY-MM-DD",
