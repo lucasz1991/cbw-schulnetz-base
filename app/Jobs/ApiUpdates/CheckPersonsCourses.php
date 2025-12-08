@@ -21,7 +21,7 @@ class CheckPersonsCourses implements ShouldQueue, ShouldBeUniqueUntilProcessing
     public $backoff = [10, 60, 180];
 
     // Fenster konfigurieren: Vergangenheit/Zukunft
-    private const PAST_YEARS   = 2; // ab jetzt -1 Jahr
+    private const PAST_YEARS   = 3; // ab jetzt -1 Jahr
     private const FUTURE_YEARS = 2; // bis jetzt +1 Jahr
 
     public function __construct(public int $personPk) {}
