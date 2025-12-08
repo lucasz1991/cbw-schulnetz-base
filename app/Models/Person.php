@@ -8,14 +8,15 @@ use App\Services\ApiUvs\ApiUvsService;
 use Illuminate\Support\Facades\Log;
 use App\Jobs\ApiUpdates\PersonApiUpdate;
 use Illuminate\Support\Carbon;
-
-
+use Illuminate\Support\Facades\Cache;
 
 class Person extends Model
 {
     use HasFactory;
 
     protected $table = 'persons';
+
+    public const API_UPDATE_COOLDOWN_MINUTES = 15;
 
     protected $fillable = [
         'user_id',
@@ -75,12 +76,12 @@ class Person extends Model
     ];
 
     protected $casts = [
-        'upd_date' => 'datetime',
-        'geburt_datum' => 'date',
-        'angestellt_von' => 'datetime',
-        'angestellt_bis' => 'datetime',
-        'programdata' => 'array',
-        'statusdata' => 'array',
+        'upd_date'        => 'datetime',
+        'geburt_datum'    => 'date',
+        'angestellt_von'  => 'datetime',
+        'angestellt_bis'  => 'datetime',
+        'programdata'     => 'array',
+        'statusdata'      => 'array',
         'last_api_update' => 'datetime',
     ];
 
@@ -89,57 +90,71 @@ class Person extends Model
         parent::boot();
 
         static::created(function (Person $person) {
-            // nur wenn mit User verknüpft
+            // nur wenn mit User verknüpft, aktuell kein Auto-Update
             if (empty($person->user_id)) {
                 return;
             }
+            // Falls du bei neuen Personen sofort syncen willst:
+            // static::dispatchApiUpdateIfNotThrottled($person, 'created');
         });
+
         static::updated(function (Person $person) {
             // nur wenn mit User verknüpft
             if (empty($person->user_id)) {
                 return;
             }
 
-            // Referenzzeit: bevorzugt updated_at, sonst created_at
-            $ref = $person->updated_at ?? $person->created_at ?? now();
-
-            $thresholdSec = 10 * 60;
-            $ageSec = now()->diffInSeconds($ref);
-
-            if ($ageSec >= $thresholdSec) {
-                // älter als 10 Min -> sofort
-                $person->apiupdate();
+            // In Queue/Artisan keine Auto-API-Calls
+            if (app()->runningInConsole()) {
+                return;
             }
+
+            // Throttle über Cache (25 Minuten)
+            static::dispatchApiUpdateIfNotThrottled($person, 'updated');
         });
+
         static::retrieved(function (Person $person) {
-        // nur sinnvoll, wenn mit User verknüpft
-        if (empty($person->user_id)) {
+            // nur sinnvoll, wenn mit User verknüpft
+            if (empty($person->user_id)) {
+                return;
+            }
+
+            // In Queue/Artisan keine Auto-API-Calls
+            if (app()->runningInConsole()) {
+                return;
+            }
+
+            static::dispatchApiUpdateIfNotThrottled($person, 'retrieved');
+        });
+    }
+
+    /**
+     * Zentraler Throttle für API-Updates:
+     * - 25 Minuten Cooldown per Cache
+     * - nur, wenn user_id vorhanden
+     * - keine Schleifen in Jobs/CLI
+     */
+    protected static function dispatchApiUpdateIfNotThrottled(Person $person, string $source): void
+    {
+        if (empty($person->user_id) || empty($person->id)) {
             return;
         }
 
-        // Wenn noch nie via API aktualisiert wurde, nimm updated_at/created_at als Fallback
-        $last = $person->last_api_update
-            ?? $person->updated_at
-            ?? $person->created_at;
+        $cacheKey = "person_apiupdate_cooldown:{$person->id}";
 
-        if (!$last instanceof \Illuminate\Support\Carbon) {
+        // add() legt den Key nur an, wenn er noch nicht existiert
+        $payload = [
+            'last'   => now()->toDateTimeString(),
+            'source' => $source,
+        ];
+
+        // Wenn Key bereits existiert -> wir sind im Cooldown -> nichts tun
+        if (! Cache::add($cacheKey, $payload, now()->addMinutes(self::API_UPDATE_COOLDOWN_MINUTES))) {
             return;
         }
 
-        // Schwelle: z.B. 30 Minuten seit letztem API-Update
-        $thresholdMinutes = 30;
-
-        if ($last->lt(now()->subMinutes($thresholdMinutes))) {
-            // Debug optional
-            // Log::info('Person: last_api_update älter als Threshold, apiupdate()', [
-            //     'person_id' => $person->person_id,
-            //     'id'        => $person->id,
-            //     'last_api_update' => $person->last_api_update,
-            // ]);
-
-            $person->apiupdate();
-        }
-    });
+        // Außerhalb des Cooldowns: Job dispatchen
+        PersonApiUpdate::dispatch($person->id);
     }
 
     public function apiupdate()
@@ -147,11 +162,11 @@ class Person extends Model
         PersonApiUpdate::dispatch($this->id);
     }
 
-
     public function user()
     {
         return $this->belongsTo(User::class);
     }
+
     public function enrollments()
     {
         return $this->hasMany(CourseParticipantEnrollment::class);
@@ -182,7 +197,6 @@ class Person extends Model
         return $this->hasMany(Course::class, 'primary_tutor_person_id');
     }
 
-
     /**
      * Kritische Felder, deren Änderung geloggt werden muss.
      */
@@ -196,18 +210,12 @@ class Person extends Model
     ];
 
     /**
-     * Instanzbasierte Mapping-Funktion:
-     * - nutzt $this als existierende Person
-     * - vergleicht UVS-Daten mit $this
-     * - loggt kritische Änderungen
-     * - liefert das fertige Mapping zurück
+     * Instanzbasierte Mapping-Funktion.
      */
     public function mapFromUvsPayloadWithCheck(object $p, string $role): array
     {
-        // Normales Mapping holen
         $mapped = static::mapFromUvsPayload($p, $role);
 
-        // Wenn Person neu ist (also kein PK existiert) → keine Prüfung nötig
         if (!$this->exists) {
             return $mapped;
         }
@@ -236,9 +244,7 @@ class Person extends Model
 
         return $mapped;
     }
-    /**
-     * Mapping-Helfer: UVS-Payload -> Person-Attributes
-     */
+
     public static function mapFromUvsPayload(object $p, string $role): array
     {
         return [
@@ -294,9 +300,6 @@ class Person extends Model
         ];
     }
 
-    /**
-     * Date-Parser für UVS-Strings
-     */
     protected static function safeDate(?string $value, string $mode = 'date'): ?string
     {
         try {
