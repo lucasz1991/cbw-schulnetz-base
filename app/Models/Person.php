@@ -241,7 +241,6 @@ class Person extends Model
                 'changes'   => $changes,
             ]);
         }
-
         return $mapped;
     }
 
@@ -314,5 +313,4 @@ class Person extends Model
             return null;
         }
     }
-
 }

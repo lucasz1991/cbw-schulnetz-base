@@ -572,7 +572,7 @@
   <div x-show="open === 'teilnehmer'" x-collapse>
     <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm px-6 pb-6">
       <div><dt class="text-gray-600">Name</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['teilnehmer']['name'] }}</dd></div>
-      <div><dt class="text-gray-600">Geburtsdatum</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['teilnehmer']['geburt_datum'] }}</dd></div>
+      <div><dt class="text-gray-600">Geburtsdatum</dt><dd class="font-medium text-gray-900">{{ \Illuminate\Support\Carbon::parse($teilnehmerDaten['teilnehmer']['geburt_datum'])->locale('de')->isoFormat('DD.MM.YYYY') }}</dd></div>
       <div><dt class="text-gray-600">Teilnehmer-Nr</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['teilnehmer']['teilnehmer_nr'] }}</dd></div>
       <div><dt class="text-gray-600">Kunden-Nr</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['teilnehmer']['kunden_nr'] }}</dd></div>
       <div><dt class="text-gray-600">Stammklasse</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['teilnehmer']['stammklasse'] }}</dd></div>
@@ -593,7 +593,7 @@
   <div x-show="open === 'massnahme'" x-collapse>
     <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm px-6 pb-6">
       <div><dt class="text-gray-600">Titel</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['massnahme']['titel'] }}</dd></div>
-      <div><dt class="text-gray-600">Zeitraum</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['massnahme']['zeitraum']['von'] }} – {{ $teilnehmerDaten['massnahme']['zeitraum']['bis'] }}</dd></div>
+      <div><dt class="text-gray-600">Zeitraum</dt><dd class="font-medium text-gray-900">{{ \Illuminate\Support\Carbon::parse($teilnehmerDaten['massnahme']['zeitraum']['von'])->locale('de')->isoFormat('DD.MM.YYYY') }} – {{ \Illuminate\Support\Carbon::parse($teilnehmerDaten['massnahme']['zeitraum']['bis'])->locale('de')->isoFormat('DD.MM.YYYY') }}</dd></div>
       <div><dt class="text-gray-600">Bausteine</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['massnahme']['bausteine'] }}</dd></div>
       <div><dt class="text-gray-600">Inhalte</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['massnahme']['inhalte'] }}</dd></div>
     </dl>
@@ -617,8 +617,8 @@
     <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm px-6 pb-6">
       <div><dt class="text-gray-600">Vertrag</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['vertrag']['vertrag'] }}</dd></div>
       <div><dt class="text-gray-600">Kennung</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['vertrag']['kennung'] }}</dd></div>
-      <div><dt class="text-gray-600">Von</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['vertrag']['von'] }}</dd></div>
-      <div><dt class="text-gray-600">Bis</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['vertrag']['bis'] }}</dd></div>
+      <div><dt class="text-gray-600">Von</dt><dd class="font-medium text-gray-900">{{ \Illuminate\Support\Carbon::parse($teilnehmerDaten['vertrag']['von']->locale('de')->isoFormat('DD.MM.YYYY') }}</dd></div>
+      <div><dt class="text-gray-600">Bis</dt><dd class="font-medium text-gray-900">{{ \Illuminate\Support\Carbon::parse($teilnehmerDaten['vertrag']['bis']->locale('de')->isoFormat('DD.MM.YYYY') }}</dd></div>
       <div><dt class="text-gray-600">Rechnungsnummer</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['vertrag']['rechnungsnummer'] }}</dd></div>
       <div><dt class="text-gray-600">Abschlussdatum</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['vertrag']['abschlussdatum'] }}</dd></div>
     </dl>
