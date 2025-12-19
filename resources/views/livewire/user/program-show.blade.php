@@ -617,8 +617,8 @@
     <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm px-6 pb-6">
       <div><dt class="text-gray-600">Vertrag</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['vertrag']['vertrag'] }}</dd></div>
       <div><dt class="text-gray-600">Kennung</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['vertrag']['kennung'] }}</dd></div>
-      <div><dt class="text-gray-600">Von</dt><dd class="font-medium text-gray-900">{{ \Illuminate\Support\Carbon::parse($teilnehmerDaten['vertrag']['von']->locale('de')->isoFormat('DD.MM.YYYY') }}</dd></div>
-      <div><dt class="text-gray-600">Bis</dt><dd class="font-medium text-gray-900">{{ \Illuminate\Support\Carbon::parse($teilnehmerDaten['vertrag']['bis']->locale('de')->isoFormat('DD.MM.YYYY') }}</dd></div>
+      <div><dt class="text-gray-600">Von</dt><dd class="font-medium text-gray-900">{{ \Illuminate\Support\Carbon::parse($teilnehmerDaten['vertrag']['von'])->locale('de')->isoFormat('DD.MM.YYYY') }}</dd></div>
+      <div><dt class="text-gray-600">Bis</dt><dd class="font-medium text-gray-900">{{ \Illuminate\Support\Carbon::parse($teilnehmerDaten['vertrag']['bis'])->locale('de')->isoFormat('DD.MM.YYYY') }}</dd></div>
       <div><dt class="text-gray-600">Rechnungsnummer</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['vertrag']['rechnungsnummer'] }}</dd></div>
       <div><dt class="text-gray-600">Abschlussdatum</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['vertrag']['abschlussdatum'] }}</dd></div>
     </dl>
