@@ -577,7 +577,6 @@
       <div><dt class="text-gray-600">Kunden-Nr</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['teilnehmer']['kunden_nr'] }}</dd></div>
       <div><dt class="text-gray-600">Stammklasse</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['teilnehmer']['stammklasse'] }}</dd></div>
       <div><dt class="text-gray-600">Eignungstest</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['teilnehmer']['test_punkte'] }}</dd></div>
-
     </dl>
   </div>
 </section>
