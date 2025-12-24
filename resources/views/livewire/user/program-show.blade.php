@@ -553,180 +553,243 @@
     </div>
 
 <!-- Accordion Wrapper -->
-<div x-data="{ open: 'unterricht' }" class="space-y-4">
+<div 
+    x-data="{ open: 'teilnehmer' }"
+    class="space-y-4"
+>
 
-<!-- Panel: Teilnehmerdaten -->
-<section class="bg-white rounded-lg shadow border border-gray-200">
-  <button
-    @click="open = (open === 'teilnehmer' ? null : 'teilnehmer')"
-    :aria-expanded="open === 'teilnehmer'"
-    class="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-gray-50 transition"
-  >
-    <span class="text-base font-semibold text-gray-800">Teilnehmerdaten</span>
-    <svg class="w-5 h-5 text-gray-500 transition-transform duration-300"
-         :class="open==='teilnehmer' && 'rotate-180'"
-         viewBox="0 0 20 20" fill="currentColor">
-      <path d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.21 8.29a.75.75 0 0 1 .02-1.08z"/>
-    </svg>
-  </button>
-  <div x-show="open === 'teilnehmer'" x-collapse>
-    <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm px-6 pb-6">
-      <div><dt class="text-gray-600">Name</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['teilnehmer']['name'] }}</dd></div>
-      <div><dt class="text-gray-600">Geburtsdatum</dt><dd class="font-medium text-gray-900">{{ \Illuminate\Support\Carbon::parse($teilnehmerDaten['teilnehmer']['geburt_datum'])->locale('de')->isoFormat('DD.MM.YYYY') }}</dd></div>
-      <div><dt class="text-gray-600">Teilnehmer-Nr</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['teilnehmer']['teilnehmer_nr'] }}</dd></div>
-      <div><dt class="text-gray-600">Kunden-Nr</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['teilnehmer']['kunden_nr'] }}</dd></div>
-      <div><dt class="text-gray-600">Stammklasse</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['teilnehmer']['stammklasse'] }}</dd></div>
-      <div><dt class="text-gray-600">Eignungstest</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['teilnehmer']['test_punkte'] }}</dd></div>
-    </dl>
-  </div>
-</section>
-
-<!-- Panel: Maßnahme -->
-<section class="bg-white rounded-lg shadow border border-gray-200">
-  <button @click="open = (open === 'massnahme' ? null : 'massnahme')"
-          :aria-expanded="open === 'massnahme'"
-          class="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-gray-50 transition">
-    <span class="text-base font-semibold text-gray-800">Maßnahme</span>
-    <svg class="w-5 h-5 text-gray-500 transition-transform duration-300" :class="open==='massnahme' && 'rotate-180'" viewBox="0 0 20 20" fill="currentColor"><path d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.21 8.29a.75.75 0 0 1 .02-1.08z"/></svg>
-  </button>
-  <div x-show="open === 'massnahme'" x-collapse>
-    <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm px-6 pb-6">
-      <div><dt class="text-gray-600">Titel</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['massnahme']['titel'] }}</dd></div>
-      <div><dt class="text-gray-600">Zeitraum</dt><dd class="font-medium text-gray-900">{{ \Illuminate\Support\Carbon::parse($teilnehmerDaten['massnahme']['zeitraum']['von'])->locale('de')->isoFormat('DD.MM.YYYY') }} – {{ \Illuminate\Support\Carbon::parse($teilnehmerDaten['massnahme']['zeitraum']['bis'])->locale('de')->isoFormat('DD.MM.YYYY') }}</dd></div>
-      <div><dt class="text-gray-600">Bausteine</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['massnahme']['bausteine'] }}</dd></div>
-      <div><dt class="text-gray-600">Inhalte</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['massnahme']['inhalte'] }}</dd></div>
-    </dl>
-  </div>
-</section>
-
-<!-- Panel: Vertrag -->
-<section class="bg-white rounded-lg shadow border border-gray-200">
-  <button
-    @click="open = (open === 'vertrag' ? null : 'vertrag')"
-    :aria-expanded="open === 'vertrag'"
-    class="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-gray-50 transition"
-  >
-    <span class="text-base font-semibold text-gray-800">Vertrag</span>
-    <svg class="w-5 h-5 text-gray-500 transition-transform duration-300"
-         :class="open==='vertrag' && 'rotate-180'" viewBox="0 0 20 20" fill="currentColor">
-      <path d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.21 8.29a.75.75 0 0 1 .02-1.08z"/>
-    </svg>
-  </button>
-  <div x-show="open === 'vertrag'" x-collapse>
-    <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm px-6 pb-6">
-      <div><dt class="text-gray-600">Vertrag</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['vertrag']['vertrag'] }}</dd></div>
-      <div><dt class="text-gray-600">Kennung</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['vertrag']['kennung'] }}</dd></div>
-      <div><dt class="text-gray-600">Von</dt><dd class="font-medium text-gray-900">{{ \Illuminate\Support\Carbon::parse($teilnehmerDaten['vertrag']['von'])->locale('de')->isoFormat('DD.MM.YYYY') }}</dd></div>
-      <div><dt class="text-gray-600">Bis</dt><dd class="font-medium text-gray-900">{{ \Illuminate\Support\Carbon::parse($teilnehmerDaten['vertrag']['bis'])->locale('de')->isoFormat('DD.MM.YYYY') }}</dd></div>
-      <div><dt class="text-gray-600">Rechnungsnummer</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['vertrag']['rechnungsnummer'] }}</dd></div>
-      <div><dt class="text-gray-600">Abschlussdatum</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['vertrag']['abschlussdatum'] }}</dd></div>
-    </dl>
-  </div>
-</section>
-
-<!-- Panel: Maßnahmenträger -->
-<section class="bg-white rounded-lg shadow border border-gray-200">
-  <button
-    @click="open = (open === 'traeger' ? null : 'traeger')"
-    :aria-expanded="open === 'traeger'"
-    class="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-gray-50 transition"
-  >
-    <span class="text-base font-semibold text-gray-800">Maßnahmenträger</span>
-    <svg class="w-5 h-5 text-gray-500 transition-transform duration-300"
-         :class="open==='traeger' && 'rotate-180'" viewBox="0 0 20 20" fill="currentColor">
-      <path d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.21 8.29a.75.75 0 0 1 .02-1.08z"/>
-    </svg>
-  </button>
-  <div x-show="open === 'traeger'" x-collapse>
-    <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm px-6 pb-6">
-      <div class="md:col-span-1"><dt class="text-gray-600">Institution</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['traeger']['institution'] }}</dd></div>
-      <div class="md:col-span-1"><dt class="text-gray-600">Ansprechpartner</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['traeger']['ansprechpartner'] }}</dd></div>
-      <div class="md:col-span-2"><dt class="text-gray-600">Adresse</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['traeger']['adresse'] }}</dd></div>
-    </dl>
-  </div>
-</section>
-
-<!-- Panel: Praktikum -->
-<section class="bg-white rounded-lg shadow border border-gray-200">
-  <button
-    @click="open = (open === 'praktikum' ? null : 'praktikum')"
-    :aria-expanded="open === 'praktikum'"
-    class="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-gray-50 transition"
-  >
-    <span class="text-base font-semibold text-gray-800">Praktikum</span>
-    <svg class="w-5 h-5 text-gray-500 transition-transform duration-300"
-         :class="open==='praktikum' && 'rotate-180'" viewBox="0 0 20 20" fill="currentColor">
-      <path d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.21 8.29a.75.75 0 0 1 .02-1.08z"/>
-    </svg>
-  </button>
-  <div x-show="open === 'praktikum'" x-collapse>
-    <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm px-6 pb-6">
-      <div><dt class="text-gray-600">Tage</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['praktikum']['tage'] }}</dd></div>
-      <div><dt class="text-gray-600">Stunden</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['praktikum']['stunden'] }}</dd></div>
-      <div class="md:col-span-2"><dt class="text-gray-600">Bemerkung</dt><dd class="font-medium text-gray-900">{{ $teilnehmerDaten['praktikum']['bemerkung'] ?? '—' }}</dd></div>
-    </dl>
-  </div>
-</section>
-
-  <!-- Panel: Unterricht -->
-  <section class="bg-white rounded-lg shadow-lg">
-    <button
-      @click="open = (open === 'unterricht' ? null : 'unterricht')"
-      :aria-expanded="open === 'unterricht'"
-      class="w-full flex items-center justify-between px-6 py-4 text-left"
-    >
-      <span class="text-xl font-semibold">Unterricht</span>
-      <svg class="w-5 h-5 transition-transform" :class="open==='unterricht' && 'rotate-180'" viewBox="0 0 20 20" fill="currentColor"><path d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.21 8.29a.75.75 0 0 1 .02-1.08z"/></svg>
-    </button>
-        <div x-show="open === 'unterricht'" x-collapse>
-        <div class="px-6 pb-6">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-24  text-sm">
-            
-            <!-- Linke Spalte -->
-            <ul class="divide-y divide-gray-100">
-                <li class="flex items-center justify-between py-2">
-                <span class="text-gray-600">Tage</span>
-                <span class="font-medium text-gray-900">{{ $teilnehmerDaten['unterricht']['tage'] }}</span>
-                </li>
-                <li class="flex items-center justify-between py-2">
-                <span class="text-gray-600">Einheiten</span>
-                <span class="font-medium text-gray-900">{{ $teilnehmerDaten['unterricht']['einheiten'] }}</span>
-                </li>
-                <li class="flex items-center justify-between py-2">
-                <span class="text-gray-600">Fehltage</span>
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-800">
-                    {{ $teilnehmerDaten['unterricht']['fehltage'] }}
+    <!-- ========== Teilnehmerdaten ========== -->
+    <section class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <button
+            @click="open = (open === 'teilnehmer' ? null : 'teilnehmer')"
+            :aria-expanded="open === 'teilnehmer'"
+            class="w-full flex items-center justify-between px-6 py-4 text-left transition
+                   hover:bg-gray-50"
+        >
+            <div class="flex items-center gap-3">
+                <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                    <i class="fal fa-user"></i>
                 </span>
-                </li>
-            </ul>
-
-            <!-- Rechte Spalte -->
-            <ul class="divide-y divide-gray-100">
-                <li class="flex items-center justify-between py-2">
-                <span class="text-gray-600">Note</span>
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-800">
-                    {{ $teilnehmerDaten['unterricht']['note'] }}
+                <span class="text-sm font-semibold text-gray-800">
+                    Teilnehmerdaten
                 </span>
-                </li>
-                <li class="flex items-center justify-between py-2">
-                <span class="text-gray-600">Schnitt</span>
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-800">
-                    {{ $teilnehmerDaten['unterricht']['schnitt'] }} %
-                </span>
-                </li>
-                <li class="flex items-center justify-between py-2">
-                <span class="text-gray-600">Punkte</span>
-                <span class="font-medium text-gray-900">{{ $teilnehmerDaten['unterricht']['punkte'] }}</span>
-                </li>
-            </ul>
-
             </div>
-        </div>
-        </div>
 
+            <svg
+                class="w-5 h-5 text-gray-400 transition-transform duration-300"
+                :class="open === 'teilnehmer' && 'rotate-180'"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+            >
+                <path d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.21 8.29a.75.75 0 0 1 .02-1.08z"/>
+            </svg>
+        </button>
 
-        </section>
+        <div x-show="open === 'teilnehmer'" x-collapse>
+            <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 px-6 pb-6 text-sm">
+                <div>
+                    <dt class="text-xs text-gray-500">Name</dt>
+                    <dd class="font-medium text-gray-900">
+                        {{ $teilnehmerDaten['teilnehmer']['name'] }}
+                    </dd>
+                </div>
+
+                <div>
+                    <dt class="text-xs text-gray-500">Geburtsdatum</dt>
+                    <dd class="font-medium text-gray-900">
+                        {{ \Illuminate\Support\Carbon::parse($teilnehmerDaten['teilnehmer']['geburt_datum'])->locale('de')->isoFormat('DD.MM.YYYY') }}
+                    </dd>
+                </div>
+
+                <div>
+                    <dt class="text-xs text-gray-500">Teilnehmer-Nr.</dt>
+                    <dd class="font-medium text-gray-900">
+                        {{ $teilnehmerDaten['teilnehmer']['teilnehmer_nr'] }}
+                    </dd>
+                </div>
+
+                <div>
+                    <dt class="text-xs text-gray-500">Kunden-Nr.</dt>
+                    <dd class="font-medium text-gray-900">
+                        {{ $teilnehmerDaten['teilnehmer']['kunden_nr'] }}
+                    </dd>
+                </div>
+
+                <div>
+                    <dt class="text-xs text-gray-500">Stammklasse</dt>
+                    <dd class="font-medium text-gray-900">
+                        {{ $teilnehmerDaten['teilnehmer']['stammklasse'] }}
+                    </dd>
+                </div>
+
+                <div>
+                    <dt class="text-xs text-gray-500">Eignungstest</dt>
+                    <dd class="font-medium text-gray-900">
+                        {{ $teilnehmerDaten['teilnehmer']['test_punkte'] }}
+                    </dd>
+                </div>
+            </dl>
         </div>
+    </section>
+
+    <!-- ========== Maßnahme ========== -->
+    <section class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <button
+            @click="open = (open === 'massnahme' ? null : 'massnahme')"
+            :aria-expanded="open === 'massnahme'"
+            class="w-full flex items-center justify-between px-6 py-4 text-left transition hover:bg-gray-50"
+        >
+            <div class="flex items-center gap-3">
+                <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                    <i class="fal fa-graduation-cap"></i>
+                </span>
+                <span class="text-sm font-semibold text-gray-800">
+                    Maßnahme
+                </span>
+            </div>
+
+            <svg class="w-5 h-5 text-gray-400 transition-transform duration-300"
+                 :class="open === 'massnahme' && 'rotate-180'"
+                 viewBox="0 0 20 20" fill="currentColor">
+                <path d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.21 8.29a.75.75 0 0 1 .02-1.08z"/>
+            </svg>
+        </button>
+
+        <div x-show="open === 'massnahme'" x-collapse>
+            <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 px-6 pb-6 text-sm">
+                <div>
+                    <dt class="text-xs text-gray-500">Titel</dt>
+                    <dd class="font-medium text-gray-900">
+                        {{ $teilnehmerDaten['massnahme']['titel'] }}
+                    </dd>
+                </div>
+
+                <div>
+                    <dt class="text-xs text-gray-500">Zeitraum</dt>
+                    <dd class="font-medium text-gray-900">
+                        {{ \Illuminate\Support\Carbon::parse($teilnehmerDaten['massnahme']['zeitraum']['von'])->locale('de')->isoFormat('DD.MM.YYYY') }}
+                        –
+                        {{ \Illuminate\Support\Carbon::parse($teilnehmerDaten['massnahme']['zeitraum']['bis'])->locale('de')->isoFormat('DD.MM.YYYY') }}
+                    </dd>
+                </div>
+
+                <div>
+                    <dt class="text-xs text-gray-500">Bausteine</dt>
+                    <dd class="font-medium text-gray-900">
+                        {{ $teilnehmerDaten['massnahme']['bausteine'] }}
+                    </dd>
+                </div>
+
+                <div>
+                    <dt class="text-xs text-gray-500">Unterrichtsform</dt>
+                    <dd class="font-medium text-gray-900">
+                        {{ $teilnehmerDaten['massnahme']['inhalte'] }}
+                    </dd>
+                </div>
+            </dl>
+        </div>
+    </section>
+
+    <!-- ========== Maßnahmenträger ========== -->
+    <section class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <button
+            @click="open = (open === 'traeger' ? null : 'traeger')"
+            :aria-expanded="open === 'traeger'"
+            class="w-full flex items-center justify-between px-6 py-4 text-left transition hover:bg-gray-50"
+        >
+            <div class="flex items-center gap-3">
+                <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-purple-50 text-purple-600">
+                    <i class="fal fa-building"></i>
+                </span>
+                <span class="text-sm font-semibold text-gray-800">
+                    Maßnahmenträger
+                </span>
+            </div>
+
+            <svg class="w-5 h-5 text-gray-400 transition-transform duration-300"
+                 :class="open === 'traeger' && 'rotate-180'"
+                 viewBox="0 0 20 20" fill="currentColor">
+                <path d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.21 8.29a.75.75 0 0 1 .02-1.08z"/>
+            </svg>
+        </button>
+
+        <div x-show="open === 'traeger'" x-collapse>
+            <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 px-6 pb-6 text-sm">
+                <div>
+                    <dt class="text-xs text-gray-500">Institution</dt>
+                    <dd class="font-medium text-gray-900">
+                        {{ $teilnehmerDaten['traeger']['institution'] }}
+                    </dd>
+                </div>
+
+                <div>
+                    <dt class="text-xs text-gray-500">Ansprechpartner</dt>
+                    <dd class="font-medium text-gray-900">
+                        {{ $teilnehmerDaten['traeger']['ansprechpartner'] }}
+                    </dd>
+                </div>
+
+                <div class="md:col-span-2">
+                    <dt class="text-xs text-gray-500">Adresse</dt>
+                    <dd class="font-medium text-gray-900">
+                        {{ $teilnehmerDaten['traeger']['adresse'] }}
+                    </dd>
+                </div>
+            </dl>
+        </div>
+    </section>
+
+    <!-- ========== Praktikum ========== -->
+    <section class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <button
+            @click="open = (open === 'praktikum' ? null : 'praktikum')"
+            :aria-expanded="open === 'praktikum'"
+            class="w-full flex items-center justify-between px-6 py-4 text-left transition hover:bg-gray-50"
+        >
+            <div class="flex items-center gap-3">
+                <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-orange-50 text-orange-600">
+                    <i class="fal fa-briefcase"></i>
+                </span>
+                <span class="text-sm font-semibold text-gray-800">
+                    Praktikum
+                </span>
+            </div>
+
+            <svg class="w-5 h-5 text-gray-400 transition-transform duration-300"
+                 :class="open === 'praktikum' && 'rotate-180'"
+                 viewBox="0 0 20 20" fill="currentColor">
+                <path d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.21 8.29a.75.75 0 0 1 .02-1.08z"/>
+            </svg>
+        </button>
+
+        <div x-show="open === 'praktikum'" x-collapse>
+            <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 px-6 pb-6 text-sm">
+                <div>
+                    <dt class="text-xs text-gray-500">Tage</dt>
+                    <dd class="font-medium text-gray-900">
+                        {{ $teilnehmerDaten['praktikum']['tage'] }}
+                    </dd>
+                </div>
+
+                <div>
+                    <dt class="text-xs text-gray-500">Stunden</dt>
+                    <dd class="font-medium text-gray-900">
+                        {{ $teilnehmerDaten['praktikum']['stunden'] }}
+                    </dd>
+                </div>
+
+                <div class="md:col-span-2">
+                    <dt class="text-xs text-gray-500">Bemerkung</dt>
+                    <dd class="font-medium text-gray-900">
+                        {{ $teilnehmerDaten['praktikum']['bemerkung'] ?? '—' }}
+                    </dd>
+                </div>
+            </dl>
+        </div>
+    </section>
+
+</div>
+
 
   </section>
   @endif
