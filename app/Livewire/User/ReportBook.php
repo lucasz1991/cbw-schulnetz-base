@@ -457,21 +457,21 @@ class ReportBook extends Component
             return false;
         }
 
-// Kontext-Name für den Dialog
-$courseTitle = $book->course->title ?? 'Kurs';
-$klasse      = $book->course->klassen_id ?? null;
-$contextName = $klasse ? "{$courseTitle} – {$klasse}" : $courseTitle;
+        // Kontext-Name für den Dialog
+        $courseTitle = $book->course->title ?? 'Kurs';
+        $klasse      = $book->course->klassen_id ?? null;
+        $contextName = $klasse ? "{$courseTitle} – {$klasse}" : $courseTitle;
 
-// Generisches Signature-Form öffnen
-$this->dispatch('openSignatureForm', [
-    'fileableType' => ReportBookModel::class,
-    'fileableId'   => $book->id,
-    'fileType'     => 'sign_reportbook_participant',
-    'label'        => 'Berichtsheft abschließen',
-    'signForName'  => 'Berichtsheft',
-    'contextName'  => $contextName,
-    'confirmText'  => "Ich bestätige, dass alle Angaben in meinem <strong>Berichtsheft<br>({$contextName})</strong><br>vollständig und wahrheitsgemäß sind.",
-]);
+        // Generisches Signature-Form öffnen
+        $this->dispatch('openSignatureForm', [
+            'fileableType' => ReportBookModel::class,
+            'fileableId'   => $book->id,
+            'fileType'     => 'sign_reportbook_participant',
+            'label'        => 'Berichtsheft abschließen',
+            'signForName'  => 'Berichtsheft',
+            'contextName'  => $contextName,
+            'confirmText'  => "Ich bestätige, dass alle Angaben in meinem <strong>Berichtsheft<br>({$contextName})</strong><br>vollständig und wahrheitsgemäß sind.",
+        ]);
 
         return true;
     }
@@ -834,6 +834,24 @@ $this->dispatch('openSignatureForm', [
             fn () => print($pdf->output()),
             'berichtsheft-alle-kurse.pdf'
         );
+    }
+
+    public function getStatusAttribute(): int
+    {
+        $reportBook = ReportBookModel::where('user_id', Auth::id())
+            ->where('course_id', $this->selectedCourseId)
+            ->first();
+
+        return $reportBook ? $reportBook->status : 0;
+    }
+
+    public function getAreAllReportBooksReviewedProperty(): bool
+    {
+        $reportBook = ReportBookModel::where('user_id', Auth::id())
+            ->where('course_id', $this->selectedCourseId)
+            ->first();
+
+        return $reportBook ? $reportBook->areAllReportBooksReviewed : false;
     }
 
     public function render()

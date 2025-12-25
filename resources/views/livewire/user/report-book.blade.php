@@ -351,7 +351,7 @@
                   </x-buttons.button-basic>
               @endif
               {{-- Fertigstellen-Button --}}
-              @if($selectedCourseDayId && $status !== 1 && (!$isDirty))
+              @if($selectedCourseDayId && $status !== 1 && $status !== 2 && (!$isDirty))
                   <x-buttons.button-basic
                       wire:click="submit"
                       wire:target="submit"
@@ -365,6 +365,7 @@
                       <span class="hidden sm:inline">Fertigstellen</span>
                   </x-buttons.button-basic>
               @endif
+              @if($this->status === 2)
               {{-- Export-Dropdown (statt einfachem Download-Button) --}}
               <x-ui.dropdown.anchor-dropdown
                   align="left"
@@ -412,6 +413,7 @@
                               <i class="fal fa-layer-group text-[14px] "></i>
                               <span>Baustein</span>
                           </button>
+                          @if($this->areAllReportBooksReviewed)
                           {{-- Alle Bausteine-Export (TODO: passende Methode implementieren) --}}
                           <button
                               type="button"
@@ -423,117 +425,119 @@
                               <i class="fal fa-file-archive text-[14px] "></i>
                               <span>Berichtsheft komplett</span>
                           </button>
+                          @endif
                       </div>
                   </x-slot>
               </x-ui.dropdown.anchor-dropdown>
+              @endif
+
               {{-- Dozenten-Doku übernehmen --}}
-{{-- Dozenten-Doku übernehmen --}}
-@php
-    $currentDay = collect($courseDays)->firstWhere('id', $selectedCourseDayId);
-@endphp
+              @php
+                  $currentDay = collect($courseDays)->firstWhere('id', $selectedCourseDayId);
+              @endphp
 
-@if($currentDay && $currentDay['hasTutorDoc'])
-    <x-ui.dropdown.anchor-dropdown
-        align="left"
-        width="48"
-        dropdownClasses="mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden"
-        contentClasses="bg-white"
-        :overlay="false"
-        :trap="false"
-        :scrollOnOpen="false"
-        :offset="6"
-    >
-        {{-- Trigger bleibt wie bisher --}}
-        <x-slot name="trigger">
-            <x-buttons.button-basic
-                type="button"
-                :size="'sm'"
-                class="px-2  text-gray-500"
-                title="Dozenten-Dokumentation übernehmen"
-            >
-                <i class="fad fa-file-signature text-[16px]"></i>
-                <span class="hidden md:inline-block ml-2">Doku</span>
-            </x-buttons.button-basic>
-        </x-slot>
+              @if($currentDay && $currentDay['hasTutorDoc'])
+                  <x-ui.dropdown.anchor-dropdown
+                      align="left"
+                      width="48"
+                      dropdownClasses="mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden"
+                      contentClasses="bg-white"
+                      :overlay="false"
+                      :trap="false"
+                      :scrollOnOpen="false"
+                      :offset="6"
+                  >
+                      {{-- Trigger bleibt wie bisher --}}
+                      <x-slot name="trigger">
+                          <x-buttons.button-basic
+                              type="button"
+                              :size="'sm'"
+                              class="px-2  text-gray-500"
+                              title="Dozenten-Dokumentation übernehmen"
+                          >
+                              <i class="fad fa-file-signature text-[16px]"></i>
+                              <span class="hidden md:inline-block ml-2">Doku</span>
+                          </x-buttons.button-basic>
+                      </x-slot>
 
-        {{-- Dropdown-Inhalt: eigentliche Aktion --}}
-        <x-slot name="content">
-            <div class="py-1 text-sm text-gray-700">
-                <button
-                    type="button"
-                    wire:click="importTutorDocToDraft"
-                    wire:loading.attr="disabled"
-                    @click="open = false"
-                    class="flex w-full items-center gap-2 px-3 py-2 hover:bg-gray-50  "
-                >
-                    <i class="fal fa-file-import text-[14px] "></i>
-                    <span>Dozenten-Doku einfügen</span>
-                </button>
-            </div>
-        </x-slot>
-    </x-ui.dropdown.anchor-dropdown>
-@else
-    {{-- disabled Variante bleibt ein normaler Button --}}
-    <x-buttons.button-basic
-        :size="'sm'"
-        class="px-2 opacity-40 cursor-not-allowed !text-gray-500"
-        title="Dozenten-Dokumentation noch nicht vorhanden"
-    >
-        <i class="fad fa-file-signature text-[16px] "></i>
-        <span class="hidden md:inline-block ml-2 ">Doku</span>
-    </x-buttons.button-basic>
-@endif
+                      {{-- Dropdown-Inhalt: eigentliche Aktion --}}
+                      <x-slot name="content">
+                          <div class="py-1 text-sm text-gray-700">
+                              <button
+                                  type="button"
+                                  wire:click="importTutorDocToDraft"
+                                  wire:loading.attr="disabled"
+                                  @click="open = false"
+                                  class="flex w-full items-center gap-2 px-3 py-2 hover:bg-gray-50  "
+                              >
+                                  <i class="fal fa-file-import text-[14px] "></i>
+                                  <span>Dozenten-Doku einfügen</span>
+                              </button>
+                          </div>
+                      </x-slot>
+                  </x-ui.dropdown.anchor-dropdown>
+              @else
+                  {{-- disabled Variante bleibt ein normaler Button --}}
+                  <x-buttons.button-basic
+                      :size="'sm'"
+                      class="px-2 opacity-40 cursor-not-allowed !text-gray-500"
+                      title="Dozenten-Dokumentation noch nicht vorhanden"
+                  >
+                      <i class="fad fa-file-signature text-[16px] "></i>
+                      <span class="hidden md:inline-block ml-2 ">Doku</span>
+                  </x-buttons.button-basic>
+              @endif
 
-{{-- KI-Assistent --}}
-@if($reportBookEntryId)
-    <x-ui.dropdown.anchor-dropdown
-        align="left"
-        width="48"
-        dropdownClasses="mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden"
-        contentClasses="bg-white"
-        :overlay="false"
-        :trap="false"
-        :scrollOnOpen="false"
-        :offset="6"
-    >
-        {{-- Trigger bleibt wie bisher --}}
-        <x-slot name="trigger">
-            <x-buttons.button-basic
-                type="button"
-                :size="'sm'"
-                class="px-2 "
-                title="KI-Assistent für diesen Eintrag"
-            >
-                <i class="fad fa-magic text-[16px] text-gray-500"></i>
-                <span class="hidden md:inline-block ml-2 text-gray-500">Assistent</span>
-            </x-buttons.button-basic>
-        </x-slot>
+              {{-- KI-Assistent --}}
+              @if($reportBookEntryId)
+                  <x-ui.dropdown.anchor-dropdown
+                      align="left"
+                      width="48"
+                      dropdownClasses="mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden"
+                      contentClasses="bg-white"
+                      :overlay="false"
+                      :trap="false"
+                      :scrollOnOpen="false"
+                      :offset="6"
+                  >
+                      {{-- Trigger bleibt wie bisher --}}
+                      <x-slot name="trigger">
+                          <x-buttons.button-basic
+                              type="button"
+                              :size="'sm'"
+                              class="px-2 "
+                              title="KI-Assistent für diesen Eintrag"
+                          >
+                              <i class="fad fa-magic text-[16px] text-gray-500"></i>
+                              <span class="hidden md:inline-block ml-2 text-gray-500">Assistent</span>
+                          </x-buttons.button-basic>
+                      </x-slot>
 
-        {{-- Dropdown-Inhalt: KI-Assistent öffnen --}}
-        <x-slot name="content">
-            <div class="py-1 text-sm text-gray-700">
-                <button
-                    type="button"
-                    @click="$dispatch('open-reportbook-ai-assistant', [{ id: {{ $reportBookEntryId }} }]); open = false"
-                    class="flex w-full items-center gap-2 px-3 py-2 hover:bg-gray-50"
-                >
-                    <i class="fal fa-comments-alt text-[14px] "></i>
-                    <span class="">KI-Assistent öffnen</span>
-                </button>
-            </div>
-        </x-slot>
-    </x-ui.dropdown.anchor-dropdown>
-@else
-    {{-- disabled Variante bleibt ein normaler Button --}}
-    <x-buttons.button-basic
-        :size="'sm'"
-        class="px-2 opacity-60 cursor-not-allowed"
-        title="Assistent erst verfügbar, wenn ein Entwurf gespeichert wurde"
-    >
-        <i class="fad fa-magic text-[16px]"></i>
-        <span class="hidden md:inline-block ml-2">Assistent</span>
-    </x-buttons.button-basic>
-@endif
+                      {{-- Dropdown-Inhalt: KI-Assistent öffnen --}}
+                      <x-slot name="content">
+                          <div class="py-1 text-sm text-gray-700">
+                              <button
+                                  type="button"
+                                  @click="$dispatch('open-reportbook-ai-assistant', [{ id: {{ $reportBookEntryId }} }]); open = false"
+                                  class="flex w-full items-center gap-2 px-3 py-2 hover:bg-gray-50"
+                              >
+                                  <i class="fal fa-comments-alt text-[14px] "></i>
+                                  <span class="">KI-Assistent öffnen</span>
+                              </button>
+                          </div>
+                      </x-slot>
+                  </x-ui.dropdown.anchor-dropdown>
+              @else
+                  {{-- disabled Variante bleibt ein normaler Button --}}
+                  <x-buttons.button-basic
+                      :size="'sm'"
+                      class="px-2 opacity-60 cursor-not-allowed"
+                      title="Assistent erst verfügbar, wenn ein Entwurf gespeichert wurde"
+                  >
+                      <i class="fad fa-magic text-[16px]"></i>
+                      <span class="hidden md:inline-block ml-2">Assistent</span>
+                  </x-buttons.button-basic>
+              @endif
               {{-- Optional: kleiner Loading-Hinweis direkt in der Toolbar --}}
               <span
                   wire:loading
