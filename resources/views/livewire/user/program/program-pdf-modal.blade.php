@@ -37,7 +37,7 @@
                         <iframe title="PDF Vorschau"
                                 x-ref="viewer"                            
                                 class="w-full min-h-[60vh] max-h-[70vh]"
-                                src="{{ $previewUrl }}#toolbar=0&navpanes=0&scrollbar=1"
+                                src="{{ $previewUrl }}"
                         ></iframe>
                     </div>
                 @else

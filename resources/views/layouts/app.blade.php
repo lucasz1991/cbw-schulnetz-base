@@ -41,8 +41,8 @@
                     @livewire('user-navigation-menu')
                 </header>
             @endif
-            <x-page-header />
             <x-pagebuilder-module :position="'top_banner'"/>
+            <x-page-header />
             <x-pagebuilder-module :position="'banner'"/>
             <x-pagebuilder-module :position="'bottom_banner'"/>
             <main  class="snap-start z-0">

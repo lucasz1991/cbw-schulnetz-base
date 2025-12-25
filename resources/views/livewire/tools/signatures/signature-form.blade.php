@@ -114,40 +114,38 @@
                 <p class="text-sm text-gray-700">
                     {!! $this->defaultConfirmText !!}
                 </p>
-<div class="flex items-center gap-4 justify-center mb-2">
-    <div class="inline-flex rounded-md overflow-hidden border border-gray-300 text-sm">
-        <!-- Draw -->
-        <button
-            type="button"
-            class="px-4 py-1.5 flex items-center gap-1 transition"
-            :class="mode === 'draw'
-                ? 'bg-blue-600 text-white border-blue-600'
-                : 'bg-white text-gray-700 hover:bg-gray-50'"
-            @click="
-                mode = 'draw';
-                initCanvas();
-            "
-        >
-            <i class="fad fa-pen mr-2"></i>
-            Zeichnen
-        </button>
-    
-        <!-- Upload -->
-        <button
-            type="button"
-            class="px-4 py-1.5 flex items-center gap-1 border-l border-gray-300 transition"
-            :class="mode === 'upload'
-                ? 'bg-blue-600 text-white border-blue-600'
-                : 'bg-white text-gray-700 hover:bg-gray-50'"
-            @click="mode = 'upload'"
-        >
-            <i class="fad fa-upload mr-2"></i>
-            Hochladen
-        </button>
-    </div>
-</div>
-
-                
+                <div class="flex items-center gap-4 justify-center mb-2">
+                    <div class="inline-flex rounded-md overflow-hidden border border-gray-300 text-sm">
+                        <!-- Draw -->
+                        <button
+                            type="button"
+                            class="px-4 py-1.5 flex items-center gap-1 transition"
+                            :class="mode === 'draw'
+                                ? 'bg-blue-600 text-white border-blue-600'
+                                : 'bg-white text-gray-700 hover:bg-gray-50'"
+                            @click="
+                                mode = 'draw';
+                                initCanvas();
+                            "
+                        >
+                            <i class="fad fa-pen mr-2"></i>
+                            Zeichnen
+                        </button>
+                    
+                        <!-- Upload -->
+                        <button
+                            type="button"
+                            class="px-4 py-1.5 flex items-center gap-1 border-l border-gray-300 transition"
+                            :class="mode === 'upload'
+                                ? 'bg-blue-600 text-white border-blue-600'
+                                : 'bg-white text-gray-700 hover:bg-gray-50'"
+                            @click="mode = 'upload'"
+                        >
+                            <i class="fad fa-upload mr-2"></i>
+                            Hochladen
+                        </button>
+                    </div>
+                </div>
                 <div x-show="mode === 'draw'" x-cloak class="space-y-3">
                     <div class="border bg-gray-50 p-2 rounded w-full">
                         {{-- keine feste Höhe, Breite läuft über JS --}}
