@@ -607,7 +607,7 @@ class CourseDayAttendanceSyncService
     /**
      * Remote-Zeit normalisieren:
      * - '' / null / '00:00' / '00:00:00' => null
-     * - 'HH:MM:SS' => 'HH:MM'
+     * - 'HH:MM:SS' => 'HH:MM' 
      * - 'HH:MM' bleibt
      */
     protected function normalizeRemoteTime(mixed $value): ?string
