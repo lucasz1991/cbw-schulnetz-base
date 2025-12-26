@@ -12,66 +12,123 @@ class CourseDayAttendanceSyncService
 {
     protected ApiUvsService $api;
 
+    protected const ENDPOINT_SYNC = '/api/course/courseday/syncattendancedata';
+    protected const ENDPOINT_LOAD = '/api/course/courseday/loadattendancedata';
+
+    public const STATE_DIRTY  = 'dirty';
+    public const STATE_DRAFT  = 'draft';
+    public const STATE_SYNCED = 'synced';
+    public const STATE_REMOTE = 'remote';
+
     public function __construct(ApiUvsService $api)
     {
         $this->api = $api;
     }
 
     /**
-     * Lokale Attendance eines CourseDay in UVS-Struktur mappen,
-     * an den UVS-API-Endpunkt senden (Push) und dabei auch
-     * Änderungen aus UVS "pullen".
-     *
-     * Nutzt die Response, um src_api_id + state in attendance_data zu pflegen.
+     * SYNC:
+     * - Push: nur dirty/neu (optional: nur bestimmte local person ids)
+     * - Pull: nur die betreffenden Teilnehmer (optional: nur bestimmte local person ids)
      */
-    public function syncToRemote(CourseDay $day): bool
+    public function syncToRemote(CourseDay $day, ?array $onlyLocalPersonIds = null): bool
     {
-        // Ohne Kurs / Termin / Datum macht Sync keinen Sinn
-        if (!$day->course || !$day->course->termin_id || !$day->date) {
+        if (! $this->isSyncable($day)) {
+            Log::warning('CourseDayAttendanceSyncService.syncToRemote: day nicht syncbar.', [
+                'day_id'    => $day->id,
+                'course_id' => $day->course_id,
+            ]);
             return false;
         }
 
-        // 1) Attendance in UVS-"changes" Struktur mappen (nur "auffällige" Fälle)
-        $changes = $this->mapAttendanceToUvsChanges($day);
+        // Push: nur dirty/neu (+ optional nur 1 Person)
+        [$changes, $localKeysForPush] = $this->mapAttendanceToUvsChangesDirtyOnly($day, $onlyLocalPersonIds);
 
-        // 2) Teilnehmersammlung für den Pull:
-        //    Alle Teilnehmer des Tages, nicht nur die mit Änderungen.
-        $teilnehmerIds = $this->collectTeilnehmerIds($day);
+        // Pull: optional nur die eine Person
+        $teilnehmerIds = $this->collectTeilnehmerIds($day, $onlyLocalPersonIds);
 
         if (empty($teilnehmerIds) && empty($changes)) {
-            // nichts zu tun
             return true;
         }
 
         $payload = [
-            'termin_id'      => $day->course->termin_id,
+            'termin_id'      => (string) $day->course->termin_id,
             'date'           => $day->date->toDateString(),
             'teilnehmer_ids' => $teilnehmerIds,
             'changes'        => $changes,
         ];
 
-        // 3) API-Call (Body = $payload, Query leer)
-        $response = $this->api->request(
-            'POST',
-            '/api/course/courseday/syncattendancedata',
-            $payload,
-            []
-        );
+        $response = $this->api->request('POST', self::ENDPOINT_SYNC, $payload, []);
 
-        // 4) Response auswerten & zurück ins Model mappen
-        if (!empty($response['ok'])) {
-            $this->applySyncResponse($day, $response);
+        if (! empty($response['ok'])) {
+            $this->markRowsSyncedAfterPush($day, $localKeysForPush);
+            $this->applySyncResponseSafe($day, $response, $onlyLocalPersonIds);
             return true;
         }
+
+        Log::error('CourseDayAttendanceSyncService.syncToRemote: UVS-Response nicht ok.', [
+            'day_id'   => $day->id,
+            'response' => $response,
+        ]);
 
         return false;
     }
 
     /**
-     * Alle UVS-Teilnehmer-IDs für einen CourseDay sammeln.
-     * (Unabhängig davon, ob es lokale Änderungen gibt.)
+     * LOAD (Pull-only, UVS ist Master):
+     * - Optional: nur bestimmte local person ids laden.
      */
-    protected function collectTeilnehmerIds(CourseDay $day): array
+    public function loadFromRemote(CourseDay $day, ?array $onlyLocalPersonIds = null): bool
+    {
+        if (! $this->isSyncable($day)) {
+            Log::warning('CourseDayAttendanceSyncService.loadFromRemote: day nicht loadbar.', [
+                'day_id'    => $day->id,
+                'course_id' => $day->course_id,
+            ]);
+            return false;
+        }
+
+        $teilnehmerIds = $this->collectTeilnehmerIds($day, $onlyLocalPersonIds);
+
+        if (empty($teilnehmerIds)) {
+            return true;
+        }
+
+        $payload = [
+            'termin_id'      => (string) $day->course->termin_id,
+            'date'           => $day->date->toDateString(),
+            'teilnehmer_ids' => $teilnehmerIds,
+        ];
+
+        $response = $this->api->request('POST', self::ENDPOINT_LOAD, $payload, []);
+
+        if (! empty($response['ok'])) {
+            $this->applyLoadResponseHard($day, $response, $onlyLocalPersonIds);
+            return true;
+        }
+
+        Log::error('CourseDayAttendanceSyncService.loadFromRemote: UVS-Response nicht ok.', [
+            'day_id'   => $day->id,
+            'response' => $response,
+        ]);
+
+        return false;
+    }
+
+    /* -------------------------------------------------------------------------
+     | Core helpers (FILTER-FÄHIG)
+     * ---------------------------------------------------------------------- */
+
+    protected function isSyncable(CourseDay $day): bool
+    {
+        return (bool) ($day->course && $day->course->termin_id && $day->date);
+    }
+
+    /**
+     * Sammle remote teilnehmer_ids:
+     * - Standard: alle Kursteilnehmer
+     * - Optional: nur Personen in $onlyLocalPersonIds
+     */
+    protected function collectTeilnehmerIds(CourseDay $day, ?array $onlyLocalPersonIds = null): array
     {
         $participants = $day->course->participants ?? collect();
 
@@ -79,8 +136,13 @@ class CourseDayAttendanceSyncService
             return [];
         }
 
+        if (is_array($onlyLocalPersonIds) && ! empty($onlyLocalPersonIds)) {
+            $only = array_map('intval', $onlyLocalPersonIds);
+            $participants = $participants->filter(fn ($p) => in_array((int) $p->id, $only, true));
+        }
+
         return $participants
-            ->map(fn ($person) => (string) $person->teilnehmer_id)
+            ->map(fn ($p) => (string) $p->teilnehmer_id)
             ->filter()
             ->unique()
             ->values()
@@ -88,61 +150,84 @@ class CourseDayAttendanceSyncService
     }
 
     /**
-     * aus CourseDay->attendance_data wird ein "changes"-Array für UVS (tn_fehl).
-     * Enthält bei Korrekturen auf "vollständig anwesend" einen Eintrag mit
-     * 'action' => 'delete'.
+     * PUSH Changes bauen:
+     * - Standard: alle dirty/neu
+     * - Optional: nur local ids in $onlyLocalPersonIds
      */
-    protected function mapAttendanceToUvsChanges(CourseDay $day): array
+    protected function mapAttendanceToUvsChangesDirtyOnly(CourseDay $day, ?array $onlyLocalPersonIds = null): array
     {
         $attendance   = $day->attendance_data ?? [];
         $participants = $attendance['participants'] ?? [];
 
-        if (!is_array($participants) || empty($participants)) {
-            return [];
+        if (! is_array($participants) || empty($participants)) {
+            return [[], []];
         }
 
-        $terminId  = $day->course->termin_id;
-        $date      = $day->date->toDateString(); // YYYY-MM-DD
+        $only = null;
+        if (is_array($onlyLocalPersonIds) && ! empty($onlyLocalPersonIds)) {
+            $only = array_map('intval', $onlyLocalPersonIds);
+        }
+
+        $terminId  = (string) $day->course->termin_id;
+        $date      = $day->date->toDateString();
         $tutorName = $day->course->tutor
             ? trim(($day->course->tutor->vorname ?? '') . ' ' . ($day->course->tutor->nachname ?? '') . ' (Schulnetz)')
             : 'Baustein-Dozent (Schulnetz)';
 
-        [$courseStart, $courseEnd, $totalMinutes] = $this->computeCourseTimes($day, 'push');
+        [$courseStart, $courseEnd, $totalMinutes] = $this->computeCourseTimes($day);
 
         $localIds = array_keys($participants);
-        $persons  = Person::whereIn('id', $localIds)->get()->keyBy('id');
+
+        if ($only !== null) {
+            $localIds = array_values(array_intersect(array_map('intval', $localIds), $only));
+        }
+
+        if (empty($localIds)) {
+            return [[], []];
+        }
+
+        $persons = Person::whereIn('id', $localIds)->get()->keyBy('id');
 
         $changes = [];
+        $pushedLocalPersonIds = [];
 
         foreach ($participants as $localPersonId => $row) {
+            $localPersonId = (int) $localPersonId;
+
+            if ($only !== null && ! in_array($localPersonId, $only, true)) {
+                continue;
+            }
+
             /** @var Person|null $person */
             $person = $persons->get($localPersonId);
-            if (!$person) {
+            if (! $person || ! $person->teilnehmer_id) {
                 continue;
             }
 
-            $teilnehmerId = $person->teilnehmer_id ?? null;
-            if (!$teilnehmerId) {
+            $teilnehmerId = (string) $person->teilnehmer_id;
+            $institutId   = (int) ($person->institut_id ?? ($day->course->institut_id ?? 0));
+
+            $state     = $row['state'] ?? null;
+            $hasRemote = ! empty($row['src_api_id']);
+
+            // dirty wenn: draft|dirty oder ohne remote id (neu)
+            $isDirty = in_array($state, [self::STATE_DRAFT, self::STATE_DIRTY], true) || ! $hasRemote;
+            if (! $isDirty) {
                 continue;
             }
 
-            $institutId = $person->institut_id ?? ($day->course->institut_id ?? 0);
+            $present   = (bool) ($row['present'] ?? false);
+            $excused   = (bool) ($row['excused'] ?? false);
+            $lateMin   = (int)  ($row['late_minutes'] ?? 0);
+            $leftEarly = (int)  ($row['left_early_minutes'] ?? 0);
 
-            $present   = (bool)($row['present'] ?? false);
-            $excused   = (bool)($row['excused'] ?? false);
-            $lateMin   = (int)($row['late_minutes'] ?? 0);
-            $leftEarly = (int)($row['left_early_minutes'] ?? 0);
+            $isFullyPresent = $present && ! $excused && $lateMin === 0 && $leftEarly === 0;
 
-            $state     = $row['state']    ?? null;
-            $hasRemote = !empty($row['src_api_id']);
-
-            $isDirty = in_array($state, ['draft', 'dirty'], true) || !$hasRemote;
-
-            $isFullyPresent = $present && !$excused && $lateMin === 0 && $leftEarly === 0;
-
-            // FALL 1: Vollständig anwesend -> ggf. Delete
+            // Vollständig anwesend:
+            // - wenn remote existiert -> delete
+            // - wenn remote nie existierte -> nichts senden
             if ($isFullyPresent) {
-                if ($isDirty && $hasRemote) {
+                if ($hasRemote) {
                     $tnFehltageId = $teilnehmerId . '-' . $terminId;
 
                     $changes[] = [
@@ -150,7 +235,7 @@ class CourseDayAttendanceSyncService
                         'teilnehmer_id'  => (string) $teilnehmerId,
                         'institut_id'    => (int) $institutId,
                         'termin_id'      => (string) $terminId,
-                        'date'           => $date,
+                        'date'           => (string) $date,
                         'fehl_grund'     => '',
                         'fehl_bem'       => '',
                         'gekommen'       => '00:00',
@@ -160,28 +245,27 @@ class CourseDayAttendanceSyncService
                         'upd_user'       => (string) $tutorName,
                         'action'         => 'delete',
                     ];
+
+                    $pushedLocalPersonIds[] = $localPersonId;
                 }
 
                 continue;
             }
 
-            // FALL 2: Fehlzeit, aber nicht dirty & schon remote -> nichts senden
-            if (!$isDirty && $hasRemote) {
-                continue;
-            }
-
-            // FALL 3: Neue oder geänderte Fehlzeit -> normalen Change erzeugen
+            // Fehlzeit/Teilzeit
             $fehlStd = 0.0;
-            if (!$present) {
-                $fehlStd = (float)($day->std ?? 0);
+
+            if (! $present) {
+                $fehlStd = (float) ($day->std ?? 0);
             }
 
-            if (!$present) {
+            // Zeiten
+            if (! $present) {
                 $gekommen = '00:00';
                 $gegangen = '00:00';
             } else {
-                $gekommen = $this->resolveTimeForPush($row, 'arrived_at', 'in',  $courseStart);
-                $gegangen = $this->resolveTimeForPush($row, 'left_at',    'out', $courseEnd);
+                $gekommen = $this->resolveTimeForPush($row, 'arrived_at', 'in', $courseStart);
+                $gegangen = $this->resolveTimeForPush($row, 'left_at', 'out', $courseEnd);
             }
 
             if ($present && ($leftEarly > 0 || $lateMin > 0) && $totalMinutes > 0) {
@@ -189,7 +273,7 @@ class CourseDayAttendanceSyncService
             }
 
             $fehlGrund = $this->mapReasonCode($present, $excused, $lateMin, $leftEarly);
-            $note      = $this->normalizeNote($row['note'] ?? null, $day->id, $localPersonId);
+            $note      = $this->normalizeNote($row['note'] ?? null);
 
             $tnFehltageId = $teilnehmerId . '-' . $terminId;
 
@@ -198,34 +282,366 @@ class CourseDayAttendanceSyncService
                 'teilnehmer_id'  => (string) $teilnehmerId,
                 'institut_id'    => (int) $institutId,
                 'termin_id'      => (string) $terminId,
-                'date'           => $date,
+                'date'           => (string) $date,
                 'fehl_grund'     => (string) $fehlGrund,
                 'fehl_bem'       => (string) $note,
                 'gekommen'       => (string) $gekommen,
                 'gegangen'       => (string) $gegangen,
                 'fehl_std'       => (float) $fehlStd,
-                'status'         => (int) 1,
+                'status'         => 1,
                 'upd_user'       => (string) $tutorName,
+                'action'         => 'update',
             ];
+
+            $pushedLocalPersonIds[] = $localPersonId;
         }
 
-        return $changes;
+        $pushedLocalPersonIds = array_values(array_unique($pushedLocalPersonIds));
+
+        return [$changes, $pushedLocalPersonIds];
     }
+
+    /**
+     * Nach PUSH: nur die gepushten lokalen ids als synced markieren.
+     */
+    protected function markRowsSyncedAfterPush(CourseDay $day, array $localPersonIds): void
+    {
+        if (empty($localPersonIds)) {
+            return;
+        }
+
+        $attendance   = $day->attendance_data ?? [];
+        $participants = $attendance['participants'] ?? [];
+
+        if (! is_array($participants) || empty($participants)) {
+            return;
+        }
+
+        $now = Carbon::now()->toDateTimeString();
+
+        foreach ($localPersonIds as $pid) {
+            $pid = (int) $pid;
+
+            if (! isset($participants[$pid]) || ! is_array($participants[$pid])) {
+                continue;
+            }
+
+            $participants[$pid]['state']      = self::STATE_SYNCED;
+            $participants[$pid]['updated_at'] = $now;
+        }
+
+        $attendance['participants'] = $participants;
+
+        $day->attendance_data           = $attendance;
+        $day->attendance_updated_at     = Carbon::now();
+        $day->attendance_last_synced_at = Carbon::now();
+        $day->saveQuietly();
+    }
+
+    /* -------------------------------------------------------------------------
+     | Pull apply (optional gefiltert)
+     * ---------------------------------------------------------------------- */
+
+    protected function applySyncResponseSafe(CourseDay $day, array $response, ?array $onlyLocalPersonIds = null): void
+    {
+        $only = null;
+        if (is_array($onlyLocalPersonIds) && ! empty($onlyLocalPersonIds)) {
+            $only = array_map('intval', $onlyLocalPersonIds);
+        }
+
+        $outerData = $response['data'] ?? [];
+        $innerData = $outerData['data'] ?? $outerData;
+
+        $pulled  = $innerData['pulled'] ?? null;
+        $items   = (is_array($pulled) && ! empty($pulled['items'])) ? $pulled['items'] : [];
+
+        $pushed  = $innerData['pushed'] ?? null;
+        $results = is_array($pushed) ? ($pushed['results'] ?? []) : [];
+
+        if (empty($items) && empty($results)) {
+            return;
+        }
+
+        $attendance   = $day->attendance_data ?? [];
+        $participants = $attendance['participants'] ?? [];
+        if (! is_array($participants)) $participants = [];
+
+        $targetLocalIds = array_map('intval', array_keys($participants));
+        if ($only !== null) {
+            $targetLocalIds = array_values(array_intersect($targetLocalIds, $only));
+        }
+
+        if (empty($targetLocalIds)) {
+            return;
+        }
+
+        $persons = Person::whereIn('id', $targetLocalIds)->get()->keyBy('id');
+
+        $tnToLocal = [];
+        foreach ($targetLocalIds as $localId) {
+            $p = $persons->get($localId);
+            if ($p && ! empty($p->teilnehmer_id)) {
+                $tnToLocal[$p->teilnehmer_id][] = $localId;
+            }
+        }
+
+        $now    = Carbon::now();
+        $nowStr = $now->toDateTimeString();
+        $dayIso = $day->date?->toDateString();
+
+        [$courseStart, $courseEnd, $totalMinutes] = $this->computeCourseTimes($day);
+
+        // 1) pushed.results: src_api_id/state aktualisieren (dirty bleibt dirty)
+        foreach ($results as $result) {
+            $uid          = $result['uid'] ?? null;
+            $teilnehmerId = $result['teilnehmer_id'] ?? null;
+            $action       = $result['action'] ?? null;
+
+            if (! $teilnehmerId || empty($tnToLocal[$teilnehmerId])) continue;
+
+            foreach ($tnToLocal[$teilnehmerId] as $localPersonId) {
+                $row = $participants[$localPersonId] ?? [];
+
+                $state  = $row['state'] ?? null;
+                $isDirty = in_array($state, [self::STATE_DRAFT, self::STATE_DIRTY], true);
+                if ($isDirty) continue;
+
+                if ($action === 'deleted') {
+                    $row['src_api_id']         = null;
+                    $row['state']              = null;
+                    $row['late_minutes']       = 0;
+                    $row['left_early_minutes'] = 0;
+                    $row['excused']            = false;
+                } else {
+                    if ($uid) $row['src_api_id'] = $uid;
+                    $row['state'] = self::STATE_SYNCED;
+                }
+
+                $row['updated_at'] = $nowStr;
+                $participants[$localPersonId] = $row;
+            }
+        }
+
+        // 2) pulled.items übernehmen (aber nicht über dirty/draft)
+        foreach ($items as $item) {
+            $uid          = $item['uid']            ?? null;
+            $teilnehmerId = $item['teilnehmer_id']  ?? null;
+            $fehlDatumIso = $item['fehl_datum_iso'] ?? null;
+
+            if (! $teilnehmerId || empty($tnToLocal[$teilnehmerId])) continue;
+            if ($dayIso && $fehlDatumIso && $fehlDatumIso !== $dayIso) continue;
+
+            $fehlStdRemote   = (float) ($item['fehl_std'] ?? 0.0);
+            $fehlGrundRemote = (string) ($item['fehl_grund'] ?? '');
+            $fehlBemRemote   = trim((string) ($item['fehl_bem'] ?? ''));
+            $gekommenRemote  = $this->normalizeRemoteTime($item['gekommen'] ?? null);
+            $gegangenRemote  = $this->normalizeRemoteTime($item['gegangen'] ?? null);
+
+            $gekommenCarbon = $this->parseTimeOnDay($day->date, $gekommenRemote);
+            $gegangenCarbon = $this->parseTimeOnDay($day->date, $gegangenRemote);
+
+            foreach ($tnToLocal[$teilnehmerId] as $localPersonId) {
+                $row = $participants[$localPersonId] ?? [];
+
+                $state  = $row['state'] ?? null;
+                $isDirty = in_array($state, [self::STATE_DRAFT, self::STATE_DIRTY], true);
+                if ($isDirty) continue;
+
+                $row['src_api_id'] = $uid;
+                $row['state']      = self::STATE_SYNCED;
+                $row['updated_at'] = $nowStr;
+
+                if ($fehlBemRemote !== '') $row['note'] = $fehlBemRemote;
+
+                if ($gekommenRemote !== null) $row['arrived_at'] = $gekommenRemote;
+                if ($gegangenRemote !== null) $row['left_at']    = $gegangenRemote;
+
+                $this->hydrateLateEarlyMinutes($row, $courseStart, $courseEnd, $gekommenCarbon, $gegangenCarbon);
+
+                if ($totalMinutes > 0) {
+                    $totalHours     = $totalMinutes / 60.0;
+                    $row['present'] = $fehlStdRemote < ($totalHours - 0.01);
+                } else {
+                    $row['present'] = ($gekommenCarbon || $gegangenCarbon) ? true : (bool) ($row['present'] ?? false);
+                }
+
+                $reverse = $this->reverseMapReasonCode($fehlGrundRemote);
+                if ($reverse['excused'] !== null) $row['excused'] = $reverse['excused'];
+                if ($reverse['present'] !== null) $row['present'] = $reverse['present'];
+
+                $participants[$localPersonId] = $row;
+            }
+        }
+
+        $attendance['participants'] = $participants;
+
+        $day->attendance_data           = $attendance;
+        $day->attendance_updated_at     = $now;
+        $day->attendance_last_synced_at = $now;
+        $day->saveQuietly();
+    }
+
+    protected function applyLoadResponseHard(CourseDay $day, array $response, ?array $onlyLocalPersonIds = null): void
+    {
+        $outerData = $response['data'] ?? [];
+        $innerData = $outerData['data'] ?? $outerData;
+
+        $pulled = $innerData['pulled'] ?? null;
+        $items  = (is_array($pulled) && ! empty($pulled['items'])) ? $pulled['items'] : [];
+
+        if (empty($items)) return;
+
+        $only = null;
+        if (is_array($onlyLocalPersonIds) && ! empty($onlyLocalPersonIds)) {
+            $only = array_map('intval', $onlyLocalPersonIds);
+        }
+
+        $attendance   = $day->attendance_data ?? [];
+        $participants = $attendance['participants'] ?? [];
+        if (! is_array($participants)) $participants = [];
+
+        $now    = Carbon::now();
+        $nowStr = $now->toDateTimeString();
+        $dayIso = $day->date?->toDateString();
+
+        [$courseStart, $courseEnd, $totalMinutes] = $this->computeCourseTimes($day);
+
+        $targetLocalIds = array_map('intval', array_keys($participants));
+        if ($only !== null) $targetLocalIds = array_values(array_intersect($targetLocalIds, $only));
+
+        if (empty($targetLocalIds)) return;
+
+        $persons = Person::whereIn('id', $targetLocalIds)->get()->keyBy('id');
+
+        $tnToLocal = [];
+        foreach ($targetLocalIds as $localId) {
+            $p = $persons->get($localId);
+            if ($p && ! empty($p->teilnehmer_id)) {
+                $tnToLocal[$p->teilnehmer_id][] = $localId;
+            }
+        }
+
+        foreach ($items as $item) {
+            $uid          = $item['uid']            ?? null;
+            $teilnehmerId = $item['teilnehmer_id']  ?? null;
+            $fehlDatumIso = $item['fehl_datum_iso'] ?? null;
+
+            if (! $teilnehmerId || empty($tnToLocal[$teilnehmerId])) continue;
+            if ($dayIso && $fehlDatumIso && $fehlDatumIso !== $dayIso) continue;
+
+            $fehlStdRemote   = (float) ($item['fehl_std'] ?? 0.0);
+            $fehlGrundRemote = (string) ($item['fehl_grund'] ?? '');
+            $fehlBemRemote   = trim((string) ($item['fehl_bem'] ?? ''));
+            $gekommenRemote  = $this->normalizeRemoteTime($item['gekommen'] ?? null);
+            $gegangenRemote  = $this->normalizeRemoteTime($item['gegangen'] ?? null);
+
+            $gekommenCarbon = $this->parseTimeOnDay($day->date, $gekommenRemote);
+            $gegangenCarbon = $this->parseTimeOnDay($day->date, $gegangenRemote);
+
+            foreach ($tnToLocal[$teilnehmerId] as $localPersonId) {
+                $row = $participants[$localPersonId] ?? [];
+
+                $row['src_api_id'] = $uid;
+                $row['state']      = self::STATE_REMOTE;
+                $row['updated_at'] = $nowStr;
+
+                $row['note'] = $fehlBemRemote !== '' ? $fehlBemRemote : ($row['note'] ?? null);
+
+                // ✅ "00:00" nicht als echte Zeit speichern
+                $row['arrived_at'] = $gekommenRemote !== null ? $gekommenRemote : null;
+                $row['left_at']    = $gegangenRemote !== null ? $gegangenRemote : null;
+
+                // ✅ Minuten NICHT kaputt überschreiben, wenn remote nichts liefert
+                $this->hydrateLateEarlyMinutes($row, $courseStart, $courseEnd, $gekommenCarbon, $gegangenCarbon);
+
+                if ($totalMinutes > 0) {
+                    $totalHours     = $totalMinutes / 60.0;
+                    $row['present'] = $fehlStdRemote < ($totalHours - 0.01);
+                } else {
+                    $row['present'] = ($gekommenCarbon || $gegangenCarbon) ? true : (bool) ($row['present'] ?? false);
+                }
+
+                $reverse = $this->reverseMapReasonCode($fehlGrundRemote);
+                if ($reverse['excused'] !== null) $row['excused'] = $reverse['excused'];
+                if ($reverse['present'] !== null) $row['present'] = $reverse['present'];
+
+                $participants[$localPersonId] = $row;
+            }
+        }
+
+        $attendance['participants'] = $participants;
+
+        $day->attendance_data           = $attendance;
+        $day->attendance_updated_at     = $now;
+        $day->attendance_last_synced_at = $now;
+        $day->saveQuietly();
+    }
+
+    /* -------------------------------------------------------------------------
+     | Minute hydration (wichtig für "Load überschreibt nicht kaputt")
+     * ---------------------------------------------------------------------- */
+
+    /**
+     * Behalte bestehende Minuten, falls remote keine Zeit liefert.
+     * Rechne nur neu, wenn die jeweilige Zeit vorhanden ist.
+     */
+    protected function hydrateLateEarlyMinutes(array &$row, ?Carbon $courseStart, ?Carbon $courseEnd, ?Carbon $gekommenCarbon, ?Carbon $gegangenCarbon): void
+    {
+        $lateMinutes      = (int) ($row['late_minutes'] ?? 0);
+        $leftEarlyMinutes = (int) ($row['left_early_minutes'] ?? 0);
+
+        if ($courseStart && $gekommenCarbon) {
+            $diff        = $courseStart->diffInMinutes($gekommenCarbon, false);
+            $lateMinutes = $diff > 0 ? $diff : 0;
+        }
+
+        if ($courseEnd && $gegangenCarbon) {
+            $diff             = $gegangenCarbon->diffInMinutes($courseEnd, false);
+            $leftEarlyMinutes = $diff < 0 ? abs($diff) : 0;
+        }
+
+        $row['late_minutes']       = $lateMinutes;
+        $row['left_early_minutes'] = $leftEarlyMinutes;
+    }
+
+    /**
+     * Remote-Zeit normalisieren:
+     * - '' / null / '00:00' / '00:00:00' => null
+     * - 'HH:MM:SS' => 'HH:MM'
+     * - 'HH:MM' bleibt
+     */
+    protected function normalizeRemoteTime(mixed $value): ?string
+    {
+        $v = trim((string) ($value ?? ''));
+
+        if ($v === '' || $v === '00:00' || $v === '00:00:00' || $v === '0:00') {
+            return null;
+        }
+
+        if (preg_match('/^\d{2}:\d{2}:\d{2}$/', $v)) {
+            return substr($v, 0, 5);
+        }
+
+        if (preg_match('/^\d{1,2}:\d{2}$/', $v)) {
+            return str_pad(explode(':', $v)[0], 2, '0', STR_PAD_LEFT) . ':' . explode(':', $v)[1];
+        }
+
+        // fallback: parsebare Datetime?
+        try {
+            return Carbon::parse($v)->format('H:i');
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    /* -------------------------------------------------------------------------
+     | Small utils (wie gehabt)
+     * ---------------------------------------------------------------------- */
 
     protected function mapReasonCode(bool $present, bool $excused, int $lateMinutes, int $leftEarlyMinutes): string
     {
-        if (!$present) {
-            return $excused ? 'E' : 'UE';
-        }
-
-        if ($lateMinutes > 0 || $leftEarlyMinutes > 0) {
-            return 'TA';
-        }
-
-        if ($excused) {
-            return 'E';
-        }
-
+        if (! $present) return $excused ? 'E' : 'UE';
+        if ($lateMinutes > 0 || $leftEarlyMinutes > 0) return 'TA';
         return 'E';
     }
 
@@ -233,32 +649,21 @@ class CourseDayAttendanceSyncService
     {
         $code = strtoupper(trim($fehlGrund));
 
-        switch ($code) {
-            case 'E':
-            case 'K':
-                return ['present' => null, 'excused' => true];
-
-            case 'UE':
-            case 'F':
-                return ['present' => false, 'excused' => false];
-
-            case 'TA':
-            case 'T':
-                return ['present' => true, 'excused' => false];
-
-            default:
-                return ['present' => null, 'excused' => null];
-        }
+        return match ($code) {
+            'E', 'K'  => ['present' => null, 'excused' => true],
+            'UE', 'F' => ['present' => false, 'excused' => false],
+            'TA', 'T' => ['present' => true, 'excused' => false],
+            default   => ['present' => null, 'excused' => null],
+        };
     }
 
-    protected function normalizeNote(mixed $rawNote, int $dayId, int|string $localPersonId): string
+    protected function normalizeNote(mixed $rawNote): string
     {
         if (is_array($rawNote)) {
             $note = implode(' | ', array_map(
                 static fn ($v) => is_scalar($v) ? (string) $v : '',
                 $rawNote
             ));
-
             return trim($note);
         }
 
@@ -269,354 +674,16 @@ class CourseDayAttendanceSyncService
         return '';
     }
 
-    /**
-     * Response der UVS-API zurück in attendance_data mappen.
-     * Achtet auf action 'deleted' aus pushed.results.
-     */
-    protected function applySyncResponse(CourseDay $day, array $response): void
-    {
-        $outerData = $response['data'] ?? [];
-        $innerData = $outerData['data'] ?? $outerData;
-
-        $pushed  = $innerData['pushed'] ?? null;
-        $pulled  = $innerData['pulled'] ?? null;
-        $results = $pushed['results'] ?? [];
-
-        $pulledItems = [];
-        if (is_array($pulled) && !empty($pulled['items']) && is_array($pulled['items'])) {
-            $pulledItems = $pulled['items'];
-        }
-
-        if (empty($results) && empty($pulledItems)) {
-            return;
-        }
-
-        $attendance   = $day->attendance_data ?? [];
-        $participants = $attendance['participants'] ?? [];
-
-        /**
-         * NEU:
-         * Wenn keine participants-Struktur existiert,
-         * versuchen wir sie aus pulledItems + Person(teilnehmer_id) aufzubauen.
-         */
-        if (!is_array($participants) || empty($participants)) {
-            $remoteTeilnehmerIds = collect($pulledItems ?? [])
-                ->pluck('teilnehmer_id')
-                ->filter()
-                ->unique()
-                ->values()
-                ->all();
-
-            if (!empty($remoteTeilnehmerIds)) {
-                $personsByTeilnehmerId = Person::whereIn('teilnehmer_id', $remoteTeilnehmerIds)
-                    ->get()
-                    ->groupBy('teilnehmer_id');
-
-                foreach ($personsByTeilnehmerId as $tnId => $personsGroup) {
-                    foreach ($personsGroup as $person) {
-                        $participants[$person->id] = [
-                            'present'            => false,
-                            'excused'            => false,
-                            'late_minutes'       => 0,
-                            'left_early_minutes' => 0,
-                            'note'               => null,
-                            'timestamps'         => [
-                                'in'  => null,
-                                'out' => null,
-                            ],
-                            'arrived_at'         => null,
-                            'left_at'            => null,
-                            'src_api_id'         => null,
-                            'state'              => null,
-                        ];
-                    }
-                }
-
-                $attendance['participants'] = $participants;
-            }
-
-            if (!is_array($participants) || empty($participants)) {
-                // Kein Mapping möglich
-                return;
-            }
-        }
-
-        $localIds = array_keys($participants);
-        $persons  = Person::whereIn('id', $localIds)->get()->keyBy('id');
-
-        // Mapping teilnehmer_id (UVS) → localPersonId(s)
-        $teilnehmerIdToLocal = [];
-
-        foreach ($participants as $localPersonId => $row) {
-            /** @var Person|null $person */
-            $person = $persons->get($localPersonId);
-            if (!$person || empty($person->teilnehmer_id)) {
-                continue;
-            }
-
-            $uvsId = $person->teilnehmer_id;
-
-            if (!isset($teilnehmerIdToLocal[$uvsId])) {
-                $teilnehmerIdToLocal[$uvsId] = [];
-            }
-
-            $teilnehmerIdToLocal[$uvsId][] = $localPersonId;
-        }
-
-        $now     = Carbon::now();
-        $nowStr  = $now->toDateTimeString();
-        $dayDate = $day->date?->toDateString();
-
-        [$courseStart, $courseEnd, $totalMinutes] = $this->computeCourseTimes($day, 'pull');
-
-        $updatedFromPushed = 0;
-        $updatedFromPulled = 0;
-
-        // 1) pushed.results
-        if (!empty($results)) {
-            foreach ($results as $result) {
-                $uid          = $result['uid']           ?? null;
-                $teilnehmerId = $result['teilnehmer_id'] ?? null;
-                $action       = $result['action']        ?? null;
-
-                if (!$uid || !$teilnehmerId) {
-                    continue;
-                }
-
-                if (empty($teilnehmerIdToLocal[$teilnehmerId])) {
-                    continue;
-                }
-
-                foreach ($teilnehmerIdToLocal[$teilnehmerId] as $localPersonId) {
-                    $row = $participants[$localPersonId] ?? [];
-
-                    if ($action === 'deleted') {
-                        $row['src_api_id']         = null;
-                        $row['state']              = null;
-                        $row['late_minutes']       = 0;
-                        $row['left_early_minutes'] = 0;
-                        $row['excused']            = false;
-                    } else {
-                        $row['src_api_id'] = $uid;
-                        $row['state']      = 'synced';
-                    }
-
-                    $row['updated_at'] = $nowStr;
-
-                    $participants[$localPersonId] = $row;
-                    $updatedFromPushed++;
-                }
-            }
-        }
-
-        // 2) pulled.items
-        if (!empty($pulledItems)) {
-            foreach ($pulledItems as $item) {
-                $uid          = $item['uid']            ?? null;
-                $teilnehmerId = $item['teilnehmer_id']  ?? null;
-                $fehlDatumIso = $item['fehl_datum_iso'] ?? null;
-
-                if (!$uid || !$teilnehmerId) {
-                    continue;
-                }
-
-                if ($dayDate && $fehlDatumIso && $fehlDatumIso !== $dayDate) {
-                    continue;
-                }
-
-                if (empty($teilnehmerIdToLocal[$teilnehmerId])) {
-                    continue;
-                }
-
-                $fehlStdRemote   = (float)($item['fehl_std'] ?? 0.0);
-                $fehlGrundRemote = (string)($item['fehl_grund'] ?? '');
-                $fehlBemRemote   = trim((string)($item['fehl_bem'] ?? ''));
-                $gekommenRemote  = trim((string)($item['gekommen'] ?? ''));
-                $gegangenRemote  = trim((string)($item['gegangen'] ?? ''));
-
-                $statusRemote  = isset($item['status']) ? (int)$item['status'] : null;
-                $updUserRemote = (string)($item['upd_user'] ?? '');
-
-                $isSchulnetzItem = ($statusRemote === 1) && str_contains($updUserRemote, '(Schulnetz)');
-
-                $gekommenCarbon = $this->parseTimeOnDay($day->date, $gekommenRemote);
-                $gegangenCarbon = $this->parseTimeOnDay($day->date, $gegangenRemote);
-
-                foreach ($teilnehmerIdToLocal[$teilnehmerId] as $localPersonId) {
-                    $row = $participants[$localPersonId] ?? [];
-
-                    $expected = $this->buildExpectedRemoteSnapshotForRow(
-                        $day,
-                        $row,
-                        $courseStart,
-                        $courseEnd,
-                        $totalMinutes,
-                        $localPersonId
-                    );
-
-                    $diffFehlStd  = abs($fehlStdRemote - $expected['fehl_std']);
-                    $sameGrund    = ($fehlGrundRemote === $expected['fehl_grund']);
-                    $sameBem      = ($fehlBemRemote === $expected['fehl_bem']);
-                    $sameGekommen = ($gekommenRemote === $expected['gekommen']);
-                    $sameGegangen = ($gegangenRemote === $expected['gegangen']);
-
-                    $noChange = $diffFehlStd < 0.01
-                        && $sameGrund
-                        && $sameBem
-                        && $sameGekommen
-                        && $sameGegangen;
-
-                    // Schulnetz-Item ohne Änderungen -> neutralisieren
-                    if ($isSchulnetzItem && $noChange) {
-                        $row['updated_at'] = null;
-                        $row['src_api_id'] = null;
-                        $row['state']      = null;
-
-                        $participants[$localPersonId] = $row;
-                        continue;
-                    }
-
-                    // Normale Übernahme
-                    $row['src_api_id'] = $uid;
-                    $row['state']      = 'synced';
-                    $row['updated_at'] = $nowStr;
-
-                    $row['note'] = $fehlBemRemote !== '' ? $fehlBemRemote : ($row['note'] ?? null);
-
-                    if ($gekommenRemote !== '') {
-                        $row['arrived_at'] = $gekommenRemote;
-                    }
-
-                    if ($gegangenRemote !== '') {
-                        $row['left_at'] = $gegangenRemote;
-                    }
-
-                    $lateMinutes      = (int)($row['late_minutes'] ?? 0);
-                    $leftEarlyMinutes = (int)($row['left_early_minutes'] ?? 0);
-
-                    if ($courseStart && $gekommenCarbon) {
-                        $diff        = $courseStart->diffInMinutes($gekommenCarbon, false);
-                        $lateMinutes = $diff > 0 ? $diff : 0;
-                    }
-
-                    if ($courseEnd && $gegangenCarbon) {
-                        $diff             = $gegangenCarbon->diffInMinutes($courseEnd, false);
-                        $leftEarlyMinutes = $diff < 0 ? abs($diff) : 0;
-                    }
-
-                    $row['late_minutes']       = $lateMinutes;
-                    $row['left_early_minutes'] = $leftEarlyMinutes;
-
-                    if ($totalMinutes > 0) {
-                        $totalHours     = $totalMinutes / 60.0;
-                        $row['present'] = $fehlStdRemote < ($totalHours - 0.01);
-                    } elseif ($gekommenCarbon || $gegangenCarbon) {
-                        $row['present'] = true;
-                    } else {
-                        $row['present'] = (bool)($row['present'] ?? false);
-                    }
-
-                    $reverse = $this->reverseMapReasonCode($fehlGrundRemote);
-
-                    if ($reverse['excused'] !== null) {
-                        $row['excused'] = $reverse['excused'];
-                    }
-
-                    if ($reverse['present'] !== null) {
-                        $row['present'] = $reverse['present'];
-                    }
-
-                    $participants[$localPersonId] = $row;
-                    $updatedFromPulled++;
-                }
-            }
-        }
-
-        if ($updatedFromPushed === 0 && $updatedFromPulled === 0) {
-            return;
-        }
-
-        $attendance['participants'] = $participants;
-
-        if (!isset($attendance['status']) || !is_array($attendance['status'])) {
-            $attendance['status'] = [
-                'start'      => 1,
-                'end'        => 0,
-                'state'      => null,
-                'created_at' => null,
-                'updated_at' => null,
-            ];
-        }
-
-        $attendance['status']['updated_at'] = $nowStr;
-
-        $day->attendance_data           = $attendance;
-        $day->attendance_updated_at     = $now;
-        $day->attendance_last_synced_at = $now;
-
-        $day->saveQuietly();
-
-        // EINZIGER LOG-EINTRAG
-        Log::info('CourseDayAttendanceSyncService.applySyncResponse: attendance_data aktualisiert.', [
-            'day_id'            => $day->id,
-            'updated_rows'      => $updatedFromPushed + $updatedFromPulled,
-            'updated_pushed'    => $updatedFromPushed,
-            'updated_pulled'    => $updatedFromPulled,
-        ]);
-    }
-
-    protected function buildExpectedRemoteSnapshotForRow(
-        CourseDay $day,
-        array $row,
-        ?Carbon $courseStart,
-        ?Carbon $courseEnd,
-        int $totalMinutes,
-        int|string $localPersonId
-    ): array {
-        $present   = (bool)($row['present'] ?? false);
-        $excused   = (bool)($row['excused'] ?? false);
-        $lateMin   = (int)($row['late_minutes'] ?? 0);
-        $leftEarly = (int)($row['left_early_minutes'] ?? 0);
-
-        $fehlStd = 0.0;
-        if (!$present) {
-            $fehlStd = (float)($day->std ?? 0);
-        }
-
-        if ($present && ($leftEarly > 0 || $lateMin > 0) && $totalMinutes > 0) {
-            $fehlStd = round(($lateMin + $leftEarly) / 60, 2);
-        }
-
-        $fehlGrund = $this->mapReasonCode($present, $excused, $lateMin, $leftEarly);
-        $note      = $this->normalizeNote($row['note'] ?? null, $day->id, $localPersonId);
-
-        if (!$present) {
-            $gekommen = '00:00';
-            $gegangen = '00:00';
-        } else {
-            $gekommen = $this->resolveTimeForPush($row, 'arrived_at', 'in',  $courseStart);
-            $gegangen = $this->resolveTimeForPush($row, 'left_at',    'out', $courseEnd);
-        }
-
-        return [
-            'fehl_std'   => (float) $fehlStd,
-            'fehl_grund' => (string) $fehlGrund,
-            'fehl_bem'   => (string) $note,
-            'gekommen'   => (string) $gekommen,
-            'gegangen'   => (string) $gegangen,
-        ];
-    }
-
-    protected function computeCourseTimes(CourseDay $day, string $context = 'generic'): array
+    protected function computeCourseTimes(CourseDay $day): array
     {
         $courseStart  = null;
         $courseEnd    = null;
         $totalMinutes = 0;
 
-        $totalHours = (float)($day->std ?? 0.0);
+        $totalHours = (float) ($day->std ?? 0.0);
         $date       = $day->date;
 
-        if (!$date || $totalHours <= 0) {
+        if (! $date || $totalHours <= 0) {
             return [null, null, 0];
         }
 
@@ -628,12 +695,9 @@ class CourseDayAttendanceSyncService
                 $courseStart = (clone $rawStart);
             } elseif (is_string($rawStart) && trim($rawStart) !== '') {
                 $startStr = trim($rawStart);
-
-                if (preg_match('/^\d{1,2}:\d{2}$/', $startStr)) {
-                    $courseStart = Carbon::parse($date->toDateString() . ' ' . $startStr);
-                } else {
-                    $courseStart = Carbon::parse($startStr);
-                }
+                $courseStart = preg_match('/^\d{1,2}:\d{2}$/', $startStr)
+                    ? Carbon::parse($date->toDateString() . ' ' . $startStr)
+                    : Carbon::parse($startStr);
             }
 
             if ($courseStart) {
@@ -650,14 +714,10 @@ class CourseDayAttendanceSyncService
 
     protected function parseTimeOnDay(?Carbon $date, ?string $time): ?Carbon
     {
-        if (!$date || !$time) {
-            return null;
-        }
+        if (! $date || ! $time) return null;
 
         $time = trim($time);
-        if ($time === '' || $time === '00:00' || $time === '0:00') {
-            return null;
-        }
+        if ($time === '' || $time === '00:00' || $time === '0:00') return null;
 
         try {
             return Carbon::parse($date->toDateString() . ' ' . $time);
@@ -668,25 +728,20 @@ class CourseDayAttendanceSyncService
 
     protected function resolveTimeForPush(array $row, string $directKey, string $timestampKey, ?Carbon $fallback): string
     {
-        if (!empty($row[$directKey]) && is_string($row[$directKey])) {
+        if (! empty($row[$directKey]) && is_string($row[$directKey])) {
             return $this->normalizeTimeString($row[$directKey]);
         }
 
         $ts = $row['timestamps'][$timestampKey] ?? null;
-        if (!empty($ts) && is_string($ts)) {
+        if (! empty($ts) && is_string($ts)) {
             try {
-                $dt = Carbon::parse($ts);
-                return $dt->format('H:i');
+                return Carbon::parse($ts)->format('H:i');
             } catch (\Throwable $e) {
                 // ignore
             }
         }
 
-        if ($fallback instanceof Carbon) {
-            return $fallback->format('H:i');
-        }
-
-        return '00:00';
+        return $fallback instanceof Carbon ? $fallback->format('H:i') : '00:00';
     }
 
     protected function normalizeTimeString(string $time): string
@@ -698,10 +753,10 @@ class CourseDayAttendanceSyncService
         }
 
         try {
-            $dt = Carbon::parse($time);
-            return $dt->format('H:i');
+            return Carbon::parse($time)->format('H:i');
         } catch (\Throwable $e) {
             return '00:00';
         }
     }
+
 }

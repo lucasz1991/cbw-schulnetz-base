@@ -58,300 +58,300 @@ class File extends Model
     /* ------------------------------------------
      * zentrale Dateitypen-Definition
      * ----------------------------------------*/
-protected static function fileTypeMap(): array
-{
-    return [
-        // -----------------------------------------
-        // OFFICE & DOKUMENTE
-        // -----------------------------------------
-        'pdf' => [
-            'ext'  => 'pdf',
-            'label'=> 'PDF-Dokument',
-            'icon' => 'file-pdf.png',
-            'mime' => ['application/pdf'],
-        ],
-        'doc' => [
-            'ext'  => 'doc',
-            'label'=> 'Microsoft Word-Dokument',
-            'icon' => 'file-word.png',
-            'mime' => [
-                'application/msword',
-                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    protected static function fileTypeMap(): array
+    {
+        return [
+            // -----------------------------------------
+            // OFFICE & DOKUMENTE
+            // -----------------------------------------
+            'pdf' => [
+                'ext'  => 'pdf',
+                'label'=> 'PDF-Dokument',
+                'icon' => 'file-pdf.png',
+                'mime' => ['application/pdf'],
             ],
-        ],
-        'docx' => [
-            'ext'  => 'docx',
-            'label'=> 'Microsoft Word-Dokument',
-            'icon' => 'file-word.png',
-            'mime' => [
-                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'doc' => [
+                'ext'  => 'doc',
+                'label'=> 'Microsoft Word-Dokument',
+                'icon' => 'file-word.png',
+                'mime' => [
+                    'application/msword',
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                ],
             ],
-        ],
-        'xls' => [
-            'ext'  => 'xls',
-            'label'=> 'Microsoft Excel-Arbeitsmappe',
-            'icon' => 'file-exel.png',
-            'mime' => [
-                'application/vnd.ms-excel',
-                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'docx' => [
+                'ext'  => 'docx',
+                'label'=> 'Microsoft Word-Dokument',
+                'icon' => 'file-word.png',
+                'mime' => [
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                ],
             ],
-        ],
-        'xlsx' => [
-            'ext'  => 'xlsx',
-            'label'=> 'Microsoft Excel-Arbeitsmappe',
-            'icon' => 'file-exel.png',
-            'mime' => ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
-        ],
-        'ppt' => [
-            'ext'  => 'ppt',
-            'label'=> 'Microsoft PowerPoint-Präsentation',
-            'icon' => 'file-powerpoint.png',
-            'mime' => ['application/vnd.ms-powerpoint'],
-        ],
-        'pptx' => [
-            'ext'  => 'pptx',
-            'label'=> 'Microsoft PowerPoint-Präsentation',
-            'icon' => 'file-powerpoint.png',
-            'mime' => ['application/vnd.openxmlformats-officedocument.presentationml.presentation'],
-        ],
-        'csv' => [
-            'ext'  => 'csv',
-            'label'=> 'CSV-Tabelle',
-            'icon' => 'csv-icon.svg',
-            'mime' => ['text/csv'],
-        ],
-        'txt' => [
-            'ext'  => 'txt',
-            'label'=> 'Textdatei',
-            'icon' => 'txt-icon.svg',
-            'mime' => ['text/plain'],
-        ],
-        'xml' => [
-            'ext'  => 'xml',
-            'label'=> 'XML-Datei',
-            'icon' => 'xml-icon.svg',
-            'mime' => ['application/xml', 'text/xml'],
-        ],
-        'html' => [
-            'ext'  => 'html',
-            'label'=> 'HTML-Dokument',
-            'icon' => 'html-icon.svg',
-            'mime' => ['text/html'],
-        ],
-        'htm' => [
-            'ext'  => 'htm',
-            'label'=> 'HTML-Dokument',
-            'icon' => 'html-icon.svg',
-            'mime' => ['text/html'],
-        ],
+            'xls' => [
+                'ext'  => 'xls',
+                'label'=> 'Microsoft Excel-Arbeitsmappe',
+                'icon' => 'file-exel.png',
+                'mime' => [
+                    'application/vnd.ms-excel',
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                ],
+            ],
+            'xlsx' => [
+                'ext'  => 'xlsx',
+                'label'=> 'Microsoft Excel-Arbeitsmappe',
+                'icon' => 'file-exel.png',
+                'mime' => ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+            ],
+            'ppt' => [
+                'ext'  => 'ppt',
+                'label'=> 'Microsoft PowerPoint-Präsentation',
+                'icon' => 'file-powerpoint.png',
+                'mime' => ['application/vnd.ms-powerpoint'],
+            ],
+            'pptx' => [
+                'ext'  => 'pptx',
+                'label'=> 'Microsoft PowerPoint-Präsentation',
+                'icon' => 'file-powerpoint.png',
+                'mime' => ['application/vnd.openxmlformats-officedocument.presentationml.presentation'],
+            ],
+            'csv' => [
+                'ext'  => 'csv',
+                'label'=> 'CSV-Tabelle',
+                'icon' => 'csv-icon.svg',
+                'mime' => ['text/csv'],
+            ],
+            'txt' => [
+                'ext'  => 'txt',
+                'label'=> 'Textdatei',
+                'icon' => 'txt-icon.svg',
+                'mime' => ['text/plain'],
+            ],
+            'xml' => [
+                'ext'  => 'xml',
+                'label'=> 'XML-Datei',
+                'icon' => 'xml-icon.svg',
+                'mime' => ['application/xml', 'text/xml'],
+            ],
+            'html' => [
+                'ext'  => 'html',
+                'label'=> 'HTML-Dokument',
+                'icon' => 'html-icon.svg',
+                'mime' => ['text/html'],
+            ],
+            'htm' => [
+                'ext'  => 'htm',
+                'label'=> 'HTML-Dokument',
+                'icon' => 'html-icon.svg',
+                'mime' => ['text/html'],
+            ],
 
-        // -----------------------------------------
-        // CODE & SCRIPTING
-        // -----------------------------------------
-        'php' => [
-            'ext'  => 'php',
-            'label'=> 'PHP-Datei',
-            'icon' => 'php-icon.svg',
-            'mime' => ['text/x-php', 'application/x-httpd-php', 'application/x-php'],
-        ],
-        'js' => [
-            'ext'  => 'js',
-            'label'=> 'JavaScript-Datei',
-            'icon' => 'txt-icon.svg',
-            'mime' => ['application/javascript', 'text/javascript'],
-        ],
-        'json' => [
-            'ext'  => 'json',
-            'label'=> 'JSON-Datei',
-            'icon' => 'txt-icon.svg',
-            'mime' => ['application/json'],
-        ],
-        'css' => [
-            'ext'  => 'css',
-            'label'=> 'CSS-Stylesheet',
-            'icon' => 'txt-icon.svg',
-            'mime' => ['text/css'],
-        ],
-        'yaml' => [
-            'ext'  => 'yaml',
-            'label'=> 'YAML-Datei',
-            'icon' => 'txt-icon.svg',
-            'mime' => ['application/x-yaml', 'text/yaml'],
-        ],
-        'sql' => [
-            'ext'  => 'sql',
-            'label'=> 'SQL-Skript',
-            'icon' => 'txt-icon.svg',
-            'mime' => ['application/sql', 'text/x-sql'],
-        ],
-        'md' => [
-            'ext'  => 'md',
-            'label'=> 'Markdown-Dokument',
-            'icon' => 'txt-icon.svg',
-            'mime' => ['text/markdown'],
-        ],
+            // -----------------------------------------
+            // CODE & SCRIPTING
+            // -----------------------------------------
+            'php' => [
+                'ext'  => 'php',
+                'label'=> 'PHP-Datei',
+                'icon' => 'php-icon.svg',
+                'mime' => ['text/x-php', 'application/x-httpd-php', 'application/x-php'],
+            ],
+            'js' => [
+                'ext'  => 'js',
+                'label'=> 'JavaScript-Datei',
+                'icon' => 'txt-icon.svg',
+                'mime' => ['application/javascript', 'text/javascript'],
+            ],
+            'json' => [
+                'ext'  => 'json',
+                'label'=> 'JSON-Datei',
+                'icon' => 'txt-icon.svg',
+                'mime' => ['application/json'],
+            ],
+            'css' => [
+                'ext'  => 'css',
+                'label'=> 'CSS-Stylesheet',
+                'icon' => 'txt-icon.svg',
+                'mime' => ['text/css'],
+            ],
+            'yaml' => [
+                'ext'  => 'yaml',
+                'label'=> 'YAML-Datei',
+                'icon' => 'txt-icon.svg',
+                'mime' => ['application/x-yaml', 'text/yaml'],
+            ],
+            'sql' => [
+                'ext'  => 'sql',
+                'label'=> 'SQL-Skript',
+                'icon' => 'txt-icon.svg',
+                'mime' => ['application/sql', 'text/x-sql'],
+            ],
+            'md' => [
+                'ext'  => 'md',
+                'label'=> 'Markdown-Dokument',
+                'icon' => 'txt-icon.svg',
+                'mime' => ['text/markdown'],
+            ],
 
-        // -----------------------------------------
-        // GRAFIK / DESIGN
-        // -----------------------------------------
-        'ai' => [
-            'ext'  => 'ai',
-            'label'=> 'Adobe Illustrator-Datei',
-            'icon' => 'ai-icon.svg',
-            'mime' => ['application/postscript', 'application/illustrator'],
-        ],
-        'eps' => [
-            'ext'  => 'eps',
-            'label'=> 'PostScript-Datei (EPS)',
-            'icon' => 'eps-icon.svg',
-            'mime' => ['application/postscript'],
-        ],
-        'cdr' => [
-            'ext'  => 'cdr',
-            'label'=> 'CorelDRAW-Datei',
-            'icon' => 'cdr-icon.svg',
-            'mime' => ['application/vnd.corel-draw'],
-        ],
-        'raw' => [
-            'ext'  => 'raw',
-            'label'=> 'RAW-Bilddatei',
-            'icon' => 'raw-icon.svg',
-            'mime' => ['image/x-raw', 'image/raw'],
-        ],
-        'gif' => [
-            'ext'  => 'gif',
-            'label'=> 'GIF-Bild',
-            'icon' => 'gif-icon.svg',
-            'mime' => ['image/gif'],
-        ],
-        'jpg' => [
-            'ext'  => 'jpg',
-            'label'=> 'JPEG-Bild',
-            'icon' => null,
-            'mime' => ['image/jpeg'],
-        ],
-        'jpeg' => [
-            'ext'  => 'jpeg',
-            'label'=> 'JPEG-Bild',
-            'icon' => null,
-            'mime' => ['image/jpeg'],
-        ],
-        'png' => [
-            'ext'  => 'png',
-            'label'=> 'PNG-Bild',
-            'icon' => null,
-            'mime' => ['image/png'],
-        ],
-        'svg' => [
-            'ext'  => 'svg',
-            'label'=> 'SVG-Vektorgrafik',
-            'icon' => null,
-            'mime' => ['image/svg+xml'],
-        ],
-        'webp' => [
-            'ext'  => 'webp',
-            'label'=> 'WebP-Bild',
-            'icon' => null,
-            'mime' => ['image/webp'],
-        ],
-        'heic' => [
-            'ext'  => 'heic',
-            'label'=> 'HEIC-Bild',
-            'icon' => null,
-            'mime' => ['image/heic', 'image/heif'],
-        ],
+            // -----------------------------------------
+            // GRAFIK / DESIGN
+            // -----------------------------------------
+            'ai' => [
+                'ext'  => 'ai',
+                'label'=> 'Adobe Illustrator-Datei',
+                'icon' => 'ai-icon.svg',
+                'mime' => ['application/postscript', 'application/illustrator'],
+            ],
+            'eps' => [
+                'ext'  => 'eps',
+                'label'=> 'PostScript-Datei (EPS)',
+                'icon' => 'eps-icon.svg',
+                'mime' => ['application/postscript'],
+            ],
+            'cdr' => [
+                'ext'  => 'cdr',
+                'label'=> 'CorelDRAW-Datei',
+                'icon' => 'cdr-icon.svg',
+                'mime' => ['application/vnd.corel-draw'],
+            ],
+            'raw' => [
+                'ext'  => 'raw',
+                'label'=> 'RAW-Bilddatei',
+                'icon' => 'raw-icon.svg',
+                'mime' => ['image/x-raw', 'image/raw'],
+            ],
+            'gif' => [
+                'ext'  => 'gif',
+                'label'=> 'GIF-Bild',
+                'icon' => 'gif-icon.svg',
+                'mime' => ['image/gif'],
+            ],
+            'jpg' => [
+                'ext'  => 'jpg',
+                'label'=> 'JPEG-Bild',
+                'icon' => null,
+                'mime' => ['image/jpeg'],
+            ],
+            'jpeg' => [
+                'ext'  => 'jpeg',
+                'label'=> 'JPEG-Bild',
+                'icon' => null,
+                'mime' => ['image/jpeg'],
+            ],
+            'png' => [
+                'ext'  => 'png',
+                'label'=> 'PNG-Bild',
+                'icon' => null,
+                'mime' => ['image/png'],
+            ],
+            'svg' => [
+                'ext'  => 'svg',
+                'label'=> 'SVG-Vektorgrafik',
+                'icon' => null,
+                'mime' => ['image/svg+xml'],
+            ],
+            'webp' => [
+                'ext'  => 'webp',
+                'label'=> 'WebP-Bild',
+                'icon' => null,
+                'mime' => ['image/webp'],
+            ],
+            'heic' => [
+                'ext'  => 'heic',
+                'label'=> 'HEIC-Bild',
+                'icon' => null,
+                'mime' => ['image/heic', 'image/heif'],
+            ],
 
-        // -----------------------------------------
-        // AUDIO / VIDEO
-        // -----------------------------------------
-        'mp3' => [
-            'ext'  => 'mp3',
-            'label'=> 'MP3-Audiodatei',
-            'icon' => 'mp3-icon.svg',
-            'mime' => ['audio/mpeg'],
-        ],
-        'wav' => [
-            'ext'  => 'wav',
-            'label'=> 'WAV-Audiodatei',
-            'icon' => 'wav-icon.svg',
-            'mime' => ['audio/wav', 'audio/x-wav'],
-        ],
-        'mp4' => [
-            'ext'  => 'mp4',
-            'label'=> 'MP4-Video',
-            'icon' => 'mp4-icon.svg',
-            'mime' => ['video/mp4'],
-        ],
-        'avi' => [
-            'ext'  => 'avi',
-            'label'=> 'AVI-Video',
-            'icon' => 'file-video.png',
-            'mime' => ['video/x-msvideo'],
-        ],
-        'mov' => [
-            'ext'  => 'mov',
-            'label'=> 'MOV-Video',
-            'icon' => 'file-video.png',
-            'mime' => ['video/quicktime'],
-        ],
-        'mpg' => [
-            'ext'  => 'mpg',
-            'label'=> 'MPEG-Video',
-            'icon' => 'file-video.png',
-            'mime' => ['video/mpeg'],
-        ],
-        'mpeg' => [
-            'ext'  => 'mpeg',
-            'label'=> 'MPEG-Video',
-            'icon' => 'file-video.png',
-            'mime' => ['video/mpeg'],
-        ],
+            // -----------------------------------------
+            // AUDIO / VIDEO
+            // -----------------------------------------
+            'mp3' => [
+                'ext'  => 'mp3',
+                'label'=> 'MP3-Audiodatei',
+                'icon' => 'mp3-icon.svg',
+                'mime' => ['audio/mpeg'],
+            ],
+            'wav' => [
+                'ext'  => 'wav',
+                'label'=> 'WAV-Audiodatei',
+                'icon' => 'wav-icon.svg',
+                'mime' => ['audio/wav', 'audio/x-wav'],
+            ],
+            'mp4' => [
+                'ext'  => 'mp4',
+                'label'=> 'MP4-Video',
+                'icon' => 'mp4-icon.svg',
+                'mime' => ['video/mp4'],
+            ],
+            'avi' => [
+                'ext'  => 'avi',
+                'label'=> 'AVI-Video',
+                'icon' => 'file-video.png',
+                'mime' => ['video/x-msvideo'],
+            ],
+            'mov' => [
+                'ext'  => 'mov',
+                'label'=> 'MOV-Video',
+                'icon' => 'file-video.png',
+                'mime' => ['video/quicktime'],
+            ],
+            'mpg' => [
+                'ext'  => 'mpg',
+                'label'=> 'MPEG-Video',
+                'icon' => 'file-video.png',
+                'mime' => ['video/mpeg'],
+            ],
+            'mpeg' => [
+                'ext'  => 'mpeg',
+                'label'=> 'MPEG-Video',
+                'icon' => 'file-video.png',
+                'mime' => ['video/mpeg'],
+            ],
 
-        // -----------------------------------------
-        // ARCHIVE
-        // -----------------------------------------
-        'zip' => [
-            'ext'  => 'zip',
-            'label'=> 'ZIP-Archiv',
-            'icon' => 'zip-icon.svg',
-            'mime' => ['application/zip', 'application/x-zip-compressed'],
-        ],
-        'rar' => [
-            'ext'  => 'rar',
-            'label'=> 'RAR-Archiv',
-            'icon' => 'rar-icon.svg',
-            'mime' => ['application/x-rar-compressed'],
-        ],
-        '7z' => [
-            'ext'  => '7z',
-            'label'=> '7z-Archiv',
-            'icon' => 'zip-icon.svg',
-            'mime' => ['application/x-7z-compressed'],
-        ],
-        'tar' => [
-            'ext'  => 'tar',
-            'label'=> 'TAR-Archiv',
-            'icon' => 'zip-icon.svg',
-            'mime' => ['application/x-tar'],
-        ],
-        'gz' => [
-            'ext'  => 'gz',
-            'label'=> 'GZIP-Archiv',
-            'icon' => 'zip-icon.svg',
-            'mime' => ['application/gzip'],
-        ],
+            // -----------------------------------------
+            // ARCHIVE
+            // -----------------------------------------
+            'zip' => [
+                'ext'  => 'zip',
+                'label'=> 'ZIP-Archiv',
+                'icon' => 'zip-icon.svg',
+                'mime' => ['application/zip', 'application/x-zip-compressed'],
+            ],
+            'rar' => [
+                'ext'  => 'rar',
+                'label'=> 'RAR-Archiv',
+                'icon' => 'rar-icon.svg',
+                'mime' => ['application/x-rar-compressed'],
+            ],
+            '7z' => [
+                'ext'  => '7z',
+                'label'=> '7z-Archiv',
+                'icon' => 'zip-icon.svg',
+                'mime' => ['application/x-7z-compressed'],
+            ],
+            'tar' => [
+                'ext'  => 'tar',
+                'label'=> 'TAR-Archiv',
+                'icon' => 'zip-icon.svg',
+                'mime' => ['application/x-tar'],
+            ],
+            'gz' => [
+                'ext'  => 'gz',
+                'label'=> 'GZIP-Archiv',
+                'icon' => 'zip-icon.svg',
+                'mime' => ['application/gzip'],
+            ],
 
-        // -----------------------------------------
-        // FALLBACK
-        // -----------------------------------------
-        '*' => [
-            'ext'  => null,
-            'label'=> 'Datei',
-            'icon' => 'doc-icon.svg',
-            'mime' => ['application/octet-stream'],
-        ],
-    ];
-}
+            // -----------------------------------------
+            // FALLBACK
+            // -----------------------------------------
+            '*' => [
+                'ext'  => null,
+                'label'=> 'Datei',
+                'icon' => 'doc-icon.svg',
+                'mime' => ['application/octet-stream'],
+            ],
+        ];
+    }
 
 
     protected static function resolveFileType(?string $mime, ?string $ext): array

@@ -77,64 +77,10 @@ class CourseDay extends Model
             }
         });
 
-        static::retrieved(function (CourseDay $day) {
-            // In Queue/CLI gibt es keine Route => hier früh raus
-            if (app()->runningInConsole()) {
-                return;
-            }
 
-            // Request kann null sein (z.B. in manchen Tests)
-            $route = request()?->route();
-            if (! $route) {
-                return;
-            }
-
-            // Route-Name holen
-            $routeName = $route->getName();
-
-            // Beispiel: nur auf bestimmten Routen Auto-Sync
-            if (! in_array($routeName, [
-                'tutor.courses.show',
-            ], true)) {
-                return;
-            }
-
-            // oder kürzer:
-            // if (! request()->routeIs('tutor.courses.*')) return;
-
-            self::dispatchSyncIfNotThrottled($day);
-        });
     }
 
-        /**
-     * Zentraler Cache-Guard für das Dispatchen des Sync-Jobs.
-     *
-     * - Speichert letzten Sync-Zeitpunkt im Cache
-     * - Wenn jünger als 15 Minuten → kein neuer Job
-     * - Schreibt Logs für Nachvollziehbarkeit
-     */
-    protected static function dispatchSyncIfNotThrottled(CourseDay $day): void
-    {
-        if (!$day->id) {
-            return;
-        }
 
-        $cacheKey = "courseday_sync_last_run_{$day->id}";
-        $now = now();
-
-        $lastRun = Cache::get($cacheKey);
-
-        if ($lastRun instanceof Carbon) {
-            $diffMinutes = $lastRun->diffInMinutes($now);
-
-            if ($diffMinutes < self::AUTO_SYNC_THRESHOLD_MINUTES) {
-                return;
-            }
-        }
-        // Timestamp speichern, Cache hält 60 Minuten
-        Cache::put($cacheKey, $now, now()->diffInSeconds(now()->addMinutes(60)));
-        SyncCourseDayAttendanceJob::dispatch($day);
-    }
 
     public static function makeDefaultSessions(self $day): array
     {

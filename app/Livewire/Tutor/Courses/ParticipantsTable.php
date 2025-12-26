@@ -6,14 +6,13 @@ use App\Models\Course;
 use App\Models\CourseDay;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\WithoutUrlPagination;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Log;
 use App\Services\ApiUvs\CourseApiServices\CourseDayAttendanceSyncService;
-use App\Jobs\ApiUpdates\SyncCourseDayAttendanceJob;
 
 class ParticipantsTable extends Component
 {
@@ -40,17 +39,25 @@ class ParticipantsTable extends Component
     public bool $selectPreviousDayPossible = false;
     public bool $selectNextDayPossible     = false;
 
+    // Globales Laden (nur für "Load vom UVS")
     public bool $isLoadingApi = false;
-    public bool $isDirty      = false;
 
-    // ---- Mount ----
+    // Dirty (lokal geändert, noch nicht synced)
+    public bool $isDirty = false;
+
+    // Wrapper Inputs (für wire:target-fähige save* Actions)
+    public array $arriveInput = [];
+    public array $leaveInput  = [];
+    public array $noteInput   = [];
+
     public function mount(int $courseId, ?int $selectedDayId = null): void
     {
         $this->courseId = $courseId;
         $this->course   = Course::findOrFail($courseId);
 
         if ($selectedDayId) {
-            $this->selectDay($selectedDayId);
+            $this->selectedDayId = $selectedDayId;
+            $this->selectedDay   = CourseDay::where('course_id', $courseId)->findOrFail($selectedDayId);
         } else {
             $today = now('Europe/Berlin')->toDateString();
 
@@ -62,63 +69,108 @@ class ParticipantsTable extends Component
             if ($day) {
                 $this->selectedDay   = $day;
                 $this->selectedDayId = $day->id;
-                $this->syncDirtyFlagFromDay($day);
             }
         }
 
-        $this->rebuildAttendanceMap();
+        // ✅ beim Öffnen: einmal hart laden (UVS Master)
+        $this->loadAttendance();
+Log::info('attendance sample', [
+  'sample' => data_get($day->attendance_data, 'participants.' . array_key_first(data_get($day->attendance_data,'participants',[]))),
+]);
+
         $this->updatePrevNextFlags();
-        $this->saveChanges();
     }
 
-protected function syncDirtyFlagFromDay(CourseDay $day): void
-{
-    $updated = $day->attendance_updated_at;
-    $synced  = $day->attendance_last_synced_at;
+    /**
+     * Pull-only Load (UVS ist Master).
+     * Blockt global -> ok für Öffnen / Day-Wechsel.
+     */
+    protected function loadAttendance(): void
+    {
+        if (! $this->selectedDayId) return;
 
-    $this->isDirty = $updated && (
-        !$synced || $synced->lt($updated)
-    );
-
-    if ($synced && $updated && $synced->lt($updated->copy()->subMinutes(CourseDay::AUTO_SYNC_THRESHOLD_MINUTES))) {
+        $day = $this->dayOrFail();
         $this->isLoadingApi = true;
+
+        try {
+            /** @var CourseDayAttendanceSyncService $service */
+            $service = app(CourseDayAttendanceSyncService::class);
+
+            $service->loadFromRemote($day);
+
+            $day->refresh();
+            $this->selectedDay = $day;
+            $this->rebuildAttendanceMap();
+
+            // nach Load ist Stand "clean"
+            $this->isDirty = false;
+        } catch (\Throwable $e) {
+            Log::error('ParticipantsTable.loadAttendance: Fehler', [
+                'day_id' => $day->id ?? null,
+                'error'  => $e->getMessage(),
+            ]);
+        } finally {
+            $this->isLoadingApi = false;
+        }
     }
-}
 
-public function checkSyncStatus(): void
-{
-    if (!$this->selectedDay) {
-        $this->isLoadingApi = false;
-        return;
+    /**
+     * 1) lokal patchen (dirty)
+     * 2) sofort row-weise zu UVS syncen (wie Results)
+     */
+    public function applyAndSaveOne(int $participantId, array $patch = []): void
+    {
+        $this->apply($participantId, $patch);
+        $this->saveOne($participantId);
     }
 
-    $day = $this->selectedDay->fresh();
+    /**
+     * Row-Sync zu UVS – KEIN global isLoadingApi.
+     * Für Loader bitte wire:target exakt auf saveOne/markPresent/... etc. im Blade setzen.
+     */
+    public function saveOne(int $participantId): void
+    {
+        $day = $this->dayOrFail();
 
-    $this->selectedDay = $day;
-    $this->rebuildAttendanceMap();
-    $this->syncDirtyFlagFromDay($day);
+        try {
+            /** @var CourseDayAttendanceSyncService $service */
+            $service = app(CourseDayAttendanceSyncService::class);
 
-    // wenn updated >= last_synced -> fertig
-    $updated = $day->attendance_updated_at;
-    $synced  = $day->attendance_last_synced_at;
+            // ✅ nur diese Person syncen
+            $ok = $service->syncToRemote($day, [$participantId]);
 
-    if ($synced && $updated && $synced->gte($updated)) {
-        $this->isLoadingApi = false;
+            $day->refresh();
+            $this->selectedDay = $day;
+            $this->rebuildAttendanceMap();
+
+            // wenn alles synced, dann clean (mindestens für den UI-Flow)
+            $this->isDirty = false;
+
+            if (! $ok) {
+                $this->dispatch('notify', type: 'error', message: "UVS-Sync fehlgeschlagen (#{$participantId}).");
+            }
+        } catch (\Throwable $e) {
+            Log::error('ParticipantsTable.saveOne: Fehler beim UVS-Sync', [
+                'day_id'         => $day->id ?? null,
+                'participant_id' => $participantId,
+                'error'          => $e->getMessage(),
+            ]);
+
+            $this->dispatch('notify', type: 'error', message: "Fehler beim Speichern (#{$participantId}).");
+        }
     }
-}
-
 
     // ---- Events / Auswahl ----
-    /** Auswahl per Kalenderklick (nimmt ID oder { id: ... } entgegen) */
+
     #[On('calendarEventClick')]
     public function handleCalendarEventClick(...$args): void
     {
         $first = $args[0] ?? null;
         $id    = is_array($first) ? (int) data_get($first, 'id') : (int) $first;
+
         if ($id > 0) $this->selectDay($id);
     }
 
-    /** Aus CourseDocumentationPanel gesendet */
     #[On('daySelected')]
     public function setDay(int $dayId): void
     {
@@ -128,20 +180,20 @@ public function checkSyncStatus(): void
     public function selectDay(int $courseDayId): void
     {
         $day = CourseDay::where('course_id', $this->courseId)->findOrFail($courseDayId);
+
         $this->selectedDay   = $day;
         $this->selectedDayId = $day->id;
 
-        $this->syncDirtyFlagFromDay($day);
-        $this->isLoadingApi = false;
+        // ✅ beim Daywechsel wieder UVS Master laden
+        $this->loadAttendance();
 
-        $this->rebuildAttendanceMap();
         $this->updatePrevNextFlags();
         $this->resetPage();
     }
 
     protected function updatePrevNextFlags(): void
     {
-        if (!$this->selectedDay) {
+        if (! $this->selectedDay) {
             $this->selectPreviousDayPossible = false;
             $this->selectNextDayPossible     = false;
             return;
@@ -158,7 +210,7 @@ public function checkSyncStatus(): void
 
     public function selectPreviousDay(): void
     {
-        if (!$this->selectedDay) return;
+        if (! $this->selectedDay) return;
 
         $prev = $this->course->dates()
             ->where('date', '<', $this->selectedDay->date)
@@ -170,7 +222,7 @@ public function checkSyncStatus(): void
 
     public function selectNextDay(): void
     {
-        if (!$this->selectedDay) return;
+        if (! $this->selectedDay) return;
 
         $next = $this->course->dates()
             ->where('date', '>', $this->selectedDay->date)
@@ -181,23 +233,24 @@ public function checkSyncStatus(): void
     }
 
     // ---- Suche/Sortierung/Pagination ----
-    public function updatingSearch() { $this->resetPage(); }
-    public function updatedPerPage() { $this->resetPage(); }
+
+    public function updatingSearch(): void { $this->resetPage(); }
+    public function updatedPerPage(): void { $this->resetPage(); }
 
     public function sort(string $key): void
     {
         if ($this->sortBy === $key) {
             $this->sortDir = $this->sortDir === 'asc' ? 'desc' : 'asc';
         } else {
-            $this->sortBy = $key;
+            $this->sortBy  = $key;
             $this->sortDir = 'asc';
         }
+
         $this->resetPage();
     }
 
     public function getParticipantsProperty()
     {
-        // Whitelist akzeptierter Sortierfelder (existierende DB-Spalten!)
         $allowedSorts = ['vorname', 'nachname', 'email', 'created_at'];
 
         return $this->course->participants()
@@ -205,9 +258,9 @@ public function checkSyncStatus(): void
                 $term = "%{$this->search}%";
                 $q->where(function ($qq) use ($term) {
                     $qq->where('vorname', 'like', $term)
-                       ->orWhere('nachname', 'like', $term)
-                       ->orWhereRaw("CONCAT_WS(' ', vorname, nachname) LIKE ?", [$term])
-                       ->orWhere('email', 'like', $term);
+                        ->orWhere('nachname', 'like', $term)
+                        ->orWhereRaw("CONCAT_WS(' ', vorname, nachname) LIKE ?", [$term])
+                        ->orWhere('email', 'like', $term);
                 });
             })
             ->when(true, function ($q) use ($allowedSorts) {
@@ -228,10 +281,14 @@ public function checkSyncStatus(): void
     }
 
     // ---- Attendance-Logik ----
+
     protected function dayOrFail(): CourseDay
     {
-        $day = $this->selectedDayId ? CourseDay::find($this->selectedDayId) : null;
-        abort_if(!$day, 404, 'Day not found');
+        $day = $this->selectedDayId
+            ? CourseDay::where('course_id', $this->courseId)->find($this->selectedDayId)
+            : null;
+
+        abort_if(! $day, 404, 'Day not found');
         return $day;
     }
 
@@ -245,19 +302,17 @@ public function checkSyncStatus(): void
             'left_early_minutes' => (int)($row['left_early_minutes'] ?? 0),
             'note'               => $row['note'] ?? null,
 
-            // Zeitstempel (Server-perspektive)
             'in'                 => data_get($row, 'timestamps.in'),
             'out'                => data_get($row, 'timestamps.out'),
 
-            // User-Eingaben über Timepicker
-            'arrived_at'         => $row['arrived_at'] ?? null, // 'HH:MM'
-            'left_at'            => $row['left_at'] ?? null,    // 'HH:MM'
+            'arrived_at'         => $row['arrived_at'] ?? null,
+            'left_at'            => $row['left_at'] ?? null,
         ];
     }
 
     protected function rebuildAttendanceMap(): void
     {
-        if (!$this->selectedDay) { $this->attendanceMap = []; return; }
+        if (! $this->selectedDay) { $this->attendanceMap = []; return; }
 
         $att = $this->selectedDay->attendance_data ?? [];
         $raw = Arr::get($att, 'participants', []);
@@ -265,6 +320,12 @@ public function checkSyncStatus(): void
         $this->attendanceMap = collect($raw)
             ->map(fn ($row) => $this->normalizeRow($row))
             ->all();
+
+        foreach ($this->attendanceMap as $pid => $row) {
+            $this->arriveInput[$pid] = $row['arrived_at'] ?? null;
+            $this->leaveInput[$pid]  = $row['left_at'] ?? null;
+            $this->noteInput[$pid]   = $row['note'] ?? null;
+        }
     }
 
     protected function currentRow(int $participantId): ?array
@@ -273,48 +334,39 @@ public function checkSyncStatus(): void
     }
 
     /**
-     * Zentrale Apply-Methode:
-     * - setzt state='dirty' für den Teilnehmer
-     * - merkt die Komponente insgesamt als dirty
-     * - ruft CourseDay::setAttendance()
-     * - aktualisiert die lokale $attendanceMap
+     * Apply bleibt erhalten – UI sofort aktualisieren.
      */
     protected function apply(int $participantId, array $patch): void
     {
         $day = $this->dayOrFail();
 
-        // jeden Patch als "dirty" markieren, damit der Sync-Service ihn berücksichtigt
         $patch['state'] = 'dirty';
-
-        // Persistieren im Model
         $day->setAttendance($participantId, $patch);
 
-        // Komponente auf "dirty" stellen
         $this->isDirty = true;
 
-        // Lokales ViewModel mergen
         $existing = $this->attendanceMap[$participantId] ?? [];
         $merged   = array_replace_recursive($this->normalizeRow($existing), $patch);
 
-        // timestamps gesondert mergen
         if (isset($patch['timestamps'])) {
             $merged['in']  = $patch['timestamps']['in']  ?? ($existing['in']  ?? null);
             $merged['out'] = $patch['timestamps']['out'] ?? ($existing['out'] ?? null);
         }
 
-        // arrived_at/left_at ggf. direkt übergeben (für Timepicker)
         if (array_key_exists('arrived_at', $patch)) $merged['arrived_at'] = $patch['arrived_at'];
         if (array_key_exists('left_at',    $patch)) $merged['left_at']    = $patch['left_at'];
 
         $this->attendanceMap[$participantId] = $this->normalizeRow($merged);
 
-        // Falls serverseitig noch mehr passiert:
+        // Verhalten beibehalten (wie bei dir): selectedDay refresh
         $this->selectedDay?->refresh();
     }
 
+    // ---- Actions (wie gehabt, nur ohne busyRow) ----
+
     public function checkInNow(int $participantId): void
     {
-        $now   = Carbon::now('Europe/Berlin');
+        $now = Carbon::now('Europe/Berlin');
         [$start] = $this->plannedTimesForSelectedDay();
 
         $late = 0;
@@ -322,7 +374,7 @@ public function checkSyncStatus(): void
             $late = $start->diffInMinutes($now);
         }
 
-        $this->apply($participantId, [
+        $this->applyAndSaveOne($participantId, [
             'present'      => true,
             'excused'      => false,
             'late_minutes' => $late,
@@ -340,7 +392,7 @@ public function checkSyncStatus(): void
             $leftEarly = $now->diffInMinutes($end);
         }
 
-        $this->apply($participantId, [
+        $this->applyAndSaveOne($participantId, [
             'left_early_minutes' => $leftEarly,
             'timestamps'         => ['out' => $now->toDateTimeString()],
         ]);
@@ -348,7 +400,7 @@ public function checkSyncStatus(): void
 
     public function markPresent(int $participantId): void
     {
-        $this->apply($participantId, [
+        $this->applyAndSaveOne($participantId, [
             'present' => true,
             'excused' => false,
         ]);
@@ -356,7 +408,7 @@ public function checkSyncStatus(): void
 
     public function markAbsent(int $participantId): void
     {
-        $this->apply($participantId, [
+        $this->applyAndSaveOne($participantId, [
             'present' => false,
             'excused' => false,
         ]);
@@ -374,28 +426,31 @@ public function checkSyncStatus(): void
             'excused' => false,
         ];
 
-        // Falls zuvor anwesend -> "früher gegangen" berechnen
         if (!empty($row['present']) && $end && $now->lt($end)) {
             $patch['left_early_minutes'] = $now->diffInMinutes($end);
             $patch['timestamps'] = ['out' => $now->toDateTimeString()];
         }
 
-        $this->apply($participantId, $patch);
+        $this->applyAndSaveOne($participantId, $patch);
     }
 
     public function setLateMinutes(int $participantId, $minutes): void
     {
-        $this->apply($participantId, ['late_minutes' => max(0, (int) $minutes)]);
+        $this->applyAndSaveOne($participantId, [
+            'late_minutes' => max(0, (int) $minutes),
+        ]);
     }
 
     public function setLeftEarlyMinutes(int $participantId, $minutes): void
     {
-        $this->apply($participantId, ['left_early_minutes' => max(0, (int) $minutes)]);
+        $this->applyAndSaveOne($participantId, [
+            'left_early_minutes' => max(0, (int) $minutes),
+        ]);
     }
 
     public function setArrivalTime(int $participantId, ?string $hhmm): void
     {
-        $time = $this->normalizeTime($hhmm); // 'HH:MM' oder null
+        $time = $this->normalizeTime($hhmm);
         $arr  = $this->toCarbonOnSelectedDate($time);
 
         [$start] = $this->plannedTimesForSelectedDay();
@@ -404,16 +459,16 @@ public function checkSyncStatus(): void
             $late = $start->diffInMinutes($arr);
         }
 
-        $this->apply($participantId, [
+        $this->applyAndSaveOne($participantId, [
             'arrived_at'   => $time,
             'late_minutes' => $late,
-            'present'      => true, // wer ankommt, ist anwesend
+            'present'      => true,
         ]);
     }
 
     public function setLeaveTime(int $participantId, ?string $hhmm): void
     {
-        $time = $this->normalizeTime($hhmm); // 'HH:MM' oder null
+        $time = $this->normalizeTime($hhmm);
         $out  = $this->toCarbonOnSelectedDate($time);
 
         [, $end] = $this->plannedTimesForSelectedDay();
@@ -422,16 +477,38 @@ public function checkSyncStatus(): void
             $early = $out->diffInMinutes($end);
         }
 
-        $this->apply($participantId, [
+        $this->applyAndSaveOne($participantId, [
             'left_at'            => $time,
             'left_early_minutes' => $early,
-            'present'            => true, // wer geht, war zumindest anwesend
+            'present'            => true,
         ]);
     }
 
     public function setNote(int $participantId, ?string $note): void
     {
-        $this->apply($participantId, ['note' => $note]);
+        $this->applyAndSaveOne($participantId, [
+            'note' => $note,
+        ]);
+    }
+
+    // ---- Wrapper (1 Param → perfekt für wire:target) ----
+
+    public function saveArrival(int $participantId): void
+    {
+        $time = $this->arriveInput[$participantId] ?? null;
+        $this->setArrivalTime($participantId, $time);
+    }
+
+    public function saveLeave(int $participantId): void
+    {
+        $time = $this->leaveInput[$participantId] ?? null;
+        $this->setLeaveTime($participantId, $time);
+    }
+
+    public function saveNote(int $participantId): void
+    {
+        $note = $this->noteInput[$participantId] ?? null;
+        $this->setNote($participantId, $note);
     }
 
     public function bulk(string $action): void
@@ -440,101 +517,20 @@ public function checkSyncStatus(): void
 
         foreach ($ids as $pid) {
             match ($action) {
-                'all_present'  => $this->apply($pid, ['present' => true,  'excused' => false]),
-                'all_excused'  => $this->apply($pid, ['excused' => true,  'present' => false]),
-                'all_absent'   => $this->apply($pid, ['present' => false, 'excused' => false]),
-                'checkin_all'  => $this->checkInNow($pid),
-                'checkout_all' => $this->checkOutNow($pid),
+                'all_present'  => $this->markPresent((int)$pid),
+                'all_excused'  => $this->applyAndSaveOne((int)$pid, ['excused' => true,  'present' => false]),
+                'all_absent'   => $this->markAbsent((int)$pid),
+                'checkin_all'  => $this->checkInNow((int)$pid),
+                'checkout_all' => $this->checkOutNow((int)$pid),
                 default => null,
             };
-        }
-    }
-
-    /**
-     * Manueller Sync-Button des Dozenten.
-     */
-    
-    public function saveChanges(): void
-    {
-        $day = $this->dayOrFail();
-
-        $this->isLoadingApi = true;
-
-        try {
-            /** @var CourseDayAttendanceSyncService $service */
-            $service = app(CourseDayAttendanceSyncService::class);
-
-            $ok = $service->syncToRemote($day);
-
-            // CourseDay neu einlesen (attendance_data, timestamps, etc.)
-            $day->refresh();
-            $this->selectedDay = $day;
-
-            $this->rebuildAttendanceMap();
-            $this->syncDirtyFlagFromDay($day);
-
-            if ($ok) {
-                $this->dispatch('notify', type: 'success', message: 'Anwesenheit erfolgreich mit UVS synchronisiert.');
-            } else {
-                $this->dispatch('notify', type: 'error', message: 'UVS-Sync konnte nicht durchgeführt werden.');
-            }
-        } catch (\Throwable $e) {
-            Log::error('ParticipantsTable.saveChanges: Fehler beim UVS-Sync', [
-                'day_id' => $day->id ?? null,
-                'error'  => $e->getMessage(),
-            ]);
-            $this->dispatch('notify', type: 'error', message: 'Fehler beim UVS-Sync. Bitte später erneut versuchen.');
-        } finally {
-        }
-    }
-
-    public function deleteChanges(): void
-    {
-        $day = $this->dayOrFail();
-
-        $this->isLoadingApi = true;
-    // attendance_data als Array holen (oder leeres Array falls null)
-    $data = $day->attendance_data ?? [];
-
-    // Teilnehmer-Liste leeren
-    $data['participants'] = [];
-
-    // komplettes Array zurück ins Model schreiben
-    $day->attendance_data = $data;
-    $day->attendance_updated_at = now();
-    $day->save();
-        try {
-            /** @var CourseDayAttendanceSyncService $service */
-            $service = app(CourseDayAttendanceSyncService::class);
-
-            $ok = $service->syncToRemote($day);
-
-            // CourseDay neu einlesen (attendance_data, timestamps, etc.)
-            $day->refresh();
-            $this->selectedDay = $day;
-
-            $this->rebuildAttendanceMap();
-            $this->syncDirtyFlagFromDay($day);
-
-            if ($ok) {
-                $this->dispatch('notify', type: 'success', message: 'Anwesenheit erfolgreich mit UVS synchronisiert.');
-            } else {
-                $this->dispatch('notify', type: 'error', message: 'UVS-Sync konnte nicht durchgeführt werden.');
-            }
-        } catch (\Throwable $e) {
-            Log::error('ParticipantsTable.saveChanges: Fehler beim UVS-Sync', [
-                'day_id' => $day->id ?? null,
-                'error'  => $e->getMessage(),
-            ]);
-            $this->dispatch('notify', type: 'error', message: 'Fehler beim UVS-Sync. Bitte später erneut versuchen.');
-        } finally {
         }
     }
 
     public function getRowsProperty(): Collection
     {
         $day = $this->selectedDay;
-        if (!$day) return collect();
+        if (! $day) return collect();
 
         $att = $day->attendance_data ?? [];
         $map = Arr::get($att, 'participants', []);
@@ -574,29 +570,24 @@ public function checkSyncStatus(): void
 
     public function getStatsProperty(): array
     {
-        $rows      = $this->rows;
-        $total     = $rows->count();
+        $rows     = $this->rows;
+        $total    = $rows->count();
 
-        // Bereits erfasste Datensätze
-        $marked    = $rows->where('hasEntry', true);
-        $unmarked  = $rows->where('hasEntry', false)->count(); // noch keine Eingabe -> zählt als anwesend
+        $marked   = $rows->where('hasEntry', true);
+        $unmarked = $rows->where('hasEntry', false)->count();
 
-        // --- Basiszählungen ---
-        $excused   = $marked->where('data.excused', true)->count();
-        $late      = $marked->filter(fn ($r) => (int)($r['data']['late_minutes'] ?? 0) > 0)->count();
+        $excused  = $marked->where('data.excused', true)->count();
+        $late     = $marked->filter(fn ($r) => (int)($r['data']['late_minutes'] ?? 0) > 0)->count();
 
-        // Normale Anwesenheit = present = true, aber nicht verspätet
         $presentMarked = $marked
             ->where('data.present', true)
             ->filter(fn ($r) => ((int)($r['data']['late_minutes'] ?? 0)) === 0)
             ->count();
 
-        // Fehlend = explizit erfasst, aber weder present noch excused
         $absent = $marked->filter(fn ($r) =>
             empty($r['data']['present']) && empty($r['data']['excused'])
         )->count();
 
-        // Gesamt anwesend = regulär anwesend + unmarked (noch keine Eingabe)
         $present = $presentMarked + $unmarked;
 
         return [
@@ -613,13 +604,13 @@ public function checkSyncStatus(): void
 
     protected function normalizeTime(?string $hhmm): ?string
     {
-        if (!$hhmm) return null;
+        if (! $hhmm) return null;
         return preg_match('/^\d{2}:\d{2}$/', $hhmm) ? $hhmm : null;
     }
 
     protected function toCarbonOnSelectedDate(?string $hhmm): ?Carbon
     {
-        if (!$hhmm || !preg_match('/^\d{2}:\d{2}$/', $hhmm)) return null;
+        if (! $hhmm || ! preg_match('/^\d{2}:\d{2}$/', $hhmm)) return null;
 
         $base = $this->selectedDay?->date
             ? Carbon::parse($this->selectedDay->date, 'Europe/Berlin')->startOfDay()
@@ -630,9 +621,6 @@ public function checkSyncStatus(): void
     }
 
     /**
-     * Start/Ende strikt aus start_time (H:i:s) + std (volle Stunden, ggf. Dezimal) berechnen.
-     * Beispiel: start_time=08:00:00, std=9.00  => Ende=17:00:00
-     *
      * @return array{0:?Carbon,1:?Carbon}
      */
     protected function plannedTimesForSelectedDay(): array
@@ -642,22 +630,19 @@ public function checkSyncStatus(): void
             ? Carbon::parse($this->selectedDay->date, $tz)->format('Y-m-d')
             : Carbon::today($tz)->format('Y-m-d');
 
-        $startTime = $this->selectedDay?->start_time; // Carbon|string|null
-        $stdRaw    = $this->selectedDay?->std;        // z. B. 9.00 (als string/float/int)
+        $startTime = $this->selectedDay?->start_time;
+        $stdRaw    = $this->selectedDay?->std;
 
-        if (!$startTime || $stdRaw === null) {
-            // Fallback: 08–16
+        if (! $startTime || $stdRaw === null) {
             $start = Carbon::parse("$date 08:00:00", $tz);
             $end   = Carbon::parse("$date 16:00:00", $tz);
             return [$start, $end];
         }
 
-        // Start auf gewählten Tag legen
         $startHms = Carbon::parse($startTime, $tz)->format('H:i:s');
         $start    = Carbon::parse("$date $startHms", $tz);
 
-        // std als Dezimalstunden in Minuten
-        $hoursDecimal = (float) $stdRaw;             // 9.00 -> 9.0
+        $hoursDecimal = (float) $stdRaw;
         $minutes      = (int) round($hoursDecimal * 60);
 
         $end = $start->copy()->addMinutes($minutes);
@@ -665,7 +650,6 @@ public function checkSyncStatus(): void
         return [$start, $end];
     }
 
-    /** Praktische Strings 'H:i' für Blade-Timepicker-Defaults */
     protected function plannedStartEndStrings(): array
     {
         [$start, $end] = $this->plannedTimesForSelectedDay();
@@ -676,17 +660,16 @@ public function checkSyncStatus(): void
     {
         return <<<'HTML'
             <div role="status" class="h-32 w-full relative animate-pulse">
-                    <div class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-white/70 transition-opacity">
-                        <div class="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-2 shadow">
-                            <span class="loader"></span>
-                            <span class="text-sm text-gray-700">wird geladen…</span>
-                        </div>
+                <div class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-white/70 transition-opacity">
+                    <div class="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-2 shadow">
+                        <span class="loader"></span>
+                        <span class="text-sm text-gray-700">wird geladen…</span>
                     </div>
+                </div>
             </div>
         HTML;
     }
 
-    // ---- Render ----
     public function render()
     {
         $this->updatePrevNextFlags();
@@ -702,9 +685,8 @@ public function checkSyncStatus(): void
             'selectNextDayPossible'     => $this->selectNextDayPossible,
             'isLoadingApi'              => $this->isLoadingApi,
             'isDirty'                   => $this->isDirty,
-            // Neu: Defaults für Timepicker
-            'plannedStart'              => $plannedStart, // 'H:i'
-            'plannedEnd'                => $plannedEnd,   // 'H:i'
+            'plannedStart'              => $plannedStart,
+            'plannedEnd'                => $plannedEnd,
         ]);
     }
 }

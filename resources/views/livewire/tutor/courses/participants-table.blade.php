@@ -1,9 +1,7 @@
 <div
     x-data="{ showSelectDayCalendar: $persist(false) }"
-    @if($isLoadingApi)
-        wire:poll.visible.2000ms="checkSyncStatus"
-        class="opacity-50 pointer-events-none cursor-wait"
-    @endif
+    wire:target="selectDay,selectPreviousDay,selectNextDay"
+    wire:loading.class="opacity-50 pointer-events-none cursor-wait"
 >
     @if($course->dates->count() > 0)
         <div class="flex space-x-8">
@@ -12,8 +10,6 @@
                     ' md:w-2/3 xl:w-4/5 ': showSelectDayCalendar
                 }"
             >
-
-                
                 @if($selectedDayId)
                     <x-ui.tutor.course.show-date-attendance
                         :participants="$participants"
@@ -24,32 +20,17 @@
                         :sortDir="$sortDir"
                         :selectPreviousDayPossible="$selectPreviousDayPossible"
                         :selectNextDayPossible="$selectNextDayPossible"
-                        :plannedStart="$plannedStart" 
-                        :plannedEnd="$plannedEnd"    
+                        :plannedStart="$plannedStart"
+                        :plannedEnd="$plannedEnd"
                     />
-                    @if($isDirty)
-                        <x-button
-                            class="disabled:opacity-60 disabled:cursor-wait mt-2"
-                            wire:click="saveChanges"
-                            wire:loading.attr="disabled"
-                            wire:target="saveChanges"
-                        >
-                            Änderungen senden
-                        </x-button>
-                        <x-button
-                            class="disabled:opacity-60 disabled:cursor-wait mt-2"
-                            wire:click="deleteChanges"
-                            wire:loading.attr="disabled"
-                            wire:target="deleteChanges"
-                        >
-                            Änderungen Löschen
-                        </x-button>
-                    @endif
+
+
                 @else
                     <p class="text-sm text-gray-500">Kein Datum ausgewählt.</p>
                 @endif
             </div>
-            <div class="hidden md:block  w-full mt-2 "
+
+            <div class="hidden md:block w-full mt-2"
                 :class="{
                     'md:w-1/3 xl:w-1/5': showSelectDayCalendar
                 }"
