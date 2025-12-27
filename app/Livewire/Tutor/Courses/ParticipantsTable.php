@@ -72,11 +72,10 @@ class ParticipantsTable extends Component
             }
         }
 
-        // ✅ beim Öffnen: einmal hart laden (UVS Master)
         $this->loadAttendance();
-Log::info('attendance sample', [
-  'sample' => data_get($day->attendance_data, 'participants.' . array_key_first(data_get($day->attendance_data,'participants',[]))),
-]);
+        Log::info('attendance sample', [
+            'sample' => data_get($this->selectedDay->attendance_data, 'participants.' . array_key_first(data_get($this->selectedDay->attendance_data,'participants',[]))),
+        ]);
 
         $this->updatePrevNextFlags();
     }
@@ -89,7 +88,7 @@ Log::info('attendance sample', [
     {
         if (! $this->selectedDayId) return;
 
-        $day = $this->dayOrFail();
+        $day = 
         $this->isLoadingApi = true;
 
         try {
@@ -99,7 +98,7 @@ Log::info('attendance sample', [
             $service->loadFromRemote($day);
 
             $day->refresh();
-            $this->selectedDay = $day;
+            $this->selectedDay = $this->dayOrFail();
             $this->rebuildAttendanceMap();
 
             // nach Load ist Stand "clean"
@@ -184,7 +183,6 @@ Log::info('attendance sample', [
         $this->selectedDay   = $day;
         $this->selectedDayId = $day->id;
 
-        // ✅ beim Daywechsel wieder UVS Master laden
         $this->loadAttendance();
 
         $this->updatePrevNextFlags();

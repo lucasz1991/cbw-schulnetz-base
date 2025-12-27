@@ -221,9 +221,8 @@
                                     <button
                                         class="inline-flex items-center justify-center w-8 h-8 rounded border border-green-600 text-green-700 hover:bg-green-50"
                                         title="Anwesend"
-                                        wire:click.stop="markPresent({{ $r['id'] }})"
-                                        wire:loading.attr="disabled"
-                                        wire:loading.class="pointer-events-none opacity-50 cursor-progress"
+                                        wire:click="markPresent({{ $r['id'] }})"
+                                        wire:loading.class="pointer-events-none opacity-50 cursor-wait"
                                         wire:target="markPresent({{ $r['id'] }})"
                                     >
                                         <i class="fas fa-check text-sm"></i>
@@ -232,9 +231,8 @@
                                     <button
                                         class="inline-flex items-center justify-center w-8 h-8 rounded border border-red-600 text-red-700 hover:bg-red-50"
                                         title="Abwesend"
-                                        wire:click.stop="markAbsent({{ $r['id'] }})"
-                                        wire:loading.attr="disabled"
-                                        wire:loading.class="pointer-events-none opacity-50 cursor-progress"
+                                        wire:click="markAbsent({{ $r['id'] }})"
+                                        wire:loading.class="pointer-events-none opacity-50 cursor-wait"
                                         wire:target="markAbsent({{ $r['id'] }})"
                                     >
                                         <i class="fas fa-times text-sm"></i>

@@ -458,11 +458,18 @@ class CourseDayAttendanceSyncService
 
                 $this->hydrateLateEarlyMinutes($row, $courseStart, $courseEnd, $gekommenCarbon, $gegangenCarbon);
 
-                if ($totalMinutes > 0) {
-                    $totalHours     = $totalMinutes / 60.0;
-                    $row['present'] = $fehlStdRemote < ($totalHours - 0.01);
+                // ✅ OPTIMIERT: Zeiten haben Vorrang => present = true (Teilzeit)
+                $hasAnyTime = (bool) ($gekommenCarbon || $gegangenCarbon);
+
+                if ($hasAnyTime) {
+                    $row['present'] = true;
                 } else {
-                    $row['present'] = ($gekommenCarbon || $gegangenCarbon) ? true : (bool) ($row['present'] ?? false);
+                    if ($totalMinutes > 0) {
+                        $totalHours     = $totalMinutes / 60.0;
+                        $row['present'] = $fehlStdRemote < ($totalHours - 0.01);
+                    } else {
+                        $row['present'] = (bool) ($row['present'] ?? false);
+                    }
                 }
 
                 $reverse = $this->reverseMapReasonCode($fehlGrundRemote);
@@ -551,14 +558,21 @@ class CourseDayAttendanceSyncService
                 $row['arrived_at'] = $gekommenRemote !== null ? $gekommenRemote : null;
                 $row['left_at']    = $gegangenRemote !== null ? $gegangenRemote : null;
 
-                // ✅ Minuten NICHT kaputt überschreiben, wenn remote nichts liefert
+                // ✅ Minuten korrekt/stabil berechnen
                 $this->hydrateLateEarlyMinutes($row, $courseStart, $courseEnd, $gekommenCarbon, $gegangenCarbon);
 
-                if ($totalMinutes > 0) {
-                    $totalHours     = $totalMinutes / 60.0;
-                    $row['present'] = $fehlStdRemote < ($totalHours - 0.01);
+                // ✅ OPTIMIERT: Zeiten haben Vorrang => present = true (Teilzeit)
+                $hasAnyTime = (bool) ($gekommenCarbon || $gegangenCarbon);
+
+                if ($hasAnyTime) {
+                    $row['present'] = true;
                 } else {
-                    $row['present'] = ($gekommenCarbon || $gegangenCarbon) ? true : (bool) ($row['present'] ?? false);
+                    if ($totalMinutes > 0) {
+                        $totalHours     = $totalMinutes / 60.0;
+                        $row['present'] = $fehlStdRemote < ($totalHours - 0.01);
+                    } else {
+                        $row['present'] = (bool) ($row['present'] ?? false);
+                    }
                 }
 
                 $reverse = $this->reverseMapReasonCode($fehlGrundRemote);
@@ -578,7 +592,7 @@ class CourseDayAttendanceSyncService
     }
 
     /* -------------------------------------------------------------------------
-     | Minute hydration (wichtig für "Load überschreibt nicht kaputt")
+     | Minute hydration
      * ---------------------------------------------------------------------- */
 
     /**
@@ -607,7 +621,7 @@ class CourseDayAttendanceSyncService
     /**
      * Remote-Zeit normalisieren:
      * - '' / null / '00:00' / '00:00:00' => null
-     * - 'HH:MM:SS' => 'HH:MM' 
+     * - 'HH:MM:SS' => 'HH:MM'
      * - 'HH:MM' bleibt
      */
     protected function normalizeRemoteTime(mixed $value): ?string
@@ -623,10 +637,10 @@ class CourseDayAttendanceSyncService
         }
 
         if (preg_match('/^\d{1,2}:\d{2}$/', $v)) {
-            return str_pad(explode(':', $v)[0], 2, '0', STR_PAD_LEFT) . ':' . explode(':', $v)[1];
+            [$h, $m] = explode(':', $v, 2);
+            return str_pad($h, 2, '0', STR_PAD_LEFT) . ':' . $m;
         }
 
-        // fallback: parsebare Datetime?
         try {
             return Carbon::parse($v)->format('H:i');
         } catch (\Throwable $e) {
@@ -635,7 +649,7 @@ class CourseDayAttendanceSyncService
     }
 
     /* -------------------------------------------------------------------------
-     | Small utils (wie gehabt)
+     | Small utils
      * ---------------------------------------------------------------------- */
 
     protected function mapReasonCode(bool $present, bool $excused, int $lateMinutes, int $leftEarlyMinutes): string
@@ -650,10 +664,10 @@ class CourseDayAttendanceSyncService
         $code = strtoupper(trim($fehlGrund));
 
         return match ($code) {
-            'E', 'K'  => ['present' => null, 'excused' => true],
+            'E', 'K'  => ['present' => null,  'excused' => true],
             'UE', 'F' => ['present' => false, 'excused' => false],
-            'TA', 'T' => ['present' => true, 'excused' => false],
-            default   => ['present' => null, 'excused' => null],
+            'TA', 'T' => ['present' => true,  'excused' => false],
+            default   => ['present' => null,  'excused' => null],
         };
     }
 
@@ -758,5 +772,4 @@ class CourseDayAttendanceSyncService
             return '00:00';
         }
     }
-
 }
