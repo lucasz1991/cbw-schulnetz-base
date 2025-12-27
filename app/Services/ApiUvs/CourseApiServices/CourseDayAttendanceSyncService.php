@@ -21,7 +21,6 @@ class CourseDayAttendanceSyncService
     public const STATE_REMOTE = 'remote';
 
     /**
-     * ✅ Stabilisiert "2 Klicks" Problem:
      * Vollständig anwesend wird als neutrales UPDATE statt DELETE gepusht.
      * (Wenn UVS zwingend delete braucht, auf false setzen.)
      */
@@ -85,7 +84,6 @@ class CourseDayAttendanceSyncService
     /**
      * LOAD (Pull-only, UVS ist Master):
      *
-     * ✅ WICHTIG: "Hard Replace"
      * - Wenn UVS Items liefert: ersetzt lokale attendance_data vollständig (participants komplett neu)
      * - Wenn UVS nichts liefert: attendance_data wird komplett neu initialisiert (leer)
      */
@@ -101,7 +99,6 @@ class CourseDayAttendanceSyncService
 
         $teilnehmerIds = $this->collectTeilnehmerIds($day, $onlyLocalPersonIds);
 
-        // ✅ keine Teilnehmer => lokale Daten komplett neu initialisieren
         if (empty($teilnehmerIds)) {
             $this->resetAttendanceData($day);
             return true;
@@ -123,7 +120,6 @@ class CourseDayAttendanceSyncService
             return false;
         }
 
-        // ✅ Hard Replace / Hard Reset
         $this->applyLoadResponseHardReplace($day, $response, $onlyLocalPersonIds);
 
         return true;
@@ -141,7 +137,6 @@ class CourseDayAttendanceSyncService
         $pulled = $innerData['pulled'] ?? null;
         $items  = (is_array($pulled) && ! empty($pulled['items'])) ? $pulled['items'] : [];
 
-        // ✅ Wenn UVS nichts liefert: komplett neu initialisieren
         if (empty($items)) {
             $this->resetAttendanceData($day);
             return;
@@ -210,8 +205,8 @@ class CourseDayAttendanceSyncService
                 $row = [
                     'present'            => null,
                     'excused'            => false,
-                    'late_minutes'       => 0,
-                    'left_early_minutes' => 0,
+                    'late_minutes'       => null,
+                    'left_early_minutes' => null,
                     'note'               => $fehlBemRemote !== '' ? $fehlBemRemote : '',
                     'timestamps'         => ['in' => null, 'out' => null],
                     'arrived_at'         => $gekommenRemote,
@@ -224,7 +219,6 @@ class CourseDayAttendanceSyncService
 
                 $this->hydrateLateEarlyMinutes($row, $courseStart, $courseEnd, $gekommenCarbon, $gegangenCarbon);
 
-                // ✅ Zeiten haben Vorrang => Teilzeit => present=true
                 $hasAnyTime = (bool) ($gekommenCarbon || $gegangenCarbon);
                 if ($hasAnyTime) {
                     $row['present'] = true;
@@ -237,7 +231,6 @@ class CourseDayAttendanceSyncService
                     }
                 }
 
-                // ✅ excused darf setzen, present NICHT überschreiben wenn Zeiten existieren
                 $reverse = $this->reverseMapReasonCode($fehlGrundRemote);
 
                 if ($reverse['excused'] !== null) {
@@ -351,9 +344,6 @@ class CourseDayAttendanceSyncService
             $state     = $row['state'] ?? null;
             $hasRemote = ! empty($row['src_api_id']);
 
-        
-
-            // ✅ robust: present aus Zeiten ableiten, falls present fehlt
             $arrivedAt = $row['arrived_at'] ?? null;
             $leftAt    = $row['left_at'] ?? null;
             $hasAnyLocalTime =
@@ -532,7 +522,6 @@ class CourseDayAttendanceSyncService
                 $state   = $row['state'] ?? null;
 
                 if ($action === 'deleted') {
-                    // ✅ falls delete überhaupt genutzt wurde: stabil auf "anwesend"
                     $row['src_api_id']         = null;
                     $row['state']              = null;
                     $row['present']            = true;
@@ -586,7 +575,6 @@ class CourseDayAttendanceSyncService
 
                 $this->hydrateLateEarlyMinutes($row, $courseStart, $courseEnd, $gekommenCarbon, $gegangenCarbon);
 
-                // ✅ Zeiten haben Vorrang => Teilzeit => present=true
                 $hasAnyTime = (bool) ($gekommenCarbon || $gegangenCarbon);
                 if ($hasAnyTime) {
                     $row['present'] = true;
@@ -599,7 +587,6 @@ class CourseDayAttendanceSyncService
                     }
                 }
 
-                // ✅ FIX: excused darf setzen, present NICHT überschreiben wenn Zeiten existieren
                 $reverse = $this->reverseMapReasonCode($fehlGrundRemote);
                 if ($reverse['excused'] !== null) {
                     $row['excused'] = $reverse['excused'];
@@ -657,13 +644,16 @@ class CourseDayAttendanceSyncService
             $lateMinutes = $diff > 0 ? $diff : 0;
         }
 
-        if ($courseEnd && $gegangenCarbon) {
-            $diff             = $gegangenCarbon->diffInMinutes($courseEnd, false);
-            $leftEarlyMinutes = $diff < 0 ? abs($diff) : 0;
-        }
+if ($courseEnd && $gegangenCarbon) {
+    $leftEarlyMinutes = $gegangenCarbon->lt($courseEnd)
+        ? $gegangenCarbon->diffInMinutes($courseEnd) // abs diff (standard)
+        : 0;
+}
 
         $row['late_minutes']       = $lateMinutes;
         $row['left_early_minutes'] = $leftEarlyMinutes;
+
+
     }
 
     protected function normalizeRemoteTime(mixed $value): ?string
@@ -726,43 +716,61 @@ class CourseDayAttendanceSyncService
         return '';
     }
 
-    protected function computeCourseTimes(CourseDay $day): array
-    {
+protected function computeCourseTimes(CourseDay $day): array
+{
+    $courseStart  = null;
+    $courseEnd    = null;
+    $totalMinutes = 0;
+
+    $totalHours = (float) ($day->std ?? 0.0);
+    $date       = $day->date;
+
+    if (! $date || $totalHours <= 0) {
+        return [null, null, 0];
+    }
+
+    $totalMinutes = (int) round($totalHours * 60);
+    $rawStart     = $day->start_time;
+
+    try {
+        // 1) Startzeit ermitteln (egal ob Carbon / datetime-string / "HH:MM")
+        if ($rawStart instanceof Carbon) {
+            $time = $rawStart->format('H:i');
+        } elseif (is_string($rawStart) && trim($rawStart) !== '') {
+            $startStr = trim($rawStart);
+
+            // Wenn "HH:MM"
+            if (preg_match('/^\d{1,2}:\d{2}$/', $startStr)) {
+                $time = Carbon::parse($startStr)->format('H:i');
+            } else {
+                // Wenn datetime wie "2025-12-27 08:00:00" -> NUR Uhrzeit übernehmen
+                $time = Carbon::parse($startStr)->format('H:i');
+            }
+        } else {
+            $time = null;
+        }
+
+        if ($time) {
+            // 2) ✅ Datum vom CourseDay erzwingen
+            $courseStart = Carbon::parse($date->toDateString() . ' ' . $time);
+            $courseEnd   = (clone $courseStart)->addMinutes($totalMinutes);
+        }
+    } catch (\Throwable $e) {
         $courseStart  = null;
         $courseEnd    = null;
         $totalMinutes = 0;
-
-        $totalHours = (float) ($day->std ?? 0.0);
-        $date       = $day->date;
-
-        if (! $date || $totalHours <= 0) {
-            return [null, null, 0];
-        }
-
-        $totalMinutes = (int) round($totalHours * 60);
-        $rawStart     = $day->start_time;
-
-        try {
-            if ($rawStart instanceof Carbon) {
-                $courseStart = (clone $rawStart);
-            } elseif (is_string($rawStart) && trim($rawStart) !== '') {
-                $startStr = trim($rawStart);
-                $courseStart = preg_match('/^\d{1,2}:\d{2}$/', $startStr)
-                    ? Carbon::parse($date->toDateString() . ' ' . $startStr)
-                    : Carbon::parse($startStr);
-            }
-
-            if ($courseStart) {
-                $courseEnd = (clone $courseStart)->addMinutes($totalMinutes);
-            }
-        } catch (\Throwable $e) {
-            $courseStart  = null;
-            $courseEnd    = null;
-            $totalMinutes = 0;
-        }
-
-        return [$courseStart, $courseEnd, $totalMinutes];
     }
+Log::debug('attendance.computeCourseTimes', [
+  'day_id'      => $day->id,
+  'day_date'    => $day->date?->toDateString(),
+  'raw_start'   => $day->start_time,
+  'courseStart' => $courseStart?->toDateTimeString(), // <-- wichtig!
+  'courseEnd'   => $courseEnd?->toDateTimeString(),
+  'std'         => $day->std,
+]);
+    return [$courseStart, $courseEnd, $totalMinutes];
+}
+
 
     protected function parseTimeOnDay(?Carbon $date, ?string $time): ?Carbon
     {

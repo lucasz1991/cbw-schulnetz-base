@@ -121,8 +121,8 @@
                     @php
                         $d        = $r['data'];
                         $hasEntry = $r['hasEntry'] ?? false;
-                        $late     = (int)($d['late_minutes'] ?? 0);
-                        $early    = (int)($d['left_early_minutes'] ?? 0);
+                        $late     = $d['late_minutes'] ?? null;
+                        $early    = $d['left_early_minutes'] ?? null;
 
                         if (!$hasEntry) {
                             $statusLabel = 'Anwesend';
@@ -233,14 +233,14 @@
                                 {{-- Verspätung/Frühweg Popover (inkl. Schnellauswahl BEHALTEN) --}}
                                 <div class="relative">
                                     <button
-                                        class="relative inline-flex items-center justify-center w-8 h-8 rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
+                                        class="relative inline-flex items-center justify-center w-8 h-8 rounded border  @if(($d['arrived_at'] ?? null) || ($d['left_at'] ?? null)) border-yellow-500 text-yellow-600 bg-yellow-50 hover:bg-yellow-100 @else border-gray-300 text-gray-500 hover:bg-gray-200  @endif"
                                         title="Verspätung / Früh weg eintragen"
                                         @click="lateOpen = !lateOpen"
                                     >
                                         <i class="far fa-clock text-sm"></i>
                                         @if(($d['arrived_at'] ?? null) || ($d['left_at'] ?? null))
-                                            <span class="absolute -top-1 -right-1 w-3 h-3 bg-yellow-300 border-2 border-white rounded-full"></span>
-                                            <span class="absolute -top-1 -right-1 w-3 h-3 bg-yellow-200  rounded-full animate-ping"></span>
+                                          <span class="absolute -top-1 -right-1 w-3 h-3 bg-yellow-200  rounded-full animate-ping"></span>
+                                          <span class="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 border-2 border-white rounded-full"></span>
                                         @endif
                                     </button>
 
@@ -361,7 +361,7 @@
                                 {{-- Notiz Popover (Text + SaveNote Wrapper) --}}
                                 <div class="relative">
                                     <button
-                                        class="inline-flex items-center justify-center w-8 h-8 rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
+                                        class="inline-flex items-center justify-center w-8 h-8 rounded border  @if($d['note']) border-blue-300 text-blue-400 bg-blue-50/70 hover:bg-blue-100 @else border-gray-300 text-gray-500 hover:bg-gray-50 @endif"
                                         title="Notiz hinzufügen"
                                         @click="noteOpen = !noteOpen"
                                     >

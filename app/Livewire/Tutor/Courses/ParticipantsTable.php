@@ -93,12 +93,11 @@ class ParticipantsTable extends Component
         $this->isLoadingApi = true;
 
         try {
-            /** @var CourseDayAttendanceSyncService $service */
+            /**  CourseDayAttendanceSyncService $service */
             $service = app(CourseDayAttendanceSyncService::class);
 
             $service->loadFromRemote($day);
 
-            // ✅ wichtig: auf derselben Instanz refreshen, dann als selectedDay setzen
             $day->refresh();
             $this->selectedDay = $day;
             $this->selectedDayId = $day->id;
@@ -127,13 +126,13 @@ class ParticipantsTable extends Component
         $this->loadAttendance();
     }
 
+
     /**
      * Row-Sync zu UVS – KEIN global isLoadingApi.
      * Loader bitte wire:target exakt auf saveOne/markPresent/... etc. im Blade setzen.
      */
     public function saveOne(int $participantId): void
     {
-        // ✅ verwende selectedDay Instanz (verhindert instanz-hopping)
         $day = $this->dayOrFail();
 
         try {
@@ -142,7 +141,6 @@ class ParticipantsTable extends Component
 
             $ok = $service->syncToRemote($day, [$participantId]);
 
-            // ✅ danach refresh + rebuild (damit remote->local Updates sichtbar werden)
             $day->refresh();
             $this->selectedDay   = $day;
             $this->selectedDayId = $day->id;
@@ -164,8 +162,6 @@ class ParticipantsTable extends Component
             $this->dispatch('notify', type: 'error', message: "Fehler beim Speichern (#{$participantId}).");
         }
     }
-
-    // ---- Events / Auswahl ----
 
     #[On('calendarEventClick')]
     public function handleCalendarEventClick(...$args): void
@@ -287,7 +283,6 @@ class ParticipantsTable extends Component
 
     protected function dayOrFail(): CourseDay
     {
-        // ✅ stabil: wenn selectedDay passt, nutze sie
         if ($this->selectedDay && $this->selectedDayId && (int) $this->selectedDay->id === (int) $this->selectedDayId) {
             return $this->selectedDay;
         }
@@ -311,7 +306,6 @@ class ParticipantsTable extends Component
 
         $hasTime = (!empty($arr) && $arr !== '00:00') || (!empty($lef) && $lef !== '00:00');
 
-        // ✅ falls present fehlt/inkonsistent: Zeiten => anwesend
         $present = array_key_exists('present', $row)
             ? (bool) $row['present']
             : $hasTime;
@@ -346,7 +340,6 @@ class ParticipantsTable extends Component
             ->map(fn ($row) => $this->normalizeRow($row))
             ->all();
 
-        // ✅ Inputs synchronisieren (sonst fehlen Schnell-Auswahlen nach Reload)
         foreach ($this->attendanceMap as $pid => $row) {
             $this->arriveInput[$pid] = $row['arrived_at'] ?? null;
             $this->leaveInput[$pid]  = $row['left_at'] ?? null;
@@ -360,7 +353,6 @@ class ParticipantsTable extends Component
     }
 
     /**
-     * Apply – lokal speichern & UI sofort aktualisieren.
      * (Kein refresh hier – refresh passiert nach Sync in saveOne)
      */
     protected function apply(int $participantId, array $patch): void
