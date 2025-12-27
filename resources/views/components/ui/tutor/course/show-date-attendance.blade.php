@@ -147,10 +147,20 @@
                         $isAbsent = ($r['hasEntry'] ?? false) && ($d['present'] === false) && !($d['excused'] ?? false);
                     @endphp
 
-                    <tr x-data="{ lateOpen:false, noteOpen:false, arrive:'{{ $d['arrived_at'] ?? null }}', leave:'{{ $d['left_at'] ?? null }}' }"
-                        class="hover:bg-gray-50"
+                      <tr
+                        x-data="{
+                          lateOpen:false,
+                          noteOpen:false,
+                          arrive: @entangle('arriveInput.' . $r['id']).live,
+                          leave:  @entangle('leaveInput.'  . $r['id']).live,
+                          init() {
+                            this.arrive = this.serverArrive;
+                            this.leave  = this.serverLeave;
+                          }
+                        }"
                         wire:key="row-{{ $r['id'] }}"
-                    >
+                        class="hover:bg-gray-50"
+                        >
                         <td class="px-1 md:px-4 py-2">
                             <div class="w-min md:w-max">
                                 @if($r['user'])
@@ -211,7 +221,7 @@
                                         class="inline-flex items-center justify-center w-8 h-8 rounded border border-green-600 text-green-700 hover:bg-green-50"
                                         title="Anwesend"
                                         wire:key="row-markpresentbutton-{{ $r['id'] }}"
-                                        wire:click.prevent="markPresent({{ $r['id'] }})"
+                                        wire:click="markPresent({{ $r['id'] }})"
                                         wire:loading.class="pointer-events-none opacity-50 cursor-wait"
                                         wire:target="markPresent({{ $r['id'] }})"
                                     >
@@ -222,7 +232,7 @@
                                         class="inline-flex items-center justify-center w-8 h-8 rounded border border-red-600 text-red-700 hover:bg-red-50"
                                         title="Abwesend"
                                         wire:key="row-markabsentbutton-{{ $r['id'] }}"
-                                        wire:click.prevent="markAbsent({{ $r['id'] }})"
+                                        wire:click="markAbsent({{ $r['id'] }})"
                                         wire:loading.class="pointer-events-none opacity-50 cursor-wait"
                                         wire:target="markAbsent({{ $r['id'] }})"
                                     >

@@ -131,37 +131,42 @@ class ParticipantsTable extends Component
      * Row-Sync zu UVS – KEIN global isLoadingApi.
      * Loader bitte wire:target exakt auf saveOne/markPresent/... etc. im Blade setzen.
      */
-    public function saveOne(int $participantId): void
-    {
-        $day = $this->dayOrFail();
+public function saveOne(int $participantId): void
+{
+    $day = $this->dayOrFail();
 
-        try {
-            /** @var CourseDayAttendanceSyncService $service */
-            $service = app(CourseDayAttendanceSyncService::class);
+    try {
+        /** @var CourseDayAttendanceSyncService $service */
+        $service = app(CourseDayAttendanceSyncService::class);
 
-            $ok = $service->syncToRemote($day, [$participantId]);
+        $ok = $service->syncToRemote($day, [$participantId]);
 
-            $day->refresh();
-            $this->selectedDay   = $day;
-            $this->selectedDayId = $day->id;
+        $day->refresh();
+        $this->selectedDay = $day;
 
-            $this->rebuildAttendanceMap();
+        $fresh = data_get($day->attendance_data, "participants.$participantId", []);
+        $this->attendanceMap[$participantId] = $this->normalizeRow($fresh);
 
-            $this->isDirty = false;
+        // Wrapper updaten (damit Inputs sofort den saved Stand zeigen)
+        $this->arriveInput[$participantId] = data_get($fresh, 'arrived_at');
+        $this->leaveInput[$participantId]  = data_get($fresh, 'left_at');
+        $this->noteInput[$participantId]   = data_get($fresh, 'note');
 
-            if (! $ok) {
-                $this->dispatch('notify', type: 'error', message: "UVS-Sync fehlgeschlagen (#{$participantId}).");
-            }
-        } catch (\Throwable $e) {
-            Log::error('ParticipantsTable.saveOne: Fehler beim UVS-Sync', [
-                'day_id'         => $day->id ?? null,
-                'participant_id' => $participantId,
-                'error'          => $e->getMessage(),
-            ]);
-
-            $this->dispatch('notify', type: 'error', message: "Fehler beim Speichern (#{$participantId}).");
+        $this->isDirty = false;
+        if (! $ok) {
+            $this->dispatch('notify', type: 'error', message: "UVS-Sync fehlgeschlagen (#{$participantId}).");
         }
+    } catch (\Throwable $e) {
+        \Log::error('ParticipantsTable.saveOne: Fehler beim UVS-Sync', [
+            'day_id'         => $day->id ?? null,
+            'participant_id' => $participantId,
+            'error'          => $e->getMessage(),
+        ]);
+
+        $this->dispatch('notify', type: 'error', message: "Fehler beim Speichern (#{$participantId}).");
     }
+}
+
 
     #[On('calendarEventClick')]
     public function handleCalendarEventClick(...$args): void
