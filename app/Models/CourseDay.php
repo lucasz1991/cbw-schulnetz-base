@@ -114,83 +114,57 @@ class CourseDay extends Model
      * - note (string|null)
      * - timestamps => ['in' => datetime|null, 'out' => datetime|null]
      */
-    public function setAttendance(int $participantId, array $data): void
-    {
-        $att = $this->attendance_data ?? [];
+public function setAttendance(int $participantId, array $data): void
+{
+    $att = $this->attendance_data ?? [];
 
-        // Container sicherstellen
-        if (!isset($att['participants']) || !is_array($att['participants'])) {
-            $att['participants'] = [];
-        }
-        if (!isset($att['status']) || !is_array($att['status'])) {
-            $att['status'] = [
-                'start'      => 0,
-                'end'        => 0,
-                'state'      => null,
-                'created_at' => null,
-                'updated_at' => null,
-            ];
-        }
-
-        // Default-Zeile
-        $defaultRow = [
-            'present'            => false,
-            'late_minutes'       => 0,
-            'left_early_minutes' => 0,
-            'excused'            => false,
-            'note'               => '',
-            'timestamps'         => ['in' => null, 'out' => null],
-            'created_at'         => null,
-            'updated_at'         => null,
-            'src_api_id'         => null,  // uid aus UVS-Datenbank
-            'state'              => null,  // 'draft' | 'synced' | 'pulled' ...
-            // optional: arrived_at/left_at, falls du sie im JSON mitführst
-            'arrived_at'         => null,
-            'left_at'            => null,
-        ];
-
-        // Aktuelle Zeile oder Default
-        $row = $att['participants'][$participantId] ?? $defaultRow;
-
-        // Timestamps nested mergen (nicht platt überbügeln)
-        if (isset($data['timestamps']) && is_array($data['timestamps'])) {
-            $row['timestamps'] = array_merge(
-                $row['timestamps'] ?? ['in' => null, 'out' => null],
-                $data['timestamps']
-            );
-            unset($data['timestamps']);
-        }
-
-        // Restliche Felder mergen
-        $row = array_merge($row, $data);
-        $row['note'] = (string)($row['note'] ?? '');
-
-        // Touch created/updated
-        $now = now()->toDateTimeString();
-        if (empty($row['created_at'])) {
-            $row['created_at'] = $now;
-        }
-        $row['updated_at'] = $now;
-
-        // WICHTIG:
-        // jede manuelle Änderung durch den Dozenten = "draft"/"dirty"
-        // (wird später vom Sync-Service auf 'synced' gesetzt)
-        $row['state'] = 'draft';
-
-        // Speichern in Struktur (JETZT mit state)
-        $att['participants'][$participantId] = $row;
-
-        // Status-Updated timestamp pflegen
-        $att['status']['updated_at'] = $now;
-        if ((int)($att['status']['start'] ?? 0) === 0) {
-            $att['status']['start'] = 1; // "in Bearbeitung"
-        }
-
-        $this->attendance_data = $att;
-        $this->attendance_updated_at = now();
-
-        $this->save();
+    if (!isset($att['participants']) || !is_array($att['participants'])) {
+        $att['participants'] = [];
     }
+
+    $defaultRow = [
+        'present'            => true, 
+        'excused'            => false,
+        'late_minutes'       => 0,
+        'left_early_minutes' => 0,
+        'note'               => '',
+        'timestamps'         => ['in' => null, 'out' => null],
+        'arrived_at'         => null,
+        'left_at'            => null,
+        'src_api_id'         => null,
+        'state'              => null,
+        'created_at'         => null,
+        'updated_at'         => null,
+    ];
+
+    $row = $att['participants'][$participantId] ?? $defaultRow;
+
+    if (isset($data['timestamps']) && is_array($data['timestamps'])) {
+        $row['timestamps'] = array_merge(
+            $row['timestamps'] ?? ['in' => null, 'out' => null],
+            $data['timestamps']
+        );
+        unset($data['timestamps']);
+    }
+
+    $row = array_merge($row, $data);
+
+    if (!array_key_exists('state', $data)) {
+        // wenn irgendwas geändert wird -> dirty
+        $row['state'] = $row['state'] ?: 'dirty';
+    }
+
+    $now = now()->toDateTimeString();
+    if (empty($row['created_at'])) $row['created_at'] = $now;
+    $row['updated_at'] = $now;
+
+    $att['participants'][$participantId] = $row;
+
+    $this->attendance_data = $att;
+    $this->attendance_updated_at = now();
+
+    $this->save();
+}
 
 
 

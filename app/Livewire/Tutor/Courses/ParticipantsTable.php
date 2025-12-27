@@ -73,8 +73,9 @@ class ParticipantsTable extends Component
         }
 
         $this->loadAttendance();
+
         Log::info('attendance sample', [
-            'sample' => data_get($this->selectedDay->attendance_data, 'participants.' . array_key_first(data_get($this->selectedDay->attendance_data,'participants',[]))),
+            'sample' => data_get($this->selectedDay?->attendance_data, 'participants.' . array_key_first(data_get($this->selectedDay?->attendance_data, 'participants', []))),
         ]);
 
         $this->updatePrevNextFlags();
@@ -88,7 +89,7 @@ class ParticipantsTable extends Component
     {
         if (! $this->selectedDayId) return;
 
-        $day = 
+        $day = $this->dayOrFail();
         $this->isLoadingApi = true;
 
         try {
@@ -97,11 +98,13 @@ class ParticipantsTable extends Component
 
             $service->loadFromRemote($day);
 
+            // ✅ wichtig: auf derselben Instanz refreshen, dann als selectedDay setzen
             $day->refresh();
-            $this->selectedDay = $this->dayOrFail();
+            $this->selectedDay = $day;
+            $this->selectedDayId = $day->id;
+
             $this->rebuildAttendanceMap();
 
-            // nach Load ist Stand "clean"
             $this->isDirty = false;
         } catch (\Throwable $e) {
             Log::error('ParticipantsTable.loadAttendance: Fehler', [
@@ -125,24 +128,26 @@ class ParticipantsTable extends Component
 
     /**
      * Row-Sync zu UVS – KEIN global isLoadingApi.
-     * Für Loader bitte wire:target exakt auf saveOne/markPresent/... etc. im Blade setzen.
+     * Loader bitte wire:target exakt auf saveOne/markPresent/... etc. im Blade setzen.
      */
     public function saveOne(int $participantId): void
     {
+        // ✅ verwende selectedDay Instanz (verhindert instanz-hopping)
         $day = $this->dayOrFail();
 
         try {
             /** @var CourseDayAttendanceSyncService $service */
             $service = app(CourseDayAttendanceSyncService::class);
 
-            // ✅ nur diese Person syncen
             $ok = $service->syncToRemote($day, [$participantId]);
 
+            // ✅ danach refresh + rebuild (damit remote->local Updates sichtbar werden)
             $day->refresh();
-            $this->selectedDay = $day;
+            $this->selectedDay   = $day;
+            $this->selectedDayId = $day->id;
+
             $this->rebuildAttendanceMap();
 
-            // wenn alles synced, dann clean (mindestens für den UI-Flow)
             $this->isDirty = false;
 
             if (! $ok) {
@@ -237,12 +242,11 @@ class ParticipantsTable extends Component
 
     public function sort(string $key): void
     {
-        if ($this->sortBy === $key) {
-            $this->sortDir = $this->sortDir === 'asc' ? 'desc' : 'asc';
-        } else {
-            $this->sortBy  = $key;
-            $this->sortDir = 'asc';
-        }
+        $this->sortDir = ($this->sortBy === $key)
+            ? ($this->sortDir === 'asc' ? 'desc' : 'asc')
+            : 'asc';
+
+        $this->sortBy = $key;
 
         $this->resetPage();
     }
@@ -282,35 +286,57 @@ class ParticipantsTable extends Component
 
     protected function dayOrFail(): CourseDay
     {
+        // ✅ stabil: wenn selectedDay passt, nutze sie
+        if ($this->selectedDay && $this->selectedDayId && (int) $this->selectedDay->id === (int) $this->selectedDayId) {
+            return $this->selectedDay;
+        }
+
         $day = $this->selectedDayId
             ? CourseDay::where('course_id', $this->courseId)->find($this->selectedDayId)
             : null;
 
         abort_if(! $day, 404, 'Day not found');
+
+        $this->selectedDay = $day;
         return $day;
     }
 
     protected function normalizeRow(?array $row): array
     {
         $row = $row ?? [];
+
+        $arr = $row['arrived_at'] ?? null;
+        $lef = $row['left_at'] ?? null;
+
+        $hasTime = (!empty($arr) && $arr !== '00:00') || (!empty($lef) && $lef !== '00:00');
+
+        // ✅ falls present fehlt/inkonsistent: Zeiten => anwesend
+        $present = array_key_exists('present', $row)
+            ? (bool) $row['present']
+            : $hasTime;
+
         return [
-            'present'            => (bool)($row['present'] ?? false),
+            'present'            => $present,
             'excused'            => (bool)($row['excused'] ?? false),
             'late_minutes'       => (int)($row['late_minutes'] ?? 0),
             'left_early_minutes' => (int)($row['left_early_minutes'] ?? 0),
             'note'               => $row['note'] ?? null,
-
             'in'                 => data_get($row, 'timestamps.in'),
             'out'                => data_get($row, 'timestamps.out'),
-
-            'arrived_at'         => $row['arrived_at'] ?? null,
-            'left_at'            => $row['left_at'] ?? null,
+            'arrived_at'         => $arr,
+            'left_at'            => $lef,
         ];
     }
 
     protected function rebuildAttendanceMap(): void
     {
-        if (! $this->selectedDay) { $this->attendanceMap = []; return; }
+        if (! $this->selectedDay) {
+            $this->attendanceMap = [];
+            $this->arriveInput = [];
+            $this->leaveInput  = [];
+            $this->noteInput   = [];
+            return;
+        }
 
         $att = $this->selectedDay->attendance_data ?? [];
         $raw = Arr::get($att, 'participants', []);
@@ -319,6 +345,7 @@ class ParticipantsTable extends Component
             ->map(fn ($row) => $this->normalizeRow($row))
             ->all();
 
+        // ✅ Inputs synchronisieren (sonst fehlen Schnell-Auswahlen nach Reload)
         foreach ($this->attendanceMap as $pid => $row) {
             $this->arriveInput[$pid] = $row['arrived_at'] ?? null;
             $this->leaveInput[$pid]  = $row['left_at'] ?? null;
@@ -332,15 +359,19 @@ class ParticipantsTable extends Component
     }
 
     /**
-     * Apply bleibt erhalten – UI sofort aktualisieren.
+     * Apply – lokal speichern & UI sofort aktualisieren.
+     * (Kein refresh hier – refresh passiert nach Sync in saveOne)
      */
     protected function apply(int $participantId, array $patch): void
     {
         $day = $this->dayOrFail();
 
         $patch['state'] = 'dirty';
+
+        // setAttendance speichert im Model
         $day->setAttendance($participantId, $patch);
 
+        $this->selectedDay = $day;
         $this->isDirty = true;
 
         $existing = $this->attendanceMap[$participantId] ?? [];
@@ -356,11 +387,12 @@ class ParticipantsTable extends Component
 
         $this->attendanceMap[$participantId] = $this->normalizeRow($merged);
 
-        // Verhalten beibehalten (wie bei dir): selectedDay refresh
-        $this->selectedDay?->refresh();
+        if (array_key_exists('arrived_at', $patch)) $this->arriveInput[$participantId] = $patch['arrived_at'];
+        if (array_key_exists('left_at',    $patch)) $this->leaveInput[$participantId]  = $patch['left_at'];
+        if (array_key_exists('note',       $patch)) $this->noteInput[$participantId]   = $patch['note'];
     }
 
-    // ---- Actions (wie gehabt, nur ohne busyRow) ----
+    // ---- Actions (wie gehabt) ----
 
     public function checkInNow(int $participantId): void
     {
@@ -541,9 +573,9 @@ class ParticipantsTable extends Component
             $allIds       = $allIds->merge($rel->pluck($qualifiedKey)->all());
         }
 
-        $allIds       = $allIds->map(fn ($id) => (int) $id)->unique()->values();
-        $participants = collect();
+        $allIds = $allIds->map(fn ($id) => (int) $id)->unique()->values();
 
+        $participants = collect();
         if ($day->course && method_exists($day->course, 'participants') && $allIds->isNotEmpty()) {
             $rel          = $day->course->participants();
             $qualifiedKey = $rel->getModel()->getQualifiedKeyName();
@@ -618,9 +650,6 @@ class ParticipantsTable extends Component
         return $base->copy()->setTime((int) $H, (int) $M);
     }
 
-    /**
-     * @return array{0:?Carbon,1:?Carbon}
-     */
     protected function plannedTimesForSelectedDay(): array
     {
         $tz   = 'Europe/Berlin';

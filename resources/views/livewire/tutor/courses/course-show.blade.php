@@ -73,7 +73,7 @@
             class="mt-8"
         >
             <x-ui.accordion.tab-panel for="anwesenheit">
-                <livewire:tutor.courses.participants-table :courseId="$course->id"  />
+                <livewire:tutor.courses.participants-table :courseId="$course->id" lazy />
             </x-ui.accordion.tab-panel>
             <x-ui.accordion.tab-panel for="doku">
                 <livewire:tutor.courses.course-documentation-panel :courseId="$course->id" />

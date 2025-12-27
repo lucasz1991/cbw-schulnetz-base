@@ -150,8 +150,11 @@
                         } elseif ($d['present']) {
                             $statusLabel = 'Anwesend';
                             $badge = 'bg-green-100 text-green-700';
-                        } else {
+                        } elseif (!$d['present']) {
                             $statusLabel = 'Fehlend';
+                            $badge = 'bg-red-100 text-red-700';
+                        } else {
+                            $statusLabel = 'Unbekannt';
                             $badge = 'bg-red-100 text-red-700';
                         }
 
@@ -221,6 +224,7 @@
                                     <button
                                         class="inline-flex items-center justify-center w-8 h-8 rounded border border-green-600 text-green-700 hover:bg-green-50"
                                         title="Anwesend"
+                                        wire:key="row-markpresentbutton-{{ $r['id'] }}"
                                         wire:click="markPresent({{ $r['id'] }})"
                                         wire:loading.class="pointer-events-none opacity-50 cursor-wait"
                                         wire:target="markPresent({{ $r['id'] }})"
@@ -231,6 +235,7 @@
                                     <button
                                         class="inline-flex items-center justify-center w-8 h-8 rounded border border-red-600 text-red-700 hover:bg-red-50"
                                         title="Abwesend"
+                                        wire:key="row-markabsentbutton-{{ $r['id'] }}"
                                         wire:click="markAbsent({{ $r['id'] }})"
                                         wire:loading.class="pointer-events-none opacity-50 cursor-wait"
                                         wire:target="markAbsent({{ $r['id'] }})"
@@ -242,11 +247,15 @@
                                 {{-- Verspätung/Frühweg Popover (inkl. Schnellauswahl BEHALTEN) --}}
                                 <div class="relative">
                                     <button
-                                        class="inline-flex items-center justify-center w-8 h-8 rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
+                                        class="relative inline-flex items-center justify-center w-8 h-8 rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
                                         title="Verspätung / Früh weg eintragen"
                                         @click="lateOpen = !lateOpen"
                                     >
                                         <i class="far fa-clock text-sm"></i>
+                                        @if(($d['arrived_at'] ?? null) || ($d['left_at'] ?? null))
+                                            <span class="absolute -top-1 -right-1 w-3 h-3 bg-yellow-300 border-2 border-white rounded-full"></span>
+                                            <span class="absolute -top-1 -right-1 w-3 h-3 bg-yellow-200  rounded-full animate-ping"></span>
+                                        @endif
                                     </button>
 
                                     <div x-cloak x-show="lateOpen" @click.outside="lateOpen=false"
@@ -371,6 +380,10 @@
                                         @click="noteOpen = !noteOpen"
                                     >
                                         <i class="fas fa-pen text-sm"></i>
+                                        @if($d['note'])
+                                            <span class="absolute -top-1 -right-1 w-3 h-3 bg-blue-300 border-2 border-white rounded-full"></span>
+                                            <span class="absolute -top-1 -right-1 w-3 h-3 bg-blue-200  rounded-full animate-ping"></span>
+                                        @endif
                                     </button>
 
                                     <div x-cloak x-show="noteOpen" @click.outside="noteOpen=false"
