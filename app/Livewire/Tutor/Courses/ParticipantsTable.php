@@ -124,6 +124,7 @@ class ParticipantsTable extends Component
     {
         $this->apply($participantId, $patch);
         $this->saveOne($participantId);
+        $this->loadAttendance();
     }
 
     /**

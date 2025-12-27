@@ -90,20 +90,6 @@
             </div>
         @endif
 
-        <div class="flex items-center gap-2">
-            <x-dropdown>
-                <x-slot name="trigger">
-                    <button class="px-2 py-1 rounded border text-xs bg-white">Weitere Aktionen</button>
-                </x-slot>
-                <x-slot name="content">
-                    <x-dropdown-link wire:click="bulk('all_present')">Alle anwesend</x-dropdown-link>
-                    <x-dropdown-link wire:click="bulk('all_excused')">Alle entschuldigt</x-dropdown-link>
-                    <x-dropdown-link wire:click="bulk('all_absent')">Alle fehlend</x-dropdown-link>
-                    <x-dropdown-link wire:click="bulk('checkin_all')">Check-in alle</x-dropdown-link>
-                    <x-dropdown-link wire:click="bulk('checkout_all')">Check-out alle</x-dropdown-link>
-                </x-slot>
-            </x-dropdown>
-        </div>
     </div>
 
     <div class="border rounded bg-white">
