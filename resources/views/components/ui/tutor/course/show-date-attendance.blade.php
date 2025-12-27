@@ -147,7 +147,7 @@
                         $isAbsent = ($r['hasEntry'] ?? false) && ($d['present'] === false) && !($d['excused'] ?? false);
                     @endphp
 
-                    <tr x-data="{ lateOpen:false, noteOpen:false, arrive:'{{ $d['arrived_at'] ?? $plannedStart }}', leave:'{{ $d['left_at'] ?? $plannedEnd }}' }"
+                    <tr x-data="{ lateOpen:false, noteOpen:false, arrive:'{{ $d['arrived_at'] ?? null }}', leave:'{{ $d['left_at'] ?? null }}' }"
                         class="hover:bg-gray-50"
                         wire:key="row-{{ $r['id'] }}"
                     >
@@ -211,7 +211,7 @@
                                         class="inline-flex items-center justify-center w-8 h-8 rounded border border-green-600 text-green-700 hover:bg-green-50"
                                         title="Anwesend"
                                         wire:key="row-markpresentbutton-{{ $r['id'] }}"
-                                        wire:click="markPresent({{ $r['id'] }})"
+                                        wire:click.prevent="markPresent({{ $r['id'] }})"
                                         wire:loading.class="pointer-events-none opacity-50 cursor-wait"
                                         wire:target="markPresent({{ $r['id'] }})"
                                     >
@@ -222,7 +222,7 @@
                                         class="inline-flex items-center justify-center w-8 h-8 rounded border border-red-600 text-red-700 hover:bg-red-50"
                                         title="Abwesend"
                                         wire:key="row-markabsentbutton-{{ $r['id'] }}"
-                                        wire:click="markAbsent({{ $r['id'] }})"
+                                        wire:click.prevent="markAbsent({{ $r['id'] }})"
                                         wire:loading.class="pointer-events-none opacity-50 cursor-wait"
                                         wire:target="markAbsent({{ $r['id'] }})"
                                     >
@@ -265,7 +265,7 @@
                                                             min="{{ $plannedStart }}"
                                                             max="{{ $plannedEnd }}"
                                                             step="60"
-                                                            wire:model.defer="arriveInput.{{ $r['id'] }}"
+                                                            wire:model.live="arriveInput.{{ $r['id'] }}"
                                                             wire:change="saveArrival({{ $r['id'] }})"
                                                             wire:loading.attr="disabled"
                                                             wire:target="saveArrival({{ $r['id'] }})"
@@ -314,7 +314,7 @@
                                                             min="{{ $plannedStart }}"
                                                             max="{{ $plannedEnd }}"
                                                             step="60"
-                                                            wire:model.defer="leaveInput.{{ $r['id'] }}"
+                                                            wire:model.live="leaveInput.{{ $r['id'] }}"
                                                             wire:change="saveLeave({{ $r['id'] }})"
                                                             wire:loading.attr="disabled"
                                                             wire:target="saveLeave({{ $r['id'] }})"
@@ -379,7 +379,7 @@
                                         <textarea
                                             rows="3"
                                             class="w-full rounded border-gray-300 text-sm"
-                                            wire:model.defer="noteInput.{{ $r['id'] }}"
+                                            wire:model.live="noteInput.{{ $r['id'] }}"
                                             wire:change="saveNote({{ $r['id'] }})"
                                             wire:loading.attr="disabled"
                                             wire:target="saveNote({{ $r['id'] }})"

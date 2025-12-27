@@ -351,10 +351,7 @@ class CourseDayAttendanceSyncService
             $state     = $row['state'] ?? null;
             $hasRemote = ! empty($row['src_api_id']);
 
-            $isDirty = in_array($state, [self::STATE_DRAFT, self::STATE_DIRTY], true) || ! $hasRemote;
-            if (! $isDirty) {
-                continue;
-            }
+        
 
             // ✅ robust: present aus Zeiten ableiten, falls present fehlt
             $arrivedAt = $row['arrived_at'] ?? null;
@@ -533,8 +530,6 @@ class CourseDayAttendanceSyncService
                 $row = $participants[$localPersonId] ?? [];
 
                 $state   = $row['state'] ?? null;
-                $isDirty = in_array($state, [self::STATE_DRAFT, self::STATE_DIRTY], true);
-                if ($isDirty) continue;
 
                 if ($action === 'deleted') {
                     // ✅ falls delete überhaupt genutzt wurde: stabil auf "anwesend"
@@ -579,8 +574,6 @@ class CourseDayAttendanceSyncService
                 $row = $participants[$localPersonId] ?? [];
 
                 $state   = $row['state'] ?? null;
-                $isDirty = in_array($state, [self::STATE_DRAFT, self::STATE_DIRTY], true);
-                if ($isDirty) continue;
 
                 $row['src_api_id'] = $uid;
                 $row['state']      = self::STATE_SYNCED;
