@@ -161,7 +161,7 @@
                         $isAbsent = ($r['hasEntry'] ?? false) && ($d['present'] === false) && !($d['excused'] ?? false);
                     @endphp
 
-                    <tr x-data="{ lateOpen:false, noteOpen:false, arrive:'{{ $d['arrived_at'] ?? $plannedStart }}', leave:'{{ $d['left_at'] ?? $plannedEnd }}' }"
+                    <tr x-data="{ lateOpen:false, noteOpen:false, arrive:'{{ $d['arrived_at'] ?? null }}', leave:'{{ $d['left_at'] ?? null }}' }"
                         class="hover:bg-gray-50"
                         wire:key="row-{{ $r['id'] }}"
                     >
