@@ -58,7 +58,7 @@
                 @endif
             </div>
 
-            <div>
+            <div class="hidden md:block">
                 <button
                     type="button"
                     @click="showSelectDayCalendar = !showSelectDayCalendar"
@@ -79,18 +79,56 @@
         </div>
     </div>
 
-    <div class="flex flex-wrap justify-between items-center gap-2">
-        @if($selectedDay)
-            <div class="flex flex-wrap gap-2 text-xs">
-                <span class="inline-flex items-center rounded bg-green-100 text-green-800 px-2 py-0.5">Anwesend: {{ $stats['present'] }}</span>
-                <span class="inline-flex items-center rounded bg-yellow-100 text-yellow-800 px-2 py-0.5">Teilweise anwesend: {{ $stats['late'] }}</span>
-                <span class="inline-flex items-center rounded bg-blue-100 text-blue-800 px-2 py-0.5">Entschuldigt: {{ $stats['excused'] }}</span>
-                <span class="inline-flex items-center rounded bg-red-100 text-red-800 px-2 py-0.5">Fehlend: {{ $stats['absent'] }}</span>
-                <span class="inline-flex items-center rounded bg-gray-100 text-gray-800 px-2 py-0.5">Gesamt: {{ $stats['total'] }}</span>
-            </div>
-        @endif
+@if($selectedDay)
+    <div class="inline-flex overflow-hidden rounded-full border border-gray-200 bg-white text-xs shadow-sm">
 
+        {{-- Anwesend --}}
+        <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-green-50 text-green-800">
+            <i class="fas fa-check-circle text-green-600"></i>
+            <span class="font-semibold">{{ $stats['present'] }}</span>
+            <span class="hidden md:inline">Anwesend</span>
+        </span>
+
+        {{-- Divider --}}
+        <span class="w-px bg-gray-200"></span>
+
+        {{-- Teilweise --}}
+        <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-yellow-50 text-yellow-800">
+            <i class="fas fa-clock text-yellow-600"></i>
+            <span class="font-semibold">{{ $stats['late'] }}</span>
+            <span class="hidden md:inline">Teilweise</span>
+        </span>
+
+        <span class="w-px bg-gray-200"></span>
+
+        {{-- Entschuldigt --}}
+        <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-800">
+            <i class="fas fa-file-medical text-blue-600"></i>
+            <span class="font-semibold">{{ $stats['excused'] }}</span>
+            <span class="hidden md:inline">Entschuldigt</span>
+        </span>
+
+        <span class="w-px bg-gray-200"></span>
+
+        {{-- Fehlend --}}
+        <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-red-50 text-red-800">
+            <i class="fas fa-times-circle text-red-600"></i>
+            <span class="font-semibold">{{ $stats['absent'] }}</span>
+            <span class="hidden md:inline">Fehlend</span>
+        </span>
+
+        <span class="w-px bg-gray-200"></span>
+
+        {{-- Gesamt --}}
+        <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-50 text-gray-800">
+            <i class="fas fa-users text-gray-600"></i>
+            <span class="font-semibold">{{ $stats['total'] }}</span>
+            <span class="hidden md:inline">Gesamt</span>
+        </span>
     </div>
+@endif
+
+
 
     <div class="border rounded bg-white">
         <table class="min-w-full text-sm table-fixed">
@@ -151,8 +189,8 @@
                         x-data="{
                           lateOpen:false,
                           noteOpen:false,
-                          arrive: @entangle('arriveInput.' . $r['id']).live,
-                          leave:  @entangle('leaveInput.'  . $r['id']).live,
+                          arrive: @js($d['arrived_at'] ?? null),
+                          leave:  @js($d['left_at'] ?? null),
                           init() {
                             this.arrive = this.serverArrive;
                             this.leave  = this.serverLeave;
@@ -249,7 +287,7 @@
                                     >
                                         <i class="far fa-clock text-sm"></i>
                                         @if(($d['arrived_at'] ?? null) || ($d['left_at'] ?? null))
-                                          <span class="absolute -top-1 -right-1 w-3 h-3 bg-yellow-200  rounded-full animate-ping"></span>
+                                          <span class="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400  rounded-full animate-ping"></span>
                                           <span class="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 border-2 border-white rounded-full"></span>
                                         @endif
                                     </button>
