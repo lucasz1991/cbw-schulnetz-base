@@ -225,7 +225,7 @@
                                         class="inline-flex items-center justify-center w-8 h-8 rounded border border-green-600 text-green-700 hover:bg-green-50"
                                         title="Anwesend"
                                         wire:key="row-markpresentbutton-{{ $r['id'] }}"
-                                        wire:click="markPresent({{ $r['id'] }})"
+                                        wire:click.prevent="markPresent({{ $r['id'] }})"
                                         wire:loading.class="pointer-events-none opacity-50 cursor-wait"
                                         wire:target="markPresent({{ $r['id'] }})"
                                     >
@@ -236,7 +236,7 @@
                                         class="inline-flex items-center justify-center w-8 h-8 rounded border border-red-600 text-red-700 hover:bg-red-50"
                                         title="Abwesend"
                                         wire:key="row-markabsentbutton-{{ $r['id'] }}"
-                                        wire:click="markAbsent({{ $r['id'] }})"
+                                        wire:click.prevent="markAbsent({{ $r['id'] }})"
                                         wire:loading.class="pointer-events-none opacity-50 cursor-wait"
                                         wire:target="markAbsent({{ $r['id'] }})"
                                     >
