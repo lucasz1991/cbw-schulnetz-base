@@ -250,7 +250,7 @@ class CourseDayAttendanceSyncService
         $day->attendance_data           = $attendance;
         $day->attendance_updated_at     = $now;
         $day->attendance_last_synced_at = $now;
-        $day->saveQuietly();
+        $day->save();
     }
 
     protected function resetAttendanceData(CourseDay $day): void
@@ -261,7 +261,7 @@ class CourseDayAttendanceSyncService
         $day->attendance_updated_at     = $now;
         $day->attendance_last_synced_at = $now;
 
-        $day->saveQuietly();
+        $day->save();
     }
 
     protected function freshAttendanceDataSkeleton(CourseDay $day): array
@@ -455,7 +455,7 @@ class CourseDayAttendanceSyncService
         $day->attendance_data           = $attendance;
         $day->attendance_updated_at     = Carbon::now();
         $day->attendance_last_synced_at = Carbon::now();
-        $day->saveQuietly();
+        $day->save();
     }
 
     /* -------------------------------------------------------------------------
@@ -604,7 +604,7 @@ class CourseDayAttendanceSyncService
         $day->attendance_data           = $attendance;
         $day->attendance_updated_at     = $now;
         $day->attendance_last_synced_at = $now;
-        $day->saveQuietly();
+        $day->save();
     }
 
     /* -------------------------------------------------------------------------
@@ -760,14 +760,6 @@ protected function computeCourseTimes(CourseDay $day): array
         $courseEnd    = null;
         $totalMinutes = 0;
     }
-Log::debug('attendance.computeCourseTimes', [
-  'day_id'      => $day->id,
-  'day_date'    => $day->date?->toDateString(),
-  'raw_start'   => $day->start_time,
-  'courseStart' => $courseStart?->toDateTimeString(), // <-- wichtig!
-  'courseEnd'   => $courseEnd?->toDateTimeString(),
-  'std'         => $day->std,
-]);
     return [$courseStart, $courseEnd, $totalMinutes];
 }
 
