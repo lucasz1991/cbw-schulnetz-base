@@ -355,14 +355,7 @@ class CourseDayAttendanceSyncService
             $lateMin   = (int) ($row['late_minutes'] ?? 0);
             $leftEarly = (int) ($row['left_early_minutes'] ?? 0);
 
-            $note = $this->normalizeNote($row['note'] ?? null);
-
-            $isFullyPresent =
-                $present
-                && ! $excused
-                && $lateMin === 0
-                && $leftEarly === 0
-                && $note === '';
+            $isFullyPresent = $present && ! $excused && $lateMin === 0 && $leftEarly === 0;
 
             if ($isFullyPresent) {
                 if ($hasRemote || self::FULLY_PRESENT_AS_UPDATE) {
