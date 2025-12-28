@@ -18,8 +18,10 @@
             <div class="flex items-center gap-2">
             <div
                   x-data="{ open: false }"
-                  class="relative flex items-stretch rounded-md border border-gray-200 shadow-sm  h-max w-max max-md:mb-4"
+                  class="relative"
               >
+                <div class="relative flex items-stretch rounded-md border border-gray-200 shadow-sm overflow-hidden h-max w-max max-md:mb-4">
+
                   {{-- Zurück --}}
                   @if($selectPreviousDayPossible)
                       <button
@@ -57,6 +59,7 @@
                           <i class="fas fa-chevron-right text-xs"></i>
                       </button>
                   @endif
+                </div>
 
                   {{-- Dropdown --}}
                   <div
