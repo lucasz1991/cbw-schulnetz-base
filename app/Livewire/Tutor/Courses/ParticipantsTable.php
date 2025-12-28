@@ -714,7 +714,11 @@ class ParticipantsTable extends Component
     {
         $this->updatePrevNextFlags();
         [$plannedStart, $plannedEnd] = $this->plannedStartEndStrings();
-
+    
+        $availableDays = $this->course->dates()
+            ->orderBy('date')
+            ->get();
+    
         return view('livewire.tutor.courses.participants-table', [
             'participants'              => $this->participants,
             'rows'                      => $this->rows,
@@ -727,6 +731,7 @@ class ParticipantsTable extends Component
             'isDirty'                   => $this->isDirty,
             'plannedStart'              => $plannedStart,
             'plannedEnd'                => $plannedEnd,
+            'availableDays'             => $availableDays,
         ]);
     }
 }

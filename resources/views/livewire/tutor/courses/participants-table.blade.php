@@ -20,6 +20,7 @@
                         :sortDir="$sortDir"
                         :selectPreviousDayPossible="$selectPreviousDayPossible"
                         :selectNextDayPossible="$selectNextDayPossible"
+                        :availableDays ="$availableDays"
                         :plannedStart="$plannedStart"
                         :plannedEnd="$plannedEnd"
                     />
