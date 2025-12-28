@@ -7,6 +7,7 @@
   'sortDir',
   'selectPreviousDayPossible',
   'selectNextDayPossible',
+    'availableDays',
   'plannedStart',
   'plannedEnd',
 ])
