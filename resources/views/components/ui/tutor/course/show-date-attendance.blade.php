@@ -403,38 +403,84 @@
                                     </div>
                                 </div>
 
-                                {{-- Notiz Popover (Text + SaveNote Wrapper) --}}
-                                <div class="relative">
-                                    <button
-                                        class="inline-flex items-center justify-center w-8 h-8 rounded border  @if($d['note']) border-blue-300 text-blue-400 bg-blue-50/70 hover:bg-blue-100 @else border-gray-300 text-gray-500 hover:bg-gray-50 @endif"
-                                        title="Notiz hinzufügen"
-                                        @click="noteOpen = !noteOpen"
-                                    >
-                                        <i class="fas fa-pen text-sm"></i>
-                                        @if($d['note'])
-                                            <span class="absolute -top-1 -right-1 w-3 h-3 bg-blue-300 border-2 border-white rounded-full"></span>
-                                            <span class="absolute -top-1 -right-1 w-3 h-3 bg-blue-200  rounded-full animate-ping"></span>
-                                        @endif
-                                    </button>
+  {{-- Notiz Popover (Text + SaveNote Wrapper) --}}
+<div class="relative"
+     x-data="{
+        tipOpen: false,
+        showTooltip() { this.tipOpen = true; clearTimeout(this.__tipT); this.__tipT = setTimeout(() => this.tipOpen = false, 2500); },
+        hideTooltip() { this.tipOpen = false; clearTimeout(this.__tipT); },
+     }"
+>
+    <button
+        type="button"
+        class="inline-flex items-center justify-center w-8 h-8 rounded border
+            @if($d['note']) border-blue-300 text-blue-400 bg-blue-50/70 hover:bg-blue-100
+            @else border-gray-300 text-gray-500 hover:bg-gray-50
+            @endif
+            @if(!$hasEntry) opacity-80 @endif
+        "
+        title="Notiz hinzufügen"
+        @mouseenter="@if(!$hasEntry) showTooltip() @endif"
+        @mouseleave="hideTooltip()"
+        @focus="@if(!$hasEntry) showTooltip() @endif"
+        @blur="hideTooltip()"
+        @click="
+            @if($hasEntry)
+                noteOpen = !noteOpen
+            @else
+                showTooltip()
+            @endif
+        "
+    >
+        <i class="fas fa-pen text-sm"></i>
 
-                                    <div x-cloak x-show="noteOpen" @click.outside="noteOpen=false"
-                                         class="absolute right-0 z-10 mt-2 w-72 rounded border border-gray-300 bg-white p-3 shadow">
-                                        <label class="block text-xs text-gray-600 mb-1">Notiz</label>
+        @if($d['note'])
+            <span class="absolute -top-1 -right-1 w-3 h-3 bg-blue-300 border-2 border-white rounded-full"></span>
+            <span class="absolute -top-1 -right-1 w-3 h-3 bg-blue-200 rounded-full animate-ping"></span>
+        @endif
+    </button>
 
-                                        <textarea
-                                            x-model="note"
-                                            rows="3"
-                                            class="w-full rounded border-gray-300 text-sm"
-                                            wire:change="saveNote({{ $r['id'] }})"
-                                            wire:loading.attr="disabled"
-                                            wire:target="saveNote({{ $r['id'] }})"
-                                        ></textarea>
+    {{-- Tooltip wenn kein Entry --}}
+    @if(!$hasEntry)
+        <div
+            x-cloak
+            x-show="tipOpen"
+            x-transition.opacity.duration.150ms
+            @click.outside="hideTooltip()"
+            class="absolute right-0 z-20 mt-2 w-64 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 shadow"
+        >
+            <div class="font-semibold mb-0.5">Notiz erst nach Eintrag</div>
+            <div>
+                Bitte zuerst <span class="font-medium">Anwesend/Fehlend/Entschuldigt</span> setzen (oder eine Zeit eintragen),
+                dann kannst du eine Notiz speichern.
+            </div>
+        </div>
+    @endif
 
-                                        <div class="mt-2 flex justify-end">
-                                            <button class="text-xs text-gray-600 underline" @click="noteOpen=false">Schließen</button>
-                                        </div>
-                                    </div>
-                                </div>
+    {{-- Normales Notiz-Popover --}}
+    <div
+        x-cloak
+        x-show="noteOpen"
+        @click.outside="noteOpen=false"
+        class="absolute right-0 z-10 mt-2 w-72 rounded border border-gray-300 bg-white p-3 shadow"
+    >
+        <label class="block text-xs text-gray-600 mb-1">Notiz</label>
+
+        <textarea
+            x-model="note"
+            rows="3"
+            class="w-full rounded border-gray-300 text-sm"
+            wire:change="saveNote({{ $r['id'] }})"
+            wire:loading.attr="disabled"
+            wire:target="saveNote({{ $r['id'] }})"
+        ></textarea>
+
+        <div class="mt-2 flex justify-end">
+            <button type="button" class="text-xs text-gray-600 underline" @click="noteOpen=false">Schließen</button>
+        </div>
+    </div>
+</div>
+
 
                             </div>
                         </td>
