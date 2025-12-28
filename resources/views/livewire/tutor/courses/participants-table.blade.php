@@ -23,13 +23,10 @@
                         :plannedStart="$plannedStart"
                         :plannedEnd="$plannedEnd"
                     />
-
-
                 @else
                     <p class="text-sm text-gray-500">Kein Datum ausgewählt.</p>
                 @endif
             </div>
-
             <div class="hidden md:block w-full mt-2"
                 :class="{
                     'md:w-1/3 xl:w-1/5': showSelectDayCalendar
