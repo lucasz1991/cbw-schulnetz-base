@@ -17,70 +17,70 @@
         <div class="flex justify-between items-center space-x-3 w-full">
             <div class="flex items-center gap-2">
             <div
-    x-data="{ open: false }"
-    class="relative flex items-stretch rounded-md border border-gray-200 shadow-sm overflow-hidden h-max w-max max-md:mb-4"
->
-    {{-- Zurück --}}
-    @if($selectPreviousDayPossible)
-        <button
-            type="button"
-            wire:click="selectPreviousDay"
-            class="px-4 py-2 text-sm text-white bg-blue-400 hover:bg-blue-700"
-        >
-            <i class="fas fa-chevron-left text-xs"></i>
-        </button>
-    @endif
+                  x-data="{ open: false }"
+                  class="relative flex items-stretch rounded-md border border-gray-200 shadow-sm  h-max w-max max-md:mb-4"
+              >
+                  {{-- Zurück --}}
+                  @if($selectPreviousDayPossible)
+                      <button
+                          type="button"
+                          wire:click="selectPreviousDay"
+                          class="px-4 py-2 text-sm text-white bg-blue-400 hover:bg-blue-700"
+                      >
+                          <i class="fas fa-chevron-left text-xs"></i>
+                      </button>
+                  @endif
 
-    {{-- Datum / Dropdown Trigger --}}
-    <button
-        type="button"
-        @click="open = !open"
-        class="flex items-center gap-2 bg-blue-200 text-blue-800 text-sm font-medium px-3 py-2 hover:bg-blue-300 focus:outline-none"
-    >
-        <span class="whitespace-nowrap">
-            {{ $selectedDay?->date?->format('d.m.Y') }}
-        </span>
+                  {{-- Datum / Dropdown Trigger --}}
+                  <button
+                      type="button"
+                      @click="open = !open"
+                      class="flex items-center gap-2 bg-blue-200 text-blue-800 text-sm font-medium px-3 py-2 hover:bg-blue-300 focus:outline-none"
+                  >
+                      <span class="whitespace-nowrap">
+                          {{ $selectedDay?->date?->format('d.m.Y') }}
+                      </span>
 
-        <i
-            class="fas fa-chevron-down text-xs transition-transform"
-            :class="{ 'rotate-180': open }"
-        ></i>
-    </button>
+                      <i
+                          class="fas fa-chevron-down text-xs transition-transform"
+                          :class="{ 'rotate-180': open }"
+                      ></i>
+                  </button>
 
-    {{-- Vor --}}
-    @if($selectNextDayPossible)
-        <button
-            type="button"
-            wire:click="selectNextDay"
-            class="px-4 py-2 bg-blue-400 text-sm text-white hover:bg-blue-700"
-        >
-            <i class="fas fa-chevron-right text-xs"></i>
-        </button>
-    @endif
+                  {{-- Vor --}}
+                  @if($selectNextDayPossible)
+                      <button
+                          type="button"
+                          wire:click="selectNextDay"
+                          class="px-4 py-2 bg-blue-400 text-sm text-white hover:bg-blue-700"
+                      >
+                          <i class="fas fa-chevron-right text-xs"></i>
+                      </button>
+                  @endif
 
-    {{-- Dropdown --}}
-    <div
-        x-show="open"
-        x-transition
-        @click.outside="open = false"
-        x-cloak
-        class="absolute top-full left-0 mt-1 z-50 w-full min-w-[12rem]
-               bg-white border border-gray-200 rounded-md shadow-lg
-               max-h-64 overflow-y-auto"
-    >
-        @foreach($availableDays as $day)
-            <button
-                type="button"
-                wire:click="selectDay('{{ $day->date->toDateString() }}')"
-                @click="open = false"
-                class="w-full text-left px-3 py-2 text-sm hover:bg-blue-50
-                       {{ $selectedDay?->date?->isSameDay($day->date) ? 'bg-blue-100 font-semibold' : '' }}"
-            >
-                {{ $day->date->format('d.m.Y') }}
-            </button>
-        @endforeach
-    </div>
-</div>
+                  {{-- Dropdown --}}
+                  <div
+                      x-show="open"
+                      x-transition
+                      @click.outside="open = false"
+                      x-cloak
+                      class="absolute top-full left-0 mt-1 z-50 w-full min-w-[12rem]
+                            bg-white border border-gray-200 rounded-md shadow-lg
+                            max-h-64 overflow-y-auto"
+                  >
+                      @foreach($availableDays as $day)
+                          <button
+                              type="button"
+                              wire:click="selectDay('{{ $day->id }}')"
+                              @click="open = false"
+                              class="w-full text-left px-3 py-2 text-sm hover:bg-blue-50
+                                    {{ $selectedDay?->date?->isSameDay($day->date) ? 'bg-blue-100 font-semibold' : '' }}"
+                          >
+                              {{ $day->date->format('d.m.Y') }}
+                          </button>
+                      @endforeach
+                  </div>
+              </div>
 
 
                 @php
