@@ -16,7 +16,7 @@
     }
     elseif ($isPast) { $statusClasses = 'bg-gray-200 text-gray-600'; $statusLabel = 'beendet'; }
 @endphp
-<div class="">
+<div class="mb-24">
     <x-slot name="header">
         <div class="px-4 flex items-center gap-3">
             <x-back-button />

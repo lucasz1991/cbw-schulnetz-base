@@ -32,7 +32,10 @@ class ParticipantsTable extends Component
     public ?int $selectedDayId = null;
     public ?CourseDay $selectedDay = null;
 
-    // Abgeleitete Attendance-Map
+    /**
+     * Source-of-truth für UI Rendering pro Participant.
+     * Wird beim Load komplett rebuilt + bei apply/saveOne gezielt aktualisiert.
+     */
     public array $attendanceMap = [];
 
     // UI-Flags für Prev/Next
@@ -93,15 +96,16 @@ class ParticipantsTable extends Component
         $this->isLoadingApi = true;
 
         try {
-            /**  CourseDayAttendanceSyncService $service */
+            /** @var CourseDayAttendanceSyncService $service */
             $service = app(CourseDayAttendanceSyncService::class);
 
             $service->loadFromRemote($day);
 
             $day->refresh();
-            $this->selectedDay = $day;
+            $this->selectedDay   = $day;
             $this->selectedDayId = $day->id;
 
+            // UI-Source-of-truth rebuilden
             $this->rebuildAttendanceMap();
 
             $this->isDirty = false;
@@ -123,50 +127,54 @@ class ParticipantsTable extends Component
     {
         $this->apply($participantId, $patch);
         $this->saveOne($participantId);
-        $this->loadAttendance();
+         $this->loadAttendance();
     }
-
 
     /**
      * Row-Sync zu UVS – KEIN global isLoadingApi.
-     * Loader bitte wire:target exakt auf saveOne/markPresent/... etc. im Blade setzen.
+     * Wichtig: nach Sync wird attendanceMap + wrapper Inputs aktualisiert,
+     * damit UI sofort den frischen Stand zeigt (ohne loadAttendance()).
      */
-public function saveOne(int $participantId): void
-{
-    $day = $this->dayOrFail();
+    public function saveOne(int $participantId): void
+    {
+        $day = $this->dayOrFail();
 
-    try {
-        /** @var CourseDayAttendanceSyncService $service */
-        $service = app(CourseDayAttendanceSyncService::class);
+        try {
+            /** @var CourseDayAttendanceSyncService $service */
+            $service = app(CourseDayAttendanceSyncService::class);
 
-        $ok = $service->syncToRemote($day, [$participantId]);
+            $ok = $service->syncToRemote($day, [$participantId]);
 
-        $day->refresh();
-        $this->selectedDay = $day;
+            // DB/Model frisch holen, aber UI basiert auf attendanceMap (wird gleich aktualisiert)
+            $day->refresh();
+            $this->selectedDay = $day;
 
-        $fresh = data_get($day->attendance_data, "participants.$participantId", []);
-        $this->attendanceMap[$participantId] = $this->normalizeRow($fresh);
+            $fresh = data_get($day->attendance_data, "participants.$participantId", []);
+            $freshNormalized = $this->normalizeRow($fresh);
 
-        // Wrapper updaten (damit Inputs sofort den saved Stand zeigen)
-        $this->arriveInput[$participantId] = data_get($fresh, 'arrived_at');
-        $this->leaveInput[$participantId]  = data_get($fresh, 'left_at');
-        $this->noteInput[$participantId]   = data_get($fresh, 'note');
+            // ✅ UI sofort updaten (Source-of-truth)
+            $this->attendanceMap[$participantId] = $freshNormalized;
 
-        $this->isDirty = false;
-        if (! $ok) {
-            $this->dispatch('notify', type: 'error', message: "UVS-Sync fehlgeschlagen (#{$participantId}).");
+            // Wrapper updaten (Inputs zeigen saved Stand)
+            $this->arriveInput[$participantId] = data_get($fresh, 'arrived_at');
+            $this->leaveInput[$participantId]  = data_get($fresh, 'left_at');
+            $this->noteInput[$participantId]   = data_get($fresh, 'note');
+
+            $this->isDirty = false;
+
+            if (! $ok) {
+                $this->dispatch('notify', type: 'error', message: "UVS-Sync fehlgeschlagen (#{$participantId}).");
+            }
+        } catch (\Throwable $e) {
+            Log::error('ParticipantsTable.saveOne: Fehler beim UVS-Sync', [
+                'day_id'         => $day->id ?? null,
+                'participant_id' => $participantId,
+                'error'          => $e->getMessage(),
+            ]);
+
+            $this->dispatch('notify', type: 'error', message: "Fehler beim Speichern (#{$participantId}).");
         }
-    } catch (\Throwable $e) {
-        \Log::error('ParticipantsTable.saveOne: Fehler beim UVS-Sync', [
-            'day_id'         => $day->id ?? null,
-            'participant_id' => $participantId,
-            'error'          => $e->getMessage(),
-        ]);
-
-        $this->dispatch('notify', type: 'error', message: "Fehler beim Speichern (#{$participantId}).");
     }
-}
-
 
     #[On('calendarEventClick')]
     public function handleCalendarEventClick(...$args): void
@@ -249,7 +257,6 @@ public function saveOne(int $participantId): void
             : 'asc';
 
         $this->sortBy = $key;
-
         $this->resetPage();
     }
 
@@ -358,7 +365,8 @@ public function saveOne(int $participantId): void
     }
 
     /**
-     * (Kein refresh hier – refresh passiert nach Sync in saveOne)
+     * Lokal patchen + attendanceMap sofort updaten,
+     * damit UI sofort den geänderten Stand zeigt (noch bevor Sync durch ist).
      */
     protected function apply(int $participantId, array $patch): void
     {
@@ -366,14 +374,15 @@ public function saveOne(int $participantId): void
 
         $patch['state'] = 'dirty';
 
-        // setAttendance speichert im Model
+        // Model patchen
         $day->setAttendance($participantId, $patch);
 
         $this->selectedDay = $day;
         $this->isDirty = true;
 
-        $existing = $this->attendanceMap[$participantId] ?? [];
-        $merged   = array_replace_recursive($this->normalizeRow($existing), $patch);
+        // attendanceMap patchen (UI)
+        $existing = $this->attendanceMap[$participantId] ?? $this->normalizeRow($this->currentRow($participantId) ?? []);
+        $merged   = array_replace_recursive($existing, $patch);
 
         if (isset($patch['timestamps'])) {
             $merged['in']  = $patch['timestamps']['in']  ?? ($existing['in']  ?? null);
@@ -385,6 +394,7 @@ public function saveOne(int $participantId): void
 
         $this->attendanceMap[$participantId] = $this->normalizeRow($merged);
 
+        // wrapper Inputs aktualisieren
         if (array_key_exists('arrived_at', $patch)) $this->arriveInput[$participantId] = $patch['arrived_at'];
         if (array_key_exists('left_at',    $patch)) $this->leaveInput[$participantId]  = $patch['left_at'];
         if (array_key_exists('note',       $patch)) $this->noteInput[$participantId]   = $patch['note'];
@@ -563,6 +573,7 @@ public function saveOne(int $participantId): void
         $att = $day->attendance_data ?? [];
         $map = Arr::get($att, 'participants', []);
 
+        // IDs aus remote/local
         $allIds = collect(array_keys($map))->map(fn ($id) => (int) $id);
 
         if ($day->course && method_exists($day->course, 'participants')) {
@@ -580,14 +591,18 @@ public function saveOne(int $participantId): void
             $participants = $rel->whereIn($qualifiedKey, $allIds)->get()->keyBy('id');
         }
 
+        // ✅ Datenquelle für UI = attendanceMap (sofort aktuell nach apply/saveOne)
         $rows = $allIds->map(function (int $pid) use ($participants, $map) {
-            $raw = $map[$pid] ?? null;
+            $hasEntry = array_key_exists($pid, $map);
+
+            $data = $this->attendanceMap[$pid]
+                ?? $this->normalizeRow($map[$pid] ?? null);
 
             return [
                 'id'       => $pid,
                 'user'     => $participants[$pid] ?? null,
-                'data'     => $this->normalizeRow($raw),
-                'hasEntry' => array_key_exists($pid, $map),
+                'data'     => $data,
+                'hasEntry' => $hasEntry,
             ];
         });
 

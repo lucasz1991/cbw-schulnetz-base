@@ -189,12 +189,9 @@
                         x-data="{
                           lateOpen:false,
                           noteOpen:false,
-                          arrive: @js($d['arrived_at'] ?? null),
-                          leave:  @js($d['left_at'] ?? null),
-                          init() {
-                            this.arrive = this.serverArrive;
-                            this.leave  = this.serverLeave;
-                          }
+                          arrive: @entangle('arriveInput.' . $r['id']).live,
+                          leave:  @entangle('leaveInput.'  . $r['id']).live,
+                          note:   @entangle('noteInput.'   . $r['id']).live,
                         }"
                         wire:key="row-{{ $r['id'] }}"
                         class="hover:bg-gray-50"
@@ -321,7 +318,7 @@
                                                     </div>
 
                                                     {{-- Schnellauswahl (BEHALTEN) --}}
-                                                    <div class="w-28 shrink-0">
+                                                    <div class="w-10 shrink-0">
                                                         <label class="sr-only" for="arrive-quick-{{ $r['id'] }}">Schnellwahl</label>
                                                         <select
                                                             id="arrive-quick-{{ $r['id'] }}"
@@ -330,16 +327,15 @@
                                                                 $wire.set('arriveInput.{{ $r['id'] }}', arrive);
                                                                 $wire.saveArrival({{ $r['id'] }});
                                                             "
-                                                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+                                                            class="bg-gray-50 border border-gray-300 text-white/0 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5   w-10 "
                                                             wire:loading.attr="disabled"
                                                             wire:target="saveArrival({{ $r['id'] }})"
                                                         >
-                                                            <option value="">– wählen –</option>
-                                                            <option value="{{ $plannedStart }}">{{ $plannedStart }}</option>
-                                                            <option value="08:30">08:30</option>
-                                                            <option value="09:00">09:00</option>
-                                                            <option value="09:30">09:30</option>
-                                                            <option value="10:00">10:00</option>
+                                                            <option class="text-gray-700" value="{{ $plannedStart }}">Pünktlich</option>
+                                                            <option class="text-gray-700" value="08:30">08:30</option>
+                                                            <option class="text-gray-700" value="09:00">09:00</option>
+                                                            <option class="text-gray-700" value="09:30">09:30</option>
+                                                            <option class="text-gray-700" value="10:00">10:00</option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -370,7 +366,7 @@
                                                     </div>
 
                                                     {{-- Schnellauswahl (BEHALTEN) --}}
-                                                    <div class="w-28 shrink-0">
+                                                    <div class="w-10 shrink-0">
                                                         <label class="sr-only" for="leave-quick-{{ $r['id'] }}">Schnellwahl</label>
                                                         <select
                                                             id="leave-quick-{{ $r['id'] }}"
@@ -379,21 +375,20 @@
                                                                 $wire.set('leaveInput.{{ $r['id'] }}', leave);
                                                                 $wire.saveLeave({{ $r['id'] }});
                                                             "
-                                                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+                                                            class="bg-gray-50 border border-gray-300 text-white/0 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 w-10 "
                                                             wire:loading.attr="disabled"
                                                             wire:target="saveLeave({{ $r['id'] }})"
                                                         >
-                                                            <option value="">– wählen –</option>
-                                                            <option value="{{ $plannedEnd }}">{{ $plannedEnd }}</option>
-                                                            <option value="12:30">12:30</option>
-                                                            <option value="13:00">13:00</option>
-                                                            <option value="13:30">13:30</option>
-                                                            <option value="14:00">14:00</option>
-                                                            <option value="14:30">14:30</option>
-                                                            <option value="15:00">15:00</option>
-                                                            <option value="15:30">15:30</option>
-                                                            <option value="16:00">16:00</option>
-                                                            <option value="16:30">16:30</option>
+                                                            <option class="text-gray-700" value="12:30">12:30</option>
+                                                            <option class="text-gray-700" value="13:00">13:00</option>
+                                                            <option class="text-gray-700" value="13:30">13:30</option>
+                                                            <option class="text-gray-700" value="14:00">14:00</option>
+                                                            <option class="text-gray-700" value="14:30">14:30</option>
+                                                            <option class="text-gray-700" value="15:00">15:00</option>
+                                                            <option class="text-gray-700" value="15:30">15:30</option>
+                                                            <option class="text-gray-700" value="16:00">16:00</option>
+                                                            <option class="text-gray-700" value="16:30">16:30</option>
+                                                            <option class="text-gray-700" value="{{ $plannedEnd }}">Pünktlich</option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -425,13 +420,13 @@
                                         <label class="block text-xs text-gray-600 mb-1">Notiz</label>
 
                                         <textarea
+                                            x-model="note"
                                             rows="3"
                                             class="w-full rounded border-gray-300 text-sm"
-                                            wire:model.live="noteInput.{{ $r['id'] }}"
                                             wire:change="saveNote({{ $r['id'] }})"
                                             wire:loading.attr="disabled"
                                             wire:target="saveNote({{ $r['id'] }})"
-                                        >{{ $d['note'] }}</textarea>
+                                        ></textarea>
 
                                         <div class="mt-2 flex justify-end">
                                             <button class="text-xs text-gray-600 underline" @click="noteOpen=false">Schließen</button>
