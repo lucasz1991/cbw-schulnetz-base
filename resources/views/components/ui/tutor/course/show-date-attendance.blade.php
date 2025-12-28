@@ -331,6 +331,7 @@
                                                             wire:loading.attr="disabled"
                                                             wire:target="saveArrival({{ $r['id'] }})"
                                                         >
+                                                            <option class="text-gray-700" value="">Bitte wählen</option>
                                                             <option class="text-gray-700" value="{{ $plannedStart }}">Pünktlich</option>
                                                             <option class="text-gray-700" value="08:30">08:30</option>
                                                             <option class="text-gray-700" value="09:00">09:00</option>
@@ -379,6 +380,7 @@
                                                             wire:loading.attr="disabled"
                                                             wire:target="saveLeave({{ $r['id'] }})"
                                                         >
+                                                            <option class="text-gray-700" value="">Bitte wählen</option>
                                                             <option class="text-gray-700" value="12:30">12:30</option>
                                                             <option class="text-gray-700" value="13:00">13:00</option>
                                                             <option class="text-gray-700" value="13:30">13:30</option>
