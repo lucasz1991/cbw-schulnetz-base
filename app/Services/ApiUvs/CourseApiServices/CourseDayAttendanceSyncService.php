@@ -24,7 +24,7 @@ class CourseDayAttendanceSyncService
      * Vollständig anwesend wird als neutrales UPDATE statt DELETE gepusht.
      * (Wenn UVS zwingend delete braucht, auf false setzen.)
      */
-    protected const FULLY_PRESENT_AS_UPDATE = true;
+    protected const FULLY_PRESENT_AS_UPDATE = false;
 
     public function __construct(ApiUvsService $api)
     {
