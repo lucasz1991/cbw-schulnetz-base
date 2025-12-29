@@ -49,10 +49,8 @@
         <div class="">
             <div class="relative overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
 
-                <div class="relative p-5 sm:p-6">
+                <div class="relative p-2 sm:p-4 md:p-6">
                     <div class="flex flex-col lg:flex-row gap-4 lg:gap-6">
-
- 
 
                         {{-- middle: title + chips --}}
                         <div class="min-w-0 flex-1 space-y-3">
@@ -84,7 +82,7 @@
                                             </span>
                                             <span class="text-sm font-semibold">Termine</span>
                                         </div>
-                                        <div class="text-lg font-extrabold text-gray-900 leading-none">
+                                        <div class=" font-extrabold text-gray-900 leading-none">
                                             {{ $course->dates_count ?? 0 }}
                                         </div>
                                     </div>
@@ -98,7 +96,7 @@
                                             </span>
                                             <span class="text-sm font-semibold">Teilnehmer</span>
                                         </div>
-                                        <div class="text-lg font-extrabold text-gray-900 leading-none">
+                                        <div class=" font-extrabold text-gray-900 leading-none">
                                             {{ $course->participants_count ?? 0 }}
                                         </div>
                                     </div>
@@ -169,7 +167,7 @@
             ]"
             :collapseAt="'lg'"
             default="doku"
-            class="mt-8"
+            class="mt-4 md:mt-8"
         >
             <x-ui.accordion.tab-panel for="anwesenheit">
                 <livewire:tutor.courses.participants-table :courseId="$course->id" />
