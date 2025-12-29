@@ -204,27 +204,27 @@
                           'present' => [
                               'label' => 'Anwesend',
                               'icon'  => 'fas fa-check-circle',
-                              'pill'  => 'bg-green-50 text-green-800 ring-1 ring-green-200',
+                              'pill'  => 'bg-green-100/60 text-green-800 ring-1 ring-green-400',
                           ],
                           'partial' => [
                               'label' => 'Teilweise',
                               'icon'  => 'fas fa-clock',
-                              'pill'  => 'bg-yellow-100 text-yellow-900 ring-1 ring-yellow-400',
+                              'pill'  => 'bg-yellow-100/60 text-yellow-900 ring-1 ring-yellow-400',
                           ],
                           'excused' => [
                               'label' => 'Entschuldigt',
                               'icon'  => 'fas fa-file-medical',
-                              'pill'  => 'bg-blue-50 text-blue-800 ring-1 ring-blue-200',
+                              'pill'  => 'bg-blue-100/60 text-blue-800 ring-1 ring-blue-400',
                           ],
                           'absent' => [
                               'label' => 'Fehlend',
                               'icon'  => 'fas fa-times-circle',
-                              'pill'  => 'bg-red-50 text-red-800 ring-1 ring-red-200',
+                              'pill'  => 'bg-red-100/60 text-red-800 ring-1 ring-red-400',
                           ],
                           'unknown' => [
                               'label' => 'Unbekannt',
                               'icon'  => 'fas fa-question-circle',
-                              'pill'  => 'bg-gray-50 text-gray-700 ring-1 ring-gray-200',
+                              'pill'  => 'bg-gray-100/60 text-gray-700 ring-1 ring-gray-400',
                           ],
                       ];
 
@@ -259,7 +259,7 @@
                         <td class="px-1 md:px-4 py-2">
                             <div class="flex items-center gap-2 flex-wrap">
                               <span
-                                  class="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[11px] font-semibold shadow-sm {{ $statusPill }}"
+                                  class="inline-flex items-center gap-1.5 rounded-full px-1 md:px-2 py-1 text-[11px] font-semibold shadow-sm {{ $statusPill }}"
                                   title="{{ $statusLabel }}"
                               >
                                   <i class="{{ $statusIcon }} text-[12px]"></i>
@@ -270,13 +270,13 @@
                                   </span>
                               </span>
                                 @if($late > 0)
-                                    <span class="hidden md:inline-flex rounded px-2 py-0.5 text-xs bg-yellow-100 text-yellow-800">
-                                        +{{ $late }} min spät
+                                    <span class="hidden md:inline-flex rounded-full px-2 py-0.5 text-xs bg-yellow-100 text-yellow-800 ring-1 ring-yellow-400">
+                                        + {{ $late }} min spät
                                     </span>
                                 @endif
                                 @if($early > 0)
-                                    <span class="hidden md:inline-flex rounded px-2 py-0.5 text-xs bg-orange-100 text-orange-800">
-                                        {{ $early }} min früher
+                                    <span class="hidden md:inline-flex rounded-full px-2 py-0.5 text-xs bg-orange-100 text-orange-800 ring-1 ring-orange-400">
+                                       - {{ $early }} min früher
                                     </span>
                                 @endif
                             </div>
