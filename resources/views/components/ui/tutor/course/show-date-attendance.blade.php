@@ -209,7 +209,7 @@
                           'partial' => [
                               'label' => 'Teilweise',
                               'icon'  => 'fas fa-clock',
-                              'pill'  => 'bg-yellow-50 text-yellow-900 ring-1 ring-yellow-200',
+                              'pill'  => 'bg-yellow-100 text-yellow-900 ring-1 ring-yellow-400',
                           ],
                           'excused' => [
                               'label' => 'Entschuldigt',
@@ -259,7 +259,7 @@
                         <td class="px-1 md:px-4 py-2">
                             <div class="flex items-center gap-2 flex-wrap">
                               <span
-                                  class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold shadow-sm {{ $statusPill }}"
+                                  class="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[11px] font-semibold shadow-sm {{ $statusPill }}"
                                   title="{{ $statusLabel }}"
                               >
                                   <i class="{{ $statusIcon }} text-[12px]"></i>
