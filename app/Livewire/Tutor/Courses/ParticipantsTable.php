@@ -606,9 +606,31 @@ class ParticipantsTable extends Component
             ];
         });
 
-        return $rows
-            ->sortBy(fn ($r) => strtolower($r['user']->nachname ?? ('zzzz_'.$r['id'])))
-            ->values();
+        $dir = $this->sortDir === 'desc' ? 'desc' : 'asc';
+
+        $sorted = $rows->sortBy(function ($r) {
+            $u = $r['user'];
+
+            // Fallback-Strings (damit nulls nicht alles sprengen)
+            $nachname = strtolower((string)($u->nachname ?? ''));
+            $vorname  = strtolower((string)($u->vorname ?? ''));
+            $email    = strtolower((string)($u->email ?? ''));
+
+            return match ($this->sortBy) {
+                'name'      => $nachname . ' ' . $vorname,   // ✅ Name = Nachname + Vorname
+                'nachname'  => $nachname,
+                'vorname'   => $vorname,
+                'email'     => $email,
+                'created_at'=> (string)($u->created_at ?? ''),
+                default     => $nachname . ' ' . $vorname,
+            };
+        }, SORT_NATURAL);
+
+        if ($dir === 'desc') {
+            $sorted = $sorted->reverse();
+        }
+
+        return $sorted->values();
     }
 
     public function getStatsProperty(): array

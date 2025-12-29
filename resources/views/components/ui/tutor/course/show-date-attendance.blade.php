@@ -300,11 +300,15 @@
                                     </button>
                                     <div x-cloak x-show="lateOpen" @click.outside="lateOpen=false"
                                          class="absolute right-0 z-10 mt-2 w-72 rounded border border-gray-300 bg-white p-3 shadow">
+                                         <div class="absolute right-0 top-0 flex justify-end gap-2 mb-4 p-2">
+                                           <button class="text-xs text-gray-600" @click="clearTimes"><i class="far fa-trash-alt"></i></button>
+                                           <button class="text-xs text-gray-600" @click="lateOpen=false"><i class="far fa-times-circle"></i></button>
+                                         </div>
                                         <div class="space-y-4">
                                             {{-- Gekommen --}}
                                             <div>
                                                 <label for="arrive-{{ $r['id'] }}" class="block mb-2 text-xs font-medium text-gray-600">Gekommen (Uhrzeit)</label>
-                                                <div class="flex items-end gap-2">
+                                                <div class="flex items-end">
                                                     <div class="relative flex-1">
                                                         <div class="absolute inset-y-0 end-0 top-0 flex items-center pe-3.5 pointer-events-none">
                                                             <i class="far fa-clock text-gray-500"></i>
@@ -313,7 +317,7 @@
                                                             x-model="arrive"
                                                             type="time"
                                                             id="arrive-{{ $r['id'] }}"
-                                                            class="bg-gray-50 border leading-none border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+                                                            class="bg-gray-50 border border-r-0 leading-none border-gray-300 text-gray-900 text-sm rounded-l-lg focus:ring-blue-500 focus:border-blue-500 block cursor-pointer w-full h-[40px] p-2.5"
                                                             min="{{ $plannedStart }}"
                                                             max="{{ $plannedEnd }}"
                                                             step="60"
@@ -325,7 +329,6 @@
                                                     </div>
                                                     {{-- Schnellauswahl (BEHALTEN) --}}
                                                     <div class="w-10 shrink-0">
-                                                        <label class="sr-only" for="arrive-quick-{{ $r['id'] }}">Schnellwahl</label>
                                                         <select
                                                             id="arrive-quick-{{ $r['id'] }}"
                                                             @change="
@@ -333,7 +336,7 @@
                                                                 $wire.set('arriveInput.{{ $r['id'] }}', arrive);
                                                                 $wire.saveArrival({{ $r['id'] }});
                                                             "
-                                                            class="bg-gray-50 border border-gray-300 text-white/0 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5   w-10 "
+                                                            class="bg-gray-50 border border-gray-300 text-white/0 text-sm rounded-r-lg focus:ring-blue-500 focus:border-blue-500 block p-2 cursor-pointer h-[40px] w-10 "
                                                             wire:loading.attr="disabled"
                                                             wire:target="saveArrival({{ $r['id'] }})"
                                                         >
@@ -350,7 +353,7 @@
                                             {{-- Gegangen --}}
                                             <div>
                                                 <label for="leave-{{ $r['id'] }}" class="block mb-2 text-xs font-medium text-gray-600">Gegangen (Uhrzeit)</label>
-                                                <div class="flex items-end gap-2">
+                                                <div class="flex items-end">
                                                     <div class="relative flex-1">
                                                         <div class="absolute inset-y-0 end-0 top-0 flex items-center pe-3.5 pointer-events-none">
                                                             <i class="far fa-clock text-gray-500"></i>
@@ -359,7 +362,7 @@
                                                             x-model="leave"
                                                             type="time"
                                                             id="leave-{{ $r['id'] }}"
-                                                            class="bg-gray-50 border leading-none border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+                                                            class="bg-gray-50 border border-r-0 leading-none border-gray-300 text-gray-900 text-sm rounded-l-lg focus:ring-blue-500 focus:border-blue-500 block cursor-pointer w-full h-[40px] p-2.5"
                                                             min="{{ $plannedStart }}"
                                                             max="{{ $plannedEnd }}"
                                                             step="60"
@@ -371,7 +374,6 @@
                                                     </div>
                                                     {{-- Schnellauswahl (BEHALTEN) --}}
                                                     <div class="w-10 shrink-0">
-                                                        <label class="sr-only" for="leave-quick-{{ $r['id'] }}">Schnellwahl</label>
                                                         <select
                                                             id="leave-quick-{{ $r['id'] }}"
                                                             @change="
@@ -379,7 +381,7 @@
                                                                 $wire.set('leaveInput.{{ $r['id'] }}', leave);
                                                                 $wire.saveLeave({{ $r['id'] }});
                                                             "
-                                                            class="bg-gray-50 border border-gray-300 text-white/0 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 w-10 "
+                                                            class="bg-gray-50 border border-gray-300 text-white/0 text-sm rounded-r-lg focus:ring-blue-500 focus:border-blue-500 block p-2 cursor-pointer h-[40px] w-10 "
                                                             wire:loading.attr="disabled"
                                                             wire:target="saveLeave({{ $r['id'] }})"
                                                         >
@@ -397,9 +399,6 @@
                                                         </select>
                                                     </div>
                                                 </div>
-                                            </div>
-                                            <div class="flex justify-end">
-                                                <button class="text-xs text-gray-600 underline" @click="lateOpen=false">Schließen</button>
                                             </div>
                                         </div>
                                     </div>

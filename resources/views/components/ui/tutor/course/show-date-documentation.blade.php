@@ -61,71 +61,67 @@
 
   <div class=" mb-2">
     <div class="flex max-md:flex-wrap items-center space-x-3 justify-between">
-@php
+      @php
 
-    $ns = $selectedDay?->note_status ?? CourseDay::NOTE_STATUS_MISSING;
-    $canFinalize =
-        !$isDirty &&
-        trim(strip_tags($dayNotes ?? '')) !== '' &&
-        $ns !== CourseDay::NOTE_STATUS_COMPLETED;
-@endphp
+          $ns = $selectedDay?->note_status ?? CourseDay::NOTE_STATUS_MISSING;
+          $canFinalize =
+              !$isDirty &&
+              trim(strip_tags($dayNotes ?? '')) !== '' &&
+              $ns !== CourseDay::NOTE_STATUS_COMPLETED;
+      @endphp
 
-<div class="flex items-center gap-3">
-  {{-- Aktionen: Speichern / Fertigstellen --}}
-  @if($selectedDayId && $isDirty)
-      {{-- Speichern-Button nur wenn dirty --}}
-      <x-buttons.button-basic
-          type="button"
-          :size="'sm'"
-          class="px-2"
-          wire:click="saveNotes"
-          wire:target="saveNotes"
-          wire:loading.attr="disabled"
-          wire:loading.class="opacity-70 cursor-wait"
-          title="Notizen speichern (Entwurf)"
-      >
-          <i class="fad fa-save text-[16px] h-[1.25rem] flex items-center sm:mr-1 text-amber-500"></i>
-          <span class="hidden sm:inline">Speichern</span>
-      </x-buttons.button-basic>
-  @endif
+      <div class="flex items-center gap-3">
+        {{-- Aktionen: Speichern / Fertigstellen --}}
+        @if($selectedDayId && $isDirty)
+            {{-- Speichern-Button nur wenn dirty --}}
+            <x-buttons.button-basic
+                type="button"
+                :size="'sm'"
+                class="px-2"
+                wire:click="saveNotes"
+                wire:target="saveNotes"
+                wire:loading.attr="disabled"
+                wire:loading.class="opacity-70 cursor-wait"
+                title="Notizen speichern (Entwurf)"
+            >
+                <i class="fad fa-save text-[16px] h-[1.25rem] flex items-center sm:mr-1 text-amber-500"></i>
+                <span class="hidden sm:inline">Speichern</span>
+            </x-buttons.button-basic>
+        @endif
 
-  @if($selectedDayId && $canFinalize && !$isDirty)
-      {{-- Fertigstellen-Button nur, wenn gespeichert & nicht dirty --}}
-      <x-buttons.button-basic
-          type="button"
-          :size="'sm'"
-          class="px-2"
-          wire:click="finalizeDay"
-          wire:target="finalizeDay"
-          wire:loading.attr="disabled"
-          wire:loading.class="opacity-70 cursor-wait"
-          title="Dokumentation fertigstellen und unterschreiben"
-      >
-          <i class="fad fa-check-circle text-[16px] h-[1.25rem] flex items-center sm:mr-1 text-green-600"></i>
-          <span class="hidden sm:inline">Fertigstellen</span>
-      </x-buttons.button-basic>
-  @endif
-</div>
+        @if($selectedDayId && $canFinalize && !$isDirty)
+            {{-- Fertigstellen-Button nur, wenn gespeichert & nicht dirty --}}
+            <x-buttons.button-basic
+                type="button"
+                :size="'sm'"
+                class="px-2"
+                wire:click="finalizeDay"
+                wire:target="finalizeDay"
+                wire:loading.attr="disabled"
+                wire:loading.class="opacity-70 cursor-wait"
+                title="Dokumentation fertigstellen und unterschreiben"
+            >
+                <i class="fad fa-check-circle text-[16px] h-[1.25rem] flex items-center sm:mr-1 text-green-600"></i>
+                <span class="hidden sm:inline">Fertigstellen</span>
+            </x-buttons.button-basic>
+        @endif
+      </div>
         <div class="flex items-center gap-3">
-          
-
-        {{-- Status-Badge --}}
-        @php
-            $ns = $selectedDay?->note_status ?? CourseDay::NOTE_STATUS_MISSING;
-            [$statusLabel, $statusClasses] = match($ns) {
-                CourseDay::NOTE_STATUS_DRAFT     => ['Entwurf', 'bg-amber-50 text-amber-700 border-amber-200'],
-                CourseDay::NOTE_STATUS_COMPLETED => ['Fertig & unterschrieben', 'bg-green-50 text-green-700 border-green-200'],
-                default                          => ['Fehlend', 'bg-slate-50 text-slate-700 border-slate-200'],
-            };
-        @endphp
-
-        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border {{ $statusClasses }}">
-            Status: {{ $statusLabel }}
-        </span>
+          {{-- Status-Badge --}}
+          @php
+              $ns = $selectedDay?->note_status ?? CourseDay::NOTE_STATUS_MISSING;
+              [$statusLabel, $statusClasses] = match($ns) {
+                  CourseDay::NOTE_STATUS_DRAFT     => ['Entwurf', 'bg-amber-50 text-amber-700 border-amber-200'],
+                  CourseDay::NOTE_STATUS_COMPLETED => ['Fertig & unterschrieben', 'bg-green-50 text-green-700 border-green-200'],
+                  default                          => ['Fehlend', 'bg-slate-50 text-slate-700 border-slate-200'],
+              };
+          @endphp
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border {{ $statusClasses }}">
+              Status: {{ $statusLabel }}
+          </span>
       </div>
     </div>
   </div>
-
   <div class="mt-6 border border-gray-300 shadow rounded-lg overflow-hidden">
     <x-ui.editor.toast
       wire:key="tui-editor-{{ $selectedDayId }}" 
