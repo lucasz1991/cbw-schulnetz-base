@@ -270,12 +270,12 @@
                                   </span>
                               </span>
                                 @if($late > 0)
-                                    <span class="hidden md:inline-flex rounded-full px-2 py-0.5 text-xs bg-yellow-100 text-yellow-800 ring-1 ring-yellow-400">
+                                    <span class="hidden md:inline-flex rounded-full px-2 py-0.5 text-xs bg-yellow-100/60 text-yellow-800 ring-1 ring-yellow-400">
                                         + {{ $late }} min spät
                                     </span>
                                 @endif
                                 @if($early > 0)
-                                    <span class="hidden md:inline-flex rounded-full px-2 py-0.5 text-xs bg-orange-100 text-orange-800 ring-1 ring-orange-400">
+                                    <span class="hidden md:inline-flex rounded-full px-2 py-0.5 text-xs bg-orange-100/60 text-orange-800 ring-1 ring-orange-400">
                                        - {{ $early }} min früher
                                     </span>
                                 @endif
