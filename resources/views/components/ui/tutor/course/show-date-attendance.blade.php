@@ -13,7 +13,7 @@
 ])
 
 <div class="space-y-4 transition-opacity duration-300">
-    <div class="flex max-md:flex-wrap items-center space-x-3 justify-between mb-8">
+    <div class="flex max-md:flex-wrap items-center space-x-3 justify-between mb-4">
         <div class="flex justify-between items-center space-x-3 w-full">
             <div class="flex items-center gap-2">
             <div
@@ -175,34 +175,67 @@
             </thead>
             <tbody class="divide-y divide-gray-100">
                 @forelse($rows as $r)
-                    @php
-                        $d        = $r['data'];
-                        $hasEntry = $r['hasEntry'] ?? false;
-                        $late     = $d['late_minutes'] ?? null;
-                        $early    = $d['left_early_minutes'] ?? null;
+                  @php
+                      $d        = $r['data'];
+                      $hasEntry = (bool) ($r['hasEntry'] ?? false);
+                      $late     = (int)  ($d['late_minutes'] ?? 0);
+                      $early    = (int)  ($d['left_early_minutes'] ?? 0);
 
-                        if (!$hasEntry) {
-                            $statusLabel = 'Anwesend';
-                            $badge = 'bg-green-100 text-green-700';
-                        } elseif ($d['excused']) {
-                            $statusLabel = 'Entschuldigt';
-                            $badge = 'bg-blue-100 text-blue-800';
-                        } elseif ($d['present'] && $late > 0) {
-                            $statusLabel = 'Teilweise anwesend';
-                            $badge = 'bg-yellow-100 text-yellow-800';
-                        } elseif ($d['present']) {
-                            $statusLabel = 'Anwesend';
-                            $badge = 'bg-green-100 text-green-700';
-                        } elseif (!$d['present']) {
-                            $statusLabel = 'Fehlend';
-                            $badge = 'bg-red-100 text-red-700';
-                        } else {
-                            $statusLabel = 'Unbekannt';
-                            $badge = 'bg-red-100 text-red-700';
-                        }
+                      // -----------------------------
+                      // EINHEITLICHER STATUS (Key)
+                      // -----------------------------
+                      // Regel: "kein Entry" gilt bei dir als Anwesend -> also gleicher Key wie "present"
+                      if (($d['excused'] ?? false) === true) {
+                          $statusKey = 'excused';
+                      } elseif (($d['present'] ?? false) === true && $late > 0) {
+                          $statusKey = 'partial';
+                      } elseif (!$hasEntry || (($d['present'] ?? false) === true)) {
+                          $statusKey = 'present';
+                      } elseif ($hasEntry && (($d['present'] ?? null) === false) && !($d['excused'] ?? false)) {
+                          $statusKey = 'absent';
+                      } else {
+                          $statusKey = 'unknown';
+                      }
 
-                        $isAbsent = ($r['hasEntry'] ?? false) && ($d['present'] === false) && !($d['excused'] ?? false);
-                    @endphp
+                      // -----------------------------
+                      // Mapping: Label + Icon + Pill
+                      // -----------------------------
+                      $statusMap = [
+                          'present' => [
+                              'label' => 'Anwesend',
+                              'icon'  => 'fas fa-check-circle',
+                              'pill'  => 'bg-green-50 text-green-800 ring-1 ring-green-200',
+                          ],
+                          'partial' => [
+                              'label' => 'Teilweise',
+                              'icon'  => 'fas fa-clock',
+                              'pill'  => 'bg-yellow-50 text-yellow-900 ring-1 ring-yellow-200',
+                          ],
+                          'excused' => [
+                              'label' => 'Entschuldigt',
+                              'icon'  => 'fas fa-file-medical',
+                              'pill'  => 'bg-blue-50 text-blue-800 ring-1 ring-blue-200',
+                          ],
+                          'absent' => [
+                              'label' => 'Fehlend',
+                              'icon'  => 'fas fa-times-circle',
+                              'pill'  => 'bg-red-50 text-red-800 ring-1 ring-red-200',
+                          ],
+                          'unknown' => [
+                              'label' => 'Unbekannt',
+                              'icon'  => 'fas fa-question-circle',
+                              'pill'  => 'bg-gray-50 text-gray-700 ring-1 ring-gray-200',
+                          ],
+                      ];
+
+                      $statusLabel = $statusMap[$statusKey]['label'];
+                      $statusIcon  = $statusMap[$statusKey]['icon'];
+                      $statusPill  = $statusMap[$statusKey]['pill'];
+
+                      // Für deinen Button-Switch (Abwesend -> "Anwesend"-Button anzeigen)
+                      $isAbsent = ($statusKey === 'absent');
+                  @endphp
+
                       <tr
                         x-data="{
                           lateOpen:false,
@@ -225,19 +258,17 @@
                         </td>
                         <td class="px-1 md:px-4 py-2">
                             <div class="flex items-center gap-2 flex-wrap">
-                                <span class="inline-flex rounded px-2 py-0.5 text-xs {{ $badge }}">
-                                    {{ $statusLabel }}
-                                </span>
-                                @if($late > 0)
-                                    <span class="inline-flex rounded px-2 py-0.5 text-xs bg-yellow-100 text-yellow-800">
-                                        +{{ $late }} min spät
-                                    </span>
-                                @endif
-                                @if($early > 0)
-                                    <span class="inline-flex rounded px-2 py-0.5 text-xs bg-orange-100 text-orange-800">
-                                        {{ $early }} min früher
-                                    </span>
-                                @endif
+                              <span
+                                  class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold shadow-sm {{ $statusPill }}"
+                                  title="{{ $statusLabel }}"
+                              >
+                                  <i class="{{ $statusIcon }} text-[12px]"></i>
+
+                                  {{-- Desktop/Tablet: Text zeigen --}}
+                                  <span class="hidden md:inline leading-none">
+                                      {{ $statusLabel }}
+                                  </span>
+                              </span>
                             </div>
                         </td>
                         <td class="px-1 md:px-4 py-2">
@@ -303,7 +334,7 @@
                                     </button>
                                     <div x-cloak x-show="lateOpen" @click.outside="lateOpen=false"
                                          class="absolute right-0 z-10 mt-2 w-72 rounded border border-gray-300 bg-white p-3 shadow">
-                                         <div class="absolute right-0 top-0 flex justify-end gap-2 mb-4 p-2">
+                                         <div class="absolute right-0 top-0 flex justify-end gap-4 mb-4 p-2">
                                                <button
                                                     type="button"
                                                     class="text-xs text-gray-600 hover:text-red-600"
