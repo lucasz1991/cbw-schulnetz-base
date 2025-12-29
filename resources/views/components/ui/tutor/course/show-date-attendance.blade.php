@@ -259,6 +259,9 @@
                                     </div>
                                     <div wire:loading wire:target="saveNote({{ $r['id'] }})" class="flex items-center">
                                         <span class="loader2 w-4 h-4"></span>
+                                    </div>                                    
+                                    <div wire:loading wire:target="clearTimes({{ $r['id'] }})" class="flex items-center">
+                                        <span class="loader2 w-4 h-4"></span>
                                     </div>
                                 </div>
                                 {{-- Present/Absent (Buttons NICHT verändert) --}}
@@ -301,7 +304,14 @@
                                     <div x-cloak x-show="lateOpen" @click.outside="lateOpen=false"
                                          class="absolute right-0 z-10 mt-2 w-72 rounded border border-gray-300 bg-white p-3 shadow">
                                          <div class="absolute right-0 top-0 flex justify-end gap-2 mb-4 p-2">
-                                           <button class="text-xs text-gray-600" @click="clearTimes"><i class="far fa-trash-alt"></i></button>
+                                               <button
+                                                    type="button"
+                                                    class="text-xs text-gray-600 hover:text-red-600"
+                                                    wire:click="clearTimes({{ $r['id'] }})"
+                                                    wire:loading.attr="disabled"
+                                                    wire:target="clearTimes({{ $r['id'] }})"
+                                                    title="Zeiten löschen"
+                                                ><i class="far fa-trash-alt"></i></button>
                                            <button class="text-xs text-gray-600" @click="lateOpen=false"><i class="far fa-times-circle"></i></button>
                                          </div>
                                         <div class="space-y-4">

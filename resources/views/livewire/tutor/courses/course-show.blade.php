@@ -41,13 +41,13 @@
         </div>
     </x-slot>
 
-    <div class="space-y-12">
+    <div class="space-y-6">
 
         {{-- =========================
             DESIGN UPDATE: HERO HEADER
         ========================== --}}
-        <div class="px-4">
-            <div class="relative overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <div class="">
+            <div class="relative overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
 
                 <div class="relative p-5 sm:p-6">
                     <div class="flex flex-col lg:flex-row gap-4 lg:gap-6">
@@ -69,7 +69,7 @@
                             </div>
 
                             <div class="min-w-0">
-                                <h1 class="text-xl sm:text-2xl font-extrabold text-gray-900 leading-tight truncate">
+                                <h1 class="text-xl sm:text-2xl font-semibold text-gray-900 leading-tight truncate">
                                     {{ $course->title }}
                                 </h1>
                             </div>

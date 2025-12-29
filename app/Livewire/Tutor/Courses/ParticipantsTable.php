@@ -549,6 +549,26 @@ class ParticipantsTable extends Component
         $this->setNote($participantId, $note);
     }
 
+    /**
+     * Setzt Zeiten & Ableitungen für 1 Participant zurück
+     * und synced sofort (wie deine anderen Actions).
+     */
+    public function clearTimes(int $participantId): void
+    {
+        $row = $this->currentRow($participantId) ?? [];
+        $patch = [
+            'arrived_at'         => null,
+            'left_at'            => null,
+            'late_minutes'       => 0,
+            'left_early_minutes' => 0,
+            'timestamps'         => [
+                'in'  => null,
+                'out' => null,
+            ],
+        ];
+        $this->applyAndSaveOne($participantId, $patch);
+    }
+
     public function bulk(string $action): void
     {
         $ids = $this->participants->getCollection()->pluck('id');
@@ -583,7 +603,11 @@ class ParticipantsTable extends Component
         }
 
         $allIds = $allIds->map(fn ($id) => (int) $id)->unique()->values();
-
+foreach ($allIds as $pid) {
+    $this->arriveInput[$pid] ??= null;
+    $this->leaveInput[$pid]  ??= null;
+    $this->noteInput[$pid]   ??= null;
+}
         $participants = collect();
         if ($day->course && method_exists($day->course, 'participants') && $allIds->isNotEmpty()) {
             $rel          = $day->course->participants();
