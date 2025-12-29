@@ -1,6 +1,8 @@
 @php
-    $start = $course->planned_start_date ? \Carbon\Carbon::parse($course->planned_start_date) : null;
-    $end   = $course->planned_end_date   ? \Carbon\Carbon::parse($course->planned_end_date)   : null;
+    use Carbon\Carbon;
+
+    $start = $course->planned_start_date ? Carbon::parse($course->planned_start_date) : null;
+    $end   = $course->planned_end_date   ? Carbon::parse($course->planned_end_date)   : null;
 
     $now = now();
     $isRunning = $start && $end ? $now->between($start, $end) : false;
@@ -8,58 +10,155 @@
     $isPast    = $end ? $now->gt($end) : false;
 
     $statusClasses = 'bg-gray-100 text-gray-700';
+    $statusIcon    = 'fa-calendar';
     $statusLabel   = $start || $end ? 'geplant' : 'ohne Zeitraum';
-    if ($isRunning) { $statusClasses = 'bg-yellow-100 text-yellow-800'; $statusLabel = 'läuft'; }
-    elseif ($isFuture) {
+
+    if ($isRunning) {
+        $statusClasses = 'bg-amber-100 text-amber-800';
+        $statusIcon    = 'fa-play-circle';
+        $statusLabel   = 'läuft';
+    } elseif ($isFuture) {
         $statusClasses = 'bg-blue-100 text-blue-800';
+        $statusIcon    = 'fa-hourglass-start';
         $statusLabel   = $start && $start->isToday() ? 'heute' : 'bevorstehend';
+    } elseif ($isPast) {
+        $statusClasses = 'bg-gray-200 text-gray-600';
+        $statusIcon    = 'fa-check-circle';
+        $statusLabel   = 'beendet';
     }
-    elseif ($isPast) { $statusClasses = 'bg-gray-200 text-gray-600'; $statusLabel = 'beendet'; }
+
+    $short = data_get($course->source_snapshot, 'course.kurzbez') ?: 'Ohne Kurzbezeichnung';
 @endphp
+
 <div class="mb-24">
     <x-slot name="header">
         <div class="px-4 flex items-center gap-3">
             <x-back-button />
-            <span>
-                Kurs im Detail 
+            <span class="flex items-center gap-2">
+                <i class="fas fa-chalkboard-teacher text-gray-500"></i>
+                Kurs im Detail
             </span>
-        </div> 
-    </x-slot>  
-    <div class=" space-y-12">
-        <div class="bg-white p-4 border border-gray-300 rounded-lg shadow space-y-8 ">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <div class="flex items-center  gap-2">    
-                    <span class="inline-block {{ $statusClasses }} text-[11px] font-semibold px-2.5 py-1 rounded-full ">
-                        {{ $statusLabel }}
-                    </span>
+        </div>
+    </x-slot>
+
+    <div class="space-y-12">
+
+        {{-- =========================
+            DESIGN UPDATE: HERO HEADER
+        ========================== --}}
+        <div class="px-4">
+            <div class="relative overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+
+                <div class="relative p-5 sm:p-6">
+                    <div class="flex flex-col lg:flex-row gap-4 lg:gap-6">
+
+ 
+
+                        {{-- middle: title + chips --}}
+                        <div class="min-w-0 flex-1 space-y-3">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="inline-flex items-center gap-2 {{ $statusClasses }} text-[11px] font-semibold px-3 py-1 rounded-full">
+                                    <i class="fas {{ $statusIcon }} text-[12px]"></i>
+                                    {{ $statusLabel }}
+                                </span>
+
+                                <span class="inline-flex items-center gap-2 bg-white/80 backdrop-blur border border-gray-200 text-gray-700 text-[11px] font-semibold px-3 py-1 rounded-full">
+                                    <i class="fas fa-tag text-gray-400 text-[12px]"></i>
+                                    <span class="truncate max-w-[220px] sm:max-w-[420px]">{{ $short }}</span>
+                                </span>
+                            </div>
+
+                            <div class="min-w-0">
+                                <h1 class="text-xl sm:text-2xl font-extrabold text-gray-900 leading-tight truncate">
+                                    {{ $course->title }}
+                                </h1>
+                            </div>
+
+                            {{-- stats row --}}
+                            <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 w-min">
+                                <div class="flex-1 rounded-xl border border-gray-200 bg-white/70 backdrop-blur p-3">
+                                    <div class="flex items-center justify-between  gap-2">
+                                        <div class="flex items-center gap-2 text-gray-700">
+                                            <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                                <i class="fas fa-calendar-day"></i>
+                                            </span>
+                                            <span class="text-sm font-semibold">Termine</span>
+                                        </div>
+                                        <div class="text-lg font-extrabold text-gray-900 leading-none">
+                                            {{ $course->dates_count ?? 0 }}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="flex-1 rounded-xl border border-gray-200 bg-white/70 backdrop-blur p-3">
+                                    <div class="flex items-center justify-between  gap-2">
+                                        <div class="flex items-center gap-2 text-gray-700">
+                                            <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-purple-50 text-purple-700 border border-purple-100">
+                                                <i class="fas fa-users"></i>
+                                            </span>
+                                            <span class="text-sm font-semibold">Teilnehmer</span>
+                                        </div>
+                                        <div class="text-lg font-extrabold text-gray-900 leading-none">
+                                            {{ $course->participants_count ?? 0 }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- right: timeframe --}}
+                        <div class="w-full lg:w-[320px] shrink-0">
+                            <div class="h-full rounded-2xl border border-gray-200 bg-white/70 backdrop-blur p-4">
+                                <div class="flex items-center justify-between mb-3">
+                                    <div class="flex items-center gap-2 text-gray-800">
+                                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-700 border border-blue-100">
+                                            <i class="fas fa-clock"></i>
+                                        </span>
+                                        <span class="text-sm font-semibold">Zeitraum</span>
+                                    </div>
+
+                                    @if($start || $end)
+                                        <span class="text-[11px] font-semibold text-gray-500 inline-flex items-center gap-1">
+                                            <i class="fas fa-calendar-alt"></i>
+                                            {{ $start ? $start->diffForHumans($now, ['parts' => 2, 'short' => true]) : '—' }}
+                                        </span>
+                                    @endif
+                                </div>
+
+                                <div class="space-y-2 text-sm">
+                                    <div class="flex items-center justify-between gap-3">
+                                        <div class="flex items-center gap-2 text-gray-700">
+                                            <span class="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-gray-100 text-gray-600">
+                                                <i class="fas fa-play text-[11px]"></i>
+                                            </span>
+                                            <span class="font-semibold">Start</span>
+                                        </div>
+                                        <div class="text-gray-700 font-medium">
+                                            {{ $start ? $start->isoFormat('ll') : '—' }}
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center justify-between gap-3">
+                                        <div class="flex items-center gap-2 text-gray-700">
+                                            <span class="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-gray-100 text-gray-600">
+                                                <i class="fas fa-flag-checkered text-[11px]"></i>
+                                            </span>
+                                            <span class="font-semibold">Ende</span>
+                                        </div>
+                                        <div class="text-gray-700 font-medium">
+                                            {{ $end ? $end->isoFormat('ll') : '—' }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
                 </div>
-                @if($start || $end)
-                <span class="inline-block bg-gray-100 text-gray-700 text-[11px] font-medium px-2.5 py-1 rounded-full">
-                    {{ $start ? $start->isoFormat('ll') : '—' }} – {{ $end ? $end->isoFormat('ll') : '—' }}
-                </span>
-                @endif
-            </div>
-            <p class="text-base sm:text-md font-semibold text-gray-700 truncate">
-                {{ $course->source_snapshot['course']['kurzbez'] ?: 'Ohne Kurzbezeichnung' }}
-            </p>
-            <h1 class="text-2xl font-bold text-gray-800">{{ $course->title }}</h1>
-            @if($course->description)
-            <div class="grid sm:grid-cols-2 gap-4 text-gray-700">
-                <div>
-                    <p class="text-sm"><strong class="text-gray-600">Beschreibung:</strong></p>
-                    <p class="text-sm text-gray-600 mt-1">{{ $course->description ?: '—' }}</p>
-                </div>
-            </div>
-            @endif
-            <div class="min-w-0">
-                <span class="inline-flex items-center bg-green-100 text-green-700 text-xs px-2.5 py-1 rounded-full">
-                    {{ $course->dates_count ?? 0 }} Termin{{ ($course->dates_count ?? 0) === 1 ? '' : 'e' }}
-                </span>
-                <span class="inline-flex items-center bg-purple-100 text-purple-700 text-xs px-2.5 py-1 rounded-full">
-                    {{ $course->participants_count ?? 0 }} Teilnehmer{{ ($course->participants_count ?? 0) === 1 ? '' : 'en' }}
-                </span>
             </div>
         </div>
+
+        {{-- Accordion bleibt unverändert --}}
         <x-ui.accordion.tabs
             :tabs="[
                 'anwesenheit' => ['label' => 'Anwesenheit',   'icon' => 'fad fa-user-clock'],
@@ -77,7 +176,7 @@
             </x-ui.accordion.tab-panel>
             <x-ui.accordion.tab-panel for="doku">
                 <livewire:tutor.courses.course-documentation-panel :courseId="$course->id" />
-            </x-ui.accordion.tab-panel> 
+            </x-ui.accordion.tab-panel>
             <x-ui.accordion.tab-panel for="medien">
                 <livewire:tutor.courses.manage-course-media :course="$course" lazy />
             </x-ui.accordion.tab-panel>
@@ -88,5 +187,6 @@
                 <livewire:tutor.courses.manage-course-invoice :course="$course" lazy />
             </x-ui.accordion.tab-panel>
         </x-ui.accordion.tabs>
+
     </div>
 </div>
