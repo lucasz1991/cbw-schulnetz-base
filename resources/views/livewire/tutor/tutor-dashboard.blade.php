@@ -1,4 +1,4 @@
-<div class="px-4 sm:px-6 lg:px-8">
+<div class="">
     {{-- Grid --}}
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
 

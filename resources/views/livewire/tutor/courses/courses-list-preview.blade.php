@@ -15,9 +15,6 @@
                 $end   = $course->planned_end_date   ? \Illuminate\Support\Carbon::parse($course->planned_end_date)->timezone('Europe/Berlin')   : null;
 
                 $now = \Illuminate\Support\Carbon::now('Europe/Berlin');
-
-                // Wochenend-Kulanz: Wenn der Kurs in DIESER Woche bereits beendet wurde,
-                // gilt er bis Sonntag 23:59 weiterhin als "läuft".
                 $weekStart = $now->copy()->startOfWeek(\Illuminate\Support\Carbon::MONDAY)->startOfDay();
                 $weekEnd   = $now->copy()->endOfWeek(\Illuminate\Support\Carbon::SUNDAY)->endOfDay();
 
