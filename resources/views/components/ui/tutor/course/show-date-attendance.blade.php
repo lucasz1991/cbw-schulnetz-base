@@ -247,7 +247,7 @@
                         wire:key="row-{{ $r['id'] }}"
                         class="hover:bg-gray-50"
                         >
-                        <td class="px-1 md:px-4 py-2">
+                        <td class="px-2 md:px-4 py-2">
                             <div class="w-min md:w-max">
                                 @if($r['user'])
                                     <x-user.public-info :person="$r['user']" />
@@ -269,9 +269,19 @@
                                       {{ $statusLabel }}
                                   </span>
                               </span>
+                                @if($late > 0)
+                                    <span class="hidden md:inline-flex rounded px-2 py-0.5 text-xs bg-yellow-100 text-yellow-800">
+                                        +{{ $late }} min spät
+                                    </span>
+                                @endif
+                                @if($early > 0)
+                                    <span class="hidden md:inline-flex rounded px-2 py-0.5 text-xs bg-orange-100 text-orange-800">
+                                        {{ $early }} min früher
+                                    </span>
+                                @endif
                             </div>
                         </td>
-                        <td class="px-1 md:px-4 py-2">
+                        <td class="px-1 pr-2 md:px-4 py-2">
                             <div class="flex items-center justify-end gap-1 relative">
                                 {{-- ✅ Loader links neben Buttons (1 Target pro Loader) --}}
                                 <div class="w-8 flex items-center justify-center">
