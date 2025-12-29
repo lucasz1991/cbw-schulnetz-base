@@ -21,7 +21,6 @@
                   class="relative"
               >
                 <div class="relative flex items-stretch rounded-md border border-gray-200 shadow-sm overflow-hidden h-max w-max max-md:mb-4">
-
                   {{-- Zurück --}}
                   @if($selectPreviousDayPossible)
                       <button
@@ -32,7 +31,6 @@
                           <i class="fas fa-chevron-left text-xs"></i>
                       </button>
                   @endif
-
                   {{-- Datum / Dropdown Trigger --}}
                   <button
                       type="button"
@@ -42,13 +40,11 @@
                       <span class="whitespace-nowrap">
                           {{ $selectedDay?->date?->format('d.m.Y') }}
                       </span>
-
                       <i
                           class="fas fa-chevron-down text-xs transition-transform"
                           :class="{ 'rotate-180': open }"
                       ></i>
                   </button>
-
                   {{-- Vor --}}
                   @if($selectNextDayPossible)
                       <button
@@ -60,7 +56,6 @@
                       </button>
                   @endif
                 </div>
-
                   {{-- Dropdown --}}
                   <div
                       x-show="open"
@@ -69,7 +64,7 @@
                       x-cloak
                       class="absolute top-full left-0 mt-1 z-50 w-full min-w-[12rem]
                             bg-white border border-gray-200 rounded-md shadow-lg
-                            max-h-64 overflow-y-auto"
+                            max-h-64 overflow-y-auto scroll-container"
                   >
                       @foreach($availableDays as $day)
                           <button
@@ -84,13 +79,10 @@
                       @endforeach
                   </div>
               </div>
-
-
                 @php
                     use Illuminate\Support\Carbon;
                     $isToday = $selectedDay?->date ? Carbon::parse($selectedDay->date)->isToday() : false;
                 @endphp
-
                 @if($isToday)
                     <div>
                         <span
@@ -102,7 +94,6 @@
                     </div>
                 @endif
             </div>
-
             <div class="hidden md:block">
                 <button
                     type="button"
@@ -111,9 +102,7 @@
                     :class="showSelectDayCalendar
                         ? 'hover:bg-blue-100 hover:text-gray-600 border-blue-200'
                         : 'hover:bg-blue-100 hover:text-blue-600 border-blue-200'">
-
                     <i class="far fa-calendar-alt text-gray-500"></i>
-
                     <span class="relative w-9 h-5 rounded-full transition-colors"
                           :class="showSelectDayCalendar ? 'bg-blue-600' : 'bg-gray-200'">
                         <span class="absolute top-[2px] left-[2px] h-4 w-4 rounded-full bg-white border border-gray-300 transition-transform"
@@ -123,47 +112,37 @@
             </div>
         </div>
     </div>
-
     @if($selectedDay)
         <div class="inline-flex overflow-hidden rounded-full border border-gray-200 bg-white text-xs shadow-sm">
-
             {{-- Anwesend --}}
             <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-green-50 text-green-800">
                 <i class="fas fa-check-circle text-green-600"></i>
                 <span class="font-semibold">{{ $stats['present'] }}</span>
                 <span class="hidden md:inline">Anwesend</span>
             </span>
-
             {{-- Divider --}}
             <span class="w-px bg-gray-200"></span>
-
             {{-- Teilweise --}}
             <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-yellow-50 text-yellow-800">
                 <i class="fas fa-clock text-yellow-600"></i>
                 <span class="font-semibold">{{ $stats['late'] }}</span>
                 <span class="hidden md:inline">Teilweise</span>
             </span>
-
             <span class="w-px bg-gray-200"></span>
-
             {{-- Entschuldigt --}}
             <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-800">
                 <i class="fas fa-file-medical text-blue-600"></i>
                 <span class="font-semibold">{{ $stats['excused'] }}</span>
                 <span class="hidden md:inline">Entschuldigt</span>
             </span>
-
             <span class="w-px bg-gray-200"></span>
-
             {{-- Fehlend --}}
             <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-red-50 text-red-800">
                 <i class="fas fa-times-circle text-red-600"></i>
                 <span class="font-semibold">{{ $stats['absent'] }}</span>
                 <span class="hidden md:inline">Fehlend</span>
             </span>
-
             <span class="w-px bg-gray-200"></span>
-
             {{-- Gesamt --}}
             <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-50 text-gray-800">
                 <i class="fas fa-users text-gray-600"></i>
@@ -172,9 +151,6 @@
             </span>
         </div>
     @endif
-
-
-
     <div class="border rounded bg-white">
         <table class="min-w-full text-sm table-fixed">
             <thead class="bg-gray-50">
@@ -182,7 +158,6 @@
                     <th class="px-4 py-2 text-left w-1/3">
                         <button type="button" wire:click="sort('name')" class="flex items-center gap-1 font-semibold group">
                             Teilnehmer
-
                             @if($sortBy === 'name')
                                 @if($sortDir === 'asc')
                                     <i class="fas fa-chevron-up text-blue-600 group-hover:text-blue-800 transition text-xs"></i>
@@ -198,7 +173,6 @@
                     <th></th>
                 </tr>
             </thead>
-
             <tbody class="divide-y divide-gray-100">
                 @forelse($rows as $r)
                     @php
@@ -229,7 +203,6 @@
 
                         $isAbsent = ($r['hasEntry'] ?? false) && ($d['present'] === false) && !($d['excused'] ?? false);
                     @endphp
-
                       <tr
                         x-data="{
                           lateOpen:false,
@@ -250,19 +223,16 @@
                                 @endif
                             </div>
                         </td>
-
                         <td class="px-1 md:px-4 py-2">
                             <div class="flex items-center gap-2 flex-wrap">
                                 <span class="inline-flex rounded px-2 py-0.5 text-xs {{ $badge }}">
                                     {{ $statusLabel }}
                                 </span>
-
                                 @if($late > 0)
                                     <span class="inline-flex rounded px-2 py-0.5 text-xs bg-yellow-100 text-yellow-800">
                                         +{{ $late }} min spät
                                     </span>
                                 @endif
-
                                 @if($early > 0)
                                     <span class="inline-flex rounded px-2 py-0.5 text-xs bg-orange-100 text-orange-800">
                                         {{ $early }} min früher
@@ -270,10 +240,8 @@
                                 @endif
                             </div>
                         </td>
-
                         <td class="px-1 md:px-4 py-2">
                             <div class="flex items-center justify-end gap-1 relative">
-
                                 {{-- ✅ Loader links neben Buttons (1 Target pro Loader) --}}
                                 <div class="w-8 flex items-center justify-center">
                                     <div wire:loading wire:target="markPresent({{ $r['id'] }})" class="flex items-center">
@@ -282,7 +250,6 @@
                                     <div wire:loading wire:target="markAbsent({{ $r['id'] }})" class="flex items-center">
                                         <span class="loader2 w-4 h-4"></span>
                                     </div>
-
                                     {{-- Wrapper: 1 Target für Time/Note --}}
                                     <div wire:loading wire:target="saveArrival({{ $r['id'] }})" class="flex items-center">
                                         <span class="loader2 w-4 h-4"></span>
@@ -294,7 +261,6 @@
                                         <span class="loader2 w-4 h-4"></span>
                                     </div>
                                 </div>
-
                                 {{-- Present/Absent (Buttons NICHT verändert) --}}
                                 @if($isAbsent)
                                     <button
@@ -319,7 +285,6 @@
                                         <i class="fas fa-times text-sm"></i>
                                     </button>
                                 @endif
-
                                 {{-- Verspätung/Frühweg Popover (inkl. Schnellauswahl BEHALTEN) --}}
                                 <div class="relative">
                                     <button
@@ -333,11 +298,9 @@
                                           <span class="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 border-2 border-white rounded-full"></span>
                                         @endif
                                     </button>
-
                                     <div x-cloak x-show="lateOpen" @click.outside="lateOpen=false"
                                          class="absolute right-0 z-10 mt-2 w-72 rounded border border-gray-300 bg-white p-3 shadow">
                                         <div class="space-y-4">
-
                                             {{-- Gekommen --}}
                                             <div>
                                                 <label for="arrive-{{ $r['id'] }}" class="block mb-2 text-xs font-medium text-gray-600">Gekommen (Uhrzeit)</label>
@@ -346,7 +309,6 @@
                                                         <div class="absolute inset-y-0 end-0 top-0 flex items-center pe-3.5 pointer-events-none">
                                                             <i class="far fa-clock text-gray-500"></i>
                                                         </div>
-
                                                         <input
                                                             x-model="arrive"
                                                             type="time"
@@ -361,7 +323,6 @@
                                                             wire:target="saveArrival({{ $r['id'] }})"
                                                         />
                                                     </div>
-
                                                     {{-- Schnellauswahl (BEHALTEN) --}}
                                                     <div class="w-10 shrink-0">
                                                         <label class="sr-only" for="arrive-quick-{{ $r['id'] }}">Schnellwahl</label>
@@ -386,7 +347,6 @@
                                                     </div>
                                                 </div>
                                             </div>
-
                                             {{-- Gegangen --}}
                                             <div>
                                                 <label for="leave-{{ $r['id'] }}" class="block mb-2 text-xs font-medium text-gray-600">Gegangen (Uhrzeit)</label>
@@ -395,7 +355,6 @@
                                                         <div class="absolute inset-y-0 end-0 top-0 flex items-center pe-3.5 pointer-events-none">
                                                             <i class="far fa-clock text-gray-500"></i>
                                                         </div>
-
                                                         <input
                                                             x-model="leave"
                                                             type="time"
@@ -410,7 +369,6 @@
                                                             wire:target="saveLeave({{ $r['id'] }})"
                                                         />
                                                     </div>
-
                                                     {{-- Schnellauswahl (BEHALTEN) --}}
                                                     <div class="w-10 shrink-0">
                                                         <label class="sr-only" for="leave-quick-{{ $r['id'] }}">Schnellwahl</label>
@@ -440,14 +398,12 @@
                                                     </div>
                                                 </div>
                                             </div>
-
                                             <div class="flex justify-end">
                                                 <button class="text-xs text-gray-600 underline" @click="lateOpen=false">Schließen</button>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-
                                 {{-- Notiz Popover (Text + SaveNote Wrapper) --}}
                                 <div class="relative"
                                     x-data="{
@@ -484,7 +440,6 @@
                                             <span class="absolute -top-1 -right-1 w-3 h-3 bg-blue-200 rounded-full animate-ping"></span>
                                         @endif
                                     </button>
-
                                 {{-- Tooltip wenn kein Entry --}}
                                 @if(!$hasEntry)
                                     <div
@@ -501,7 +456,6 @@
                                         </div>
                                     </div>
                                 @endif
-
                                 {{-- Normales Notiz-Popover --}}
                                 <div
                                     x-cloak
@@ -510,7 +464,6 @@
                                     class="absolute right-0 z-10 mt-2 w-72 rounded border border-gray-300 bg-white p-3 shadow"
                                 >
                                     <label class="block text-xs text-gray-600 mb-1">Notiz</label>
-
                                     <textarea
                                         x-model="note"
                                         rows="3"
@@ -519,7 +472,6 @@
                                         wire:loading.attr="disabled"
                                         wire:target="saveNote({{ $r['id'] }})"
                                     ></textarea>
-
                                     <div class="mt-2 flex justify-end">
                                         <button type="button" class="text-xs text-gray-600 underline" @click="noteOpen=false">Schließen</button>
                                     </div>
@@ -528,7 +480,6 @@
                             </div>
                         </td>
                     </tr>
-
                 @empty
                     <tr>
                         <td colspan="4" class="p-6 text-center text-gray-500">Keine Einträge.</td>
@@ -537,7 +488,6 @@
             </tbody>
         </table>
     </div>
-
     @unless($selectedDay)
         <div class="rounded border border-amber-300 bg-amber-50 text-amber-800 p-3 text-sm">
             Bitte zuerst einen Kurstag auswählen.
