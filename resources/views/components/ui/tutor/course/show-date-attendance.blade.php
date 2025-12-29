@@ -207,9 +207,9 @@
                         x-data="{
                           lateOpen:false,
                           noteOpen:false,
-                          arrive: @entangle('arriveInput.' . $r['id']).live,
-                          leave:  @entangle('leaveInput.'  . $r['id']).live,
-                          note:   @entangle('noteInput.'   . $r['id']).live,
+                          arrive: @entangle('arriveInput.' . $r['id']).live ?? '',
+                          leave:  @entangle('leaveInput.'  . $r['id']).live ?? '',
+                          note:   @entangle('noteInput.'   . $r['id']).live ?? '',
                         }"
                         wire:key="row-{{ $r['id'] }}"
                         class="hover:bg-gray-50"
