@@ -54,7 +54,7 @@ class ReportBookEntry extends Model
 
             // Gibt es Einträge, die NICHT Status 1 haben?
             $hasNonSubmitted = static::where('report_book_id', $bookId)
-                ->where('status', '!=', 1)
+                ->where('status', '<', 1)
                 ->exists();
 
             // Wenn noch andere Stati existieren -> noch nicht komplett eingereicht
