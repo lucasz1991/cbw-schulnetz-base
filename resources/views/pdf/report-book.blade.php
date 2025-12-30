@@ -184,7 +184,7 @@
     <table class="sheet">
         <thead>
             <tr>
-                <th class="col-date">Datum / Wochentag</th>
+                <th class="col-date">Datum</th>
                 <th class="col-text">Ausgeführte Arbeiten, Unterricht usw. Stichworte</th>
             </tr>
         </thead>
@@ -295,7 +295,7 @@
     <table class="sheet">
         <thead>
             <tr>
-                <th class="col-date">Datum / Wochentag</th>
+                <th class="col-date">Datum</th>
                 <th class="col-text">Ausgeführte Arbeiten, Unterricht usw. Stichworte</th>
             </tr>
         </thead>
@@ -413,7 +413,7 @@
     <table class="sheet">
         <thead>
             <tr>
-                <th class="col-date">Datum / Wochentag</th>
+                <th class="col-date">Datum</th>
                 <th class="col-text">Ausgeführte Arbeiten, Unterricht usw. Stichworte</th>
             </tr>
         </thead>
