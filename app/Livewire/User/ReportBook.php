@@ -776,8 +776,10 @@ public function exportReportEntry(): ?StreamedResponse
         'course'                  => $book->course,
         'user'                    => Auth::user(),
         'title'                   => 'Bericht ' . $entry->entry_date->format('d.m.Y'),
-        'participantSignatureUrl' => $participantSignatureUrl,
-        'trainerSignatureUrl'     => $trainerSignatureUrl,
+        'participantSignatureFile' => $participantSignatureFile,
+        'trainerSignatureFile'     => $trainerSignatureFile,
+        'participantSignatureUrl'  => $participantSignatureUrl,
+        'trainerSignatureUrl'      => $trainerSignatureUrl,
     ]);
 
     return response()->streamDownload(
@@ -822,8 +824,10 @@ public function exportReportModule(): ?StreamedResponse
         'course'                  => $book->course,
         'user'                    => Auth::user(),
         'title'                   => 'Berichtsheft – ' . ($book->course->klassen_id ?? $book->course->title ?? ''),
-        'participantSignatureUrl' => $participantSignatureUrl,
-        'trainerSignatureUrl'     => $trainerSignatureUrl,
+        'participantSignatureFile' => $participantSignatureFile,
+        'trainerSignatureFile'     => $trainerSignatureFile,
+        'participantSignatureUrl'  => $participantSignatureUrl,
+        'trainerSignatureUrl'      => $trainerSignatureUrl,
     ]);
 
     return response()->streamDownload(
@@ -859,7 +863,8 @@ public function exportReportAll(): ?StreamedResponse
 
         $pFile = $book->signature('sign_reportbook_participant');
         $tFile = $book->signature('sign_reportbook_trainer');
-
+        $book->participantSignatureFile = $pFile;
+        $book->trainerSignatureFile     = $tFile;
         $book->participantSignatureUrl = $pFile ? $pFile->getEphemeralPublicUrl(10) : null;
         $book->trainerSignatureUrl     = $tFile ? $tFile->getEphemeralPublicUrl(10) : null;
     }

@@ -15,25 +15,13 @@
         .muted { color:#444; }
 
         /* Kopfbereich wie Vorlage */
-        .head-grid {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 8px;
-        }
-        .head-grid td {
-            padding: 2px 6px 2px 0;
-            vertical-align: bottom;
-        }
+        .head-grid { width:100%; border-collapse:collapse; margin-bottom: 8px; }
+        .head-grid td { padding: 2px 6px 2px 0; vertical-align: bottom; }
         .label { font-size: 10px; color:#111; white-space: nowrap; }
-        .field {
-            display: inline-block;
-            min-width: 80px;
-            border-bottom: 1px solid #111;
-            padding: 0 2px 1px;
-        }
-        .field.wide { min-width: 230px; }
-        .field.mid  { min-width: 150px; }
-        .field.sml  { min-width: 90px;  }
+        .field { display:inline-block; min-width: 80px; border-bottom: 1px solid #111; padding: 0 2px 1px; }
+        .field.wide { min-width: 260px; }
+        .field.mid  { min-width: 160px; }
+        .field.sml  { min-width: 100px; }
 
         /* Tabelle wie Vorlage */
         table.sheet {
@@ -48,18 +36,16 @@
             vertical-align: top;
             word-wrap: break-word;
         }
-        .sheet th {
-            font-weight: 700;
-            text-align: left;
-            background: #fff;
-        }
+        .sheet th { font-weight: 700; text-align: left; background: #fff; }
 
-        /* Spaltenbreiten angelehnt an Vorlage */
-        .col-date { width: 18%; }
-        .col-day  { width: 14%; }
-        .col-text { width: 68%; }
+        /* Spalten: 1) Datum+Wochentag, 2) Text */
+        .col-date { width: 22%; }
+        .col-text { width: 78%; }
 
-        /* Zellen-Text */
+        .datecell { line-height: 1.15; }
+        .datecell .d { font-weight: 700; }
+        .datecell .w { font-size: 9px; color:#444; margin-top: 2px; }
+
         .work-text { line-height: 1.25; }
         .work-text h1, .work-text h2, .work-text h3, .work-text h4, .work-text h5, .work-text h6 {
             margin: 0 0 4px;
@@ -77,51 +63,31 @@
             table-layout: fixed;
             margin-top: 10px;
         }
-        .sign-table td {
-            padding: 2px 6px;
-            vertical-align: top;
-        }
-        .sign-title {
-            font-weight: 700;
-            padding-bottom: 6px;
-        }
-        .sign-row {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .sign-row td {
-            padding: 2px 6px 2px 0;
-            vertical-align: bottom;
-        }
-        .line {
-            display: inline-block;
-            border-bottom: 1px solid #111;
-            min-width: 120px;
-            height: 14px;
-        }
-        .sig-img {
-            max-height: 70px;
-            max-width: 230px;
-            display: block;
-            margin: 0 0 4px;
-        }
-        .sig-box {
-            min-height: 78px;
-        }
-        .small { font-size: 9px; color:#111; }
+        .sign-table td { padding: 2px 6px; vertical-align: top; }
+        .sign-title { font-weight: 700; padding-bottom: 6px; }
+
+        .sign-row { width:100%; border-collapse: collapse; }
+        .sign-row td { padding: 2px 6px 2px 0; vertical-align: bottom; }
+        .line { display:inline-block; border-bottom: 1px solid #111; min-width: 150px; height: 14px; }
+
+        .sig-img { max-height: 70px; max-width: 230px; display:block; margin: 0 0 4px; }
+        .sig-box { min-height: 78px; }
+
+        .clearfix:after { content:""; display:block; clear:both; }
     </style>
 </head>
 <body>
 
 @php
+    use Carbon\Carbon;
+
     /**
-     * Resolver: Ephemeral Public URL (absolut oder /storage/..) -> möglichst lokaler Pfad
-     * damit DomPDF stabil ist. Dein getEphemeralPublicUrl() basiert auf public disk url. :contentReference[oaicite:3]{index=3}
+     * getEphemeralPublicUrl() liefert eine öffentliche URL (absolut oder /storage/...).
+     * DomPDF ist am stabilsten mit lokalen Pfaden.
      */
     $resolveImg = function (?string $src) {
         if (!$src) return null;
 
-        // schon absoluter Dateipfad?
         if (is_string($src) && (str_starts_with($src, '/') || preg_match('/^[A-Z]:\\\\/i', $src))) {
             return is_file($src) ? $src : null;
         }
@@ -131,7 +97,7 @@
 
         if (str_starts_with($path, '/storage/')) {
             $full = public_path(ltrim($path, '/')); // public/storage/...
-            return is_file($full) ? $full : $src;   // fallback: URL
+            return is_file($full) ? $full : $src;   // fallback URL
         }
 
         if (str_starts_with($path, 'storage/')) {
@@ -142,36 +108,39 @@
         return $src;
     };
 
-    $weekdayName = function (\Carbon\Carbon $d) {
-        // ISO: 1=Mo .. 7=So
+    $weekdayLong = function (Carbon $d) {
         return match ((int)$d->isoWeekday()) {
-            1 => 'Mo', 2 => 'Di', 3 => 'Mi', 4 => 'Do', 5 => 'Fr', 6 => 'Sa', 7 => 'So',
+            1 => 'Montag', 2 => 'Dienstag', 3 => 'Mittwoch', 4 => 'Donnerstag',
+            5 => 'Freitag', 6 => 'Samstag', 7 => 'Sonntag',
         };
     };
 
-    $kwLabel = function (\Carbon\Carbon $d) {
+    $kwLabel = function (Carbon $d) {
         return 'KW ' . $d->isoWeek() . ' / ' . $d->isoWeekYear();
     };
 
-    // Kopf-Felder (Fallbacks – anpassbar, aber keine Infos weglassen)
+    // Kopf-Felder (Fallbacks)
     $participantName = $user->name ?? '';
 @endphp
 
 
 {{-- =========================================================
-    SINGLE: 1 Seite im Vorlagenraster
+    SINGLE
 ========================================================= --}}
 @if(($mode ?? null) === 'single')
 @php
-    $d = $entry->entry_date instanceof \Carbon\Carbon ? $entry->entry_date : \Carbon\Carbon::parse($entry->entry_date);
+    $d = $entry->entry_date instanceof Carbon ? $entry->entry_date : Carbon::parse($entry->entry_date);
     $kw = $kwLabel($d);
 
     $ausbildungsnachweisNr = $course->klassen_id ?? ('Kurs #' . ($course->id ?? ''));
-    $ausbildungsjahr = $course->planned_start_date ? \Carbon\Carbon::parse($course->planned_start_date)->format('Y') : $d->format('Y');
+    $ausbildungsjahr = $course->planned_start_date ? Carbon::parse($course->planned_start_date)->format('Y') : $d->format('Y');
     $abteilung = $course->title ?? ($course->klassen_id ?? 'Kurs');
 
     $pImg = $resolveImg($participantSignatureUrl ?? null);
     $tImg = $resolveImg($trainerSignatureUrl ?? null);
+
+    $pDate = !empty($participantSignatureFile?->created_at) ? Carbon::parse($participantSignatureFile->created_at)->format('d.m.Y') : '';
+    $tDate = !empty($trainerSignatureFile?->created_at) ? Carbon::parse($trainerSignatureFile->created_at)->format('d.m.Y') : '';
 @endphp
 
 <div class="page">
@@ -197,15 +166,16 @@
     <table class="sheet">
         <thead>
             <tr>
-                <th class="col-date">Datum</th>
-                <th class="col-day">Wochen-<br>tag.</th>
+                <th class="col-date">Datum / Wochentag</th>
                 <th class="col-text">Ausgeführte Arbeiten, Unterricht usw. Stichworte</th>
             </tr>
         </thead>
         <tbody>
             <tr>
-                <td>{{ $d->format('d.m.Y') }}</td>
-                <td>{{ $weekdayName($d) }}</td>
+                <td class="datecell">
+                    <div class="d">{{ $d->format('d.m.Y') }}</div>
+                    <div class="w">{{ $weekdayLong($d) }}</div>
+                </td>
                 <td class="work-text">{!! $entry->text !!}</td>
             </tr>
         </tbody>
@@ -215,11 +185,10 @@
         <tr>
             <td style="width:50%">
                 <div class="sign-title">Ausbilder/in</div>
-
                 <table class="sign-row">
                     <tr>
                         <td class="label">Datum</td>
-                        <td><span class="line"></span></td>
+                        <td><span class="field sml">{{ $tDate }}</span></td>
                     </tr>
                     <tr>
                         <td class="label">Unterschrift</td>
@@ -235,11 +204,10 @@
 
             <td style="width:50%">
                 <div class="sign-title">Auszubildende/r</div>
-
                 <table class="sign-row">
                     <tr>
                         <td class="label">Datum</td>
-                        <td><span class="line"></span></td>
+                        <td><span class="field sml">{{ $pDate }}</span></td>
                     </tr>
                     <tr>
                         <td class="label">Unterschrift</td>
@@ -259,17 +227,16 @@
 
 
 {{-- =========================================================
-    MODULE: pro ISO-KW eine Seite im Vorlagenraster
+    MODULE: pro ISO-KW eine Seite
 ========================================================= --}}
 @if(($mode ?? null) === 'module')
 @php
     $ausbildungsnachweisNr = $course->klassen_id ?? ('Kurs #' . ($course->id ?? ''));
-    $ausbildungsjahr = $course->planned_start_date ? \Carbon\Carbon::parse($course->planned_start_date)->format('Y') : now()->format('Y');
+    $ausbildungsjahr = $course->planned_start_date ? Carbon::parse($course->planned_start_date)->format('Y') : now()->format('Y');
     $abteilung = $course->title ?? ($course->klassen_id ?? 'Kurs');
 
-    // entries nach KW gruppieren
     $groups = collect($entries)->map(function($e){
-        $e->entry_date = $e->entry_date instanceof \Carbon\Carbon ? $e->entry_date : \Carbon\Carbon::parse($e->entry_date);
+        $e->entry_date = $e->entry_date instanceof Carbon ? $e->entry_date : Carbon::parse($e->entry_date);
         return $e;
     })->groupBy(function($e){
         return $e->entry_date->isoWeekYear() . '-KW' . $e->entry_date->isoWeek();
@@ -277,6 +244,9 @@
 
     $pImg = $resolveImg($participantSignatureUrl ?? null);
     $tImg = $resolveImg($trainerSignatureUrl ?? null);
+
+    $pDate = !empty($participantSignatureFile?->created_at) ? Carbon::parse($participantSignatureFile->created_at)->format('d.m.Y') : '';
+    $tDate = !empty($trainerSignatureFile?->created_at) ? Carbon::parse($trainerSignatureFile->created_at)->format('d.m.Y') : '';
 @endphp
 
 @foreach($groups as $groupKey => $weekEntries)
@@ -308,8 +278,7 @@
     <table class="sheet">
         <thead>
             <tr>
-                <th class="col-date">Datum</th>
-                <th class="col-day">Wochen-<br>tag.</th>
+                <th class="col-date">Datum / Wochentag</th>
                 <th class="col-text">Ausgeführte Arbeiten, Unterricht usw. Stichworte</th>
             </tr>
         </thead>
@@ -317,8 +286,10 @@
             @foreach($weekEntries as $e)
                 @php $d = $e->entry_date; @endphp
                 <tr>
-                    <td>{{ $d->format('d.m.Y') }}</td>
-                    <td>{{ $weekdayName($d) }}</td>
+                    <td class="datecell">
+                        <div class="d">{{ $d->format('d.m.Y') }}</div>
+                        <div class="w">{{ $weekdayLong($d) }}</div>
+                    </td>
                     <td class="work-text">{!! $e->text !!}</td>
                 </tr>
             @endforeach
@@ -329,11 +300,10 @@
         <tr>
             <td style="width:50%">
                 <div class="sign-title">Ausbilder/in</div>
-
                 <table class="sign-row">
                     <tr>
                         <td class="label">Datum</td>
-                        <td><span class="line"></span></td>
+                        <td><span class="field sml">{{ $tDate }}</span></td>
                     </tr>
                     <tr>
                         <td class="label">Unterschrift</td>
@@ -349,11 +319,10 @@
 
             <td style="width:50%">
                 <div class="sign-title">Auszubildende/r</div>
-
                 <table class="sign-row">
                     <tr>
                         <td class="label">Datum</td>
-                        <td><span class="line"></span></td>
+                        <td><span class="field sml">{{ $pDate }}</span></td>
                     </tr>
                     <tr>
                         <td class="label">Unterschrift</td>
@@ -374,7 +343,7 @@
 
 
 {{-- =========================================================
-    ALL: pro Kurs + pro ISO-KW eine Seite im Vorlagenraster
+    ALL: pro Kurs + pro KW eine Seite
 ========================================================= --}}
 @if(($mode ?? null) === 'all')
 @foreach($books as $book)
@@ -382,11 +351,11 @@
     $course = $book->course;
 
     $ausbildungsnachweisNr = $course->klassen_id ?? ('Kurs #' . ($course->id ?? ''));
-    $ausbildungsjahr = $course->planned_start_date ? \Carbon\Carbon::parse($course->planned_start_date)->format('Y') : now()->format('Y');
+    $ausbildungsjahr = $course->planned_start_date ? Carbon::parse($course->planned_start_date)->format('Y') : now()->format('Y');
     $abteilung = $course->title ?? ($course->klassen_id ?? 'Kurs');
 
     $entriesAll = collect($book->entries)->map(function($e){
-        $e->entry_date = $e->entry_date instanceof \Carbon\Carbon ? $e->entry_date : \Carbon\Carbon::parse($e->entry_date);
+        $e->entry_date = $e->entry_date instanceof Carbon ? $e->entry_date : Carbon::parse($e->entry_date);
         return $e;
     });
 
@@ -394,8 +363,11 @@
         return $e->entry_date->isoWeekYear() . '-KW' . $e->entry_date->isoWeek();
     });
 
-    $pImg = $resolveImg($book->participantSignatureUrl ?? null);
-    $tImg = $resolveImg($book->trainerSignatureUrl ?? null);
+    $pImg  = $resolveImg($book->participantSignatureUrl ?? null);
+    $tImg  = $resolveImg($book->trainerSignatureUrl ?? null);
+
+    $pDate = !empty($book->participantSignatureFile?->created_at) ? Carbon::parse($book->participantSignatureFile->created_at)->format('d.m.Y') : '';
+    $tDate = !empty($book->trainerSignatureFile?->created_at) ? Carbon::parse($book->trainerSignatureFile->created_at)->format('d.m.Y') : '';
 @endphp
 
 @foreach($groups as $groupKey => $weekEntries)
@@ -427,8 +399,7 @@
     <table class="sheet">
         <thead>
             <tr>
-                <th class="col-date">Datum</th>
-                <th class="col-day">Wochen-<br>tag.</th>
+                <th class="col-date">Datum / Wochentag</th>
                 <th class="col-text">Ausgeführte Arbeiten, Unterricht usw. Stichworte</th>
             </tr>
         </thead>
@@ -436,8 +407,10 @@
             @foreach($weekEntries as $e)
                 @php $d = $e->entry_date; @endphp
                 <tr>
-                    <td>{{ $d->format('d.m.Y') }}</td>
-                    <td>{{ $weekdayName($d) }}</td>
+                    <td class="datecell">
+                        <div class="d">{{ $d->format('d.m.Y') }}</div>
+                        <div class="w">{{ $weekdayLong($d) }}</div>
+                    </td>
                     <td class="work-text">{!! $e->text !!}</td>
                 </tr>
             @endforeach
@@ -448,11 +421,10 @@
         <tr>
             <td style="width:50%">
                 <div class="sign-title">Ausbilder/in</div>
-
                 <table class="sign-row">
                     <tr>
                         <td class="label">Datum</td>
-                        <td><span class="line"></span></td>
+                        <td><span class="field sml">{{ $tDate }}</span></td>
                     </tr>
                     <tr>
                         <td class="label">Unterschrift</td>
@@ -468,11 +440,10 @@
 
             <td style="width:50%">
                 <div class="sign-title">Auszubildende/r</div>
-
                 <table class="sign-row">
                     <tr>
                         <td class="label">Datum</td>
-                        <td><span class="line"></span></td>
+                        <td><span class="field sml">{{ $pDate }}</span></td>
                     </tr>
                     <tr>
                         <td class="label">Unterschrift</td>
