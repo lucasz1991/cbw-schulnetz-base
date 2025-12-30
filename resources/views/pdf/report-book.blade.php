@@ -55,26 +55,44 @@
 
 @php
     /**
-     * DomPDF ist mit lokalen absoluten Pfaden am stabilsten.
-     * getEphemeralPublicUrl() liefert z.B.:
-     *   /storage/temp/xyz.png  (oder vollqualifiziert)
-     * Wir mappen das auf:
-     *   public_path('storage/temp/xyz.png')
+     * getEphemeralPublicUrl() liefert eine öffentliche URL (absolut oder /storage/...).
+     * DomPDF läuft am stabilsten mit lokalen absoluten Dateipfaden.
+     *
+     * Diese Funktion macht:
+     * - wenn $src bereits ein absoluter Dateipfad ist -> return wenn Datei existiert
+     * - wenn $src eine URL ist -> parse_url(..., PATH) nehmen
+     * - wenn Pfad mit /storage/ beginnt -> public_path('storage/...') mappen (storage:link)
+     * - sonst: Fallback -> original zurückgeben (falls DomPDF remote kann)
      */
-    $ephemeralToPublicPath = function (?string $url) {
-        if (!$url) return null;
+    $resolveDompdfImgSrc = function (?string $src) {
+        if (!$src) return null;
 
-        $path = parse_url($url, PHP_URL_PATH) ?: $url;  // nur "/storage/..."
-        if (!is_string($path) || $path === '') return null;
-
-        if (!str_starts_with($path, '/storage/')) {
-            return null; // Sicherheitsnetz: wir erwarten storage-link Pfade
+        // 1) Wenn bereits ein absoluter Dateipfad (Linux/Windows) -> direkt prüfen
+        if (is_string($src) && (str_starts_with($src, '/') || preg_match('/^[A-Z]:\\\\/i', $src))) {
+            return is_file($src) ? $src : null;
         }
 
-        $relative = ltrim($path, '/');      // "storage/temp/.."
-        $full = public_path($relative);     // ".../public/storage/temp/.."
+        // 2) Wenn URL (absolut) -> PATH extrahieren, sonst src als Pfad behandeln
+        $path = parse_url($src, PHP_URL_PATH) ?: $src;
 
-        return is_file($full) ? $full : null;
+        if (!is_string($path) || $path === '') {
+            return null;
+        }
+
+        // 3) Standard Laravel public storage: /storage/...
+        if (str_starts_with($path, '/storage/')) {
+            $full = public_path(ltrim($path, '/')); // public/storage/...
+            return is_file($full) ? $full : $src;   // fallback: URL
+        }
+
+        // 4) Falls jemand mal "storage/..." ohne leading slash übergibt
+        if (str_starts_with($path, 'storage/')) {
+            $full = public_path($path);
+            return is_file($full) ? $full : $src;
+        }
+
+        // 5) Sonst: unverändert lassen (evtl. remote)
+        return $src;
     };
 @endphp
 
@@ -99,10 +117,8 @@
     </div>
 
     @php
-        $pUrl = $participantSignatureUrl ?? null;
-        $tUrl = $trainerSignatureUrl ?? null;
-        $pImg = $ephemeralToPublicPath($pUrl);
-        $tImg = $ephemeralToPublicPath($tUrl);
+        $pImg = $resolveDompdfImgSrc($participantSignatureUrl ?? null);
+        $tImg = $resolveDompdfImgSrc($trainerSignatureUrl ?? null);
     @endphp
 
     @if($pImg || $tImg)
@@ -168,10 +184,8 @@
     @endforeach
 
     @php
-        $pUrl = $participantSignatureUrl ?? null;
-        $tUrl = $trainerSignatureUrl ?? null;
-        $pImg = $ephemeralToPublicPath($pUrl);
-        $tImg = $ephemeralToPublicPath($tUrl);
+        $pImg = $resolveDompdfImgSrc($participantSignatureUrl ?? null);
+        $tImg = $resolveDompdfImgSrc($trainerSignatureUrl ?? null);
     @endphp
 
     @if($pImg || $tImg)
@@ -209,11 +223,8 @@
         @php
             $course = $book->course;
 
-            $pUrl = $book->participantSignatureUrl ?? null;
-            $tUrl = $book->trainerSignatureUrl ?? null;
-
-            $pImg = $ephemeralToPublicPath($pUrl);
-            $tImg = $ephemeralToPublicPath($tUrl);
+            $pImg = $resolveDompdfImgSrc($book->participantSignatureUrl ?? null);
+            $tImg = $resolveDompdfImgSrc($book->trainerSignatureUrl ?? null);
         @endphp
 
         <div class="course-block">

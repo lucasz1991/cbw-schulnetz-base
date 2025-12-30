@@ -729,154 +729,154 @@ class ReportBook extends Component
 
     /* ======================= Exporte ======================= */
 
-    public function exportReportEntry(): ?StreamedResponse
-    {
-        if (!$this->selectedCourseId || !$this->selectedCourseDayId) {
-            $this->dispatch('toast', type: 'warning', message: 'Kurs und Kurstag auswählen.');
-            return null;
-        }
-
-        $book = ReportBookModel::with([
-                'course',
-                'files' => fn ($q) => $q->whereIn('type', [
-                    'sign_reportbook_participant',
-                    'sign_reportbook_trainer',
-                ])->orderByDesc('id'),
-            ])
-            ->where('user_id', Auth::id())
-            ->where('course_id', $this->selectedCourseId)
-            ->when($this->massnahmeId, fn ($q) => $q->where('massnahme_id', $this->massnahmeId))
-            ->first();
-
-        if (!$book) {
-            $this->dispatch('toast', type: 'warning', message: 'Kein Berichtsheft vorhanden.');
-            return null;
-        }
-
-        $entry = ReportBookEntry::where('report_book_id', $book->id)
-            ->where('course_day_id', $this->selectedCourseDayId)
-            ->first();
-
-        if (!$entry) {
-            $this->dispatch('toast', type: 'warning', message: 'Kein Eintrag vorhanden.');
-            return null;
-        }
-
-        $entry->entry_date = \Carbon\Carbon::parse($entry->entry_date);
-
-        $participantSignatureFile = $book->signature('sign_reportbook_participant');
-        $participantSignatureUrl  = $participantSignatureFile ? $participantSignatureFile->getEphemeralPublicUrl() : null;
-
-        $trainerSignatureFile = $book->signature('sign_reportbook_trainer');
-        $trainerSignatureUrl  = $trainerSignatureFile ? $trainerSignatureFile->getEphemeralPublicUrl() : null;
-
-        $pdf = Pdf::loadView('pdf.report-book', [
-            'mode'                    => 'single',
-            'entry'                   => $entry,
-            'course'                  => $book->course,
-            'user'                    => Auth::user(),
-            'title'                   => 'Bericht ' . $entry->entry_date->format('d.m.Y'),
-            'participantSignatureUrl' => $participantSignatureUrl,
-            'trainerSignatureUrl'     => $trainerSignatureUrl,
-            'showSignatureBlock'      => true,
-        ]);
-
-        return response()->streamDownload(
-            fn () => print($pdf->output()),
-            'bericht-' . $entry->entry_date->format('Y-m-d') . '.pdf'
-        );
+public function exportReportEntry(): ?StreamedResponse
+{
+    if (!$this->selectedCourseId || !$this->selectedCourseDayId) {
+        $this->dispatch('toast', type: 'warning', message: 'Kurs und Kurstag auswählen.');
+        return null;
     }
 
-    public function exportReportModule(): ?StreamedResponse
-    {
-        $book = ReportBookModel::with([
-                'course',
-                'entries' => fn ($q) => $q->orderBy('entry_date'),
-                'files' => fn ($q) => $q->whereIn('type', [
-                    'sign_reportbook_participant',
-                    'sign_reportbook_trainer',
-                ])->orderByDesc('id'),
-            ])
-            ->where('user_id', Auth::id())
-            ->where('course_id', $this->selectedCourseId)
-            ->when($this->massnahmeId, fn ($q) => $q->where('massnahme_id', $this->massnahmeId))
-            ->first();
+    $book = ReportBookModel::with([
+            'course',
+            'files' => fn ($q) => $q->whereIn('type', [
+                'sign_reportbook_participant',
+                'sign_reportbook_trainer',
+            ])->orderByDesc('id'),
+        ])
+        ->where('user_id', Auth::id())
+        ->where('course_id', $this->selectedCourseId)
+        ->when($this->massnahmeId, fn ($q) => $q->where('massnahme_id', $this->massnahmeId))
+        ->first();
 
-        if (!$book || $book->entries->isEmpty()) {
-            $this->dispatch('toast', type: 'warning', message: 'Keine Einträge vorhanden.');
-            return null;
-        }
+    if (!$book) {
+        $this->dispatch('toast', type: 'warning', message: 'Kein Berichtsheft vorhanden.');
+        return null;
+    }
 
+    $entry = ReportBookEntry::where('report_book_id', $book->id)
+        ->where('course_day_id', $this->selectedCourseDayId)
+        ->first();
+
+    if (!$entry) {
+        $this->dispatch('toast', type: 'warning', message: 'Kein Eintrag vorhanden.');
+        return null;
+    }
+
+    $entry->entry_date = \Carbon\Carbon::parse($entry->entry_date);
+
+    $participantSignatureFile = $book->signature('sign_reportbook_participant');
+    $trainerSignatureFile     = $book->signature('sign_reportbook_trainer');
+
+    $participantSignatureUrl = $participantSignatureFile ? $participantSignatureFile->getEphemeralPublicUrl(10) : null;
+    $trainerSignatureUrl     = $trainerSignatureFile ? $trainerSignatureFile->getEphemeralPublicUrl(10) : null;
+
+    $pdf = Pdf::loadView('pdf.report-book', [
+        'mode'                    => 'single',
+        'entry'                   => $entry,
+        'course'                  => $book->course,
+        'user'                    => Auth::user(),
+        'title'                   => 'Bericht ' . $entry->entry_date->format('d.m.Y'),
+        'participantSignatureUrl' => $participantSignatureUrl,
+        'trainerSignatureUrl'     => $trainerSignatureUrl,
+    ]);
+
+    return response()->streamDownload(
+        fn () => print($pdf->output()),
+        'bericht-' . $entry->entry_date->format('Y-m-d') . '.pdf'
+    );
+}
+
+public function exportReportModule(): ?StreamedResponse
+{
+    $book = ReportBookModel::with([
+            'course',
+            'entries' => fn ($q) => $q->orderBy('entry_date'),
+            'files' => fn ($q) => $q->whereIn('type', [
+                'sign_reportbook_participant',
+                'sign_reportbook_trainer',
+            ])->orderByDesc('id'),
+        ])
+        ->where('user_id', Auth::id())
+        ->where('course_id', $this->selectedCourseId)
+        ->when($this->massnahmeId, fn ($q) => $q->where('massnahme_id', $this->massnahmeId))
+        ->first();
+
+    if (!$book || $book->entries->isEmpty()) {
+        $this->dispatch('toast', type: 'warning', message: 'Keine Einträge vorhanden.');
+        return null;
+    }
+
+    foreach ($book->entries as $e) {
+        $e->entry_date = \Carbon\Carbon::parse($e->entry_date);
+    }
+
+    $participantSignatureFile = $book->signature('sign_reportbook_participant');
+    $trainerSignatureFile     = $book->signature('sign_reportbook_trainer');
+
+    $participantSignatureUrl = $participantSignatureFile ? $participantSignatureFile->getEphemeralPublicUrl(10) : null;
+    $trainerSignatureUrl     = $trainerSignatureFile ? $trainerSignatureFile->getEphemeralPublicUrl(10) : null;
+
+    $pdf = Pdf::loadView('pdf.report-book', [
+        'mode'                    => 'module',
+        'entries'                 => $book->entries,
+        'course'                  => $book->course,
+        'user'                    => Auth::user(),
+        'title'                   => 'Berichtsheft – ' . ($book->course->klassen_id ?? $book->course->title ?? ''),
+        'participantSignatureUrl' => $participantSignatureUrl,
+        'trainerSignatureUrl'     => $trainerSignatureUrl,
+    ]);
+
+    return response()->streamDownload(
+        fn () => print($pdf->output()),
+        'berichtsheft-' . ($book->course->klassen_id ?? $book->course->id) . '.pdf'
+    );
+}
+
+public function exportReportAll(): ?StreamedResponse
+{
+    $books = ReportBookModel::with([
+            'course',
+            'entries' => fn ($q) => $q->orderBy('entry_date'),
+            'files' => fn ($q) => $q->whereIn('type', [
+                'sign_reportbook_participant',
+                'sign_reportbook_trainer',
+            ])->orderByDesc('id'),
+        ])
+        ->where('user_id', Auth::id())
+        ->when($this->massnahmeId, fn ($q) => $q->where('massnahme_id', $this->massnahmeId))
+        ->whereHas('entries')
+        ->get();
+
+    if ($books->isEmpty()) {
+        $this->dispatch('toast', type: 'warning', message: 'Keine Einträge vorhanden.');
+        return null;
+    }
+
+    foreach ($books as $book) {
         foreach ($book->entries as $e) {
             $e->entry_date = \Carbon\Carbon::parse($e->entry_date);
         }
 
-        $participantSignatureFile = $book->signature('sign_reportbook_participant');
-        $participantSignatureUrl  = $participantSignatureFile ? $participantSignatureFile->getEphemeralPublicUrl() : null;
+        $pFile = $book->signature('sign_reportbook_participant');
+        $tFile = $book->signature('sign_reportbook_trainer');
 
-        $trainerSignatureFile = $book->signature('sign_reportbook_trainer');
-        $trainerSignatureUrl  = $trainerSignatureFile ? $trainerSignatureFile->getEphemeralPublicUrl() : null;
-
-        $pdf = Pdf::loadView('pdf.report-book', [
-            'mode'                    => 'module',
-            'entries'                 => $book->entries,
-            'course'                  => $book->course,
-            'user'                    => Auth::user(),
-            'title'                   => 'Berichtsheft – ' . ($book->course->klassen_id ?? $book->course->title ?? ''),
-            'participantSignatureUrl' => $participantSignatureUrl,
-            'trainerSignatureUrl'     => $trainerSignatureUrl,
-        ]);
-
-        return response()->streamDownload(
-            fn () => print($pdf->output()),
-            'berichtsheft-' . ($book->course->klassen_id ?? $book->course->id) . '.pdf'
-        );
+        $book->participantSignatureUrl = $pFile ? $pFile->getEphemeralPublicUrl(10) : null;
+        $book->trainerSignatureUrl     = $tFile ? $tFile->getEphemeralPublicUrl(10) : null;
     }
 
-    public function exportReportAll(): ?StreamedResponse
-    {
-        $books = ReportBookModel::with([
-                'course',
-                'entries' => fn ($q) => $q->orderBy('entry_date'),
-                'files' => fn ($q) => $q->whereIn('type', [
-                    'sign_reportbook_participant',
-                    'sign_reportbook_trainer',
-                ])->orderByDesc('id'),
-            ])
-            ->where('user_id', Auth::id())
-            ->when($this->massnahmeId, fn ($q) => $q->where('massnahme_id', $this->massnahmeId))
-            ->whereHas('entries')
-            ->get();
+    $pdf = Pdf::loadView('pdf.report-book', [
+        'mode'  => 'all',
+        'books' => $books,
+        'user'  => Auth::user(),
+        'title' => 'Berichtsheft – Alle Kurse',
+    ]);
 
-        if ($books->isEmpty()) {
-            $this->dispatch('toast', type: 'warning', message: 'Keine Einträge vorhanden.');
-            return null;
-        }
+    return response()->streamDownload(
+        fn () => print($pdf->output()),
+        'berichtsheft-alle-kurse.pdf'
+    );
+}
 
-        foreach ($books as $book) {
-            foreach ($book->entries as $e) {
-                $e->entry_date = \Carbon\Carbon::parse($e->entry_date);
-            }
-
-            $pFile = $book->signature('sign_reportbook_participant');
-            $tFile = $book->signature('sign_reportbook_trainer');
-
-            $book->participantSignatureUrl = $pFile ? $pFile->getEphemeralPublicUrl() : null;
-            $book->trainerSignatureUrl     = $tFile ? $tFile->getEphemeralPublicUrl() : null;
-        }
-
-        $pdf = Pdf::loadView('pdf.report-book', [
-            'mode'  => 'all',
-            'books' => $books,
-            'user'  => Auth::user(),
-            'title' => 'Berichtsheft – Alle Kurse',
-        ]);
-
-        return response()->streamDownload(
-            fn () => print($pdf->output()),
-            'berichtsheft-alle-kurse.pdf'
-        );
-    }
 
     public function getStatusAttribute(): int
     {
