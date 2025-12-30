@@ -271,7 +271,7 @@
                             Unterschrift Teilnehmer
                             <div class="sig-label">{{ $user->name }}</div>
                         </div>
-                    </div>
+                    </div> 
 
                     <div class="sig-col right">
                         @if($tImg)
