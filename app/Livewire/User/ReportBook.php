@@ -324,7 +324,7 @@ class ReportBook extends Component
             }
         }
 
-        
+
         // Entwurf speichern
         $entry->fill([
             'entry_date'   => $day->date,
@@ -736,7 +736,14 @@ class ReportBook extends Component
             return null;
         }
 
-        $book = ReportBookModel::where('user_id', Auth::id())
+        $book = ReportBookModel::with([
+                'course',
+                'files' => fn ($q) => $q->whereIn('type', [
+                    'sign_reportbook_participant',
+                    'sign_reportbook_trainer',
+                ])->orderByDesc('id'),
+            ])
+            ->where('user_id', Auth::id())
             ->where('course_id', $this->selectedCourseId)
             ->when($this->massnahmeId, fn ($q) => $q->where('massnahme_id', $this->massnahmeId))
             ->first();
@@ -757,12 +764,18 @@ class ReportBook extends Component
 
         $entry->entry_date = \Carbon\Carbon::parse($entry->entry_date);
 
+        $participantSignature = $book->files->firstWhere('type', 'sign_reportbook_participant');
+        $trainerSignature     = $book->files->firstWhere('type', 'sign_reportbook_trainer');
+
         $pdf = Pdf::loadView('pdf.report-book', [
-            'mode'   => 'single',
-            'entry'  => $entry,
-            'course' => $book->course,
-            'user'   => Auth::user(),
-            'title'  => 'Bericht ' . $entry->entry_date->format('d.m.Y'),
+            'mode'                 => 'single', // ✅ FIX
+            'entry'                => $entry,
+            'course'               => $book->course,
+            'user'                 => Auth::user(),
+            'title'                => 'Bericht ' . $entry->entry_date->format('d.m.Y'),
+            'participantSignature' => $participantSignature,
+            'trainerSignature'     => $trainerSignature,
+            'showSignatureBlock'   => true, // optional: für single immer anzeigen (wenn vorhanden)
         ]);
 
         return response()->streamDownload(
@@ -770,6 +783,7 @@ class ReportBook extends Component
             'bericht-' . $entry->entry_date->format('Y-m-d') . '.pdf'
         );
     }
+
 
     public function exportReportModule(): ?StreamedResponse
     {
@@ -788,12 +802,17 @@ class ReportBook extends Component
             $e->entry_date = \Carbon\Carbon::parse($e->entry_date);
         }
 
+        $participantSignature = $book->signature('sign_reportbook_participant');
+        $trainerSignature     = $book->signature('sign_reportbook_trainer');
+
         $pdf = Pdf::loadView('pdf.report-book', [
-            'mode'    => 'module',
-            'entries' => $book->entries,
-            'course'  => $book->course,
-            'user'    => Auth::user(),
-            'title'   => 'Berichtsheft – ' . $book->course->klassen_id,
+            'mode'                 => 'module',
+            'entries'              => $book->entries,
+            'course'               => $book->course,
+            'user'                 => Auth::user(),
+            'participantSignature' => $participantSignature,
+            'trainerSignature'     => $trainerSignature,
+            'title'                => 'Berichtsheft – ' . $book->course->klassen_id,
         ]);
 
         return response()->streamDownload(
@@ -804,37 +823,39 @@ class ReportBook extends Component
 
     public function exportReportAll(): ?StreamedResponse
     {
-        $books = ReportBookModel::with([
-                'course',
-                'entries' => fn ($q) => $q->orderBy('entry_date'),
-            ])
-            ->where('user_id', Auth::id())
-            ->when($this->massnahmeId, fn ($q) => $q->where('massnahme_id', $this->massnahmeId))
-            ->whereHas('entries')
-            ->get();
+                    $books = ReportBookModel::with([
+                            'course',
+                            'entries' => fn ($q) => $q->orderBy('entry_date'),
+                        ])
+                        ->where('user_id', Auth::id())
+                        ->when($this->massnahmeId, fn ($q) => $q->where('massnahme_id', $this->massnahmeId))
+                        ->whereHas('entries')
+                        ->get();
 
-        if ($books->isEmpty()) {
-            $this->dispatch('toast', type: 'warning', message: 'Keine Einträge vorhanden.');
-            return null;
-        }
+                    if ($books->isEmpty()) {
+                        $this->dispatch('toast', type: 'warning', message: 'Keine Einträge vorhanden.');
+                        return null;
+                    }
 
-        foreach ($books as $book) {
-            foreach ($book->entries as $e) {
-                $e->entry_date = \Carbon\Carbon::parse($e->entry_date);
-            }
-        }
+                    foreach ($books as $book) {
+                        foreach ($book->entries as $e) {
+                            $e->entry_date = \Carbon\Carbon::parse($e->entry_date);
+                        }
+                        $book->participantSignature = $book->files->firstWhere('type', 'sign_reportbook_participant');
+                        $book->trainerSignature     = $book->files->firstWhere('type', 'sign_reportbook_trainer');
+                    }
 
-        $pdf = Pdf::loadView('pdf.report-book', [
-            'mode'  => 'all',
-            'books' => $books,
-            'user'  => Auth::user(),
-            'title' => 'Berichtsheft – Alle Kurse',
-        ]);
+                    $pdf = Pdf::loadView('pdf.report-book', [
+                        'mode'  => 'all',
+                        'books' => $books,
+                        'user'  => Auth::user(),
+                        'title' => 'Berichtsheft – Alle Kurse',
+                    ]);
 
-        return response()->streamDownload(
-            fn () => print($pdf->output()),
-            'berichtsheft-alle-kurse.pdf'
-        );
+                    return response()->streamDownload(
+                        fn () => print($pdf->output()),
+                        'berichtsheft-alle-kurse.pdf'
+                    );
     }
 
     public function getStatusAttribute(): int

@@ -57,13 +57,10 @@ class ReportBookEntry extends Model
                 ->where('status', '<', 1)
                 ->exists();
 
-            // Wenn noch andere Stati existieren -> noch nicht komplett eingereicht
             if ($hasNonSubmitted) {
                 return;
             }
 
-            // An dieser Stelle: alle Einträge dieses ReportBooks haben Status 1
-            // -> Job für genau dieses ReportBook starten
             CheckReportBooks::dispatch([$bookId])
                 ->delay(now()->addMinutes(5));
         });

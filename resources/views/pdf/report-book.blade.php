@@ -3,27 +3,85 @@
 <head>
     <meta charset="utf-8">
     <title>{{ $title ?? 'Berichtsheft' }}</title>
+
     <style>
-        body { font-family: DejaVu Sans, sans-serif; font-size: 11px; }
-        h1, h2, h3 { margin: 0 0 8px; }
-        .course-block { page-break-after: always; }
-        .entry { margin-bottom: 18px; page-break-inside: avoid; }
+        body { font-family: DejaVu Sans, sans-serif; font-size: 11px; color:#111; }
+        h1, h2 { margin: 0 0 8px; padding:0; }
+        hr { border:0; border-top:1px solid #ddd; margin: 10px 0 14px; }
+
+        .meta { font-size: 10px; color: #444; margin-bottom: 6px; line-height: 1.35; }
+        .course-block { page-break-after: always; padding-bottom: 6px; }
+        .course-block:last-child { page-break-after: auto; }
+
+        .entry { margin-bottom: 14px; page-break-inside: avoid; }
         .entry-header { font-weight: bold; margin-bottom: 4px; }
-        .entry-status { font-size: 10px; color: #666; }
-        .small { font-size: 10px; color: #444; }
+        .entry-status { font-size: 10px; color: #666; font-weight: normal; margin-left: 6px; }
+        .entry-text { line-height: 1.35; }
+
+        /* kleine “Badge”-Optik für Status */
+        .badge {
+            display: inline-block;
+            padding: 1px 6px;
+            border-radius: 10px;
+            font-size: 9px;
+            border: 1px solid #ddd;
+            color: #444;
+            vertical-align: middle;
+        }
+        .badge-fertig { border-color: #b7e3c6; color:#14532d; background:#ecfdf5; }
+        .badge-entwurf { border-color: #fde68a; color:#92400e; background:#fffbeb; }
+
+        /* Signaturen */
+        .signature-block { margin-top: 26px; page-break-inside: avoid; }
+        .sig-col {
+            width: 48%;
+            display: inline-block;
+            vertical-align: top;
+            text-align: center;
+        }
+        .sig-col.right { float: right; }
+        .sig-img { max-height: 90px; margin: 0 0 6px; }
+        .sig-line {
+            border-top: 1px solid #000;
+            margin-top: 8px;
+            padding-top: 4px;
+            font-size: 10px;
+            line-height: 1.25;
+        }
+        .sig-label { color:#444; font-size: 9px; margin-top: 2px; }
+
+        /* Helfer */
+        .clearfix:after { content:""; display:block; clear:both; }
     </style>
 </head>
 <body>
 
-{{-- ===========================================
-     MODUS: SINGLE ENTRY
-=========================================== --}}
-@if($mode === 'single')
+@php
+    // Helper: Datei-Pfad für DomPDF (lokal)
+    $sigPath = function ($file) {
+        if (!$file) return null;
+
+        // Standard: storage/app/<disk>/<path> (du nutzt oft disk+path)
+        // Falls dein disk "public" ist, wäre es i.d.R. storage/app/public/<path>
+        return storage_path('app/' . trim($file->disk ?? '') . '/' . ltrim($file->path ?? '', '/'));
+    };
+
+    $statusLabel = function ($status) {
+        return ($status === 1 || $status === true || (int)$status >= 1) ? 'Fertig' : 'Entwurf';
+    };
+@endphp
+
+
+{{-- =========================================================
+    MODUS: SINGLE
+========================================================= --}}
+@if(($mode ?? null) === 'single')
     <h1>Bericht vom {{ $entry->entry_date->format('d.m.Y') }}</h1>
-    <p class="small">
+
+    <div class="meta">
         Kurs: {{ $course->klassen_id ?? $course->title ?? 'Kurs' }}<br>
         Teilnehmer: {{ $user->name }}
-    </p>
+    </div>
 
     <hr>
 
@@ -32,16 +90,44 @@
             {!! $entry->text !!}
         </div>
     </div>
+
+    @php
+        $pSig = $participantSignature ?? null;
+        $tSig = $trainerSignature ?? null;
+    @endphp
+
+    @if($pSig || $tSig)
+        <div class="signature-block clearfix">
+            <div class="sig-col">
+                @if($pSig && ($p = $sigPath($pSig)))
+                    <img class="sig-img" src="{{ $p }}" alt="Unterschrift Teilnehmer">
+                @endif
+                <div class="sig-line">
+                    Unterschrift Teilnehmer
+                    <div class="sig-label">{{ $user->name }}</div>
+                </div>
+            </div>
+
+            <div class="sig-col right">
+                @if($tSig && ($p = $sigPath($tSig)))
+                    <img class="sig-img" src="{{ $p }}" alt="Unterschrift Ausbilder">
+                @endif
+                <div class="sig-line">
+                    Unterschrift Ausbilder
+                </div>
+            </div>
+        </div>
+    @endif
 @endif
 
 
-{{-- ===========================================
-     MODUS: MODULE (Ein ganzer Kurs)
-=========================================== --}}
-@if($mode === 'module')
+{{-- =========================================================
+    MODUS: MODULE
+========================================================= --}}
+@if(($mode ?? null) === 'module')
     <h1>Berichtsheft – {{ $course->klassen_id ?? $course->title }}</h1>
 
-    <p class="small">
+    <div class="meta">
         Teilnehmer: {{ $user->name }}<br>
         Zeitraum:
         @if($course->planned_start_date)
@@ -53,16 +139,20 @@
         @else
             (nicht hinterlegt)
         @endif
-    </p>
+    </div>
 
     <hr>
 
     @foreach($entries as $entry)
+        @php
+            $isFinished = ((int)($entry->status ?? 0) >= 1);
+        @endphp
+
         <div class="entry">
             <div class="entry-header">
                 {{ $entry->entry_date->format('d.m.Y') }}
-                <span class="entry-status">
-                    ({{ $entry->status === 1 ? 'Fertig' : 'Entwurf' }})
+                <span class="badge {{ $isFinished ? 'badge-fertig' : 'badge-entwurf' }}">
+                    {{ $isFinished ? 'Fertig' : 'Entwurf' }}
                 </span>
             </div>
 
@@ -71,26 +161,58 @@
             </div>
         </div>
     @endforeach
+
+    @php
+        $pSig = $participantSignature ?? null;
+        $tSig = $trainerSignature ?? null;
+    @endphp
+
+    @if($pSig || $tSig)
+        <div class="signature-block clearfix">
+            <div class="sig-col">
+                @if($pSig && ($p = $sigPath($pSig)))
+                    <img class="sig-img" src="{{ $p }}" alt="Unterschrift Teilnehmer">
+                @endif
+                <div class="sig-line">
+                    Unterschrift Teilnehmer
+                    <div class="sig-label">{{ $user->name }}</div>
+                </div>
+            </div>
+
+            <div class="sig-col right">
+                @if($tSig && ($p = $sigPath($tSig)))
+                    <img class="sig-img" src="{{ $p }}" alt="Unterschrift Ausbilder">
+                @endif
+                <div class="sig-line">
+                    Unterschrift Ausbilder
+                </div>
+            </div>
+        </div>
+    @endif
 @endif
 
 
-{{-- ===========================================
-     MODUS: ALL (alle Kurse)
-=========================================== --}}
-@if($mode === 'all')
+{{-- =========================================================
+    MODUS: ALL
+========================================================= --}}
+@if(($mode ?? null) === 'all')
     <h1>Berichtsheft – Alle Kurse</h1>
-    <p class="small">Teilnehmer: {{ $user->name }}</p>
+    <div class="meta">Teilnehmer: {{ $user->name }}</div>
     <hr>
 
     @foreach($books as $book)
         @php
             $course = $book->course;
+
+            // Wenn du in exportReportAll() bereits participantSignature/trainerSignature anhängst:
+            $pSig = $book->participantSignature ?? ($book->files?->firstWhere('type', 'sign_reportbook_participant') ?? null);
+            $tSig = $book->trainerSignature ?? ($book->files?->firstWhere('type', 'sign_reportbook_trainer') ?? null);
         @endphp
 
         <div class="course-block">
             <h2>{{ $course->klassen_id ?? $course->title ?? 'Kurs #'.$course->id }}</h2>
 
-            <p class="small">
+            <div class="meta">
                 Zeitraum:
                 @if($course->planned_start_date)
                     {{ \Carbon\Carbon::parse($course->planned_start_date)->format('d.m.Y') }}
@@ -101,16 +223,20 @@
                 @else
                     (nicht hinterlegt)
                 @endif
-            </p>
+            </div>
 
             <hr>
 
             @foreach($book->entries as $entry)
+                @php
+                    $isFinished = ((int)($entry->status ?? 0) >= 1);
+                @endphp
+
                 <div class="entry">
                     <div class="entry-header">
                         {{ $entry->entry_date->format('d.m.Y') }}
-                        <span class="entry-status">
-                            ({{ $entry->status === 1 ? 'Fertig' : 'Entwurf' }})
+                        <span class="badge {{ $isFinished ? 'badge-fertig' : 'badge-entwurf' }}">
+                            {{ $isFinished ? 'Fertig' : 'Entwurf' }}
                         </span>
                     </div>
                     <div class="entry-text">
@@ -119,6 +245,28 @@
                 </div>
             @endforeach
 
+            @if($pSig || $tSig)
+                <div class="signature-block clearfix">
+                    <div class="sig-col">
+                        @if($pSig && ($p = $sigPath($pSig)))
+                            <img class="sig-img" src="{{ $p }}" alt="Unterschrift Teilnehmer">
+                        @endif
+                        <div class="sig-line">
+                            Unterschrift Teilnehmer
+                            <div class="sig-label">{{ $user->name }}</div>
+                        </div>
+                    </div>
+
+                    <div class="sig-col right">
+                        @if($tSig && ($p = $sigPath($tSig)))
+                            <img class="sig-img" src="{{ $p }}" alt="Unterschrift Ausbilder">
+                        @endif
+                        <div class="sig-line">
+                            Unterschrift Ausbilder
+                        </div>
+                    </div>
+                </div>
+            @endif
         </div>
     @endforeach
 @endif

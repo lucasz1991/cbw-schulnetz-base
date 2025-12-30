@@ -151,6 +151,14 @@ class ReportBook extends Model
         return $reportBook ? $reportBook->isReportBookReviewed : false;
     }
 
+    public function signature(string $type)
+    {
+        return $this->files()
+            ->where('type', $type)
+            ->latest()
+            ->first();
+    }
+
     /* ---------- Nützliche Helper/Scopes ---------- */
 
     public function scopeForCourse($q, int $courseId)
