@@ -92,8 +92,8 @@
     </div>
 
     @php
-        $pSig = $participantSignature->getEphemeralPublicUrl() ?? null;
-        $tSig = $trainerSignature->getEphemeralPublicUrl() ?? null;
+        $pSig = $participantSignature ?? null;
+        $tSig = $trainerSignature ?? null;
     @endphp
 
     @if($pSig || $tSig)

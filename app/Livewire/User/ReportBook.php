@@ -764,8 +764,10 @@ class ReportBook extends Component
 
         $entry->entry_date = \Carbon\Carbon::parse($entry->entry_date);
 
-        $participantSignature = $book->files->firstWhere('type', 'sign_reportbook_participant');
-        $trainerSignature     = $book->files->firstWhere('type', 'sign_reportbook_trainer');
+        $participantSignatureFile = $book->signature('sign_reportbook_participant');
+        $participantSignature = $participantSignatureFile ? $participantSignatureFile->getEphemeralPublicUrl() : null;
+        $trainerSignatureFile = $book->signature('sign_reportbook_trainer');
+        $trainerSignature = $trainerSignatureFile ? $trainerSignatureFile->getEphemeralPublicUrl() : null;
 
         $pdf = Pdf::loadView('pdf.report-book', [
             'mode'                 => 'single', // ✅ FIX
@@ -802,8 +804,10 @@ class ReportBook extends Component
             $e->entry_date = \Carbon\Carbon::parse($e->entry_date);
         }
 
-        $participantSignature = $book->signature('sign_reportbook_participant');
-        $trainerSignature     = $book->signature('sign_reportbook_trainer');
+        $participantSignatureFile = $book->signature('sign_reportbook_participant');
+        $participantSignature = $participantSignatureFile ? $participantSignatureFile->getEphemeralPublicUrl() : null;
+        $trainerSignatureFile = $book->signature('sign_reportbook_trainer');
+        $trainerSignature = $trainerSignatureFile ? $trainerSignatureFile->getEphemeralPublicUrl() : null;
 
         $pdf = Pdf::loadView('pdf.report-book', [
             'mode'                 => 'module',
@@ -841,8 +845,12 @@ class ReportBook extends Component
                         foreach ($book->entries as $e) {
                             $e->entry_date = \Carbon\Carbon::parse($e->entry_date);
                         }
-                        $book->participantSignature = $book->files->firstWhere('type', 'sign_reportbook_participant');
-                        $book->trainerSignature     = $book->files->firstWhere('type', 'sign_reportbook_trainer');
+                        $participantSignatureFile = $book->signature('sign_reportbook_participant');
+                        $participantSignature = $participantSignatureFile ? $participantSignatureFile->getEphemeralPublicUrl() : null;
+                        $trainerSignatureFile = $book->signature('sign_reportbook_trainer');
+                        $trainerSignature = $trainerSignatureFile ? $trainerSignatureFile->getEphemeralPublicUrl() : null;
+                        $book->participantSignature = $participantSignature;
+                        $book->trainerSignature     = $trainerSignature;
                     }
 
                     $pdf = Pdf::loadView('pdf.report-book', [
