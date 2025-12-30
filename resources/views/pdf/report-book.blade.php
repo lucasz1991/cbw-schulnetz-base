@@ -12,7 +12,6 @@
         .page:last-child { page-break-after: auto; }
 
         .h1 { font-size: 13px; font-weight: 700; margin: 0 0 8px; }
-        .muted { color:#444; }
 
         /* Kopfbereich wie Vorlage */
         .head-grid { width:100%; border-collapse:collapse; margin-bottom: 8px; }
@@ -56,24 +55,49 @@
         .work-text ul, .work-text ol { margin: 0 0 4px 18px; padding: 0; }
         .work-text li { margin: 0 0 2px; }
 
-        /* Signaturbereich wie Vorlage */
-        .sign-table {
+        /* Signaturbereich wie Vorlage (boxed) */
+        .sign-wrap {
             width: 100%;
             border-collapse: collapse;
             table-layout: fixed;
             margin-top: 10px;
         }
-        .sign-table td { padding: 2px 6px; vertical-align: top; }
-        .sign-title { font-weight: 700; padding-bottom: 6px; }
 
-        .sign-row { width:100%; border-collapse: collapse; }
-        .sign-row td { padding: 2px 6px 2px 0; vertical-align: bottom; }
-        .line { display:inline-block; border-bottom: 1px solid #111; min-width: 150px; height: 14px; }
+        .sign-col { width: 50%; vertical-align: top; }
+        .sign-title { font-weight: 700; margin: 0 0 6px; }
 
-        .sig-img { max-height: 70px; max-width: 230px; display:block; margin: 0 0 4px; }
-        .sig-box { min-height: 78px; }
+        .sign-box {
+            border: 1px solid #111;
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        .sign-box td {
+            border: 1px solid #111; /* innere Linien */
+            padding: 6px;
+            vertical-align: middle;
+            font-size: 10px;
+        }
+        .sign-box .lbl { width: 30%; white-space: nowrap; font-weight: 700; }
+        .sign-box .val { width: 70%; }
 
-        .clearfix:after { content:""; display:block; clear:both; }
+        .sig-img {
+            max-height: 70px;
+            max-width: 230px;
+            display: block;
+            margin: 0 0 6px;
+        }
+
+        .sig-line {
+            border-bottom: 1px solid #111;
+            height: 14px;
+            display: block;
+            width: 100%;
+        }
+
+        .sig-cell {
+            min-height: 90px;
+        }
     </style>
 </head>
 <body>
@@ -81,10 +105,6 @@
 @php
     use Carbon\Carbon;
 
-    /**
-     * getEphemeralPublicUrl() liefert eine öffentliche URL (absolut oder /storage/...).
-     * DomPDF ist am stabilsten mit lokalen Pfaden.
-     */
     $resolveImg = function (?string $src) {
         if (!$src) return null;
 
@@ -96,10 +116,9 @@
         if (!is_string($path) || $path === '') return null;
 
         if (str_starts_with($path, '/storage/')) {
-            $full = public_path(ltrim($path, '/')); // public/storage/...
-            return is_file($full) ? $full : $src;   // fallback URL
+            $full = public_path(ltrim($path, '/'));
+            return is_file($full) ? $full : $src;
         }
-
         if (str_starts_with($path, 'storage/')) {
             $full = public_path($path);
             return is_file($full) ? $full : $src;
@@ -119,7 +138,6 @@
         return 'KW ' . $d->isoWeek() . ' / ' . $d->isoWeekYear();
     };
 
-    // Kopf-Felder (Fallbacks)
     $participantName = $user->name ?? '';
 @endphp
 
@@ -181,41 +199,43 @@
         </tbody>
     </table>
 
-    <table class="sign-table">
+    <table class="sign-wrap">
         <tr>
-            <td style="width:50%">
+            <td class="sign-col" style="padding-right:10px;">
                 <div class="sign-title">Ausbilder/in</div>
-                <table class="sign-row">
+
+                <table class="sign-box">
                     <tr>
-                        <td class="label">Datum</td>
-                        <td><span class="field sml">{{ $tDate }}</span></td>
+                        <td class="lbl">Datum</td>
+                        <td class="val">{{ $tDate }}</td>
                     </tr>
                     <tr>
-                        <td class="label">Unterschrift</td>
-                        <td class="sig-box">
+                        <td class="lbl">Unterschrift</td>
+                        <td class="val sig-cell">
                             @if($tImg)
                                 <img class="sig-img" src="{{ $tImg }}" alt="Unterschrift Ausbilder">
                             @endif
-                            <span class="line"></span>
+                            <span class="sig-line"></span>
                         </td>
                     </tr>
                 </table>
             </td>
 
-            <td style="width:50%">
+            <td class="sign-col" style="padding-left:10px;">
                 <div class="sign-title">Auszubildende/r</div>
-                <table class="sign-row">
+
+                <table class="sign-box">
                     <tr>
-                        <td class="label">Datum</td>
-                        <td><span class="field sml">{{ $pDate }}</span></td>
+                        <td class="lbl">Datum</td>
+                        <td class="val">{{ $pDate }}</td>
                     </tr>
                     <tr>
-                        <td class="label">Unterschrift</td>
-                        <td class="sig-box">
+                        <td class="lbl">Unterschrift</td>
+                        <td class="val sig-cell">
                             @if($pImg)
                                 <img class="sig-img" src="{{ $pImg }}" alt="Unterschrift Teilnehmer">
                             @endif
-                            <span class="line"></span>
+                            <span class="sig-line"></span>
                         </td>
                     </tr>
                 </table>
@@ -250,10 +270,7 @@
 @endphp
 
 @foreach($groups as $groupKey => $weekEntries)
-@php
-    $firstDay = $weekEntries->first()->entry_date;
-    $kw = $kwLabel($firstDay);
-@endphp
+@php $firstDay = $weekEntries->first()->entry_date; $kw = $kwLabel($firstDay); @endphp
 
 <div class="page">
     <div class="h1">Berichtsheft von: <span class="field wide">{{ $participantName }}</span></div>
@@ -284,11 +301,11 @@
         </thead>
         <tbody>
             @foreach($weekEntries as $e)
-                @php $d = $e->entry_date; @endphp
+                @php $dd = $e->entry_date; @endphp
                 <tr>
                     <td class="datecell">
-                        <div class="d">{{ $d->format('d.m.Y') }}</div>
-                        <div class="w">{{ $weekdayLong($d) }}</div>
+                        <div class="d">{{ $dd->format('d.m.Y') }}</div>
+                        <div class="w">{{ $weekdayLong($dd) }}</div>
                     </td>
                     <td class="work-text">{!! $e->text !!}</td>
                 </tr>
@@ -296,41 +313,41 @@
         </tbody>
     </table>
 
-    <table class="sign-table">
+    <table class="sign-wrap">
         <tr>
-            <td style="width:50%">
+            <td class="sign-col" style="padding-right:10px;">
                 <div class="sign-title">Ausbilder/in</div>
-                <table class="sign-row">
+                <table class="sign-box">
                     <tr>
-                        <td class="label">Datum</td>
-                        <td><span class="field sml">{{ $tDate }}</span></td>
+                        <td class="lbl">Datum</td>
+                        <td class="val">{{ $tDate }}</td>
                     </tr>
                     <tr>
-                        <td class="label">Unterschrift</td>
-                        <td class="sig-box">
+                        <td class="lbl">Unterschrift</td>
+                        <td class="val sig-cell">
                             @if($tImg)
                                 <img class="sig-img" src="{{ $tImg }}" alt="Unterschrift Ausbilder">
                             @endif
-                            <span class="line"></span>
+                            <span class="sig-line"></span>
                         </td>
                     </tr>
                 </table>
             </td>
 
-            <td style="width:50%">
+            <td class="sign-col" style="padding-left:10px;">
                 <div class="sign-title">Auszubildende/r</div>
-                <table class="sign-row">
+                <table class="sign-box">
                     <tr>
-                        <td class="label">Datum</td>
-                        <td><span class="field sml">{{ $pDate }}</span></td>
+                        <td class="lbl">Datum</td>
+                        <td class="val">{{ $pDate }}</td>
                     </tr>
                     <tr>
-                        <td class="label">Unterschrift</td>
-                        <td class="sig-box">
+                        <td class="lbl">Unterschrift</td>
+                        <td class="val sig-cell">
                             @if($pImg)
                                 <img class="sig-img" src="{{ $pImg }}" alt="Unterschrift Teilnehmer">
                             @endif
-                            <span class="line"></span>
+                            <span class="sig-line"></span>
                         </td>
                     </tr>
                 </table>
@@ -371,10 +388,7 @@
 @endphp
 
 @foreach($groups as $groupKey => $weekEntries)
-@php
-    $firstDay = $weekEntries->first()->entry_date;
-    $kw = $kwLabel($firstDay);
-@endphp
+@php $firstDay = $weekEntries->first()->entry_date; $kw = $kwLabel($firstDay); @endphp
 
 <div class="page">
     <div class="h1">Berichtsheft von: <span class="field wide">{{ $participantName }}</span></div>
@@ -405,11 +419,11 @@
         </thead>
         <tbody>
             @foreach($weekEntries as $e)
-                @php $d = $e->entry_date; @endphp
+                @php $dd = $e->entry_date; @endphp
                 <tr>
                     <td class="datecell">
-                        <div class="d">{{ $d->format('d.m.Y') }}</div>
-                        <div class="w">{{ $weekdayLong($d) }}</div>
+                        <div class="d">{{ $dd->format('d.m.Y') }}</div>
+                        <div class="w">{{ $weekdayLong($dd) }}</div>
                     </td>
                     <td class="work-text">{!! $e->text !!}</td>
                 </tr>
@@ -417,41 +431,41 @@
         </tbody>
     </table>
 
-    <table class="sign-table">
+    <table class="sign-wrap">
         <tr>
-            <td style="width:50%">
+            <td class="sign-col" style="padding-right:10px;">
                 <div class="sign-title">Ausbilder/in</div>
-                <table class="sign-row">
+                <table class="sign-box">
                     <tr>
-                        <td class="label">Datum</td>
-                        <td><span class="field sml">{{ $tDate }}</span></td>
+                        <td class="lbl">Datum</td>
+                        <td class="val">{{ $tDate }}</td>
                     </tr>
                     <tr>
-                        <td class="label">Unterschrift</td>
-                        <td class="sig-box">
+                        <td class="lbl">Unterschrift</td>
+                        <td class="val sig-cell">
                             @if($tImg)
                                 <img class="sig-img" src="{{ $tImg }}" alt="Unterschrift Ausbilder">
                             @endif
-                            <span class="line"></span>
+                            <span class="sig-line"></span>
                         </td>
                     </tr>
                 </table>
             </td>
 
-            <td style="width:50%">
+            <td class="sign-col" style="padding-left:10px;">
                 <div class="sign-title">Auszubildende/r</div>
-                <table class="sign-row">
+                <table class="sign-box">
                     <tr>
-                        <td class="label">Datum</td>
-                        <td><span class="field sml">{{ $pDate }}</span></td>
+                        <td class="lbl">Datum</td>
+                        <td class="val">{{ $pDate }}</td>
                     </tr>
                     <tr>
-                        <td class="label">Unterschrift</td>
-                        <td class="sig-box">
+                        <td class="lbl">Unterschrift</td>
+                        <td class="val sig-cell">
                             @if($pImg)
                                 <img class="sig-img" src="{{ $pImg }}" alt="Unterschrift Teilnehmer">
                             @endif
-                            <span class="line"></span>
+                            <span class="sig-line"></span>
                         </td>
                     </tr>
                 </table>
