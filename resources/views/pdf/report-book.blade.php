@@ -15,10 +15,8 @@
 
         .entry { margin-bottom: 14px; page-break-inside: avoid; }
         .entry-header { font-weight: bold; margin-bottom: 4px; }
-        .entry-status { font-size: 10px; color: #666; font-weight: normal; margin-left: 6px; }
         .entry-text { line-height: 1.35; }
 
-        /* kleine “Badge”-Optik für Status */
         .badge {
             display: inline-block;
             padding: 1px 6px;
@@ -27,11 +25,11 @@
             border: 1px solid #ddd;
             color: #444;
             vertical-align: middle;
+            margin-left: 6px;
         }
         .badge-fertig { border-color: #b7e3c6; color:#14532d; background:#ecfdf5; }
         .badge-entwurf { border-color: #fde68a; color:#92400e; background:#fffbeb; }
 
-        /* Signaturen */
         .signature-block { margin-top: 26px; page-break-inside: avoid; }
         .sig-col {
             width: 48%;
@@ -50,11 +48,35 @@
         }
         .sig-label { color:#444; font-size: 9px; margin-top: 2px; }
 
-        /* Helfer */
         .clearfix:after { content:""; display:block; clear:both; }
     </style>
 </head>
 <body>
+
+@php
+    /**
+     * DomPDF ist mit lokalen absoluten Pfaden am stabilsten.
+     * getEphemeralPublicUrl() liefert z.B.:
+     *   /storage/temp/xyz.png  (oder vollqualifiziert)
+     * Wir mappen das auf:
+     *   public_path('storage/temp/xyz.png')
+     */
+    $ephemeralToPublicPath = function (?string $url) {
+        if (!$url) return null;
+
+        $path = parse_url($url, PHP_URL_PATH) ?: $url;  // nur "/storage/..."
+        if (!is_string($path) || $path === '') return null;
+
+        if (!str_starts_with($path, '/storage/')) {
+            return null; // Sicherheitsnetz: wir erwarten storage-link Pfade
+        }
+
+        $relative = ltrim($path, '/');      // "storage/temp/.."
+        $full = public_path($relative);     // ".../public/storage/temp/.."
+
+        return is_file($full) ? $full : null;
+    };
+@endphp
 
 
 {{-- =========================================================
@@ -77,15 +99,17 @@
     </div>
 
     @php
-        $pSig = $participantSignature ?? null;
-        $tSig = $trainerSignature ?? null;
+        $pUrl = $participantSignatureUrl ?? null;
+        $tUrl = $trainerSignatureUrl ?? null;
+        $pImg = $ephemeralToPublicPath($pUrl);
+        $tImg = $ephemeralToPublicPath($tUrl);
     @endphp
 
-    @if($pSig || $tSig)
+    @if($pImg || $tImg)
         <div class="signature-block clearfix">
             <div class="sig-col">
-                @if($pSig && ($p = $sigPath($pSig)))
-                    <img class="sig-img" src="{{ $p }}" alt="Unterschrift Teilnehmer">
+                @if($pImg)
+                    <img class="sig-img" src="{{ $pImg }}" alt="Unterschrift Teilnehmer">
                 @endif
                 <div class="sig-line">
                     Unterschrift Teilnehmer
@@ -94,12 +118,10 @@
             </div>
 
             <div class="sig-col right">
-                @if($tSig && ($p = $sigPath($tSig)))
-                    <img class="sig-img" src="{{ $p }}" alt="Unterschrift Ausbilder">
+                @if($tImg)
+                    <img class="sig-img" src="{{ $tImg }}" alt="Unterschrift Ausbilder">
                 @endif
-                <div class="sig-line">
-                    Unterschrift Ausbilder
-                </div>
+                <div class="sig-line">Unterschrift Ausbilder</div>
             </div>
         </div>
     @endif
@@ -129,9 +151,7 @@
     <hr>
 
     @foreach($entries as $entry)
-        @php
-            $isFinished = ((int)($entry->status ?? 0) >= 1);
-        @endphp
+        @php $isFinished = ((int)($entry->status ?? 0) >= 1); @endphp
 
         <div class="entry">
             <div class="entry-header">
@@ -148,15 +168,17 @@
     @endforeach
 
     @php
-        $pSig = $participantSignature ?? null;
-        $tSig = $trainerSignature ?? null;
+        $pUrl = $participantSignatureUrl ?? null;
+        $tUrl = $trainerSignatureUrl ?? null;
+        $pImg = $ephemeralToPublicPath($pUrl);
+        $tImg = $ephemeralToPublicPath($tUrl);
     @endphp
 
-    @if($pSig || $tSig)
+    @if($pImg || $tImg)
         <div class="signature-block clearfix">
             <div class="sig-col">
-                @if($pSig && ($p = $sigPath($pSig)))
-                    <img class="sig-img" src="{{ $p }}" alt="Unterschrift Teilnehmer">
+                @if($pImg)
+                    <img class="sig-img" src="{{ $pImg }}" alt="Unterschrift Teilnehmer">
                 @endif
                 <div class="sig-line">
                     Unterschrift Teilnehmer
@@ -165,12 +187,10 @@
             </div>
 
             <div class="sig-col right">
-                @if($tSig && ($p = $sigPath($tSig)))
-                    <img class="sig-img" src="{{ $p }}" alt="Unterschrift Ausbilder">
+                @if($tImg)
+                    <img class="sig-img" src="{{ $tImg }}" alt="Unterschrift Ausbilder">
                 @endif
-                <div class="sig-line">
-                    Unterschrift Ausbilder
-                </div>
+                <div class="sig-line">Unterschrift Ausbilder</div>
             </div>
         </div>
     @endif
@@ -188,8 +208,12 @@
     @foreach($books as $book)
         @php
             $course = $book->course;
-            $pSig = $book->participantSignature ?? null;
-            $tSig = $book->trainerSignature ?? null;
+
+            $pUrl = $book->participantSignatureUrl ?? null;
+            $tUrl = $book->trainerSignatureUrl ?? null;
+
+            $pImg = $ephemeralToPublicPath($pUrl);
+            $tImg = $ephemeralToPublicPath($tUrl);
         @endphp
 
         <div class="course-block">
@@ -211,9 +235,7 @@
             <hr>
 
             @foreach($book->entries as $entry)
-                @php
-                    $isFinished = ((int)($entry->status ?? 0) >= 1);
-                @endphp
+                @php $isFinished = ((int)($entry->status ?? 0) >= 1); @endphp
 
                 <div class="entry">
                     <div class="entry-header">
@@ -228,11 +250,11 @@
                 </div>
             @endforeach
 
-            @if($pSig || $tSig)
+            @if($pImg || $tImg)
                 <div class="signature-block clearfix">
                     <div class="sig-col">
-                        @if($pSig && ($p = $sigPath($pSig)))
-                            <img class="sig-img" src="{{ $p }}" alt="Unterschrift Teilnehmer">
+                        @if($pImg)
+                            <img class="sig-img" src="{{ $pImg }}" alt="Unterschrift Teilnehmer">
                         @endif
                         <div class="sig-line">
                             Unterschrift Teilnehmer
@@ -241,12 +263,10 @@
                     </div>
 
                     <div class="sig-col right">
-                        @if($tSig && ($p = $sigPath($tSig)))
-                            <img class="sig-img" src="{{ $p }}" alt="Unterschrift Ausbilder">
+                        @if($tImg)
+                            <img class="sig-img" src="{{ $tImg }}" alt="Unterschrift Ausbilder">
                         @endif
-                        <div class="sig-line">
-                            Unterschrift Ausbilder
-                        </div>
+                        <div class="sig-line">Unterschrift Ausbilder</div>
                     </div>
                 </div>
             @endif
