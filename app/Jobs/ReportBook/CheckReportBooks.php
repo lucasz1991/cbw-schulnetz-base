@@ -41,7 +41,7 @@ class CheckReportBooks implements ShouldQueue
 
             // Nur wenn vollständig eingereicht
             $allSubmitted = $book->entries->count() > 0
-                && $book->entries->every(fn ($e) => (int) $e->status === 1);
+                && $book->entries->every(fn ($e) => (int) $e->status >= 1);
 
             if (! $allSubmitted) {
                 continue;
