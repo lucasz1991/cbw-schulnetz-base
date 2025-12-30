@@ -38,8 +38,8 @@
         .sheet th { font-weight: 700; text-align: left; background: #fff; }
 
         /* Spalten: 1) Datum+Wochentag, 2) Text */
-        .col-date { width: 22%; }
-        .col-text { width: 78%; }
+        .col-date { width: 18%; }
+        .col-text { width: 82%; }
 
         .datecell { line-height: 1.15; }
         .datecell .d { font-weight: 700; }
