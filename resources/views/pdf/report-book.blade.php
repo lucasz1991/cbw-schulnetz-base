@@ -56,21 +56,6 @@
 </head>
 <body>
 
-@php
-    // Helper: Datei-Pfad für DomPDF (lokal)
-    $sigPath = function ($file) {
-        if (!$file) return null;
-
-        // Standard: storage/app/<disk>/<path> (du nutzt oft disk+path)
-        // Falls dein disk "public" ist, wäre es i.d.R. storage/app/public/<path>
-        return storage_path('app/' . trim($file->disk ?? '') . '/' . ltrim($file->path ?? '', '/'));
-    };
-
-    $statusLabel = function ($status) {
-        return ($status === 1 || $status === true || (int)$status >= 1) ? 'Fertig' : 'Entwurf';
-    };
-@endphp
-
 
 {{-- =========================================================
     MODUS: SINGLE
@@ -203,10 +188,8 @@
     @foreach($books as $book)
         @php
             $course = $book->course;
-
-            // Wenn du in exportReportAll() bereits participantSignature/trainerSignature anhängst:
-            $pSig = $book->participantSignature ?? ($book->files?->firstWhere('type', 'sign_reportbook_participant') ?? null);
-            $tSig = $book->trainerSignature ?? ($book->files?->firstWhere('type', 'sign_reportbook_trainer') ?? null);
+            $pSig = $book->participantSignature ?? null;
+            $tSig = $book->trainerSignature ?? null;
         @endphp
 
         <div class="course-block">
