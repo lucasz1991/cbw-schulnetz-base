@@ -215,7 +215,7 @@
                             @if($tImg)
                                 <img class="sig-img" src="{{ $tImg }}" alt="Unterschrift Ausbilder">
                             @endif
-                            <span class="sig-line"></span>
+                            
                         </td>
                     </tr>
                 </table>
@@ -235,7 +235,7 @@
                             @if($pImg)
                                 <img class="sig-img" src="{{ $pImg }}" alt="Unterschrift Teilnehmer">
                             @endif
-                            <span class="sig-line"></span>
+                            
                         </td>
                     </tr>
                 </table>
@@ -328,7 +328,7 @@
                             @if($tImg)
                                 <img class="sig-img" src="{{ $tImg }}" alt="Unterschrift Ausbilder">
                             @endif
-                            <span class="sig-line"></span>
+                            
                         </td>
                     </tr>
                 </table>
@@ -347,7 +347,7 @@
                             @if($pImg)
                                 <img class="sig-img" src="{{ $pImg }}" alt="Unterschrift Teilnehmer">
                             @endif
-                            <span class="sig-line"></span>
+                            
                         </td>
                     </tr>
                 </table>
@@ -446,7 +446,7 @@
                             @if($tImg)
                                 <img class="sig-img" src="{{ $tImg }}" alt="Unterschrift Ausbilder">
                             @endif
-                            <span class="sig-line"></span>
+                            
                         </td>
                     </tr>
                 </table>
@@ -465,7 +465,7 @@
                             @if($pImg)
                                 <img class="sig-img" src="{{ $pImg }}" alt="Unterschrift Teilnehmer">
                             @endif
-                            <span class="sig-line"></span>
+                            
                         </td>
                     </tr>
                 </table>
