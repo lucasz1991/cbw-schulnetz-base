@@ -5,284 +5,492 @@
     <title>{{ $title ?? 'Berichtsheft' }}</title>
 
     <style>
-        body { font-family: DejaVu Sans, sans-serif; font-size: 11px; color:#111; }
-        h1, h2 { margin: 0 0 8px; padding:0; }
-        hr { border:0; border-top:1px solid #ddd; margin: 10px 0 14px; }
+        @page { margin: 18mm 14mm 16mm; }
 
-        .meta { font-size: 10px; color: #444; margin-bottom: 6px; line-height: 1.35; }
-        .course-block { page-break-after: always; padding-bottom: 6px; }
-        .course-block:last-child { page-break-after: auto; }
+        body { font-family: DejaVu Sans, sans-serif; font-size: 10.5px; color:#111; }
+        .page { page-break-after: always; }
+        .page:last-child { page-break-after: auto; }
 
-        .entry { margin-bottom: 14px; page-break-inside: avoid; }
-        .entry-header { font-weight: bold; margin-bottom: 4px; }
-        .entry-text { line-height: 1.35; }
+        .h1 { font-size: 13px; font-weight: 700; margin: 0 0 8px; }
+        .muted { color:#444; }
 
-        .badge {
-            display: inline-block;
-            padding: 1px 6px;
-            border-radius: 10px;
-            font-size: 9px;
-            border: 1px solid #ddd;
-            color: #444;
-            vertical-align: middle;
-            margin-left: 6px;
+        /* Kopfbereich wie Vorlage */
+        .head-grid {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 8px;
         }
-        .badge-fertig { border-color: #b7e3c6; color:#14532d; background:#ecfdf5; }
-        .badge-entwurf { border-color: #fde68a; color:#92400e; background:#fffbeb; }
-
-        .signature-block { margin-top: 26px; page-break-inside: avoid; }
-        .sig-col {
-            width: 48%;
+        .head-grid td {
+            padding: 2px 6px 2px 0;
+            vertical-align: bottom;
+        }
+        .label { font-size: 10px; color:#111; white-space: nowrap; }
+        .field {
             display: inline-block;
+            min-width: 80px;
+            border-bottom: 1px solid #111;
+            padding: 0 2px 1px;
+        }
+        .field.wide { min-width: 230px; }
+        .field.mid  { min-width: 150px; }
+        .field.sml  { min-width: 90px;  }
+
+        /* Tabelle wie Vorlage */
+        table.sheet {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            border: 1px solid #111;
+        }
+        .sheet th, .sheet td {
+            border: 1px solid #111;
+            padding: 6px 6px;
             vertical-align: top;
-            text-align: center;
+            word-wrap: break-word;
         }
-        .sig-col.right { float: right; }
-        .sig-img { max-height: 90px; margin: 0 0 6px; }
-        .sig-line {
-            border-top: 1px solid #000;
-            margin-top: 8px;
-            padding-top: 4px;
-            font-size: 10px;
-            line-height: 1.25;
+        .sheet th {
+            font-weight: 700;
+            text-align: left;
+            background: #fff;
         }
-        .sig-label { color:#444; font-size: 9px; margin-top: 2px; }
 
-        .clearfix:after { content:""; display:block; clear:both; }
+        /* Spaltenbreiten angelehnt an Vorlage */
+        .col-date { width: 18%; }
+        .col-day  { width: 14%; }
+        .col-text { width: 68%; }
+
+        /* Zellen-Text */
+        .work-text { line-height: 1.25; }
+        .work-text h1, .work-text h2, .work-text h3, .work-text h4, .work-text h5, .work-text h6 {
+            margin: 0 0 4px;
+            padding: 0;
+            font-size: 11px;
+        }
+        .work-text p { margin: 0 0 4px; }
+        .work-text ul, .work-text ol { margin: 0 0 4px 18px; padding: 0; }
+        .work-text li { margin: 0 0 2px; }
+
+        /* Signaturbereich wie Vorlage */
+        .sign-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            margin-top: 10px;
+        }
+        .sign-table td {
+            padding: 2px 6px;
+            vertical-align: top;
+        }
+        .sign-title {
+            font-weight: 700;
+            padding-bottom: 6px;
+        }
+        .sign-row {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .sign-row td {
+            padding: 2px 6px 2px 0;
+            vertical-align: bottom;
+        }
+        .line {
+            display: inline-block;
+            border-bottom: 1px solid #111;
+            min-width: 120px;
+            height: 14px;
+        }
+        .sig-img {
+            max-height: 70px;
+            max-width: 230px;
+            display: block;
+            margin: 0 0 4px;
+        }
+        .sig-box {
+            min-height: 78px;
+        }
+        .small { font-size: 9px; color:#111; }
     </style>
 </head>
 <body>
 
 @php
     /**
-     * getEphemeralPublicUrl() liefert eine öffentliche URL (absolut oder /storage/...).
-     * DomPDF läuft am stabilsten mit lokalen absoluten Dateipfaden.
-     *
-     * Diese Funktion macht:
-     * - wenn $src bereits ein absoluter Dateipfad ist -> return wenn Datei existiert
-     * - wenn $src eine URL ist -> parse_url(..., PATH) nehmen
-     * - wenn Pfad mit /storage/ beginnt -> public_path('storage/...') mappen (storage:link)
-     * - sonst: Fallback -> original zurückgeben (falls DomPDF remote kann)
+     * Resolver: Ephemeral Public URL (absolut oder /storage/..) -> möglichst lokaler Pfad
+     * damit DomPDF stabil ist. Dein getEphemeralPublicUrl() basiert auf public disk url. :contentReference[oaicite:3]{index=3}
      */
-    $resolveDompdfImgSrc = function (?string $src) {
+    $resolveImg = function (?string $src) {
         if (!$src) return null;
 
-        // 1) Wenn bereits ein absoluter Dateipfad (Linux/Windows) -> direkt prüfen
+        // schon absoluter Dateipfad?
         if (is_string($src) && (str_starts_with($src, '/') || preg_match('/^[A-Z]:\\\\/i', $src))) {
             return is_file($src) ? $src : null;
         }
 
-        // 2) Wenn URL (absolut) -> PATH extrahieren, sonst src als Pfad behandeln
         $path = parse_url($src, PHP_URL_PATH) ?: $src;
+        if (!is_string($path) || $path === '') return null;
 
-        if (!is_string($path) || $path === '') {
-            return null;
-        }
-
-        // 3) Standard Laravel public storage: /storage/...
         if (str_starts_with($path, '/storage/')) {
             $full = public_path(ltrim($path, '/')); // public/storage/...
             return is_file($full) ? $full : $src;   // fallback: URL
         }
 
-        // 4) Falls jemand mal "storage/..." ohne leading slash übergibt
         if (str_starts_with($path, 'storage/')) {
             $full = public_path($path);
             return is_file($full) ? $full : $src;
         }
 
-        // 5) Sonst: unverändert lassen (evtl. remote)
         return $src;
     };
+
+    $weekdayName = function (\Carbon\Carbon $d) {
+        // ISO: 1=Mo .. 7=So
+        return match ((int)$d->isoWeekday()) {
+            1 => 'Mo', 2 => 'Di', 3 => 'Mi', 4 => 'Do', 5 => 'Fr', 6 => 'Sa', 7 => 'So',
+        };
+    };
+
+    $kwLabel = function (\Carbon\Carbon $d) {
+        return 'KW ' . $d->isoWeek() . ' / ' . $d->isoWeekYear();
+    };
+
+    // Kopf-Felder (Fallbacks – anpassbar, aber keine Infos weglassen)
+    $participantName = $user->name ?? '';
 @endphp
 
 
 {{-- =========================================================
-    MODUS: SINGLE
+    SINGLE: 1 Seite im Vorlagenraster
 ========================================================= --}}
 @if(($mode ?? null) === 'single')
-    <h1>Bericht vom {{ $entry->entry_date->format('d.m.Y') }}</h1>
+@php
+    $d = $entry->entry_date instanceof \Carbon\Carbon ? $entry->entry_date : \Carbon\Carbon::parse($entry->entry_date);
+    $kw = $kwLabel($d);
 
-    <div class="meta">
-        Kurs: {{ $course->klassen_id ?? $course->title ?? 'Kurs' }}<br>
-        Teilnehmer: {{ $user->name }}
-    </div>
+    $ausbildungsnachweisNr = $course->klassen_id ?? ('Kurs #' . ($course->id ?? ''));
+    $ausbildungsjahr = $course->planned_start_date ? \Carbon\Carbon::parse($course->planned_start_date)->format('Y') : $d->format('Y');
+    $abteilung = $course->title ?? ($course->klassen_id ?? 'Kurs');
 
-    <hr>
+    $pImg = $resolveImg($participantSignatureUrl ?? null);
+    $tImg = $resolveImg($trainerSignatureUrl ?? null);
+@endphp
 
-    <div class="entry">
-        <div class="entry-text">
-            {!! $entry->text !!}
-        </div>
-    </div>
+<div class="page">
+    <div class="h1">Berichtsheft von: <span class="field wide">{{ $participantName }}</span></div>
 
-    @php
-        $pImg = $resolveDompdfImgSrc($participantSignatureUrl ?? null);
-        $tImg = $resolveDompdfImgSrc($trainerSignatureUrl ?? null);
-    @endphp
+    <table class="head-grid">
+        <tr>
+            <td class="label">Ausbildungsnachweis Nr.:</td>
+            <td><span class="field mid">{{ $ausbildungsnachweisNr }}</span></td>
 
-    @if($pImg || $tImg)
-        <div class="signature-block clearfix">
-            <div class="sig-col">
-                @if($pImg)
-                    <img class="sig-img" src="{{ $pImg }}" alt="Unterschrift Teilnehmer">
-                @endif
-                <div class="sig-line">
-                    Unterschrift Teilnehmer
-                    <div class="sig-label">{{ $user->name }}</div>
-                </div>
-            </div>
+            <td class="label">Ausbildungsjahr</td>
+            <td><span class="field sml">{{ $ausbildungsjahr }}</span></td>
+        </tr>
+        <tr>
+            <td class="label">Für die Kalenderwoche:</td>
+            <td><span class="field mid">{{ $kw }}</span></td>
 
-            <div class="sig-col right">
-                @if($tImg)
-                    <img class="sig-img" src="{{ $tImg }}" alt="Unterschrift Ausbilder">
-                @endif
-                <div class="sig-line">Unterschrift Ausbilder</div>
-            </div>
-        </div>
-    @endif
+            <td class="label">Ausbildungsabteilung:</td>
+            <td><span class="field mid">{{ $abteilung }}</span></td>
+        </tr>
+    </table>
+
+    <table class="sheet">
+        <thead>
+            <tr>
+                <th class="col-date">Datum</th>
+                <th class="col-day">Wochen-<br>tag.</th>
+                <th class="col-text">Ausgeführte Arbeiten, Unterricht usw. Stichworte</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>{{ $d->format('d.m.Y') }}</td>
+                <td>{{ $weekdayName($d) }}</td>
+                <td class="work-text">{!! $entry->text !!}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <table class="sign-table">
+        <tr>
+            <td style="width:50%">
+                <div class="sign-title">Ausbilder/in</div>
+
+                <table class="sign-row">
+                    <tr>
+                        <td class="label">Datum</td>
+                        <td><span class="line"></span></td>
+                    </tr>
+                    <tr>
+                        <td class="label">Unterschrift</td>
+                        <td class="sig-box">
+                            @if($tImg)
+                                <img class="sig-img" src="{{ $tImg }}" alt="Unterschrift Ausbilder">
+                            @endif
+                            <span class="line"></span>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+
+            <td style="width:50%">
+                <div class="sign-title">Auszubildende/r</div>
+
+                <table class="sign-row">
+                    <tr>
+                        <td class="label">Datum</td>
+                        <td><span class="line"></span></td>
+                    </tr>
+                    <tr>
+                        <td class="label">Unterschrift</td>
+                        <td class="sig-box">
+                            @if($pImg)
+                                <img class="sig-img" src="{{ $pImg }}" alt="Unterschrift Teilnehmer">
+                            @endif
+                            <span class="line"></span>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</div>
 @endif
 
 
 {{-- =========================================================
-    MODUS: MODULE
+    MODULE: pro ISO-KW eine Seite im Vorlagenraster
 ========================================================= --}}
 @if(($mode ?? null) === 'module')
-    <h1>Berichtsheft – {{ $course->klassen_id ?? $course->title }}</h1>
+@php
+    $ausbildungsnachweisNr = $course->klassen_id ?? ('Kurs #' . ($course->id ?? ''));
+    $ausbildungsjahr = $course->planned_start_date ? \Carbon\Carbon::parse($course->planned_start_date)->format('Y') : now()->format('Y');
+    $abteilung = $course->title ?? ($course->klassen_id ?? 'Kurs');
 
-    <div class="meta">
-        Teilnehmer: {{ $user->name }}<br>
-        Zeitraum:
-        @if($course->planned_start_date)
-            {{ \Carbon\Carbon::parse($course->planned_start_date)->format('d.m.Y') }}
-            –
-            {{ $course->planned_end_date
-                ? \Carbon\Carbon::parse($course->planned_end_date)->format('d.m.Y')
-                : 'offen' }}
-        @else
-            (nicht hinterlegt)
-        @endif
-    </div>
+    // entries nach KW gruppieren
+    $groups = collect($entries)->map(function($e){
+        $e->entry_date = $e->entry_date instanceof \Carbon\Carbon ? $e->entry_date : \Carbon\Carbon::parse($e->entry_date);
+        return $e;
+    })->groupBy(function($e){
+        return $e->entry_date->isoWeekYear() . '-KW' . $e->entry_date->isoWeek();
+    });
 
-    <hr>
+    $pImg = $resolveImg($participantSignatureUrl ?? null);
+    $tImg = $resolveImg($trainerSignatureUrl ?? null);
+@endphp
 
-    @foreach($entries as $entry)
-        @php $isFinished = ((int)($entry->status ?? 0) >= 1); @endphp
+@foreach($groups as $groupKey => $weekEntries)
+@php
+    $firstDay = $weekEntries->first()->entry_date;
+    $kw = $kwLabel($firstDay);
+@endphp
 
-        <div class="entry">
-            <div class="entry-header">
-                {{ $entry->entry_date->format('d.m.Y') }}
-                <span class="badge {{ $isFinished ? 'badge-fertig' : 'badge-entwurf' }}">
-                    {{ $isFinished ? 'Fertig' : 'Entwurf' }}
-                </span>
-            </div>
+<div class="page">
+    <div class="h1">Berichtsheft von: <span class="field wide">{{ $participantName }}</span></div>
 
-            <div class="entry-text">
-                {!! $entry->text !!}
-            </div>
-        </div>
-    @endforeach
+    <table class="head-grid">
+        <tr>
+            <td class="label">Ausbildungsnachweis Nr.:</td>
+            <td><span class="field mid">{{ $ausbildungsnachweisNr }}</span></td>
 
-    @php
-        $pImg = $resolveDompdfImgSrc($participantSignatureUrl ?? null);
-        $tImg = $resolveDompdfImgSrc($trainerSignatureUrl ?? null);
-    @endphp
+            <td class="label">Ausbildungsjahr</td>
+            <td><span class="field sml">{{ $ausbildungsjahr }}</span></td>
+        </tr>
+        <tr>
+            <td class="label">Für die Kalenderwoche:</td>
+            <td><span class="field mid">{{ $kw }}</span></td>
 
-    @if($pImg || $tImg)
-        <div class="signature-block clearfix">
-            <div class="sig-col">
-                @if($pImg)
-                    <img class="sig-img" src="{{ $pImg }}" alt="Unterschrift Teilnehmer">
-                @endif
-                <div class="sig-line">
-                    Unterschrift Teilnehmer
-                    <div class="sig-label">{{ $user->name }}</div>
-                </div>
-            </div>
+            <td class="label">Ausbildungsabteilung:</td>
+            <td><span class="field mid">{{ $abteilung }}</span></td>
+        </tr>
+    </table>
 
-            <div class="sig-col right">
-                @if($tImg)
-                    <img class="sig-img" src="{{ $tImg }}" alt="Unterschrift Ausbilder">
-                @endif
-                <div class="sig-line">Unterschrift Ausbilder</div>
-            </div>
-        </div>
-    @endif
+    <table class="sheet">
+        <thead>
+            <tr>
+                <th class="col-date">Datum</th>
+                <th class="col-day">Wochen-<br>tag.</th>
+                <th class="col-text">Ausgeführte Arbeiten, Unterricht usw. Stichworte</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($weekEntries as $e)
+                @php $d = $e->entry_date; @endphp
+                <tr>
+                    <td>{{ $d->format('d.m.Y') }}</td>
+                    <td>{{ $weekdayName($d) }}</td>
+                    <td class="work-text">{!! $e->text !!}</td>
+                </tr>
+            @endforeach
+        </tbody>
+    </table>
+
+    <table class="sign-table">
+        <tr>
+            <td style="width:50%">
+                <div class="sign-title">Ausbilder/in</div>
+
+                <table class="sign-row">
+                    <tr>
+                        <td class="label">Datum</td>
+                        <td><span class="line"></span></td>
+                    </tr>
+                    <tr>
+                        <td class="label">Unterschrift</td>
+                        <td class="sig-box">
+                            @if($tImg)
+                                <img class="sig-img" src="{{ $tImg }}" alt="Unterschrift Ausbilder">
+                            @endif
+                            <span class="line"></span>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+
+            <td style="width:50%">
+                <div class="sign-title">Auszubildende/r</div>
+
+                <table class="sign-row">
+                    <tr>
+                        <td class="label">Datum</td>
+                        <td><span class="line"></span></td>
+                    </tr>
+                    <tr>
+                        <td class="label">Unterschrift</td>
+                        <td class="sig-box">
+                            @if($pImg)
+                                <img class="sig-img" src="{{ $pImg }}" alt="Unterschrift Teilnehmer">
+                            @endif
+                            <span class="line"></span>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</div>
+@endforeach
 @endif
 
 
 {{-- =========================================================
-    MODUS: ALL
+    ALL: pro Kurs + pro ISO-KW eine Seite im Vorlagenraster
 ========================================================= --}}
 @if(($mode ?? null) === 'all')
-    <h1>Berichtsheft – Alle Kurse</h1>
-    <div class="meta">Teilnehmer: {{ $user->name }}</div>
-    <hr>
+@foreach($books as $book)
+@php
+    $course = $book->course;
 
-    @foreach($books as $book)
-        @php
-            $course = $book->course;
+    $ausbildungsnachweisNr = $course->klassen_id ?? ('Kurs #' . ($course->id ?? ''));
+    $ausbildungsjahr = $course->planned_start_date ? \Carbon\Carbon::parse($course->planned_start_date)->format('Y') : now()->format('Y');
+    $abteilung = $course->title ?? ($course->klassen_id ?? 'Kurs');
 
-            $pImg = $resolveDompdfImgSrc($book->participantSignatureUrl ?? null);
-            $tImg = $resolveDompdfImgSrc($book->trainerSignatureUrl ?? null);
-        @endphp
+    $entriesAll = collect($book->entries)->map(function($e){
+        $e->entry_date = $e->entry_date instanceof \Carbon\Carbon ? $e->entry_date : \Carbon\Carbon::parse($e->entry_date);
+        return $e;
+    });
 
-        <div class="course-block">
-            <h2>{{ $course->klassen_id ?? $course->title ?? 'Kurs #'.$course->id }}</h2>
+    $groups = $entriesAll->groupBy(function($e){
+        return $e->entry_date->isoWeekYear() . '-KW' . $e->entry_date->isoWeek();
+    });
 
-            <div class="meta">
-                Zeitraum:
-                @if($course->planned_start_date)
-                    {{ \Carbon\Carbon::parse($course->planned_start_date)->format('d.m.Y') }}
-                    –
-                    {{ $course->planned_end_date
-                        ? \Carbon\Carbon::parse($course->planned_end_date)->format('d.m.Y')
-                        : 'offen' }}
-                @else
-                    (nicht hinterlegt)
-                @endif
-            </div>
+    $pImg = $resolveImg($book->participantSignatureUrl ?? null);
+    $tImg = $resolveImg($book->trainerSignatureUrl ?? null);
+@endphp
 
-            <hr>
+@foreach($groups as $groupKey => $weekEntries)
+@php
+    $firstDay = $weekEntries->first()->entry_date;
+    $kw = $kwLabel($firstDay);
+@endphp
 
-            @foreach($book->entries as $entry)
-                @php $isFinished = ((int)($entry->status ?? 0) >= 1); @endphp
+<div class="page">
+    <div class="h1">Berichtsheft von: <span class="field wide">{{ $participantName }}</span></div>
 
-                <div class="entry">
-                    <div class="entry-header">
-                        {{ $entry->entry_date->format('d.m.Y') }}
-                        <span class="badge {{ $isFinished ? 'badge-fertig' : 'badge-entwurf' }}">
-                            {{ $isFinished ? 'Fertig' : 'Entwurf' }}
-                        </span>
-                    </div>
-                    <div class="entry-text">
-                        {!! $entry->text !!}
-                    </div>
-                </div>
+    <table class="head-grid">
+        <tr>
+            <td class="label">Ausbildungsnachweis Nr.:</td>
+            <td><span class="field mid">{{ $ausbildungsnachweisNr }}</span></td>
+
+            <td class="label">Ausbildungsjahr</td>
+            <td><span class="field sml">{{ $ausbildungsjahr }}</span></td>
+        </tr>
+        <tr>
+            <td class="label">Für die Kalenderwoche:</td>
+            <td><span class="field mid">{{ $kw }}</span></td>
+
+            <td class="label">Ausbildungsabteilung:</td>
+            <td><span class="field mid">{{ $abteilung }}</span></td>
+        </tr>
+    </table>
+
+    <table class="sheet">
+        <thead>
+            <tr>
+                <th class="col-date">Datum</th>
+                <th class="col-day">Wochen-<br>tag.</th>
+                <th class="col-text">Ausgeführte Arbeiten, Unterricht usw. Stichworte</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($weekEntries as $e)
+                @php $d = $e->entry_date; @endphp
+                <tr>
+                    <td>{{ $d->format('d.m.Y') }}</td>
+                    <td>{{ $weekdayName($d) }}</td>
+                    <td class="work-text">{!! $e->text !!}</td>
+                </tr>
             @endforeach
+        </tbody>
+    </table>
 
-            @if($pImg || $tImg)
-                <div class="signature-block clearfix">
-                    <div class="sig-col">
-                        @if($pImg)
-                            <img class="sig-img" src="{{ $pImg }}" alt="Unterschrift Teilnehmer">
-                        @endif
-                        <div class="sig-line">
-                            Unterschrift Teilnehmer
-                            <div class="sig-label">{{ $user->name }}</div>
-                        </div>
-                    </div> 
+    <table class="sign-table">
+        <tr>
+            <td style="width:50%">
+                <div class="sign-title">Ausbilder/in</div>
 
-                    <div class="sig-col right">
-                        @if($tImg)
-                            <img class="sig-img" src="{{ $tImg }}" alt="Unterschrift Ausbilder">
-                        @endif
-                        <div class="sig-line">Unterschrift Ausbilder</div>
-                    </div>
-                </div>
-            @endif
-        </div>
-    @endforeach
+                <table class="sign-row">
+                    <tr>
+                        <td class="label">Datum</td>
+                        <td><span class="line"></span></td>
+                    </tr>
+                    <tr>
+                        <td class="label">Unterschrift</td>
+                        <td class="sig-box">
+                            @if($tImg)
+                                <img class="sig-img" src="{{ $tImg }}" alt="Unterschrift Ausbilder">
+                            @endif
+                            <span class="line"></span>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+
+            <td style="width:50%">
+                <div class="sign-title">Auszubildende/r</div>
+
+                <table class="sign-row">
+                    <tr>
+                        <td class="label">Datum</td>
+                        <td><span class="line"></span></td>
+                    </tr>
+                    <tr>
+                        <td class="label">Unterschrift</td>
+                        <td class="sig-box">
+                            @if($pImg)
+                                <img class="sig-img" src="{{ $pImg }}" alt="Unterschrift Teilnehmer">
+                            @endif
+                            <span class="line"></span>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</div>
+@endforeach
+
+@endforeach
 @endif
 
 </body>
