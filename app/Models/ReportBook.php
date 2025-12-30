@@ -113,12 +113,45 @@ class ReportBook extends Model
         return !$hasUnreviewed;
     }
 
-public function getAreAllReportBooksReviewedAttribute(): string
-{
-    return $this->areAllReportBooksReviewed() ? '1' : '0';
-}
+    public function getAreAllReportBooksReviewedAttribute(): string
+    {
+        return $this->areAllReportBooksReviewed() ? '1' : '0';
+    }
 
-/* ---------- Nützliche Helper/Scopes ---------- */
+    public function isReportBookReviewed(): string
+    {
+        $userId = $this->user_id;
+        $courseId = $this->course_id;
+
+        // Keine ReportBooks => nicht "geprüft"
+        if (!static::where('user_id', $userId)->where('course_id', $courseId)->exists()) {
+            return false;
+        }
+
+        // Falls es ein ReportBook gibt, das entweder keine Einträge hat
+        // oder mindestens einen Eintrag mit Status != 2 hat => nicht vollständig geprüft
+        $hasUnreviewed = static::where('user_id', $userId)
+            ->where('course_id', $courseId)
+            ->where(function ($q) {
+            $q->whereDoesntHave('entries')
+              ->orWhereHas('entries', function ($q2) {
+                  $q2->where('status', '!=', 2);
+              });
+            })->exists();
+
+        return !$hasUnreviewed;
+    }
+
+    public function getIsReportBookReviewedProperty(): bool
+    {
+        $reportBook = ReportBookModel::where('user_id', Auth::id())
+            ->where('course_id', $this->selectedCourseId)
+            ->first();
+
+        return $reportBook ? $reportBook->isReportBookReviewed : false;
+    }
+
+    /* ---------- Nützliche Helper/Scopes ---------- */
 
     public function scopeForCourse($q, int $courseId)
     {

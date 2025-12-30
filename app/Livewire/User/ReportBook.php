@@ -324,6 +324,7 @@ class ReportBook extends Component
             }
         }
 
+        
         // Entwurf speichern
         $entry->fill([
             'entry_date'   => $day->date,
@@ -852,6 +853,15 @@ class ReportBook extends Component
             ->first();
 
         return $reportBook ? $reportBook->areAllReportBooksReviewed : false;
+    }
+
+    public function getIsReportBookReviewedProperty(): bool
+    {
+        $reportBook = ReportBookModel::where('user_id', Auth::id())
+            ->where('course_id', $this->selectedCourseId)
+            ->first();
+
+        return $reportBook ? $reportBook->isReportBookReviewed() : false;
     }
 
     public function render()

@@ -15,48 +15,73 @@ class CheckReportBooks implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    /**
-     * Optional: Liste von ReportBook IDs
-     */
     public ?array $ids = null;
 
-    /**
-     * Konstruktor – optional IDs übergeben
-     */
     public function __construct(?array $ids = null)
     {
         $this->ids = $ids;
     }
 
-    /**
-     * Main Logic
-     */
     public function handle(): void
     {
-        // --- ReportBooks abrufen -------------------------------------------
         $query = ReportBook::query()->with('entries');
 
         if (!empty($this->ids)) {
             $query->whereIn('id', $this->ids);
         }
+
         $books = $query->get();
+
         if ($books->isEmpty()) {
             Log::info('CheckReportBooks: Keine passenden ReportBooks gefunden.');
             return;
         }
-        // --- Prüfen ---------------------------------------------------------
+
         foreach ($books as $book) {
-            $allSubmitted = $book->entries->count() > 0 && $book->entries->every(fn ($e) => $e->status === 1);
-            if (!$allSubmitted) {
+
+            // Nur wenn vollständig eingereicht
+            $allSubmitted = $book->entries->count() > 0
+                && $book->entries->every(fn ($e) => (int) $e->status === 1);
+
+            if (! $allSubmitted) {
                 continue;
             }
-            $existing = AdminTask::where('task_type', 'reportbook_review')
-                ->where('description', 'LIKE', "%ReportBook {$book->id}%")
+
+            // Ein Task pro ReportBook (stabil über context_* + task_type)
+            $task = AdminTask::query()
+                ->where('task_type', 'reportbook_review')
+                ->where('context_type', ReportBook::class)
+                ->where('context_id', $book->id)
                 ->first();
-            if ($existing) {
+
+            // Fallback für Altlasten (falls früher nur description genutzt wurde)
+            if (! $task) {
+                $task = AdminTask::query()
+                    ->where('task_type', 'reportbook_review')
+                    ->where('description', 'LIKE', "%Berichtsheft {$book->id}%")
+                    ->first();
+            }
+
+            if ($task) {
+                // Schon vorhanden -> niemals neu erstellen
+
+                // Wenn gerade in Bearbeitung: nichts ändern
+                if ((int) $task->status === (int) AdminTask::STATUS_IN_PROGRESS) {
+                    Log::info("CheckReportBooks: Task {$task->id} für Berichtsheft {$book->id} ist in Bearbeitung – unverändert.");
+                    continue;
+                }
+
+                // Sonst: reaktivieren (OPEN + Zuordnung löschen)
+                $task->status = AdminTask::STATUS_OPEN;
+                $task->assigned_to = null;
+                $task->completed_at = null; // falls er mal abgeschlossen war
+                $task->save();
+
+                Log::info("CheckReportBooks: Task {$task->id} für Berichtsheft {$book->id} reaktiviert (OPEN, assigned_to null).");
                 continue;
             }
-            // --- AdminTask erstellen ----------------------------------------
+
+            // Noch kein Task -> neu erstellen
             AdminTask::create([
                 'created_by'   => $book->user_id,
                 'context_type' => ReportBook::class,
@@ -64,7 +89,10 @@ class CheckReportBooks implements ShouldQueue
                 'task_type'    => 'reportbook_review',
                 'description'  => "Baustein Berichtsheft {$book->id} vollständig eingereicht – Prüfung & Freigabe erforderlich.",
                 'status'       => AdminTask::STATUS_OPEN,
+                'assigned_to'  => null,
+                'completed_at' => null,
             ]);
+
             Log::info("CheckReportBooks: AdminTask für Berichtsheft {$book->id} erstellt.");
         }
     }

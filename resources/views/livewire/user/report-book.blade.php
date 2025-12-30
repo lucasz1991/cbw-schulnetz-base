@@ -402,6 +402,7 @@
                               <i class="fal fa-file-pdf text-[14px] "></i>
                               <span>Tag einzeln</span>
                           </button>
+                          @if($this->isReportBookReviewed)
                           {{-- Baustein-Export (TODO: passende Methode implementieren) --}}
                           <button
                               type="button"
@@ -413,6 +414,7 @@
                               <i class="fal fa-layer-group text-[14px] "></i>
                               <span>Baustein</span>
                           </button>
+                          @endif
                           @if($this->areAllReportBooksReviewed)
                           {{-- Alle Bausteine-Export (TODO: passende Methode implementieren) --}}
                           <button
@@ -551,7 +553,7 @@
                 {{ $status === 1 
                     ? 'bg-green-50 text-green-700 border-green-200' 
                     : 'bg-slate-50 text-slate-700 border-slate-200' }}">
-                Status: {{ $status >= 1 ? 'Fertig' : ($status === 0 ? 'Entwurf' : 'Fehlend') }}
+                Status: {{ $status >= 2 ? 'Freigegeben' : ($status === 1 ? 'Fertig' : ($status === 0 ? 'Entwurf' : 'Fehlend') ) }}
             </span>
         </div>
         <div>
