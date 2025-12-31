@@ -333,10 +333,10 @@
       {{-- Ergebnisse nach Kurs (Bausteine) --}}
       <div class="bg-white shadow rounded-lg  overflow-hidden border border-gray-300">
             {{-- Header --}}
-    <div class="px-5 py-4 bg-gradient-to-r from-sky-50 to-white border-b border-slate-200">
+    <div class="px-5 py-4 bg-gradient-to-r from-sky-200 to-sky-50 border-b border-slate-200">
       <div class="flex items-center justify-between">
         <h3 class="text-base md:text-lg font-semibold text-slate-900 flex items-center gap-2">
-          <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-sky-100 text-sky-700">
+          <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white text-sky-700">
             <i class="fal fa-layer-group"></i>
           </span>
           Bausteine
@@ -503,9 +503,9 @@
 
       {{-- Aktueller Baustein --}}
       <div class="bg-white shadow rounded-lg  border border-gray-300 grid grid-rows-[auto_1fr]">
-        <div class="h-max px-5 py-4 bg-gradient-to-r from-sky-50 to-white border-b border-slate-200 relative">
+        <div class="h-max px-5 py-4 bg-gradient-to-r from-sky-200 to-sky-50 border-b border-slate-200 relative">
         <h3 class="text-base md:text-lg font-semibold text-slate-900 flex items-center gap-2">
-          <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+          <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white text-emerald-700">
             <i class="fal fa-location text-emerald-700"></i>
           </span>
           Aktueller Baustein
@@ -532,8 +532,8 @@
           {{-- Aktuelles Modul --}}
       @if($aktuellesModul)
 
-        <div class="space-y-3">
-          <div>
+        <div class="space-y-6">
+          <div class="space-y-6">
             <p class="text-base font-semibold text-slate-900">
               {{ $aktuellesModul['baustein'] }}
             </p>
@@ -568,9 +568,6 @@
             <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
               <div class="bg-blue-600 h-3 rounded-full transition-all" style="width: {{ $currentProgress }}%"></div>
             </div>
-            <p class="text-xs text-slate-500 mt-2">
-              Zeitlichen Fortschritt von dem aktuellen Baustein
-            </p>
           </div>
         </div>
 
