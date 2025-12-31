@@ -12,7 +12,7 @@
                 <div class="p-5 sm:p-6">
                     <div class="flex items-start justify-between gap-3">
                         <div class="min-w-0">
-                            <h2 class="text-lg sm:text-xl font-extrabold text-gray-900 flex items-center gap-2">
+                            <h2 class="text-lg sm:text-xl font-extrabold text-gray-700 flex items-center gap-2">
                                 <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 border border-blue-100 text-blue-700">
                                     <i class="fas fa-graduation-cap"></i>
                                 </span>
@@ -50,7 +50,7 @@
                 <div class="p-5 sm:p-6">
                     <div class="flex items-start justify-between gap-3">
                         <div class="min-w-0">
-                            <h3 class="text-base sm:text-lg font-extrabold text-gray-900 flex items-center gap-2">
+                            <h3 class="text-base sm:text-lg font-extrabold text-gray-700 flex items-center gap-2">
                                 <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-700">
                                     <i class="fas fa-envelope-open-text"></i>
                                 </span>
@@ -96,7 +96,7 @@
 
                                 <div class="min-w-0 flex-1">
                                     <div class="flex items-center justify-between gap-3">
-                                        <div class="font-semibold text-gray-900 truncate">
+                                        <div class="font-semibold text-gray-700 truncate">
                                             {{ $message->subject }}
                                         </div>
 
@@ -147,7 +147,7 @@
                 <div class="p-5 sm:p-6">
                     <div class="flex items-start justify-between gap-3">
                         <div class="min-w-0">
-                            <h3 class="text-base sm:text-lg font-extrabold text-gray-900 flex items-center gap-2">
+                            <h3 class="text-base sm:text-lg font-extrabold text-gray-700 flex items-center gap-2">
                                 <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700">
                                     <i class="fas fa-calendar-check"></i>
                                 </span>
@@ -165,7 +165,7 @@
                                     <i class="fas fa-calendar-day"></i>
                                 </span>
                                 <div class="min-w-0">
-                                    <div class="text-sm font-semibold text-gray-900 truncate">Keine Termine</div>
+                                    <div class="text-sm font-semibold text-gray-700 truncate">Keine Termine</div>
                                     <div class="text-sm text-gray-500 truncate">Aktuell ist nichts geplant.</div>
                                 </div>
                             </div>

@@ -104,7 +104,7 @@
                                 {{ $short }}
                             </p>
 
-                            <h3 class="mt-0.5 text-base sm:text-lg font-extrabold text-gray-900 leading-snug truncate">
+                            <h3 class="mt-0.5 text-base sm:text-lg font-extrabold text-gray-700 leading-snug truncate">
                                 {{ $title }}
                             </h3>
 
