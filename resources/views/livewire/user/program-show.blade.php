@@ -431,7 +431,7 @@
               // Zeilenstile
               $rowBase   = 'relative h-[70px] py-3 px-4 transition-all delay-50 duration-500 snap-start ';
               $rowBgs    = $isCurrent 
-                            ? 'bg-emerald-50 ring-1 ring-emerald-200' 
+                            ? 'even:bg-white odd:bg-gray-100  border-l-4 !border-l-emerald-500' 
                             : 'even:bg-white odd:bg-gray-100';
               $rowHover  = $hasLink 
                             ? 'group hover:bg-blue-100 hover:pr-[45px] cursor-pointer' 
