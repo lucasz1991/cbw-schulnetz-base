@@ -26,7 +26,7 @@
             const url = this.downloadUrl || this.previewUrl;
             if (!url) return;
 
-            // Programmatic download
+            // Programmatic download 
             const a = document.createElement('a');
             a.href = url;
 
@@ -38,7 +38,7 @@
             a.click();
             a.remove();
         }
-    }"
+    }" 
     x-cloak
 >
     <x-dialog-modal wire:model="show" maxWidth="4xl">
