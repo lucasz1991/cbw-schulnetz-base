@@ -13,7 +13,6 @@
 
         .h1 { font-size: 13px; font-weight: 700; margin: 0 0 8px; }
 
-        /* Kopfbereich wie Vorlage */
         .head-grid { width:100%; border-collapse:collapse; margin-bottom: 8px; }
         .head-grid td { padding: 2px 6px 2px 0; vertical-align: bottom; }
         .label { font-size: 10px; color:#111; white-space: nowrap; }
@@ -22,7 +21,6 @@
         .field.mid  { min-width: 160px; }
         .field.sml  { min-width: 100px; }
 
-        /* Tabelle wie Vorlage */
         table.sheet {
             width: 100%;
             border-collapse: collapse;
@@ -37,7 +35,6 @@
         }
         .sheet th { font-weight: 700; text-align: left; background: #fff; }
 
-        /* Spalten: 1) Datum+Wochentag, 2) Text */
         .col-date { width: 13%; }
         .col-text { width: 87%; }
 
@@ -55,7 +52,6 @@
         .work-text ul, .work-text ol { margin: 0 0 4px 18px; padding: 0; }
         .work-text li { margin: 0 0 2px; }
 
-        /* Signaturbereich wie Vorlage (boxed) */
         .sign-wrap {
             width: 100%;
             border-collapse: collapse;
@@ -73,7 +69,7 @@
             table-layout: fixed;
         }
         .sign-box td {
-            border: 1px solid #111; /* innere Linien */
+            border: 1px solid #111;
             padding: 6px;
             vertical-align: middle;
             font-size: 10px;
