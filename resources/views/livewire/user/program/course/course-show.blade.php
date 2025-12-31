@@ -1,5 +1,5 @@
 <div>
-<header class="relative bg-cover bg-center min-h-36  md:px-8 " style="background-image: url('{{ asset('site-images/header-bg-3-01-01.svg') }}');">
+<header class="relative bg-cover bg-center min-h-36  md:px-8 " style="background-image: url('{{ asset('site-images/bg-green-blue.jpg') }}');">
   <div class="absolute inset-0 bg-white opacity-60"></div>
   <div class="relative container mx-auto px-5 pb-12 pt-8 text-xl  space-x-6 flex justify-start  items-center">
       <a href="/user/dashboard" wire:navigate class="shadow transition-all duration-100 inline-flex items-center content-center px-2 py-1 text-sm border border-blue-300 bg-white text-gray-600 rounded-full aspect-square hover:bg-blue-200 cursor-pointer waves-effect" x-data="{ isClicked: false }" @click="isClicked = true; setTimeout(() =&gt; isClicked = false, 100)" style="" :style="isClicked ? 'transform:scale(0.7);' : ''">
