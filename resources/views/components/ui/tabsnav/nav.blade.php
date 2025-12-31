@@ -53,6 +53,7 @@
   x-on:keydown.left.prevent="$focus.wrap().previous()"
   role="tablist"
   aria-label="tab options"
+  style="padding-bottom:1px;"
   {{ $attributes->merge(['class' => $class]) }}
 >
   <!-- Ab collapseAt: alle Tabs (Design unverändert) -->
