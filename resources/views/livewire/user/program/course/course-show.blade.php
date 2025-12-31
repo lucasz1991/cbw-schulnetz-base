@@ -10,10 +10,10 @@
       </h1>
   </div>
 </header>
-<div class="w-full relative border-t border-t-gray-300 bg-cover bg-center bg-[#eeeeeebd]" wire:loading.class="cursor-wait">
+<div class="w-full relative border-t border-t-gray-300 bg-cover bg-center bg-slate-50" wire:loading.class="cursor-wait">
   <livewire:user.program.course.course-rating-form-modal />
   <x-ui.tabsnav.container storage-key="selectedTabcourse" default="basic" class="w-full">
-    <div class="container mx-auto px-3 md:px-5">
+    <div class="container mx-auto px-3 md:px-5 min-h-0 h-0">
       <x-ui.tabsnav.nav
         :tabs="[
           'basic'    => ['label' => 'Übersicht',      'icon' => 'fad fa-tachometer-alt'],
@@ -23,7 +23,6 @@
         collapseAt="md"
       />
     </div>
-    <div>
       <x-ui.tabsnav.panel name="basic">
         <livewire:user.program.course.course-show-overview
           :klassen-id="$klassenId ?? ($courseArray['klassen_id'] ?? null)"
@@ -37,7 +36,6 @@
       <x-ui.tabsnav.panel name="material">
         <livewire:user.program.course.course-show-media :course="$course" lazy />
       </x-ui.tabsnav.panel>
-    </div>
   </x-ui.tabsnav.container>
 </div>
 </div>

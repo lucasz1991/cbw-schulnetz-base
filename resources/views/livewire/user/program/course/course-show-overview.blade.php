@@ -1,88 +1,147 @@
 <div class="">
-  <header class="container mx-auto px-5 py-6">
-    <div class="flex items-start justify-between">      
-      <div class="flex items-center gap-2">
-        <div>
-          @php
-            $status = $course['status'] ?? 'Offen';
-            $badge = [
-              'Geplant' => 'bg-yellow-100 text-yellow-800',
-              'Laufend' => 'bg-blue-100 text-blue-800',
-              'Abgeschlossen' => 'bg-gray-200 text-gray-800',
-              'Offen' => 'bg-gray-200 text-gray-800',
-            ][$status] ?? 'bg-gray-200 text-gray-800';
-          @endphp
-          <span class="inline-block px-2 py-0.5 rounded mb-4 {{ $badge }}">{{ $status }}</span>
-        </div>
-      </div>
+  <section class="container mx-auto px-5 py-10">
+    <div class="flex flex-wrap items-start justify-between gap-4">
+
+      {{-- Status --}}
       <div>
-        <div class="">
-          <x-ui.badge.badge :color="'blue'">
-            {{ $course['zeitraum_fmt'] ?? '—' }}
-          </x-ui.badge.badge>
-        </div>
+@php
+  $status = $course['status'] ?? 'Offen';
+
+  $badge = [
+    'Geplant' => 'bg-yellow-50 text-yellow-800 border border-yellow-200',
+    'Laufend' => 'bg-blue-50 text-blue-800 border border-blue-200',
+    'Abgeschlossen' => 'bg-slate-100 text-slate-700 border border-slate-300',
+    'Offen' => 'bg-white text-gray-700 border border-gray-300',
+  ][$status] ?? 'bg-white text-gray-700 border border-gray-300';
+
+  $point = [
+    'Geplant' => 'bg-yellow-800',
+    'Laufend' => 'bg-blue-800',
+    'Abgeschlossen' => 'bg-green-700',
+    'Offen' => 'bg-gray-700',
+  ][$status] ?? 'bg-gray-600';
+@endphp
+
+<span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium {{ $badge }}">
+  <span class="w-2 h-2 rounded-full {{ $point }}"></span>
+  {{ $status }}
+</span>
+      </div>
+
+      {{-- Zeitraum --}}
+      <div class="shrink-0">
+        <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium bg-white/15  ring-1 ring-white/20">
+          <i class="fal fa-calendar-alt opacity-90"></i>
+          {{ $course['zeitraum_fmt'] ?? '—' }}
+        </span>
       </div>
     </div>
-    <h1 class="text-2xl font-semibold">{{ $course['title'] ?? '—' }}</h1>
-  </header>
-  <section class="container mx-auto px-5 pb-24">
+
+    <h1 class="mt-6 text-xl md:text-2xl font-semibold  leading-tight">
+      {{ $course['title'] ?? '—' }}
+    </h1>
+
+    <p class="mt-2  text-sm">
+      Kursübersicht & Ergebnisse
+    </p>
+  </section>
+
+  {{-- =========================================================
+      KPI / META CARDS
+  ========================================================== --}}
+  <section class="container mx-auto px-5  pb-10">
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="bg-white rounded-lg border shadow p-4">
+
+      {{-- Tutor --}}
+      <div class="bg-white rounded-2xl border shadow-sm p-4">
         <x-user.public-info :person="$tutor" />
       </div>
-      <div class="bg-white rounded-lg border shadow p-4">
+
+      {{-- Tage --}}
+      <div class="bg-white rounded-2xl border shadow-sm p-4">
         <div class="flex items-center justify-between gap-3">
-        <p class="text-xs text-gray-500 mb-4">Tage</p>
-        <x-ui.badge.badge :color="'gray'">
-          {{ $stats['tage'] ?? '—' }}
-        </x-ui.badge.badge>
+          <div>
+            <p class="text-xs text-gray-500">Tage</p>
+            <p class="mt-1 text-xl font-semibold text-gray-900">
+              {{ $stats['tage'] ?? '—' }}
+            </p>
+          </div>
+          <div class="w-11 h-11 shrink-0 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center">
+            <i class="fal fa-calendar text-lg"></i>
+          </div>
         </div>
       </div>
-      <div class="bg-white rounded-lg border shadow p-4">
+
+      {{-- Teilnehmer --}}
+      <div class="bg-white rounded-2xl border shadow-sm p-4">
         <div class="flex items-center justify-between gap-3">
-          <p class="text-xs text-gray-500 mb-4">Teilnehmer</p>
-          <x-ui.badge.badge :color="'gray'">
-            {{ $participantsCount }}
-          </x-ui.badge.badge>
+          <div>
+            <p class="text-xs text-gray-500">Teilnehmer</p>
+            <p class="mt-1 text-xl font-semibold text-gray-900">
+              {{ $participantsCount }}
+            </p>
+          </div>
+          <div class="w-11 h-11 shrink-0 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center">
+            <i class="fal fa-users text-lg"></i>
+          </div>
         </div>
       </div>
-      <div class="bg-white rounded-lg border shadow p-4">
+
+      {{-- Raum --}}
+      <div class="bg-white rounded-2xl border shadow-sm p-4">
         <div class="flex items-center justify-between gap-3">
-        <p class="text-xs text-gray-500 mb-4">Raum</p>
-         <x-ui.badge.badge :color="'yellow'">
-          {{ $course['room'] ?? '—' }}
-        </x-ui.badge.badge>
+          <div class="min-w-0">
+            <p class="text-xs text-gray-500">Raum</p>
+            <p class="mt-1 text-xl font-semibold text-gray-900 truncate">
+              {{ $course['room'] ?? '—' }}
+            </p>
+          </div>
+          <div class="w-11 h-11bg- rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
+            <i class="fal fa-door-open text-lg"></i>
+          </div>
         </div>
       </div>
+
     </div>
-</section>
-<section class="bg-white border-b-2 border-t-2 border-secondary">
-  <div class="container mx-auto px-5 py-10 pb-24">
-    <h2 class="text-lg font-semibold mb-6">Ergebnisse</h2>
+  </section>
+
+  {{-- =========================================================
+      ERGEBNISSE
+  ========================================================== --}}
+  <section class="container mx-auto px-5 pb-12">
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="text-lg font-semibold text-gray-900">Ergebnisse</h2>
+    </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
       {{-- Dein Ergebnis --}}
-      <div class="bg-white rounded-lg border shadow p-4">
-        <div class="flex items-start justify-between">
-          <p class="text-sm text-gray-500">Dein Ergebnis</p>
-          <x-ui.badge.badge :color="'blue'">
+      <div class="bg-white rounded-2xl border shadow-sm p-6">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <p class="text-sm text-gray-500">Dein Ergebnis</p>
+            <p class="mt-1 text-xs text-gray-400">Deine Bewertung in diesem Kurs</p>
+          </div>
+
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-blue-50 text-blue-700">
             @if(!is_null($participantScore))
               {{ number_format($participantScore, 0) }} / 100
             @else
               —
             @endif
-          </x-ui.badge.badge>
+          </span>
         </div>
 
-        <div class="mt-3">
+        <div class="mt-5">
           @if(!is_null($participantScore))
-            <div class="w-full h-2 bg-gray-100 rounded">
-              <div class="h-2 bg-primary-600 rounded"
+            <div class="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
+              <div class="h-2.5 bg-primary-600 rounded-full transition-all"
                    style="width: {{ max(0, min(100, (int) round($participantScore))) }}%"></div>
             </div>
-            <p class="mt-2 text-xs text-gray-500">
+
+            <p class="mt-3 text-sm text-gray-600">
               Note:
-              <span class="font-medium text-gray-800">{{ $participantGrade ?? '—' }}</span>
+              <span class="font-semibold text-gray-900">{{ $participantGrade ?? '—' }}</span>
             </p>
           @else
             <p class="text-sm text-gray-500">Noch kein Ergebnis erfasst.</p>
@@ -91,27 +150,28 @@
       </div>
 
       {{-- Klassenschnitt --}}
-      <div class="bg-white rounded-lg border shadow p-4">
-        <div class="flex items-start justify-between">
-          <p class="text-sm text-gray-500">Klassenschnitt</p>
-          <x-ui.badge.badge :color="'gray'">
+      <div class="bg-white rounded-2xl border shadow-sm p-6">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <p class="text-sm text-gray-500">Klassenschnitt</p>
+            <p class="mt-1 text-xs text-gray-400">Ø aus allen bewerteten Bausteinen</p>
+          </div>
+
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-gray-100 text-gray-700">
             @if(!is_null($classAverage))
               {{ number_format($classAverage, 1) }} / 100
             @else
               —
             @endif
-          </x-ui.badge.badge>
+          </span>
         </div>
 
-        <div class="mt-3">
+        <div class="mt-5">
           @if(!is_null($classAverage))
-            <div class="w-full h-2 bg-gray-100 rounded">
-              <div class="h-2 bg-gray-400 rounded"
+            <div class="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
+              <div class="h-2.5 bg-gray-400 rounded-full"
                    style="width: {{ max(0, min(100, (int) round($classAverage))) }}%"></div>
             </div>
-            <p class="mt-2 text-xs text-gray-500">
-              Ø aus allen bewerteten Bausteinen dieses Kurses
-            </p>
           @else
             <p class="text-sm text-gray-500">Noch keine Klassenergebnisse vorhanden.</p>
           @endif
@@ -119,118 +179,128 @@
       </div>
 
     </div>
-  </div>
-</section>
+  </section>
 
+  {{-- =========================================================
+      WEITERE BAUSTEINE (SWIPER bleibt!)
+  ========================================================== --}}
+  <section class="bg-slate-100 border-t border-slate-200 overflow-x-hidden">
+    <div class="container mx-auto px-5 py-12 pb-24">
 
+      <div class="flex items-center justify-between gap-4 mb-8">
+        <h3 class="text-lg font-semibold text-gray-900">Weitere Bausteine</h3>
 
-
-<section class="bg-blue-50 overflow-x-hidden">
-  <div class="container mx-auto px-5 py-10  pb-24" >
-    <div class="flex items-center justify-between mb-8">
-      <h3 class="text-lg font-semibold">Weitere Bausteine</h3>
-      <div class="flex items-center gap-2">
-        @if($prev)
-          <x-buttons.button-basic :size="'sm'"
-            href="{{ route('user.program.course.show', ['klassenId' => $prev['klassen_id']]) }}"
-            wire:navigate>← Vorheriger</x-buttons.button-basic>
-        @endif
-        @if($next)
-          <x-buttons.button-basic :size="'sm'"
-            href="{{ route('user.program.course.show', ['klassenId' => $next['klassen_id']]) }}"
-            wire:navigate>Nächster →</x-buttons.button-basic>
-        @endif
+        <div class="flex items-center gap-2">
+          @if($prev)
+            <x-buttons.button-basic :size="'sm'"
+              href="{{ route('user.program.course.show', ['klassenId' => $prev['klassen_id']]) }}"
+              wire:navigate><i class="fal fa-arrow-left mr-2"></i> Vorheriger</x-buttons.button-basic>
+          @endif
+          @if($next)
+            <x-buttons.button-basic :size="'sm'"
+              href="{{ route('user.program.course.show', ['klassenId' => $next['klassen_id']]) }}"
+              wire:navigate>Nächster <i class="fal fa-arrow-right ml-2"></i></x-buttons.button-basic>
+          @endif
+        </div>
       </div>
-    </div>
 
-    {{-- SWIPER: Weitere Bausteine --}}
-    <div
-      x-data="{
-        swiper: null,
-        initSwiper() {
-          this.swiper = new Swiper(this.$refs.coursesSwiper, {
-            slidesPerView: 'auto',
-            spaceBetween: 16,
-            slidesOffsetBefore: 0,
-            slidesOffsetAfter: 0,
-            speed: 500,
-            loop: false,
-            freeMode: true,
-            autoHeight: false,
-            keyboard: { enabled: true },
-            navigation: {
-              nextEl: this.$refs.nextBtn,
-              prevEl: this.$refs.prevBtn,
-            },
-            pagination: {
-              el: this.$refs.paginationEl,
-              clickable: true,
-            },
-            breakpoints: {
-              640: { spaceBetween: 20 },
-              1024:{ spaceBetween: 24 },
-            }
-          });
-        }
-      }"
-      x-init="initSwiper()"
-      class="relative"
-      wire:ignore
-    >
-      <div class="swiper overflow-visible h-full" x-ref="coursesSwiper">
-        <div class="swiper-wrapper h-full">
-            @foreach ($enrolledCourses as $rc)
-              <div class="swiper-slide h-full pr-1 aspect-video" style="width: 300px;" wire:key="course-slide-{{ $rc->klassen_id }}">
-                <a href="{{ route('user.program.course.show', ['klassenId' => $rc->klassen_id]) }}" 
-                  class="block bg-white border rounded-xl shadow-sm p-4 hover:shadow-md transition h-full">
-                  <div class="flex flex-col h-full">
-                    <div>
-                      <div class="flex items-start justify-between mb-2">
-                        <x-ui.badge.badge :color="'gray'">{{ $rc->statusLabel }}</x-ui.badge.badge>
-                        <x-ui.badge.badge :color="'gray'">
-                          {{ $rc->days_count }}
-                          <svg class="h-5 w-5 text-gray-500" fill="currentColor" viewBox="0 0 640 640" aria-hidden="true">
-                            <path d="M224 64C241.7 64 256 78.3 256 96L256 128L384 128L384 96C384 78.3 398.3 64 416 64C433.7 64 448 78.3 448 96L448 128L480 128C515.3 128 544 156.7 544 192L544 480C544 515.3 515.3 544 480 544L160 544C124.7 544 96 515.3 96 480L96 192C96 156.7 124.7 128 160 128L192 128L192 96C192 78.3 206.3 64 224 64zM160 304L160 336C160 344.8 167.2 352 176 352L208 352C216.8 352 224 344.8 224 336L224 304C224 295.2 216.8 288 208 288L176 288C167.2 288 160 295.2 160 304zM288 304L288 336C288 344.8 295.2 352 304 352L336 352C344.8 352 352 344.8 352 336L352 304C352 295.2 344.8 288 336 288L304 288C295.2 288 288 295.2 288 304zM432 288C423.2 288 416 295.2 416 304L416 336C416 344.8 423.2 352 432 352L464 352C472.8 352 480 344.8 480 336L480 304C480 295.2 472.8 288 464 288L432 288zM160 432L160 464C160 472.8 167.2 480 176 480L208 480C216.8 480 224 472.8 224 464L224 432C224 423.2 216.8 416 208 416L176 416C167.2 416 160 423.2 160 432zM304 416C295.2 416 288 423.2 288 432L288 464C288 472.8 295.2 480 304 480L336 480C344.8 480 352 472.8 352 464L352 432C352 423.2 344.8 416 336 416L304 416zM416 432L416 464C416 472.8 423.2 480 432 480L464 480C472.8 480 480 472.8 480 464L480 432C480 423.2 472.8 416 464 416L432 416C423.2 416 416 423.2 416 432z"/>
-                          </svg>
-                        </x-ui.badge.badge>
-                      </div>
-                      <h3 class="font-medium line-clamp-2 pe-2">{{ $rc->title }}</h3>
-                      <p class="text-sm text-gray-500 mt-1 line-clamp-1">{{ $rc->zeitraum_fmt ?? '—' }}</p>
+      {{-- SWIPER WRAPPER (Funktionalität unverändert) --}}
+      <div
+        x-data="{
+          swiper: null,
+          initSwiper() {
+            this.swiper = new Swiper(this.$refs.coursesSwiper, {
+              slidesPerView: 'auto',
+              spaceBetween: 16,
+              freeMode: true,
+              speed: 500,
+              keyboard: { enabled: true },
+              pagination: {
+                el: this.$refs.paginationEl,
+                clickable: true,
+              },
+              breakpoints: {
+                640: { spaceBetween: 20 },
+                1024:{ spaceBetween: 24 },
+              }
+            });
+
+            // ⬇️ AKTUELLEN SLIDE FINDEN & ZENTRIEREN
+            this.$nextTick(() => {
+              const slides = [...this.$refs.coursesSwiper.querySelectorAll('.swiper-slide')];
+              const currentIndex = slides.findIndex(
+                slide => slide.dataset.current === '1'
+              );
+
+              if (currentIndex >= 0) {
+                this.swiper.slideTo(currentIndex, 0); // sofort zentrieren
+              }
+            });
+          }
+        }"
+        x-init="initSwiper()"
+        class="relative"
+        wire:ignore
+      >
+
+        <div class="swiper overflow-visible h-full" x-ref="coursesSwiper">
+          <div class="swiper-wrapper h-full">
+
+            @foreach ($enrolledCourses as $index => $rc)
+                @php
+                  $isCurrent = (string) $rc->klassen_id == (string) $klassenId;
+                @endphp
+
+                <div
+                  class="swiper-slide h-full pr-1"
+                  style="width: 320px;"
+                  wire:key="course-slide-{{ $rc->klassen_id }}"
+                  data-current="{{ $isCurrent ? '1' : '0' }}"
+                >
+                  <a
+                    href="{{ $isCurrent ? '#' : route('user.program.course.show', ['klassenId' => $rc->klassen_id]) }}"
+                    @class([
+                      'group/coursecard block h-full rounded-2xl overflow-hidden transition',
+                      'border shadow-sm bg-white hover:shadow-md' => ! $isCurrent,
+                      'border-2 border-blue-600 bg-blue-50 shadow-lg scale-[1.1] cursor-default pointer-events-none' => $isCurrent,
+                    ])
+                  >
+                  <div class="p-5 flex flex-col h-full">
+                    <div class="flex items-start justify-between gap-3 mb-3">
+                      <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+                        {{ $rc->statusLabel }}
+                      </span>
+
+                      <span class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+                        {{ $rc->days_count }}
+                        <i class="fal fa-calendar-alt text-xs"></i>
+                      </span>
                     </div>
-                    <div class="mt-3 flex items-center justify-between mt-auto">
-                      
-                      <span class="text-xs text-blue-700 hover:underline">Details</span>
-                    </div>
+
+                    <h4 class="text-base font-semibold text-gray-900 line-clamp-2 min-h-12">
+                      {{ $rc->title }}
+                    </h4>
+
+                    <p class="text-sm text-gray-500 mt-2 line-clamp-1">
+                      {{ $rc->zeitraum_fmt ?? '—' }}
+                    </p>
+
+                    
                   </div>
                 </a>
               </div>
             @endforeach
 
-
-          {{-- Optionaler „alle Kurse“-Slide --}}
-          <div class="swiper-slide h-full pr-1" style="width: 300px;">
-            <a href="{{ route('dashboard') }}"
-               class="block  overflow-hidden rounded-xl shadow-sm border hover:shadow-md transition  aspect-video">
-              <div class="bg-white px-4 pt-10 pb-4 h-full flex flex-col items-center justify-between">
-                <div class="w-16 h-16 rounded-full bg-[#223d65] flex items-center justify-center mt-2">
-                  <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                  </svg>
-                </div>
-                <div class="h-16 flex items-end justify-center text-center text-xs font-medium text-gray-600">
-                  alle Bausteine ansehen
-                </div>
-              </div>
-            </a>
           </div>
         </div>
+
+        {{-- Pagination (optional) --}}
+        <div class="mt-6 flex justify-center">
+          <div class="swiper-pagination !relative" x-ref="paginationEl"></div>
+        </div>
+
       </div>
-
-    </div>
-  </div>
-</section>
-
-
-
+    </div> 
+  </section>
 
 </div>

@@ -4,7 +4,7 @@
   'tabs' => [],
 
   // Original-Layout (beibehalten!)
-  'class' => 'flex items-end gap-2 overflow-x-auto transform -translate-y-[100%] -mb-6',
+  'class' => 'flex items-end gap-2 overflow-x-auto transform -translate-y-[100%] -mb-6 pb-[1px]',
 
   // Button-Design (beibehalten!)
   'buttonClass' => 'inline-flex items-center justify-center min-h-[38px] px-4 py-2 text-sm rounded-t-lg border-b-2 border-t border-x border-x-gray-300 border-t-gray-300 bg-white transition-all',
@@ -53,7 +53,6 @@
   x-on:keydown.left.prevent="$focus.wrap().previous()"
   role="tablist"
   aria-label="tab options"
-  style="padding-bottom:1px;"
   {{ $attributes->merge(['class' => $class]) }}
 >
   <!-- Ab collapseAt: alle Tabs (Design unverändert) -->
