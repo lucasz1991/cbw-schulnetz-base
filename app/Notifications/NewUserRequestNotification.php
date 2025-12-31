@@ -41,7 +41,7 @@ class NewUserRequestNotification extends Notification implements ShouldQueue
         $pdfData = $pdf->output();
 
         $mail = (new MailMessage)
-            ->subject('Neuer Antrag eines Teilnehmers')
+            ->subject($this->getReadableTypeSubject())
             ->greeting('Hallo CBW Admin-Team,')
             ->line('Ein neuer Antrag wurde eingereicht.')
             ->line('Typ: ' . $this->getReadableType())
@@ -116,6 +116,15 @@ class NewUserRequestNotification extends Notification implements ShouldQueue
             'absence'       => 'Fehlzeitmeldung',
             'makeup'        => 'Anmeldung Nachprüfung',
             'external_exam' => 'Anmeldung Externe Prüfung',
+            default         => 'Antrag',
+        };
+    }
+    protected function getReadableTypeSubject(): string
+    {
+        return match ($this->request->type ?? '') {
+            'absence'       => 'Entschuldigung von Fehlzeiten: ' . ($this->request->user?->person?->full_name ?? $this->request->user?->name ?? 'Unbekannt'),
+            'makeup'        => 'Antrag auf Nachprüfung: ' . ($this->request->user?->person?->full_name ?? $this->request->user?->name ?? 'Unbekannt'),
+            'external_exam' => 'Antrag auf Externe Prüfung: ' . ($this->request->user?->person?->full_name ?? $this->request->user?->name ?? 'Unbekannt'),
             default         => 'Antrag',
         };
     }
