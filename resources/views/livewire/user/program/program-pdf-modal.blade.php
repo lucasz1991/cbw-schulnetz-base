@@ -8,6 +8,10 @@
             const url = this.previewUrl || this.downloadUrl;
             if (!url) return;
 
+            // Robust: neues Fenster/Tab öffnen und dort drucken
+            const w = window.open(url, '_blank', 'noopener,noreferrer');
+            if (!w) return;
+
             // Viele Browser feuern onload bei PDF nicht sauber -> fallback timer
             const tryPrint = () => {
                 try { w.focus(); w.print(); } catch (e) {}
