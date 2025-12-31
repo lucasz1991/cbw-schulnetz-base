@@ -54,7 +54,15 @@
 
       {{-- Tutor --}}
       <div class="bg-white rounded-2xl border shadow-sm p-4">
-        <x-user.public-info :person="$tutor" />
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <p class="text-xs text-gray-500 mb-1">Dozent/-in</p>
+            <x-user.public-info :person="$tutor" />
+          </div>
+          <div class="w-11 h-11 shrink-0 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center">
+            <i class="fal fa-chalkboard-teacher text-lg"></i>
+          </div>
+        </div>
       </div>
 
       {{-- Tage --}}
