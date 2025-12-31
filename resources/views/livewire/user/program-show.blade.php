@@ -506,7 +506,7 @@
         <div class="h-max px-5 py-4 bg-gradient-to-r from-sky-50 to-white border-b border-slate-200 relative">
         <h3 class="text-base md:text-lg font-semibold text-slate-900 flex items-center gap-2">
           <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
-            <i class="fal fa-location-dot"></i>
+            <i class="fal fa-location text-emerald-700"></i>
           </span>
           Aktueller Baustein
         </h3>
