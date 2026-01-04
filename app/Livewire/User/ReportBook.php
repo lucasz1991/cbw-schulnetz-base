@@ -16,19 +16,28 @@ use App\Models\User;
 use App\Models\Person;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Livewire\Attributes\Url;
+
 
 class ReportBook extends Component
 {
     /** Optional: Maßnahme-Kontext */
     public ?string $massnahmeId = null;
 
-    /** Kurs-/Tag-Auswahl */
-    public array $courses = [];              // [{id,title}, ...]
-    public ?int $selectedCourseId = null;
-    public ?string $selectedCourseName = null;
+/** Kurs-/Tag-Auswahl */
+public array $courses = [];              // [{id,title}, ...]
 
-    public array $courseDays = [];           // [{id,date,label}, ...]
-    public ?int $selectedCourseDayId = null; // aktueller Kurs-Tag
+// Querystring: ?course=123
+#[Url(as: 'course', history: true)]
+public ?int $selectedCourseId = null;
+
+public ?string $selectedCourseName = null;
+
+public array $courseDays = [];           // [{id,date,label}, ...]
+
+// Querystring: ?day=456
+#[Url(as: 'day', history: true)]
+public ?int $selectedCourseDayId = null; // aktueller Kurs-Tag
 
     /** Inhalt */
     public ?string $title = null;            // falls später Überschrift genutzt wird
@@ -51,24 +60,38 @@ class ReportBook extends Component
 
     public int $editorVersion = 0;
 
-    public function mount(): void
-    {
-        // Kurse des Users laden
-        $this->courses = $this->fetchUserCourses();
+public function mount(): void
+{
+    // Kurse des Users laden
+    $this->courses = $this->fetchUserCourses();
 
-        // Auswahl initialisieren
+    // 1) Kurs aus URL prüfen, sonst fallback
+    if (
+        !$this->selectedCourseId ||
+        !collect($this->courses)->contains('id', (int) $this->selectedCourseId)
+    ) {
         $this->selectedCourseId = $this->courses[0]['id'] ?? null;
-        $this->selectedCourseName = ($this->courses[0]['title'] ?? null) ?: '—';
-
-        $this->loadCourseDays();
-
-        // Ersten Tag setzen (heute oder erster Tag)
-        $this->selectedCourseDayId = $this->guessInitialCourseDayId();
-
-        // Einträge laden (ReportBook kann noch nicht existieren → recent evtl. leer)
-        $this->loadCurrentEntry();
-        $this->loadRecent();
     }
+
+    $this->selectedCourseName = $this->courseById((int) $this->selectedCourseId)['title'] ?? '—';
+
+    // 2) Tage für Kurs laden
+    $this->loadCourseDays();
+
+    // 3) Day aus URL prüfen, sonst fallback
+    $validDayIds = collect($this->courseDays)->pluck('id')->map(fn ($v) => (int) $v)->all();
+
+    if (
+        !$this->selectedCourseDayId ||
+        !in_array((int) $this->selectedCourseDayId, $validDayIds, true)
+    ) {
+        $this->selectedCourseDayId = $this->guessInitialCourseDayId();
+    }
+
+    // 4) Einträge laden
+    $this->loadCurrentEntry();
+    $this->loadRecent();
+}
 
     /* ======================= Kursliste & Tage ======================= */
 
@@ -232,35 +255,52 @@ class ReportBook extends Component
 
     /* ======================= UI Events ======================= */
 
-    public function selectCourse(int $courseId): void
-    {
-        if ($this->selectedCourseId === $courseId) return;
+public function selectCourse(int $courseId): void
+{
+    if ($this->selectedCourseId === $courseId) return;
 
-        $this->selectedCourseId = $courseId;
+    $this->selectedCourseId = $courseId;
 
-        if ($c = $this->courseById($courseId)) {
-            $this->selectedCourseName = $c['title'] ?? '—';
-        } else {
-            $this->selectedCourseName = Course::whereKey($courseId)->value('title') ?? '—';
-        }
+    // wichtig: old day aus URL entfernen, weil der zum neuen Kurs nicht passt
+    $this->selectedCourseDayId = null;
 
-        $this->reportBookId = null;
-        $this->reportBookEntryId = null;
-
-        $this->loadCourseDays();
-        $this->selectedCourseDayId = $this->guessInitialCourseDayId();
-
-        $this->loadCurrentEntry();
-        $this->loadRecent();
+    if ($c = $this->courseById($courseId)) {
+        $this->selectedCourseName = $c['title'] ?? '—';
+    } else {
+        $this->selectedCourseName = Course::whereKey($courseId)->value('title') ?? '—';
     }
 
-    public function selectCourseDay(int $courseDayId): void
-    {
-        if ($this->selectedCourseDayId === $courseDayId) return;
+    $this->reportBookId = null;
+    $this->reportBookEntryId = null;
 
-        $this->selectedCourseDayId = $courseDayId;
-        $this->loadCurrentEntry();
+    $this->loadCourseDays();
+    $this->selectedCourseDayId = $this->guessInitialCourseDayId();
+
+    $this->loadCurrentEntry();
+    $this->loadRecent();
+}
+
+public function selectCourseDay(int $courseDayId): void
+{
+    $courseDayId = (int) $courseDayId;
+
+    if ($this->selectedCourseDayId === $courseDayId) return;
+
+    // Validieren: Tag muss im aktuellen courseDays-Array existieren
+    $validDayIds = array_map(fn ($d) => (int) ($d['id'] ?? 0), $this->courseDays);
+
+    if (!in_array($courseDayId, $validDayIds, true)) {
+        $this->dispatch('toast', type: 'warning', message: 'Kurstag ist für diesen Kurs nicht gültig.');
+        return;
     }
+
+    $this->selectedCourseDayId = $courseDayId;
+
+    // optional aber sinnvoll: beim Tagwechsel keine "alte" EntryId mitschleppen
+    $this->reportBookEntryId = null;
+
+    $this->loadCurrentEntry();
+}
 
     public function updated($name, $value): void
     {
@@ -269,20 +309,36 @@ class ReportBook extends Component
         }
     }
 
-    protected function reloadForCurrentCourse(): void
-    {
-        $selectedCourseId    = $this->selectedCourseId;
-        $selectedCourseDayId = $this->selectedCourseDayId;
+protected function reloadForCurrentCourse(): void
+{
+    $selectedCourseId    = $this->selectedCourseId;
+    $selectedCourseDayId = $this->selectedCourseDayId;
 
-        $this->courses = $this->fetchUserCourses();
-        $this->selectedCourseId = $selectedCourseId;
+    $this->courses = $this->fetchUserCourses();
 
-        $this->loadCourseDays();
-        $this->selectedCourseDayId = $selectedCourseDayId;
-
-        $this->loadCurrentEntry();
-        $this->loadRecent();
+    // Kurs validieren
+    if (!$selectedCourseId || !collect($this->courses)->contains('id', (int) $selectedCourseId)) {
+        $this->selectedCourseId = $this->courses[0]['id'] ?? null;
+    } else {
+        $this->selectedCourseId = (int) $selectedCourseId;
     }
+
+    $this->selectedCourseName = $this->courseById((int) $this->selectedCourseId)['title'] ?? '—';
+
+    $this->loadCourseDays();
+
+    // Day validieren
+    $validDayIds = collect($this->courseDays)->pluck('id')->map(fn ($v) => (int) $v)->all();
+
+    if ($selectedCourseDayId && in_array((int) $selectedCourseDayId, $validDayIds, true)) {
+        $this->selectedCourseDayId = (int) $selectedCourseDayId;
+    } else {
+        $this->selectedCourseDayId = $this->guessInitialCourseDayId();
+    }
+
+    $this->loadCurrentEntry();
+    $this->loadRecent();
+}
 
     /* ======================= Persistenzaktionen ======================= */
 
