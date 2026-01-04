@@ -167,7 +167,7 @@
 
           <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-gray-100 text-gray-700">
             @if(!is_null($classAverage))
-              {{ number_format($classAverage, 1) }} / 100
+              {{ $classAverage }} / 100
             @else
               —
             @endif
