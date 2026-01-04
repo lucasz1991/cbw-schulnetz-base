@@ -12,7 +12,7 @@
   <div class="max-w-full grid grid-cols-1 lg:grid-cols-3 gap-6">
 
     {{-- linke Spalte: Kurswahl & CourseDays --}}
-    <aside class="space-y-4 lg:col-span-1"  >
+    <aside class="space-y-4 lg:col-span-1 md:order-2"  >
       {{-- Kurswahl: Navigation oben + Trigger mit Panel --}}
 
       @php
