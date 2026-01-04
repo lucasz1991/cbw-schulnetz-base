@@ -19,7 +19,7 @@
   <livewire:user.program.course.course-rating-form-modal />
 
   <section class="relative space-y-6">
-    <div class="mt-4">
+    <div class="mt-8">
       <div class="grid grid-cols-2 md:grid-cols-4 gap-6 ">
         <div class="bg-white shadow rounded-lg text-center col-span-2 md:col-span-1 max-md:order-4">
             <div class="card-body pr-2  grid place-content-stretch h-full">
