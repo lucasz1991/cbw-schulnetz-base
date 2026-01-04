@@ -272,6 +272,7 @@
                       'border shadow-sm bg-white hover:shadow-md' => ! $isCurrent,
                       'border-2 border-blue-600 bg-blue-50 shadow-lg scale-[1.1] cursor-default pointer-events-none' => $isCurrent,
                     ])
+                    wire:navigate
                   >
                   <div class="p-5 flex flex-col h-full">
                     <div class="flex items-start justify-between gap-3 mb-3">
