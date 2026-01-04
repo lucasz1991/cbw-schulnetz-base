@@ -2,7 +2,7 @@
         <header class="relative bg-cover bg-center min-h-16  md:px-8 " 
         style="background-image: url('{{ $header_image ? url('storage/' . $header_image) : asset('site-images/home-Slider_-_Studenten.jpg') }}');">
             <div class="absolute inset-0 bg-white opacity-60"></div>
-            <div class="relative container mx-auto px-5 pb-12 pt-8 text-xl  space-x-6 flex justify-start  items-center">
+            <div class="relative container mx-auto px-5 pb-8 pt-8 text-xl  space-x-6 flex justify-start  items-center">
                 <x-back-button />
                 <h1 class=" text-xl text-gray-800 leading-tight flex items-center">
                     {{ $title }}
