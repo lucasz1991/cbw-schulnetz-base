@@ -912,6 +912,6 @@ public function exportReportAll(): ?StreamedResponse
 
     public function render()
     {
-        return view('livewire.user.report-book');
+        return view('livewire.user.report-book')->layout("layouts.app");
     }
 }

@@ -100,6 +100,6 @@ class UserRequests extends Component
     {
         return view('livewire.user.user-requests', [
             'requests' => $this->requests,
-        ]);
+        ])->layout("layouts.app");
     }
 }

@@ -7,8 +7,9 @@
       .($editorVersion ?? 0);
 @endphp
 
-<div class="w-full"  wire:loading.class="cursor-wait opacity-50 animate-pulse"  wire:target="date,selectCourse,selectCourseDay,selectPrevCourse,selectNextCourse,selectPrevDay,selectNextDay,selectedCourseId,submit,save,importTutorDocToDraft" >
-  <div class="max-w-full grid grid-cols-1 lg:grid-cols-3 gap-6 mt-4">
+<div class="w-full relative  bg-[#eeeeeebd] pb-20 min-h-[70vh] pt-6"  wire:loading.class="cursor-wait opacity-50 animate-pulse"  wire:target="date,selectCourse,selectCourseDay,selectPrevCourse,selectNextCourse,selectPrevDay,selectNextDay,selectedCourseId,submit,save,importTutorDocToDraft" >
+  <div class="container mx-auto px-3 md:px-5">
+  <div class="max-w-full grid grid-cols-1 lg:grid-cols-3 gap-6">
 
     {{-- linke Spalte: Kurswahl & CourseDays --}}
     <aside class="space-y-4 lg:col-span-1"  >
@@ -573,4 +574,5 @@
 <livewire:tools.signatures.signature-form lazy />
 
 
+</div>
 </div>

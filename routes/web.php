@@ -7,6 +7,8 @@ use App\Livewire\Auth\Login;
 use App\Livewire\Auth\Register;
 use Illuminate\Support\Facades\Auth;
 use App\Livewire\Dashboard;
+use App\Livewire\User\ReportBook;
+use App\Livewire\User\UserRequests;
 use App\Livewire\Tutor\TutorDashboard;
 use App\Livewire\Tutor\CourseList;
 use App\Livewire\Tutor\Courses\CourseShow as TutorCourseShow;
@@ -73,6 +75,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     // Teilnehmer Routes
     Route::middleware(['role:guest'])->prefix('user')->group(function () {
         Route::get('/dashboard', Dashboard::class)->name('dashboard');
+        Route::get('/reportbook', ReportBook::class)->name('reportbook');
+        Route::get('/user-requests', UserRequests::class)->name('requests');
         Route::get('/messages', MessageBox::class)->name('messages');
         Route::get('/contact', Contact::class)->name('contact');
         Route::get('/termsandconditions', TermsAndConditions::class)->name('terms');

@@ -1,9 +1,11 @@
-<div class=" mt-4" wire:loading.class="opacity-50 pointer-events-none">
+<div class="w-full relative  bg-[#eeeeeebd] pb-20 min-h-[70vh] pt-6" wire:loading.class="opacity-50 pointer-events-none">
+
     <livewire:user.absences  lazy />
     <livewire:user.makeup-exam-registration  lazy />
     <livewire:user.external-makeup-registration lazy />
     <livewire:user.request-detail-modal lazy />
 
+<div  class="container mx-auto px-3 md:px-5">
 
     <div class="mb-12">
     <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -182,4 +184,5 @@
             </div>
         </div>
     </div>
+</div>
 </div>
