@@ -20,6 +20,18 @@
   font-style: normal;
 }
 
+@font-face {
+  font-family: 'Oswald';
+  src: url('/fonts/Oswald-VariableFont_wght.ttf') format('truetype');
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Quicksand';
+  src: url('/fonts/Quicksand-VariableFont_wght.ttf') format('truetype');
+  font-style: normal;
+}
+
 [x-cloak] {
     display: none !important;
 }
@@ -52,6 +64,18 @@ select, select > option{
   font-size: 17px;
 }
 body{
+  font-family: 'Quicksand';
+  color: var(--primary-font-color);
+}
+body nav a{
+  font-family: 'Montserrat';
+  color: var(--primary-font-color);
+}
+body p, body li, body td, body th{
+  font-family: 'Quicksand';
+  color: var(--primary-font-color);
+}
+body h1, body h2, body h3, body h4, body h5, body h6{
   font-family: 'Montserrat';
   color: var(--primary-font-color);
 }
