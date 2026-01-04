@@ -8,7 +8,7 @@
       <h1 class=" text-xl text-gray-800 leading-tight flex items-center">
           Baustein im Detail
       </h1>
-  </div>  
+  </div>   
 </header>
 <div class="w-full relative border-t border-t-gray-300 bg-cover bg-center bg-slate-50" wire:loading.class="cursor-wait">
   <livewire:user.program.course.course-rating-form-modal />
