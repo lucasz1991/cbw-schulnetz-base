@@ -12,7 +12,7 @@
 </header>
 <div class="w-full relative border-t border-t-gray-300 bg-cover bg-center bg-slate-50" wire:loading.class="cursor-wait">
   <livewire:user.program.course.course-rating-form-modal />
-  <x-ui.tabsnav.container storage-key="selectedTabcourse" default="basic" class="w-full">
+  <x-ui.tabsnav.container storage-key="selectedTabcourse-{{ $course->id }}" default="basic" class="w-full">
     <div class="container mx-auto px-3 md:px-5 min-h-0 h-0">
       <x-ui.tabsnav.nav
         :tabs="[
