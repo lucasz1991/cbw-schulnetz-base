@@ -60,8 +60,8 @@ class CoursesListPreview extends Component
                 ->get();
 
             $this->courses = $active
-                ->concat($lastFinished)
                 ->concat($nextUpcoming)
+                ->concat($lastFinished)
                 ->unique('id')
                 ->values();
         }
