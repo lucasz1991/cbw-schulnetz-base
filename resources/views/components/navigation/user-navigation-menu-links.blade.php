@@ -18,7 +18,7 @@
         </x-nav-link>
     @endif
 
-        
+         
         @php
             $isActive = request()->is('aboutus', 'faqs', 'howto', 'contact');
         @endphp
