@@ -102,7 +102,7 @@ class ProgramPdfModal extends Component
         $pdf->setXY($column1+25, $startY);
         $pdf->Cell(50, $height, @utf8_decode('Name'), 1, 0, 'C');
         $pdf->setXY($column1+75, $startY);
-        $pdf->Cell(25, $height, @utf8_decode('Geburtsdatum'), 1, 0, 'C');
+        $pdf->Cell(25, $height, @utf8_decode($this->datumTransPunkt('Geburtsdatum')), 1, 0, 'C');
         $pdf->setXY($column1+100, $startY);
         $pdf->Cell(25, $height, @utf8_decode('Kunden-Nr.'), 1, 0, 'C');
         $pdf->setXY($column1+125, $startY);
@@ -118,7 +118,7 @@ class ProgramPdfModal extends Component
         $pdf->setXY($column1+25, $startY);
         $pdf->Cell(50, $height, @utf8_decode($data['name'] ?? ''), 1, 0, 'C');
         $pdf->setXY($column1+75, $startY);
-        $pdf->Cell(25, $height, @utf8_decode($data['geburt_datum'] ?? ''), 1, 0, 'C');
+        $pdf->Cell(25, $height, @utf8_decode($this->datumTransPunkt($data['geburt_datum']) ?? ''), 1, 0, 'C');
         $pdf->setXY($column1+100, $startY);
         $pdf->Cell(25, $height, @utf8_decode($data['stamm_nr_kst'] ?? ''), 1, 0, 'C');
         $pdf->setXY($column1+125, $startY);
@@ -137,7 +137,7 @@ class ProgramPdfModal extends Component
         $pdf->Cell(18, $height, @utf8_decode('  '.($data['vtz'] ?? '').' '.($data['massn_kurz'] ?? '')), 1, 0, 'L');
 
         $pdf->setXY($column1+38, $startY);
-        $pdf->Cell(34, $height, @utf8_decode('  '.($data['vertrag_beginn'] ?? '').' - '.($data['vertrag_ende'] ?? '')), 1, 0, 'L');
+        $pdf->Cell(34, $height, @utf8_decode('  '.($this->datumTransPunkt($data['vertrag_beginn'] ?? '')) .' - '.($this->datumTransPunkt($data['vertrag_ende'] ?? ''))), 1, 0, 'L');
 
         // Anzahl Bausteine wie im Legacy
         if (($sVertragVtz ?? '') === 'E') {
@@ -167,10 +167,10 @@ class ProgramPdfModal extends Component
         $pdf->Cell(13, $height, @utf8_decode($data['massn_kurz'] ?? ''), 1, 0, 'C');
 
         $pdf->setXY($column1+31, $startY);
-        $pdf->Cell(17, $height, @utf8_decode($data['vertrag_beginn'] ?? ''), 1, 0, 'C');
+        $pdf->Cell(17, $height, @utf8_decode($this->datumTransPunkt($data['vertrag_beginn'] ?? '')), 1, 0, 'C');
 
         $pdf->setXY($column1+48, $startY);
-        $pdf->Cell(17, $height, @utf8_decode($data['vertrag_ende'] ?? ''), 1, 0, 'C');
+        $pdf->Cell(17, $height, @utf8_decode($this->datumTransPunkt($data['vertrag_ende'] ?? '')), 1, 0, 'C');
 
         $pdf->SetFont('Arial', 'B', $fontsize);
         $pdf->setXY($column1+65, $startY);
@@ -368,8 +368,8 @@ class ProgramPdfModal extends Component
 
             // Zeilenwerte
             $pdf->text($column1, $startY, @utf8_decode($i));
-            $pdf->text($column2, $startY, @utf8_decode($baustein['beginn_baustein'] ?? ''));
-            $pdf->text($column3, $startY, @utf8_decode($baustein['ende_baustein'] ?? ''));
+            $pdf->text($column2, $startY, @utf8_decode($this->datumTransPunkt($baustein['beginn_baustein'] ?? '')));
+            $pdf->text($column3, $startY, @utf8_decode($this->datumTransPunkt($baustein['ende_baustein'] ?? '')));
             $pdf->text($column4, $startY, @utf8_decode((string)($baustein['baustein_tage'] ?? '')));
             $pdf->text($column5, $startY, @utf8_decode($baustein['klassen_co_ks'] ?? ''));
 
