@@ -24,7 +24,7 @@ export default {
         extend: {
             fontFamily: {
                 sans: ['Quicksand', ...defaultTheme.fontFamily.sans],
-            },
+            }, 
             colors: {
                 primary: {
                     DEFAULT: '#2B9D3C',
