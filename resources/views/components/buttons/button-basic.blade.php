@@ -18,7 +18,7 @@
         'secondary' => '
             text-white
             bg-secondary-400 hover:bg-secondary-500
-            border-secondary-700
+            border-secondary-500
             focus:ring-secondary-300
             active:bg-secondary-800
             shadow-sm hover:shadow
