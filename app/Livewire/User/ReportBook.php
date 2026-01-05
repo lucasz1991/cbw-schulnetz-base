@@ -610,6 +610,7 @@ public function reloadForCurrentCourse(): void
     public function reloadEntry(): void
     {
         $this->text = '';
+        $this->editorVersion ++;
         $this->loadCurrentEntry();
     }
     /* ======================= Loader / Helper ======================= */
