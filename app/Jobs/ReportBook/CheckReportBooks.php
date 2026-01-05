@@ -46,6 +46,31 @@ class CheckReportBooks implements ShouldQueue
             if (! $allSubmitted) {
                 continue;
             }
+            // expected (aus days() Relation)
+            $expectedDays = $book->days()
+                ->pluck('date')
+                ->map(fn ($d) => \Illuminate\Support\Carbon::parse($d)->toDateString()) // Y-m-d
+                ->unique()
+                ->values()
+                ->all();
+
+            // existing (aus entries, Feld ggf. anpassen!)
+            $existingDays = $book->entries
+                ->map(function ($e) {
+                    // passe an: bei dir heißt es ggf. day_date / date / report_date ...
+                    $d = $e->date ?? $e->day ?? $e->entry_date ?? null;
+                    return $d ? \Illuminate\Support\Carbon::parse($d)->toDateString() : null;
+                })
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+
+            $missingDays = array_values(array_diff($expectedDays, $existingDays));
+
+            if (!empty($missingDays)) {
+                continue;
+            }
 
             // Ein Task pro ReportBook (stabil über context_* + task_type)
             $task = AdminTask::query()
