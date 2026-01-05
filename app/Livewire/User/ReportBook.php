@@ -60,8 +60,6 @@ public ?int $selectedCourseDayId = null; // aktueller Kurs-Tag
 
     public int $editorVersion = 0;
 
-    protected $listeners = [ 'reportbook.entry.updated' => 'loadCurrentEntry' ];
-
 public function mount(): void
 {
     // Kurse des Users laden
@@ -610,7 +608,7 @@ public function reloadForCurrentCourse(): void
     }
 
     /* ======================= Loader / Helper ======================= */
-
+    #[On('reportbook.entry.updated')]
     public function loadCurrentEntry(): void
     {
         $this->reportBookEntryId = null;
