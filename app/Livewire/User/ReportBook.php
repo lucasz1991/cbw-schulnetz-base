@@ -611,7 +611,7 @@ protected function reloadForCurrentCourse(): void
 
     /* ======================= Loader / Helper ======================= */
 
-    protected function loadCurrentEntry(): void
+    public function loadCurrentEntry(): void
     {
         $this->reportBookEntryId = null;
         $this->title = null;
