@@ -75,7 +75,7 @@
             <div class="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div class="rounded-2xl border border-slate-200 bg-white/70 backdrop-blur p-5 shadow-sm" data-aos="fade-up" data-aos-delay="50">
                     <div class="flex items-start gap-3">
-                        <div class="h-11 w-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-sm">
+                        <div class="h-11 w-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-sm  shrink-0">
                             <i class="fas fa-headset"></i>
                         </div>
                         <div>
@@ -87,7 +87,7 @@
 
                 <div class="rounded-2xl border border-slate-200 bg-white/70 backdrop-blur p-5 shadow-sm" data-aos="fade-up" data-aos-delay="100">
                     <div class="flex items-start gap-3">
-                        <div class="h-11 w-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-sm">
+                        <div class="h-11 w-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-sm  shrink-0">
                             <i class="fas fa-paper-plane"></i>
                         </div>
                         <div>
@@ -99,7 +99,7 @@
 
                 <div class="rounded-2xl border border-slate-200 bg-white/70 backdrop-blur p-5 shadow-sm" data-aos="fade-up" data-aos-delay="150">
                     <div class="flex items-start gap-3">
-                        <div class="h-11 w-11 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-sm">
+                        <div class="h-11 w-11 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-sm  shrink-0">
                             <i class="fas fa-map-marker-alt"></i>
                         </div>
                         <div>
