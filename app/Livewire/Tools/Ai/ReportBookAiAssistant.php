@@ -198,7 +198,7 @@ class ReportBookAiAssistant extends Component
 
         if ($textToSave === '') {
             return;
-        }
+        } 
 
         $this->entry->text = $textToSave;
         $this->entry->save();
