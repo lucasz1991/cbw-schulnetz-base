@@ -60,7 +60,7 @@ public ?int $selectedCourseDayId = null; // aktueller Kurs-Tag
 
     public int $editorVersion = 0;
 
-    protected $listeners = [ 'reportbook.entry.updated' => 'loadCurrentEntry' ];
+    protected $listeners = [ 'reportbook.entry.updated' => 'reloadCurrentEntry' ];
 
 public function mount(): void
 {
