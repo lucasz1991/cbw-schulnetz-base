@@ -608,7 +608,7 @@ public function reloadForCurrentCourse(): void
     }
 
     /* ======================= Loader / Helper ======================= */
-    #[On('reportbook.entry.updated')]
+    #[On('updated')]
     public function loadCurrentEntry(): void
     {
         $this->reportBookEntryId = null;
