@@ -287,7 +287,7 @@
                     <p class="text-xs text-gray-600 mb-2">
                       Lade dein aktuelles Qualifizierungsprogramm als PDF herunter.
                     </p>
-                    <x-buttons.button-basic :size="'sm'" :mode="'primary'" @click="$dispatch('open-program-pdf');isClicked = true; setTimeout(() => isClicked = false, 100)" class="w-full">
+                    <x-buttons.button-basic :size="'sm'" :mode="'secondary'" @click="$dispatch('open-program-pdf');isClicked = true; setTimeout(() => isClicked = false, 100)" class="w-full">
                       Programm als PDF
                     </x-buttons.button-basic>
                   </div>
@@ -299,7 +299,7 @@
                     <p class="text-xs text-gray-600 mb-2">
                       Übersicht über deine Berichtsheft.
                     </p>
-                    <x-buttons.button-basic :size="'sm'" :mode="'primary'"     @click="selectedTab = 'reportbook'"
+                    <x-buttons.button-basic :size="'sm'" :mode="'secondary'"     @click="selectedTab = 'reportbook'"
                        class="w-full">
                       Berichtsheft anzeigen
                     </x-buttons.button-basic>
@@ -312,7 +312,7 @@
                     <p class="text-xs text-gray-600 mb-2">
                       Übersicht über deine Anträge im Programm.
                     </p>
-                    <x-buttons.button-basic :size="'sm'" :mode="'primary'"     @click="selectedTab = 'claims'"
+                    <x-buttons.button-basic :size="'sm'" :mode="'secondary'"     @click="selectedTab = 'claims'"
                        class="w-full">
                       Anträge anzeigen
                     </x-buttons.button-basic>

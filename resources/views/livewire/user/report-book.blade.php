@@ -193,15 +193,15 @@
                           wire:click="selectCourse({{ $c['id'] }})"
                           @click="open=false"
                           class="group block relative w-full text-left px-3 py-4 transition-all duration-150
-                                {{ $active ? 'bg-primary-800 text-white border-primary-600 shadow-sm active'
-                                            : ' text-gray-700 border-gray-400 hover:border-primary-300 hover:bg-primary-50' }}">
+                                {{ $active ? 'bg-secondary-600 text-white border-secondary-600 shadow-sm active'
+                                            : ' text-gray-700 border-gray-400 hover:border-secondary-300 hover:bg-primary-50' }}">
                     <div class="flex items-center justify-between">
                       <span class="text-xs font-semibold uppercase tracking-wide
-                                  {{ $active ? 'text-primary-100' : 'text-gray-500 group-hover:text-primary-600' }}">
+                                  {{ $active ? 'text-secondary-100' : 'text-gray-500 group-hover:text-secondary-600' }}">
                         {{ $c['klassen_id'] ?? '—' }}
                       </span>
                     </div>
-                    <div class="mt-1 text-sm font-medium truncate {{ $active ? 'text-white' : 'text-gray-800 group-hover:text-primary-700' }}">
+                    <div class="mt-1 text-sm font-medium truncate {{ $active ? 'text-white' : 'text-gray-800 group-hover:text-secondary-700' }}">
                       {{ $c['title'] ?? 'Unbenannter Kurs' }}
                     </div>
                       @if($startFmt || $endFmt)
