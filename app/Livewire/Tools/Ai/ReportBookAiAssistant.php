@@ -24,12 +24,12 @@ class ReportBookAiAssistant extends Component
 
     public $status;
     public $assistantName;
-    private $apiUrl;
-    private $apiKey;
-    private $aiModel;
-    private $modelTitle;
-    private $refererUrl;
-    private $trainContent;
+    public $apiUrl;
+    public $apiKey;
+    public $aiModel;
+    public $modelTitle;
+    public $refererUrl;
+    public $trainContent;
 
     protected $listeners = [
         'open-reportbook-ai-assistant' => 'openForEntry',
