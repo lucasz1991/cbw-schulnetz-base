@@ -60,7 +60,7 @@ public ?int $selectedCourseDayId = null; // aktueller Kurs-Tag
 
     public int $editorVersion = 0;
 
-    protected $listeners = [ 'reportbook.entry.updated' => 'reloadCurrentEntry' ];
+    protected $listeners = [ 'reportbook.entry.updated' => 'reloadForCurrentCourse' ];
 
 public function mount(): void
 {
@@ -311,7 +311,7 @@ public function selectCourseDay(int $courseDayId): void
         }
     }
 
-protected function reloadForCurrentCourse(): void
+public function reloadForCurrentCourse(): void
 {
     $selectedCourseId    = $this->selectedCourseId;
     $selectedCourseDayId = $this->selectedCourseDayId;
