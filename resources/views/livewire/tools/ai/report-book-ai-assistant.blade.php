@@ -1,4 +1,4 @@
-<x-dialog-modal wire:model="showModal" maxWidth="3xl">
+<x-dialog-modal wire:model="showModal" maxWidth="4xl">
     <x-slot name="title">
         <div class="flex items-center gap-3">
             <div class="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-blue-600">
