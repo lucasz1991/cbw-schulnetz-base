@@ -77,15 +77,12 @@ body{
 }
 body nav a{
   font-family: 'Montserrat';
-  color: var(--primary-font-color);
 }
 body p, body li, body td, body th{
   font-family: 'Quicksand';
-  color: var(--primary-font-color);
 }
 body h1, body h2, body h3, body h4, body h5, body h6{
   font-family: 'Montserrat';
-  color: var(--primary-font-color);
 }
 /* Standard-Scrollbar ausblenden */
 html, body {
