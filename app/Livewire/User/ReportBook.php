@@ -606,9 +606,14 @@ public function reloadForCurrentCourse(): void
         // $this->dispatch('toast', type: 'info', message: 'Signatur abgebrochen.');
         return;
     }
-
-    /* ======================= Loader / Helper ======================= */
     #[On('updated')]
+    public function reloadEntry(): void
+    {
+        $this->text = '';
+        $this->loadCurrentEntry();
+    }
+    /* ======================= Loader / Helper ======================= */
+   
     public function loadCurrentEntry(): void
     {
         $this->reportBookEntryId = null;
