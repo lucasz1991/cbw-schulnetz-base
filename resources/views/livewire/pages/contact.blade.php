@@ -31,7 +31,7 @@
 
                     <div class="mt-7 flex flex-wrap gap-3">
                         <a href="mailto:info@cbw-weiterbildung.de"
-                           class="inline-flex items-center rounded-2xl bg-secondary px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-primary transition">
+                           class="inline-flex items-center rounded-2xl bg-secondary px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-secondary-dark transition">
                             <i class="fas fa-envelope mr-2"></i>
                             info@cbw-weiterbildung.de
                         </a>
