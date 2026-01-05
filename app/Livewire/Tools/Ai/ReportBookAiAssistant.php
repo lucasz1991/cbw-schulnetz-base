@@ -202,6 +202,8 @@ class ReportBookAiAssistant extends Component
 
         $this->entry->text = $textToSave;
         $this->entry->save();
+        $this->showModal = false;
+        $this->dispatch('reportbook.entry.updated');
     }
 
     public function render()
