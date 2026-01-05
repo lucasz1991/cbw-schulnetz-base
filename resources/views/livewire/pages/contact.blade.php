@@ -123,15 +123,7 @@
                             <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                                 <div>
                                     <h2 class="text-xl font-semibold text-slate-900">Nachricht senden</h2>
-                                    <p class="mt-1 text-sm text-slate-600">
-                                        Bitte Betreff und Nachricht ausfüllen – Name & E-Mail sind nicht nötig (nur eingeloggte User).
-                                    </p>
                                 </div>
-
-                                <span class="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-100">
-                                    <span class="mr-2 h-2 w-2 rounded-full bg-emerald-500"></span>
-                                    Eingeloggt
-                                </span>
                             </div>
 
                             @if (session()->has('success'))
