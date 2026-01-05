@@ -15,7 +15,7 @@
                         Dein zentraler Zugang für Kurse, Berichtshefte, Anträge und Kommunikation.
                     </p>
                 </div>
-
+ 
                 @auth
                     {{-- 1) Übersicht --}}
                     <div x-data="{ open: false }">
