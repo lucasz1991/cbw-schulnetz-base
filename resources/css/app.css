@@ -5,6 +5,13 @@
 
 :root {
   /* Eigene Farben */
+  --tw-primary-color: #2B9D3C; 
+  --tw-primary-light-color: #0b5879; 
+  --tw-primary-dark-color: #084058; 
+  --tw-secondary-color: #2E5B9E; 
+  --tw-secondary-light-color: #10b3aa; 
+  --tw-secondary-dark-color: #0c968e; 
+
   --primary-color: #1e40af; 
   --secondary-color: #2fad43; 
   --primary-font-color: #414141;
