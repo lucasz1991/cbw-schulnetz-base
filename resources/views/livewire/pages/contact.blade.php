@@ -242,7 +242,7 @@
                 <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
                      data-aos="fade-left" data-aos-delay="150">
                     <div class="flex items-start gap-4">
-                        <div class="h-12 w-12 rounded-2xl bg-gradient-to-br from-blue-600 to-emerald-600 text-white flex items-center justify-center shadow-sm">
+                        <div class="h-12 w-12 shrink-0 rounded-2xl bg-gradient-to-br from-blue-600 to-emerald-600 text-white flex items-center justify-center shadow-sm">
                             <i class="fas fa-headset"></i>
                         </div>
 
