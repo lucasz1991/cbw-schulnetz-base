@@ -173,7 +173,7 @@
 
             {{-- Info-Button: Modal schließen --}}
             <x-buttons.button-basic
-            :mode="'info'"
+            :mode="'primary'"
             wire:click="close"
             >
             Schließen
