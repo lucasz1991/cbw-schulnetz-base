@@ -194,7 +194,7 @@ public function mount(): void
         })->all();
     }
 
-    protected function loadCourseDays(): void
+    public function loadCourseDays(): void
     {
         $this->courseDays = [];
         if (!$this->selectedCourseId) return;
