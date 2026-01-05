@@ -299,7 +299,7 @@
                     <p class="text-xs text-gray-600 mb-2">
                       Übersicht über deine Berichtsheft.
                     </p>
-                    <x-buttons.button-basic :size="'sm'" :mode="'secondary'"     @click="selectedTab = 'reportbook'"
+                    <x-buttons.button-basic :size="'sm'" :mode="'secondary'"  href="/user/reportbook" 
                        class="w-full">
                       Berichtsheft anzeigen
                     </x-buttons.button-basic>
@@ -312,7 +312,7 @@
                     <p class="text-xs text-gray-600 mb-2">
                       Übersicht über deine Anträge im Programm.
                     </p>
-                    <x-buttons.button-basic :size="'sm'" :mode="'secondary'"     @click="selectedTab = 'claims'"
+                    <x-buttons.button-basic :size="'sm'" :mode="'secondary'"  href="/user/user-requests" 
                        class="w-full">
                       Anträge anzeigen
                     </x-buttons.button-basic>
