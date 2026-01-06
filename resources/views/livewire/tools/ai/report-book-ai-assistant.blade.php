@@ -256,7 +256,7 @@
                     <i class="fal fa-arrow-left text-[11px]"></i>
                     Eingabe
                 </x-buttons.button-basic>
-
+                @if($optimizedText)
                 <x-buttons.button-basic
                     type="button"
                     class="text-xs"
@@ -269,7 +269,7 @@
                 </x-buttons.button-basic>
 
 
-                @if($optimizedText)
+                
                 <x-buttons.button-basic
                     type="button"
                     class="text-xs"
@@ -280,7 +280,7 @@
                 >
                     <span wire:loading.remove wire:target="generateSuggestion" class="inline-flex items-center gap-2">
                         <i class="fal fa-recycle text-[11px]"></i>
-                        Neuer Vorschlag
+                        Neu
                     </span>
                     <span wire:loading wire:target="generateSuggestion" class="inline-flex items-center gap-2">
                         <span class="h-3 w-3 animate-spin rounded-full border border-slate-300 border-t-slate-900"></span>
@@ -299,7 +299,7 @@
                     wire:target="saveToEntry"
                 >
                     <i class="fas fa-check text-[11px]"></i>
-                    Ki Vorschlag speichern
+                    speichern
                 </x-buttons.button-basic>
                 @else
                                 {{-- STEP 1 actions --}}
