@@ -3,10 +3,11 @@
     }"
 >
 <x-dialog-modal wire:model="showModal" maxWidth="4xl">
-    {{-- ===== TITLE ===== --}}
-    <x-slot name="title">
-        <div class="flex items-center gap-3">
-            <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-emerald-600 text-white shadow-sm">
+<x-slot name="title">
+    <div class="flex items-start justify-between gap-3">
+        {{-- Left: Icon + Title --}}
+        <div class="flex items-center gap-3 min-w-0">
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-emerald-600 text-white shadow-sm">
                 <i class="fas fa-robot text-sm"></i>
             </div>
 
@@ -19,7 +20,19 @@
                 </p>
             </div>
         </div>
-    </x-slot>
+
+        {{-- Right: Close Button --}}
+        <button
+            type="button"
+            wire:click="close"
+            class="shrink-0 inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500
+                   hover:bg-slate-100 hover:text-slate-700 transition focus:outline-none focus:ring-2 focus:ring-blue-200"
+            title="Schließen"
+        >
+            <i class="fal fa-xmark text-sm"></i>
+        </button>
+    </div>
+</x-slot>
 
     {{-- ===== CONTENT ===== --}}
     <x-slot name="content">
@@ -229,15 +242,7 @@
 
     {{-- ===== FOOTER (ALLE BUTTONS HIER) ===== --}}
     <x-slot name="footer">
-        <div class="w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            {{-- Left: Close --}}
-            <div class="flex items-center gap-2">
-                <x-buttons.button-basic type="button" wire:click="close" class="text-xs">
-                    <i class="fal fa-times text-[11px]"></i>
-                    Schließen
-                </x-buttons.button-basic>
-            </div>
-
+        <div class="w-full">
             {{-- Right: Context actions --}}
             <div class="flex flex-wrap items-center justify-end gap-2">
                 {{-- Step nav (nur wenn sinnvoll) --}}
