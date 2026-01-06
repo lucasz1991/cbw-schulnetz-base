@@ -157,7 +157,7 @@
                             </div>
 
                             <div class="">
-                                <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 max-h-[360px] overflow-y-auto">
+                                <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 max-h-[320px] overflow-y-auto">
                                     @if (trim($currentText) !== '')
                                         <div class="prose prose-sm max-w-none">
                                             {!! $currentText !!}
@@ -210,7 +210,7 @@
                         </div>
 
                         <div class="space-y-4">
-                            <div class="rounded-xl border border-blue-200 bg-white p-4 shadow-inner max-h-[420px] overflow-y-auto">
+                            <div class="rounded-xl border border-blue-200 bg-white p-4 shadow-inner max-h-[320px] overflow-y-auto">
                                 @if($optimizedText)
                                     <div class="prose prose-sm max-w-none">
                                         {!! $optimizedText !!}
