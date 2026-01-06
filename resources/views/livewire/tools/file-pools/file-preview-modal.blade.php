@@ -96,7 +96,7 @@
         <div class="rounded-md border overflow-hidden bg-white">
           {{-- Bilder --}}
           @if($isImage)
-            <div class="img-container flex justify-center items-center bg-gray-100 ">
+            <div class="img-container flex justify-center items-center bg-gray-100  min-h-[200px]">
                 <img
                   class="block w-auto h-auto"
                   src="{{ $tempUrl }}"

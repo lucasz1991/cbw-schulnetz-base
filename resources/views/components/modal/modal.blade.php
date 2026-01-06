@@ -4,8 +4,8 @@
     'trapClose' => false,
 ])
 <x-modal :id="$id" :maxWidth="$maxWidth" :trapClose="$trapClose" {{ $attributes }}>
-    <div class="relative">
-        <div class="px-2 md:px-6 py-2 pt-4  md:pt-5 md:py-3 bg-gray-100 border-b border-gray-300">
+    <div class="relative ">
+        <div class="px-2 md:px-6 py-2 pt-4  md:pt-5 md:py-3 bg-gray-100 border-b border-gray-300 rounded-t-xl ">
             <div class="text-lg font-medium text-gray-900">
                 {{ $title }}
             </div>
@@ -33,7 +33,7 @@
         <div class="px-2 md:px-6 py-2 md:py-4 text-sm text-gray-600">
             {{ $content }}
         </div>
-        <div class="flex flex-row justify-end px-2 md:px-6 py-2 md:py-4 bg-gray-100 text-end border-t border-gray-300">
+        <div class="flex flex-row justify-end px-2 md:px-6 py-2 md:py-4 bg-gray-100 text-end border-t border-gray-300 rounded-b-xl">
             {{ $footer }}
         </div>
     </div>
