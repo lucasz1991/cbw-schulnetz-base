@@ -183,7 +183,7 @@
                     {{-- =========================
                         STEP 2: RESULT
                     ========================= --}}
-                    <section x-show="step==='result'" x-cloak class="">
+                    <section x-show="step==='result'" x-cloak class="space-y-4">
                         <div class="border-b border-blue-100 flex items-start justify-between gap-3">
                             <div>
                                 <p class="text-xs font-semibold uppercase tracking-wide text-blue-700">Vorschlag der KI</p>
