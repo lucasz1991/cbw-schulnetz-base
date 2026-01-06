@@ -96,9 +96,9 @@
         <div class="rounded-md border overflow-hidden bg-white">
           {{-- Bilder --}}
           @if($isImage)
-            <div class="img-container">
+            <div class="img-container flex justify-center items-center bg-gray-100 ">
                 <img
-                  class="block w-full h-auto"
+                  class="block w-auto h-auto"
                   src="{{ $tempUrl }}"
                   alt="{{ $file->name_with_extension ?? $file->name }}"
                 />
@@ -161,10 +161,13 @@
         <div class="flex items-center gap-2">
             @if($file)
             <x-buttons.button-basic
-                :mode="'secondary'"
+                :mode="'basic'"
                 href="{{ $file->getEphemeralPublicUrl() }}"
                 target="blank"
+                rel="noopener noreferrer"
+                :size="'sm'"
             >
+                <i class="fas fa-external-link-alt mr-2"></i>
                 In neuem Tab öffnen
             </x-buttons.button-basic>
 
@@ -173,9 +176,11 @@
 
             {{-- Info-Button: Modal schließen --}}
             <x-buttons.button-basic
-            :mode="'primary'"
-            wire:click="close"
+              :mode="'basic'"
+              wire:click="close"
+              :size="'sm'"
             >
+            <i class="fas fa-times mr-2"></i>
             Schließen
             </x-buttons.button-basic>
         </div>

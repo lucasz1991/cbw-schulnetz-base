@@ -87,7 +87,10 @@
 
         <x-slot name="footer">
             <div class="flex items-center justify-end gap-2 w-full">
-                <x-secondary-button wire:click="$set('show', false)">Schließen</x-secondary-button>
+                <x-buttons.button-basic wire:click="$set('show', false)" :size="'sm'">
+                    <i class="fas fa-times mr-2"></i>
+                    Schließen
+                </x-buttons.button-basic>
             </div>
         </x-slot>
     </x-dialog-modal>
