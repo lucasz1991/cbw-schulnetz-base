@@ -271,6 +271,7 @@
                     wire:click="generateSuggestion"
                     wire:loading.attr="disabled"
                     wire:target="generateSuggestion"
+                    x-on:click="step='result'"
                 >
                     <span wire:loading.remove wire:target="generateSuggestion" class="inline-flex items-center gap-2">
                         <i class="fal fa-recycle text-[11px]"></i>
@@ -303,6 +304,7 @@
                     wire:click="generateSuggestion"
                     wire:loading.attr="disabled"
                     wire:target="generateSuggestion"
+                    x-on:click="step='result'"
                 >
                     <span wire:loading.remove wire:target="generateSuggestion" class="inline-flex items-center gap-2">
                         <i class="fas fa-wand-magic text-[11px]"></i>
