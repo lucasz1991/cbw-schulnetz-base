@@ -269,8 +269,6 @@
                 <x-buttons.button-basic
                     type="button"
                     class="text-xs"
-                    x-show="step === 'result'"
-                    x-cloak
                     wire:click="generateSuggestion"
                     wire:loading.attr="disabled"
                     wire:target="generateSuggestion"
