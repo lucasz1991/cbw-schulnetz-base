@@ -184,7 +184,7 @@
                         STEP 2: RESULT
                     ========================= --}}
                     <section x-show="step==='result'" x-cloak class="space-y-4">
-                        <div class="border-b border-blue-100 flex items-start justify-between gap-3">
+                        <div class="flex items-start justify-between gap-3">
                             <div>
                                 <p class="text-xs font-semibold uppercase tracking-wide text-blue-700">Vorschlag der KI</p>
                                 <p class="mt-1 text-xs text-blue-500">Überarbeiteter Text</p>
@@ -265,7 +265,6 @@
 
 
                 @if($optimizedText)
-                {{-- STEP 2 actions --}}
                 <x-buttons.button-basic
                     type="button"
                     class="text-xs"
@@ -285,6 +284,7 @@
                 
                 <x-buttons.button-basic
                     type="button"
+                    :mode="'secondary'"
                     class="text-xs"
                     x-show="step === 'result' && @js((bool) $optimizedText)"
                     x-cloak
@@ -293,15 +293,13 @@
                     wire:target="saveToEntry"
                 >
                     <i class="fas fa-check text-[11px]"></i>
-                    Speichern
+                    Ki Vorschlag speichern
                 </x-buttons.button-basic>
                 @else
                                 {{-- STEP 1 actions --}}
                 <x-buttons.button-basic
                     type="button"
                     class="text-xs"
-                    x-show="step === 'input'"
-                    x-cloak
                     wire:click="generateSuggestion"
                     wire:loading.attr="disabled"
                     wire:target="generateSuggestion"
