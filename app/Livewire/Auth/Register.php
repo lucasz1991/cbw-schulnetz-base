@@ -28,13 +28,11 @@ class Register extends Component
         $this->validate(
             [
                 'email'    => ['required', 'email', Rule::unique('users', 'email')],
-                'terms'    => 'accepted',
             ],
             [
                 'email.required'   => 'Die E-Mail-Adresse ist erforderlich.',
                 'email.email'      => 'Bitte geben Sie eine gültige E-Mail-Adresse ein.',
                 'email.unique'     => 'Für diese E-Mail-Adresse existiert bereits ein aktives Konto. Bitte nutze „Passwort vergessen“, um Zugang zu erhalten.',
-                'terms.accepted'   => 'Sie müssen den AGBs und der Datenschutzerklärung zustimmen.',
             ]
         );
 

@@ -1,248 +1,325 @@
+<div x-data="{
+        step: @js($optimizedText ? 'result' : 'input')
+    }"
+>
 <x-dialog-modal wire:model="showModal" maxWidth="4xl">
+    {{-- ===== TITLE ===== --}}
     <x-slot name="title">
         <div class="flex items-center gap-3">
-            <div class="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-blue-600">
-                <i class="fas fa-magic text-sm"></i>
+            <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-emerald-600 text-white shadow-sm">
+                <i class="fas fa-robot text-sm"></i>
             </div>
-            <div>
-                <h2 class="text-base font-semibold text-gray-900">
+
+            <div class="min-w-0">
+                <h2 class="text-base font-semibold text-slate-900 truncate">
                     Berichtsheft mit KI optimieren
                 </h2>
-                <p class="text-xs text-gray-500">
-                    Lass dir deinen Eintrag sprachlich und strukturell verbessern.
+                <p class="text-xs text-slate-500">
+                    Ausgangstext prüfen → optional Wünsche → KI-Vorschlag erzeugen → speichern.
                 </p>
             </div>
         </div>
     </x-slot>
 
+    {{-- ===== CONTENT ===== --}}
     <x-slot name="content">
         @if($showModal)
-            <div
-                x-data="{ showAdvanced: false }"
-                class="space-y-6"
-                wire:loading.class="opacity-60 pointer-events-none"
-            >
-                {{-- Status-Meldungen --}}
-                @if (session()->has('reportbook_ai_saved'))
-                    <div class="flex items-start gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
-                        <i class="fas fa-check-circle mt-0.5"></i>
-                        <span>{{ session('reportbook_ai_saved') }}</span>
+            <div class="relative">
+                {{-- Loading veil --}}
+                <div
+                    wire:loading.flex
+                    wire:target="generateSuggestion,useSuggestionAsBase,saveToEntry"
+                    class="absolute inset-0 z-20 items-center justify-center rounded-2xl bg-white/70 backdrop-blur-sm"
+                >
+                    <div class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                        <span class="h-4 w-4 animate-spin rounded-full border border-slate-300 border-t-slate-900"></span>
+                        <span class="text-sm font-semibold text-slate-700">KI arbeitet…</span>
                     </div>
-                @endif
+                </div>
 
-                @if (session()->has('reportbook_ai_info'))
-                    <div class="flex items-start gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
-                        <i class="fas fa-info-circle mt-0.5"></i>
-                        <span>{{ session('reportbook_ai_info') }}</span>
-                    </div>
-                @endif
-
-                {{-- ===================== EINGABE-BEREICH ===================== --}}
-                @if (!$optimizedText)
-                    <div class="rounded-xl border border-slate-200 bg-slate-50/80 p-4 shadow-sm">
-                        <div class="flex items-center justify-between gap-3 mb-3">
-                            <div>
-                                <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                    Ausgangstext
-                                </div>
-                                <div class="text-[11px] text-slate-400">
-                                    Dies ist dein aktueller Berichtsheft-Eintrag.
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-2 text-[11px] text-slate-400">
-                                <i class="fas fa-pen-nib"></i>
-                                <span>Nur Ansicht – Änderungen machst du im Berichtsheft selbst.</span>
-                            </div>
-                        </div>
-
-                        <div class="mt-1 block w-full rounded-lg border border-slate-200 bg-white/70 p-3 text-sm shadow-inner max-h-[420px] overflow-y-auto">
-                            @if (trim($currentText) !== '')
-                                <div class="prose prose-sm max-w-none">
-                                    {!! $currentText !!}
-                                </div>
-                            @else
-                                <p class="text-xs italic text-slate-400">
-                                    Noch kein Text vorhanden.
-                                </p>
-                            @endif
-                        </div>
-
-                        {{-- Erweiterte Wünsche (Collapse) --}}
-                        <div class="mt-4 border-t border-dashed border-slate-200 pt-3">
-                            <button
-                                type="button"
-                                class="flex items-center gap-2 text-xs font-medium text-slate-600 hover:text-slate-800"
-                                x-on:click="showAdvanced = !showAdvanced"
-                            >
-                                <span class="inline-flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 text-[9px]">
-                                    <i class="fas" :class="showAdvanced ? 'fa-minus' : 'fa-plus'"></i>
-                                </span>
-                                <span>Erweiterte Wünsche an die KI</span>
-                                <span class="text-[10px] text-slate-400">(optional)</span>
-                            </button>
-
-                            <div
-                                x-show="showAdvanced"
-                                x-collapse
-                                x-cloak
-                                class="mt-3 space-y-1"
-                            >
-                                <x-ui.forms.label
-                                    value="Wünsche an die KI"
-                                    class="text-xs text-slate-600"
-                                />
-                                <textarea
-                                    rows="2"
-                                    class="mt-1 block w-full rounded-md border border-slate-300 bg-slate-50 text-xs shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                    wire:model.defer="feedback"
-                                    placeholder="z.B.: Bitte kürzer, strukturierter, in Absätze gliedern, Aufzählungen für Aufgaben verwenden …"
-                                ></textarea>
-                                <p class="text-[11px] text-slate-400">
-                                    Nutze dieses Feld, wenn du der KI zusätzliche Hinweise geben möchtest (z.B. Ton, Länge, Schwerpunkt).
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- Aktionen: KI starten --}}
-                    <div class="flex items-center justify-between gap-3">
-                        <div class="text-[11px] text-slate-400 flex items-center gap-1">
-                            <i class="fas fa-lightbulb"></i>
-                            <span>Die KI erstellt einen Vorschlag, der deinen Originaltext nicht überschreibt, bis du ihn speicherst.</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <x-button
-                                type="button"
-                                class="inline-flex items-center gap-2"
-                                wire:click="generateSuggestion"
-                                wire:loading.attr="disabled"
-                                wire:target="generateSuggestion"
-                            >
-                                <span wire:loading.remove wire:target="generateSuggestion">
-                                    <i class="fas fa-wand-magic-sparkles text-xs"></i>
-                                    <span>KI-Vorschlag erzeugen</span>
-                                </span>
-                                <span wire:loading wire:target="generateSuggestion" class="flex items-center gap-2">
-                                    <span class="h-3 w-3 animate-spin rounded-full border border-white/40 border-t-white"></span>
-                                    <span>KI denkt …</span>
-                                </span>
-                            </x-button>
-                        </div>
-                    </div>
-                @endif
-
-                {{-- ===================== KI-ERGEBNIS ===================== --}}
-                @if ($optimizedText)
-                    <div class="rounded-xl border border-blue-200 bg-blue-50/60 p-4 shadow-sm">
-                        <div class="flex items-center justify-between gap-3 mb-3">
-                            <div>
-                                <div class="text-xs font-semibold uppercase tracking-wide text-blue-700">
-                                    Vorschlag der KI
-                                </div>
-                                <div class="text-[11px] text-blue-500">
-                                    Überarbeiteter, für das Berichtsheft geeigneter Text (inklusive HTML-Struktur).
-                                </div>
-                            </div>
-                            <span class="inline-flex items-center gap-1 rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-medium text-blue-700 border border-blue-200">
-                                <i class="fas fa-robot"></i>
-                                <span>KI-Entwurf</span>
-                            </span>
-                        </div>
-
-                        <div class="mt-1 block w-full rounded-lg border border-blue-200 bg-white p-3 text-sm shadow-inner max-h-[420px] overflow-y-auto">
-                            <div class="prose prose-sm max-w-none">
-                                {!! $optimizedText !!}
-                            </div>
-                        </div>
-
-                        {{-- Kommentar --}}
-                        @if ($aiComment)
-                            <div class="mt-3 flex items-start gap-2 rounded-md bg-blue-100/80 px-3 py-2 text-xs text-blue-800 border border-blue-200">
-                                <i class="fas fa-comment-dots mt-0.5"></i>
-                                <div>
-                                    <div class="font-semibold mb-0.5">Kommentar der KI</div>
-                                    <p class="leading-relaxed">
-                                        {{ $aiComment }}
-                                    </p>
-                                </div>
+                <div class="space-y-5">
+                    {{-- Status --}}
+                    <div class="space-y-2">
+                        @if (session()->has('reportbook_ai_saved'))
+                            <div class="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+                                <i class="fas fa-check-circle mt-0.5"></i>
+                                <span>{{ session('reportbook_ai_saved') }}</span>
                             </div>
                         @endif
 
-                        {{-- Buttons unter dem Kommentar --}}
-                        <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
-                            <div class="text-[11px] text-blue-500 flex items-center gap-1">
-                                <i class="fas fa-arrow-turn-down"></i>
-                                <span>Du kannst den Vorschlag übernehmen oder noch einmal einen neuen Vorschlag anfordern.</span>
+                        @if (session()->has('reportbook_ai_info'))
+                            <div class="flex items-start gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
+                                <i class="fas fa-info-circle mt-0.5"></i>
+                                <span>{{ session('reportbook_ai_info') }}</span>
                             </div>
-                            <div class="flex flex-wrap items-center gap-2">
-                                <x-buttons.button-basic
-                                    type="button"
-                                    wire:click="useSuggestionAsBase"
-                                    wire:loading.attr="disabled"
-                                    wire:target="useSuggestionAsBase"
-                                    class="text-xs"
-                                >
-                                    <i class="fas fa-pen me-1"></i>
-                                    Weiter im Editor bearbeiten
-                                </x-buttons.button-basic>
+                        @endif
+                    </div>
 
-                                <x-button
-                                    type="button"
-                                    wire:click="generateSuggestion"
-                                    wire:loading.attr="disabled"
-                                    wire:target="generateSuggestion"
-                                    class="text-xs"
-                                >
-                                    <span wire:loading.remove wire:target="generateSuggestion" class="flex items-center gap-2">
-                                        <i class="fas fa-rotate-right text-[11px]"></i>
-                                        <span>Neuen Vorschlag erzeugen</span>
-                                    </span>
-                                    <span wire:loading wire:target="generateSuggestion" class="flex items-center gap-2">
-                                        <span class="h-3 w-3 animate-spin rounded-full border border-white/40 border-t-white"></span>
-                                        <span>KI denkt …</span>
-                                    </span>
-                                </x-button>
+{{-- Step Switch (Blue / Green Progress Style) --}}
+<div class="flex flex-wrap items-center gap-3">
+    {{-- STEP 1 --}}
+    <button
+        type="button"
+        @click="step='input'"
+        class="group relative inline-flex items-center gap-3 rounded-2xl px-5 py-2.5 text-xs font-semibold transition-all ring-1"
+        :class="step === 'input'
+            ? 'bg-gradient-to-r from-blue-600 to-emerald-500 text-white ring-transparent shadow-md'
+            : 'bg-white text-slate-700 ring-slate-200 hover:bg-blue-50 hover:text-blue-700'"
+    >
+        {{-- Step Dot --}}
+        <span
+            class="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold transition"
+            :class="step === 'input'
+                ? 'bg-white/20 text-white'
+                : 'bg-blue-100 text-blue-700 group-hover:bg-blue-200'"
+        >
+            1
+        </span>
+
+        <span class="tracking-wide">Eingabe</span>
+
+        {{-- Active underline glow --}}
+        <span
+            x-show="step === 'input'"
+            x-cloak
+            class="absolute inset-x-4 -bottom-1 h-0.5 rounded-full bg-white/60"
+        ></span>
+    </button>
+
+    {{-- STEP 2 --}}
+    <button
+        type="button"
+        @click="step='result'"
+        class="group relative inline-flex items-center gap-3 rounded-2xl px-5 py-2.5 text-xs font-semibold transition-all ring-1"
+        :class="step === 'result'
+            ? 'bg-gradient-to-r from-blue-600 to-emerald-500 text-white ring-transparent shadow-md'
+            : 'bg-white text-slate-700 ring-slate-200 hover:bg-blue-50 hover:text-blue-700'"
+    >
+        {{-- Step Dot --}}
+        <span
+            class="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold transition"
+            :class="step === 'result'
+                ? 'bg-white/20 text-white'
+                : 'bg-blue-100 text-blue-700 group-hover:bg-blue-200'"
+        >
+            2
+        </span>
+
+        <span class="tracking-wide">Ergebnis</span>
+
+        {{-- Ready badge --}}
+        @if($optimizedText)
+            <span
+                class="ml-1 inline-flex items-center rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-semibold text-white"
+                :class="step !== 'result' ? 'bg-emerald-100 text-emerald-700' : ''"
+            >
+                bereit
+            </span>
+        @endif
+
+        {{-- Active underline glow --}}
+        <span
+            x-show="step === 'result'"
+            x-cloak
+            class="absolute inset-x-4 -bottom-1 h-0.5 rounded-full bg-white/60"
+        ></span>
+    </button>
+</div>
+
+
+                    {{-- =========================
+                        STEP 1: INPUT (Ausgangstext + Wünsche)
+                    ========================= --}}
+                    <section x-show="step==='input'" x-cloak class="space-y-4">
+                        <div class="">
+                            <div class="flex items-start justify-between gap-3 mb-4">
+                                <div>
+                                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Ausgangstext</p>
+                                    <p class="mt-1 text-xs text-slate-400">Ansicht – Änderungen machst du im Berichtsheft selbst.</p>
+                                </div>
+
+                                <span class="inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200">
+                                    <i class="fal fa-eye"></i> Ansicht
+                                </span>
+                            </div>
+
+                            <div class="">
+                                <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 max-h-[360px] overflow-y-auto">
+                                    @if (trim($currentText) !== '')
+                                        <div class="prose prose-sm max-w-none">
+                                            {!! $currentText !!}
+                                        </div>
+                                    @else
+                                        <p class="text-xs italic text-slate-400">Noch kein Text vorhanden.</p>
+                                    @endif
+                                </div>
+
+                                <div class="mt-4 ">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div>
+                                            <p class="text-xs font-semibold text-slate-700">
+                                                Wünsche an die KI
+                                                <span class="ml-1 text-[11px] font-normal text-slate-400">(optional)</span>
+                                            </p>
+                                            <p class="mt-1 text-[11px] text-slate-400">
+                                                z.B. kürzer, strukturierter, Aufgaben als Liste, professioneller Ton…
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div  class="mt-3">
+                                        <textarea
+                                            rows="3"
+                                            class="block w-full rounded-xl border border-secondary-300 bg-white text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                            wire:model.defer="feedback"
+                                            placeholder="z.B.: Bitte in 3 Absätze gliedern, Aufgaben als Bulletpoints, max. 6 Sätze, keine Wiederholungen…"
+                                        ></textarea>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                @endif
+                    </section>
 
+                    {{-- =========================
+                        STEP 2: RESULT
+                    ========================= --}}
+                    <section x-show="step==='result'" x-cloak class="">
+                        <div class="border-b border-blue-100 flex items-start justify-between gap-3">
+                            <div>
+                                <p class="text-xs font-semibold uppercase tracking-wide text-blue-700">Vorschlag der KI</p>
+                                <p class="mt-1 text-xs text-blue-500">Überarbeiteter Text</p>
+                            </div>
+
+                            <span class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-blue-700 ring-1 ring-blue-200">
+                                <i class="fal fa-robot"></i>
+                                KI-Entwurf
+                            </span>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="rounded-xl border border-blue-200 bg-white p-4 shadow-inner max-h-[420px] overflow-y-auto">
+                                @if($optimizedText)
+                                    <div class="prose prose-sm max-w-none">
+                                        {!! $optimizedText !!}
+                                    </div>
+                                @else
+                                    <div class="text-sm text-blue-700/80">
+                                        Noch kein Ergebnis. Bitte erst in Schritt 1 einen Vorschlag erzeugen.
+                                    </div>
+                                @endif
+                            </div>
+
+                            @if ($aiComment)
+                                <div class="rounded-xl border border-blue-200 bg-blue-100/70 px-4 py-3 text-xs text-blue-800">
+                                    <div class="flex items-start gap-2">
+                                        <i class="fal fa-comment-dots mt-0.5"></i>
+                                        <div>
+                                            <div class="font-semibold mb-1">Kommentar der KI</div>
+                                            <p class="leading-relaxed">{{ $aiComment }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
+                    </section>
+                </div>
             </div>
         @endif
     </x-slot>
 
-    {{-- ===================== FOOTER ===================== --}}
+    {{-- ===== FOOTER (ALLE BUTTONS HIER) ===== --}}
     <x-slot name="footer">
-        <div class="flex w-full items-center justify-between gap-3">
-            @if(!$optimizedText)
-                <p class="text-[11px] text-slate-400">
-                    Tipp: Erzeuge zuerst einen KI-Vorschlag. Speichern ist erst danach möglich.
-                </p>
-            @else
-                <p class="text-[11px] text-slate-400 flex items-center gap-1">
-                    <i class="fas fa-save"></i>
-                    <span>Der optimierte Text wird in deinen Berichtsheft-Eintrag übernommen.</span>
-                </p>
-            @endif
-
+        <div class="w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            {{-- Left: Close --}}
             <div class="flex items-center gap-2">
-                <x-secondary-button wire:click="close">
+                <x-buttons.button-basic type="button" wire:click="close" class="text-xs">
+                    <i class="fal fa-times text-[11px]"></i>
                     Schließen
-                </x-secondary-button>
+                </x-buttons.button-basic>
+            </div>
 
-                {{-- Speichern nur, wenn ein KI-Text vorhanden ist --}}
+            {{-- Right: Context actions --}}
+            <div class="flex flex-wrap items-center justify-end gap-2">
+                {{-- Step nav (nur wenn sinnvoll) --}}
+                <x-buttons.button-basic
+                    type="button"
+                    class="text-xs"
+                    x-show="step !== 'input'"
+                    x-cloak
+                    x-on:click="step='input'"
+                >
+                    <i class="fal fa-arrow-left text-[11px]"></i>
+                    Eingabe
+                </x-buttons.button-basic>
+
+                <x-buttons.button-basic
+                    type="button"
+                    class="text-xs"
+                    x-show="step !== 'result'"
+                    x-cloak
+                    x-on:click="step='result'"
+                >
+                    <i class="fal fa-arrow-right text-[11px]"></i>
+                    Ergebnis
+                </x-buttons.button-basic>
+
+
                 @if($optimizedText)
-                    <x-button
-                        class="ml-1"
-                        wire:click="saveToEntry"
-                        wire:loading.attr="disabled"
-                        wire:target="saveToEntry"
-                    >
-                        <i class="fas fa-check me-1 text-xs"></i>
-                        Optimierten Text speichern
-                    </x-button>
+                {{-- STEP 2 actions --}}
+                <x-buttons.button-basic
+                    type="button"
+                    class="text-xs"
+                    x-show="step === 'result'"
+                    x-cloak
+                    wire:click="generateSuggestion"
+                    wire:loading.attr="disabled"
+                    wire:target="generateSuggestion"
+                >
+                    <span wire:loading.remove wire:target="generateSuggestion" class="inline-flex items-center gap-2">
+                        <i class="fal fa-recycle text-[11px]"></i>
+                        Neuer Vorschlag
+                    </span>
+                    <span wire:loading wire:target="generateSuggestion" class="inline-flex items-center gap-2">
+                        <span class="h-3 w-3 animate-spin rounded-full border border-slate-300 border-t-slate-900"></span>
+                        KI denkt…
+                    </span>
+                </x-buttons.button-basic>
+                
+                <x-buttons.button-basic
+                    type="button"
+                    class="text-xs"
+                    x-show="step === 'result' && @js((bool) $optimizedText)"
+                    x-cloak
+                    wire:click="saveToEntry"
+                    wire:loading.attr="disabled"
+                    wire:target="saveToEntry"
+                >
+                    <i class="fas fa-check text-[11px]"></i>
+                    Speichern
+                </x-buttons.button-basic>
+                @else
+                                {{-- STEP 1 actions --}}
+                <x-buttons.button-basic
+                    type="button"
+                    class="text-xs"
+                    x-show="step === 'input'"
+                    x-cloak
+                    wire:click="generateSuggestion"
+                    wire:loading.attr="disabled"
+                    wire:target="generateSuggestion"
+                >
+                    <span wire:loading.remove wire:target="generateSuggestion" class="inline-flex items-center gap-2">
+                        <i class="fas fa-wand-magic text-[11px]"></i>
+                        KI-Vorschlag erzeugen
+                    </span>
+                    <span wire:loading wire:target="generateSuggestion" class="inline-flex items-center gap-2">
+                        <span class="h-3 w-3 animate-spin rounded-full border border-slate-300 border-t-slate-900"></span>
+                        KI denkt…
+                    </span>
+                </x-buttons.button-basic>
                 @endif
             </div>
         </div>
     </x-slot>
 </x-dialog-modal>
+</div>

@@ -77,12 +77,14 @@
                         </a>
                     @endif
                     <div class="flex flex-wrap justify-end gap-3 ml-3 max-md:flex-col max-md:items-end flex-row-reverse">
-                        <x-button>
+                        <x-buttons.button-basic :size="'md'" type="submit"  wire:loading.class="cursor-progress pointer-events-none ">
+                            <i class="fa fa-sign-in-alt mr-2 text-gray-600"></i>
                             Einloggen
-                        </x-button>
-                        <x-button class="ms-0 md:ms-4" href="{{ route('register') }}" wire:navigate>
+                        </x-buttons.button-basic>
+                        <x-buttons.button-basic class="ms-0 md:ms-4" href="{{ route('register') }}" wire:navigate>
+                            <i class="fa fa-user-plus mr-2 text-gray-600"></i>
                             Registrieren
-                        </x-button>
+                        </x-buttons.button-basic>
                     </div>
                 </div>
             </form>

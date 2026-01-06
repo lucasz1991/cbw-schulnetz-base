@@ -27,9 +27,10 @@
                                         <x-input id="email" wire:model="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus autocomplete="username" />
                         @error('email') <span class="text-red-600 text-sm">{{ $message }}</span> @enderror
                     </div>
-                    <x-button class="">
+                    <x-buttons.button-basic type="submit" wire:loading.class="cursor-progress pointer-events-none">
+                        <i class="fa fa-paper-plane mr-2 text-gray-600"></i>
                         Link anfordern
-                    </x-button>
+                    </x-buttons.button-basic>
                 </form>
             </div>
     </x-slot>

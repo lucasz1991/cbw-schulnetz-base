@@ -79,7 +79,7 @@
         transition-all duration-150
         focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white
         disabled:opacity-60 disabled:cursor-not-allowed
-        select-none
+        select-none gap-2
     ';
 
     $classes = trim($modeClasses . ' ' . $sizeClasses . ' ' . $baseClasses);
