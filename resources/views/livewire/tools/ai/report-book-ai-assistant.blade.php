@@ -42,7 +42,7 @@
                 <div
                     wire:loading.flex
                     wire:target="generateSuggestion,useSuggestionAsBase,saveToEntry"
-                    class="absolute inset-0 z-20 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-sm"
+                    class="absolute inset-0 z-20 items-center justify-center rounded-2xl bg-white/80 backdrop-blur-sm"
                 >
                     <div class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
                         <span class="h-4 w-4 animate-spin rounded-full border border-slate-300 border-t-slate-900"></span>
