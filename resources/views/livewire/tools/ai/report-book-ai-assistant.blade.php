@@ -29,7 +29,7 @@
                    hover:bg-slate-100 hover:text-slate-700 transition focus:outline-none focus:ring-2 focus:ring-blue-200"
             title="Schließen"
         >
-            <i class="fal fa-xmark text-sm"></i>
+            <i class="fal fa-times text-sm"></i>
         </button>
     </div>
 </x-slot>
