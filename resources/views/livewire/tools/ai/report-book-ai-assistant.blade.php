@@ -37,7 +37,7 @@
     {{-- ===== CONTENT ===== --}}
     <x-slot name="content">
         @if($showModal)
-            <div class="relative">
+            <div class="relative p-1">
                 {{-- Loading veil --}}
                 <div
                     wire:loading.flex
