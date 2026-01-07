@@ -45,7 +45,7 @@
                     class="absolute inset-0 z-20 items-center justify-center rounded-2xl bg-white/80 backdrop-blur-sm"
                 >
                     <div class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                        <span class="h-4 w-4 animate-spin rounded-full border border-slate-300 border-t-slate-900"></span>
+                        <i class="fal fa-spinner text-sm animate-spin"></i>
                         <span class="text-sm font-semibold text-slate-700">KI arbeitet…</span>
                     </div>
                 </div>
@@ -283,7 +283,7 @@
                         Neu
                     </span>
                     <span wire:loading wire:target="generateSuggestion" class="inline-flex items-center gap-2">
-                        <span class="h-3 w-3 animate-spin rounded-full border border-slate-300 border-t-slate-900"></span>
+                        <i class="fal fa-spinner text-sm animate-spin"></i>
                         KI denkt…
                     </span>
                 </x-buttons.button-basic>
@@ -316,7 +316,7 @@
                         KI-Vorschlag erzeugen
                     </span>
                     <span wire:loading wire:target="generateSuggestion" class="inline-flex items-center gap-2">
-                        <span class="h-3 w-3 animate-spin rounded-full border border-slate-300 border-t-slate-900"></span>
+                        <i class="fal fa-spinner text-sm animate-spin"></i>
                         KI denkt…
                     </span>
                 </x-buttons.button-basic>
