@@ -7,19 +7,7 @@
     </x-slot>
     <x-slot name="form">
         <div  wire:loading.class=" cursor-wait opacity-50 animate-pulse " class="mt-8 ">
-            <x-alert class="col-span-6 mb-8" type="info">
-                <h3 class="text-lg font-medium text-gray-900">Willkommen im CBW Schulnetz!</h3>
-                <div class="mt-4 text-gray-600">
-                    <p class="mb-2">
-                        Mit dem folgenden Button können Sie zwischen dem <strong>Teilnehmer-</strong> 
-                        und dem <strong>Tutoren-Testzugang</strong> wechseln. 
-                        So können Sie beide Rollen im System ausprobieren.
-                    </p>
-                    <x-button class="text-xs" wire:click="changeAccount">
-                        Testzugang wechseln
-                    </x-button>
-                </div>
-            </x-alert>
+
             <form wire:submit.prevent="login">
                 @csrf
                 <div>
