@@ -7,7 +7,7 @@
       .($editorVersion ?? 0);
 @endphp
 
-<div class="w-full relative  bg-[#eeeeeebd] pb-20 min-h-[50vh] pt-6"  wire:loading.class="cursor-wait opacity-50 animate-pulse"  wire:target="date,selectCourse,selectCourseDay,selectPrevCourse,selectNextCourse,selectPrevDay,selectNextDay,selectedCourseId,submit,save,importTutorDocToDraft" >
+<div class="w-full relative  bg-[#eeeeeebd] pb-20  min-h-[70vh] pt-6"  wire:loading.class="cursor-wait opacity-50 animate-pulse"  wire:target="date,selectCourse,selectCourseDay,selectPrevCourse,selectNextCourse,selectPrevDay,selectNextDay,selectedCourseId,submit,save,importTutorDocToDraft" >
   <div class="container mx-auto px-3 md:px-5">
   <div class="max-w-full grid grid-cols-1 lg:grid-cols-3 gap-6">
 
