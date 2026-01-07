@@ -151,47 +151,46 @@
 
             {{-- Bottom Bar (Layout wie Ursprung) --}}
             <div class="container mx-auto flex flex-wrap max-md:flex-col gap-4 items-center">
-<div>
-    <ul class="md:flex md:space-x-6 max-md:space-y-2 max-sm:grid max-sm:grid-cols-3">
+                <div>
+<ul class="flex flex-wrap items-center justify-center gap-3 md:justify-start">
+    {{-- Facebook --}}
+    <li>
+        <a
+            href=""
+            target="_blank"
+            aria-label="Facebook"
+            class="inline-flex items-center justify-center
+                   size-11 md:size-10
+                   rounded-full
+                   bg-white/10 hover:bg-white/15
+                   transition
+                   shrink-0"
+        >
+            <i class="fab fa-facebook-f text-white text-lg leading-none"></i>
+            <span class="sr-only">Facebook</span>
+        </a>
+    </li>
 
-        {{-- Facebook --}}
-        <li class="flex justify-center">
-            <a
-                href=""
-                target="_blank"
-                aria-label="Facebook"
-                class="flex items-center justify-center
-                       w-10 h-10
-                       rounded-full
-                       bg-white/10 hover:bg-white/15
-                       transition
-                       shrink-0"
-            >
-                <i class="fab fa-facebook-f text-white text-lg leading-none"></i>
-                <span class="sr-only">Facebook</span>
-            </a>
-        </li>
+    {{-- Instagram --}}
+    <li>
+        <a
+            href=""
+            target="_blank"
+            aria-label="Instagram"
+            class="inline-flex items-center justify-center
+                   size-11 md:size-10
+                   rounded-full
+                   bg-white/10 hover:bg-white/15
+                   transition
+                   shrink-0"
+        >
+            <i class="fab fa-instagram text-white text-lg leading-none"></i>
+            <span class="sr-only">Instagram</span>
+        </a>
+    </li>
+</ul>
 
-        {{-- Instagram --}}
-        <li class="flex justify-center">
-            <a
-                href=""
-                target="_blank"
-                aria-label="Instagram"
-                class="flex items-center justify-center
-                       w-10 h-10
-                       rounded-full
-                       bg-white/10 hover:bg-white/15
-                       transition
-                       shrink-0"
-            >
-                <i class="fab fa-instagram text-white text-lg leading-none"></i>
-                <span class="sr-only">Instagram</span>
-            </a>
-        </li>
-
-    </ul>
-</div>
+                </div>
 
 
                 <p class="text-white/90 text-sm md:ml-auto">
