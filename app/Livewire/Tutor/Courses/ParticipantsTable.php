@@ -135,46 +135,89 @@ class ParticipantsTable extends Component
      * Wichtig: nach Sync wird attendanceMap + wrapper Inputs aktualisiert,
      * damit UI sofort den frischen Stand zeigt (ohne loadAttendance()).
      */
-    public function saveOne(int $participantId): void
-    {
-        $day = $this->dayOrFail();
+public function saveOne(int $participantId): void
+{
+    $day = $this->dayOrFail();
 
-        try {
-            /** @var CourseDayAttendanceSyncService $service */
-            $service = app(CourseDayAttendanceSyncService::class);
+    try {
+        /** @var CourseDayAttendanceSyncService $service */
+        $service = app(CourseDayAttendanceSyncService::class);
 
-            $ok = $service->syncToRemote($day, [$participantId]);
+        $ok = $service->syncToRemote($day, [$participantId]);
 
-            // DB/Model frisch holen, aber UI basiert auf attendanceMap (wird gleich aktualisiert)
-            $day->refresh();
-            $this->selectedDay = $day;
+        // DB/Model frisch holen
+        $day->refresh();
+        $this->selectedDay = $day;
 
-            $fresh = data_get($day->attendance_data, "participants.$participantId", []);
+        $fresh = data_get($day->attendance_data, "participants.$participantId", null);
+
+        /**
+         * WICHTIG:
+         * - Wenn UVS den Remote-Eintrag gelöscht hat, liefert load/pull häufig KEIN item mehr.
+         * - Dann wäre $fresh = null/[] und normalizeRow([]) -> present=false -> UI "unknown".
+         * - Lösung: Wenn $fresh leer ist, den zuletzt gesetzten UI-Zustand behalten
+         *   (oder einen Present-Default setzen).
+         */
+        if (empty($fresh) || !is_array($fresh)) {
+            // Wenn wir schon einen UI-Stand haben, behalten wir ihn
+            $fallback = $this->attendanceMap[$participantId] ?? null;
+
+            if ($fallback) {
+                // sicherstellen, dass "anwesend" nicht als unknown endet
+                $fallback['present']            = (bool)($fallback['present'] ?? true);
+                $fallback['excused']            = (bool)($fallback['excused'] ?? false);
+                $fallback['late_minutes']       = (int)($fallback['late_minutes'] ?? 0);
+                $fallback['left_early_minutes'] = (int)($fallback['left_early_minutes'] ?? 0);
+
+                $this->attendanceMap[$participantId] = $this->normalizeRow($fallback);
+
+                $this->arriveInput[$participantId] = $fallback['arrived_at'] ?? null;
+                $this->leaveInput[$participantId]  = $fallback['left_at'] ?? null;
+                $this->noteInput[$participantId]   = $fallback['note'] ?? null;
+            } else {
+                // Kein Fallback vorhanden -> setze "present" als Default
+                $default = [
+                    'present'            => true,
+                    'excused'            => false,
+                    'late_minutes'       => 0,
+                    'left_early_minutes' => 0,
+                    'arrived_at'         => null,
+                    'left_at'            => null,
+                    'note'               => null,
+                ];
+
+                $this->attendanceMap[$participantId] = $this->normalizeRow($default);
+                $this->arriveInput[$participantId]   = null;
+                $this->leaveInput[$participantId]    = null;
+                $this->noteInput[$participantId]     = null;
+            }
+        } else {
+            // Normalfall: frische Daten vorhanden -> UI updaten
             $freshNormalized = $this->normalizeRow($fresh);
 
-            // ✅ UI sofort updaten (Source-of-truth)
             $this->attendanceMap[$participantId] = $freshNormalized;
 
-            // Wrapper updaten (Inputs zeigen saved Stand)
             $this->arriveInput[$participantId] = data_get($fresh, 'arrived_at');
             $this->leaveInput[$participantId]  = data_get($fresh, 'left_at');
             $this->noteInput[$participantId]   = data_get($fresh, 'note');
-
-            $this->isDirty = false;
-
-            if (! $ok) {
-                $this->dispatch('notify', type: 'error', message: "UVS-Sync fehlgeschlagen (#{$participantId}).");
-            }
-        } catch (\Throwable $e) {
-            Log::error('ParticipantsTable.saveOne: Fehler beim UVS-Sync', [
-                'day_id'         => $day->id ?? null,
-                'participant_id' => $participantId,
-                'error'          => $e->getMessage(),
-            ]);
-
-            $this->dispatch('notify', type: 'error', message: "Fehler beim Speichern (#{$participantId}).");
         }
+
+        $this->isDirty = false;
+
+        if (! $ok) {
+            $this->dispatch('notify', type: 'error', message: "UVS-Sync fehlgeschlagen (#{$participantId}).");
+        }
+    } catch (\Throwable $e) {
+        Log::error('ParticipantsTable.saveOne: Fehler beim UVS-Sync', [
+            'day_id'         => $day->id ?? null,
+            'participant_id' => $participantId,
+            'error'          => $e->getMessage(),
+        ]);
+
+        $this->dispatch('notify', type: 'error', message: "Fehler beim Speichern (#{$participantId}).");
     }
+}
+
 
     #[On('calendarEventClick')]
     public function handleCalendarEventClick(...$args): void
@@ -436,21 +479,48 @@ class ParticipantsTable extends Component
         ]);
     }
 
+    protected function persistLocalPresentDefault(int $participantId): void
+    {
+        $day = $this->dayOrFail();
+
+        $patch = [
+            // lokal als "Default anwesend" persistieren
+            'state'              => 'local',
+            'src_api_id'         => null,
+
+            'present'            => true,
+            'excused'            => false,
+            'late_minutes'       => 0,
+            'left_early_minutes' => 0,
+            'arrived_at'         => null,
+            'left_at'            => null,
+            'timestamps'         => ['in' => null, 'out' => null],
+            'note'               => null,
+        ];
+
+        // In attendance_data schreiben
+        $day->setAttendance($participantId, $patch);
+        $day->save();
+        $day->refresh();
+
+        $this->selectedDay = $day;
+
+        // UI sofort konsistent halten
+        $this->attendanceMap[$participantId] = $this->normalizeRow($patch);
+        $this->arriveInput[$participantId]   = null;
+        $this->leaveInput[$participantId]    = null;
+        $this->noteInput[$participantId]     = null;
+    }
+
+
     public function markPresent(int $participantId): void
     {
         $day = $this->dayOrFail();
 
-        // Entscheidend: gab es vorher bereits einen Datensatz?
-        $hadEntry = array_key_exists(
-            (string)$participantId,
-            (array) data_get($day->attendance_data, 'participants', [])
-        ) || array_key_exists(
-            $participantId,
-            (array) data_get($day->attendance_data, 'participants', [])
-        );
+        $participants = (array) data_get($day->attendance_data, 'participants', []);
+        $hadEntry = array_key_exists((string)$participantId, $participants) || array_key_exists($participantId, $participants);
 
-        // Patch für "Anwesend" (Default-Zustand)
-        // -> setzt Abwesenheit/Teilweise/Entschuldigt zurück
+        // Patch für UI + Sync (wie gehabt)
         $patch = [
             'present'            => true,
             'excused'            => false,
@@ -463,7 +533,7 @@ class ParticipantsTable extends Component
         ];
 
         if (! $hadEntry) {
-            // Vorher "Unbekannt" -> nur lokal speichern, KEIN API Call
+            // vorher "Unbekannt" -> nur lokal speichern, KEIN API
             $patch['state'] = 'local';
 
             $day->setAttendance($participantId, $patch);
@@ -472,7 +542,6 @@ class ParticipantsTable extends Component
 
             $this->selectedDay = $day;
 
-            // UI-Source-of-truth sofort aktualisieren
             $existing = $this->attendanceMap[$participantId]
                 ?? $this->normalizeRow($this->currentRow($participantId) ?? []);
             $this->attendanceMap[$participantId] = $this->normalizeRow(array_replace_recursive($existing, $patch));
@@ -485,10 +554,21 @@ class ParticipantsTable extends Component
             return;
         }
 
-        // Vorher gab es schon einen Eintrag (z.B. "Fehlend/Teilweise/Entschuldigt")
-        // -> MUSS über API gesynct werden, damit der Remote-Eintrag entfernt wird.
-        $this->applyAndSaveOne($participantId, $patch);
+        /**
+         * vorher gab es einen Eintrag (z.B. Fehlend/Teilweise/Entschuldigt)
+         * -> UVS muss gelöscht/überschrieben werden
+         *
+         * WICHTIG: Danach persistieren wir lokal einen Present-Default,
+         * damit loadAttendance()/rebuildAttendanceMap den Status NICHT zu unknown macht.
+         */
+        $this->apply($participantId, $patch);     // lokal patchen (dirty)
+        $this->saveOne($participantId);          // UVS Sync (delete)
+
+        $this->persistLocalPresentDefault($participantId); // ✅ entscheidender Schritt
+
+        $this->loadAttendance();                 // darf bleiben (UVS ist Master), present-default bleibt lokal erhalten
     }
+
 
 
     public function markAbsent(int $participantId): void
@@ -632,77 +712,85 @@ class ParticipantsTable extends Component
         }
     }
 
-    public function getRowsProperty(): Collection
-    {
-        $day = $this->selectedDay;
-        if (! $day) return collect();
+/**
+ * Rows für UI:
+ * - hasEntry darf NICHT nur an attendance_data hängen, weil UVS bei "anwesend" keinen Item liefert
+ * - attendanceMap ist deine UI Source-of-truth
+ */
+public function getRowsProperty(): Collection
+{
+    $day = $this->selectedDay;
+    if (! $day) return collect();
 
-        $att = $day->attendance_data ?? [];
-        $map = Arr::get($att, 'participants', []);
+    $att = $day->attendance_data ?? [];
+    $map = Arr::get($att, 'participants', []);
 
-        // IDs aus remote/local
-        $allIds = collect(array_keys($map))->map(fn ($id) => (int) $id);
+    // IDs aus remote/local
+    $allIds = collect(array_keys($map))->map(fn ($id) => (int) $id);
 
-        if ($day->course && method_exists($day->course, 'participants')) {
-            $rel          = $day->course->participants();
-            $qualifiedKey = $rel->getModel()->getQualifiedKeyName();
-            $allIds       = $allIds->merge($rel->pluck($qualifiedKey)->all());
-        }
-
-        $allIds = $allIds->map(fn ($id) => (int) $id)->unique()->values();
-foreach ($allIds as $pid) {
-    $this->arriveInput[$pid] ??= null;
-    $this->leaveInput[$pid]  ??= null;
-    $this->noteInput[$pid]   ??= null;
-}
-        $participants = collect();
-        if ($day->course && method_exists($day->course, 'participants') && $allIds->isNotEmpty()) {
-            $rel          = $day->course->participants();
-            $qualifiedKey = $rel->getModel()->getQualifiedKeyName();
-            $participants = $rel->whereIn($qualifiedKey, $allIds)->get()->keyBy('id');
-        }
-
-        // ✅ Datenquelle für UI = attendanceMap (sofort aktuell nach apply/saveOne)
-        $rows = $allIds->map(function (int $pid) use ($participants, $map) {
-            $hasEntry = array_key_exists($pid, $map);
-
-            $data = $this->attendanceMap[$pid]
-                ?? $this->normalizeRow($map[$pid] ?? null);
-
-            return [
-                'id'       => $pid,
-                'user'     => $participants[$pid] ?? null,
-                'data'     => $data,
-                'hasEntry' => $hasEntry,
-            ];
-        });
-
-        $dir = $this->sortDir === 'desc' ? 'desc' : 'asc';
-
-        $sorted = $rows->sortBy(function ($r) {
-            $u = $r['user'];
-
-            // Fallback-Strings (damit nulls nicht alles sprengen)
-            $nachname = strtolower((string)($u->nachname ?? ''));
-            $vorname  = strtolower((string)($u->vorname ?? ''));
-            $email    = strtolower((string)($u->email ?? ''));
-
-            return match ($this->sortBy) {
-                'name'      => $nachname . ' ' . $vorname,   // ✅ Name = Nachname + Vorname
-                'nachname'  => $nachname,
-                'vorname'   => $vorname,
-                'email'     => $email,
-                'created_at'=> (string)($u->created_at ?? ''),
-                default     => $nachname . ' ' . $vorname,
-            };
-        }, SORT_NATURAL);
-
-        if ($dir === 'desc') {
-            $sorted = $sorted->reverse();
-        }
-
-        return $sorted->values();
+    if ($day->course && method_exists($day->course, 'participants')) {
+        $rel          = $day->course->participants();
+        $qualifiedKey = $rel->getModel()->getQualifiedKeyName();
+        $allIds       = $allIds->merge($rel->pluck($qualifiedKey)->all());
     }
+
+    $allIds = $allIds->map(fn ($id) => (int) $id)->unique()->values();
+
+    foreach ($allIds as $pid) {
+        $this->arriveInput[$pid] ??= null;
+        $this->leaveInput[$pid]  ??= null;
+        $this->noteInput[$pid]   ??= null;
+    }
+
+    $participants = collect();
+    if ($day->course && method_exists($day->course, 'participants') && $allIds->isNotEmpty()) {
+        $rel          = $day->course->participants();
+        $qualifiedKey = $rel->getModel()->getQualifiedKeyName();
+        $participants = $rel->whereIn($qualifiedKey, $allIds)->get()->keyBy('id');
+    }
+
+    // ✅ Datenquelle für UI = attendanceMap
+    $rows = $allIds->map(function (int $pid) use ($participants, $map) {
+        $data = $this->attendanceMap[$pid]
+            ?? $this->normalizeRow($map[$pid] ?? null);
+
+        // ✅ FIX: "hasEntry" darf auch dann true sein, wenn attendance_data leer ist,
+        // aber attendanceMap bereits einen (lokalen) Zustand kennt.
+        $hasEntry = array_key_exists($pid, $this->attendanceMap) || array_key_exists($pid, $map);
+
+        return [
+            'id'       => $pid,
+            'user'     => $participants[$pid] ?? null,
+            'data'     => $data,
+            'hasEntry' => $hasEntry,
+        ];
+    });
+
+    $dir = $this->sortDir === 'desc' ? 'desc' : 'asc';
+
+    $sorted = $rows->sortBy(function ($r) {
+        $u = $r['user'];
+
+        $nachname = strtolower((string)($u->nachname ?? ''));
+        $vorname  = strtolower((string)($u->vorname ?? ''));
+        $email    = strtolower((string)($u->email ?? ''));
+
+        return match ($this->sortBy) {
+            'name'      => $nachname . ' ' . $vorname,
+            'nachname'  => $nachname,
+            'vorname'   => $vorname,
+            'email'     => $email,
+            'created_at'=> (string)($u->created_at ?? ''),
+            default     => $nachname . ' ' . $vorname,
+        };
+    }, SORT_NATURAL);
+
+    if ($dir === 'desc') {
+        $sorted = $sorted->reverse();
+    }
+
+    return $sorted->values();
+}
 
 function getStatsProperty(): array
 {

@@ -244,43 +244,70 @@ class CourseDayAttendanceSyncService
             }
         }
 
-$attendance = $this->freshAttendanceDataSkeleton($day);
+        $attendance = $this->freshAttendanceDataSkeleton($day);
 
-        // Merge-Regel (wie besprochen):
-        // - Geladene API-Daten überschreiben lokale Daten.
-        // - Lokal bleiben NUR "anwesend" (present=true) Einträge ohne src_api_id bestehen.
-        // - Alle anderen lokalen-only Einträge werden entfernt.
-        $existingParticipants = $day->attendance_data['participants'] ?? [];
-        if (! is_array($existingParticipants)) $existingParticipants = [];
+        // Bestehende lokale "present"-Defaults behalten
+        $existingParticipants = data_get($day->attendance_data, 'participants', []);
+        if (!is_array($existingParticipants)) $existingParticipants = [];
 
-        $attendance['participants'] = $this->mergeRemoteOverLocal($existingParticipants, $newParticipants);
+        $kept = [];
+        foreach ($existingParticipants as $pid => $row) {
+            if (!is_array($row)) continue;
+
+            $present  = array_key_exists('present', $row) ? (bool)$row['present'] : false;
+            $srcApiId = $row['src_api_id'] ?? null;
+
+            if ($present && empty($srcApiId)) {
+                $kept[(int)$pid] = $row;
+            }
+        }
+
+        // Remote überschreibt lokal (Source of truth)
+        foreach ($newParticipants as $pid => $row) {
+            $kept[(int)$pid] = $row;
+        }
+
+        $attendance['participants'] = $kept;
 
         $day->attendance_data           = $attendance;
         $day->attendance_updated_at     = $now;
         $day->attendance_last_synced_at = $now;
         $day->save();
+
     }
 
 protected function resetAttendanceData(CourseDay $day): void
-    {
-        $now = Carbon::now();
+{
+    $now = Carbon::now();
 
-        $attendance = $this->freshAttendanceDataSkeleton($day);
+    // Skeleton wie gehabt
+    $attendance = $this->freshAttendanceDataSkeleton($day);
 
-        // Merge-Regel (wie besprochen):
-        // - Lokal bleiben NUR "anwesend" (present=true) Einträge ohne src_api_id bestehen.
-        // - Alle anderen lokalen-only Einträge werden entfernt.
-        $existingParticipants = $day->attendance_data['participants'] ?? [];
-        if (! is_array($existingParticipants)) $existingParticipants = [];
+    // NEU: lokale "anwesend"-Defaults behalten (present=true ohne src_api_id)
+    $existingParticipants = data_get($day->attendance_data, 'participants', []);
+    if (!is_array($existingParticipants)) $existingParticipants = [];
 
-        $attendance['participants'] = $this->keepLocalPresentOnly($existingParticipants);
+    $kept = [];
+    foreach ($existingParticipants as $pid => $row) {
+        if (!is_array($row)) continue;
 
-        $day->attendance_data           = $attendance;
-        $day->attendance_updated_at     = $now;
-        $day->attendance_last_synced_at = $now;
+        $present  = array_key_exists('present', $row) ? (bool)$row['present'] : false;
+        $srcApiId = $row['src_api_id'] ?? null;
 
-        $day->save();
+        // Nur local-present ohne Remote-UID behalten
+        if ($present && empty($srcApiId)) {
+            $kept[(int)$pid] = $row;
+        }
     }
+
+    $attendance['participants'] = $kept;
+
+    $day->attendance_data           = $attendance;
+    $day->attendance_updated_at     = $now;
+    $day->attendance_last_synced_at = $now;
+    $day->save();
+}
+
 
     protected function freshAttendanceDataSkeleton(CourseDay $day): array
     {
@@ -885,4 +912,6 @@ protected function computeCourseTimes(CourseDay $day): array
             return '00:00';
         }
     }
+
+    
 }
