@@ -244,8 +244,16 @@ class CourseDayAttendanceSyncService
             }
         }
 
-        $attendance = $this->freshAttendanceDataSkeleton($day);
-        $attendance['participants'] = $newParticipants;
+$attendance = $this->freshAttendanceDataSkeleton($day);
+
+        // Merge-Regel (wie besprochen):
+        // - Geladene API-Daten überschreiben lokale Daten.
+        // - Lokal bleiben NUR "anwesend" (present=true) Einträge ohne src_api_id bestehen.
+        // - Alle anderen lokalen-only Einträge werden entfernt.
+        $existingParticipants = $day->attendance_data['participants'] ?? [];
+        if (! is_array($existingParticipants)) $existingParticipants = [];
+
+        $attendance['participants'] = $this->mergeRemoteOverLocal($existingParticipants, $newParticipants);
 
         $day->attendance_data           = $attendance;
         $day->attendance_updated_at     = $now;
@@ -253,11 +261,21 @@ class CourseDayAttendanceSyncService
         $day->save();
     }
 
-    protected function resetAttendanceData(CourseDay $day): void
+protected function resetAttendanceData(CourseDay $day): void
     {
         $now = Carbon::now();
 
-        $day->attendance_data           = $this->freshAttendanceDataSkeleton($day);
+        $attendance = $this->freshAttendanceDataSkeleton($day);
+
+        // Merge-Regel (wie besprochen):
+        // - Lokal bleiben NUR "anwesend" (present=true) Einträge ohne src_api_id bestehen.
+        // - Alle anderen lokalen-only Einträge werden entfernt.
+        $existingParticipants = $day->attendance_data['participants'] ?? [];
+        if (! is_array($existingParticipants)) $existingParticipants = [];
+
+        $attendance['participants'] = $this->keepLocalPresentOnly($existingParticipants);
+
+        $day->attendance_data           = $attendance;
         $day->attendance_updated_at     = $now;
         $day->attendance_last_synced_at = $now;
 
@@ -283,6 +301,45 @@ class CourseDayAttendanceSyncService
             ],
             'participants' => [],
         ];
+    }
+
+    /**
+     * Lokal behalten wir ausschließlich "anwesend" (present=true) Einträge,
+     * die KEINE src_api_id besitzen (also nicht aus dem UVS stammen).
+     * Alle anderen lokalen-only Einträge werden entfernt.
+     */
+    protected function keepLocalPresentOnly(array $participants): array
+    {
+        $kept = [];
+
+        foreach ($participants as $pid => $row) {
+            if (! is_array($row)) continue;
+
+            $present  = array_key_exists('present', $row) ? (bool) $row['present'] : false;
+            $srcApiId = $row['src_api_id'] ?? null;
+
+            if ($present && empty($srcApiId)) {
+                $kept[(int) $pid] = $row;
+            }
+        }
+
+        return $kept;
+    }
+
+    /**
+     * Merge-Regel:
+     * - Remote (UVS) ist Source of Truth und überschreibt lokale Werte.
+     * - Lokal bleiben nur "anwesend"-Defaults (present=true ohne src_api_id) bestehen.
+     */
+    protected function mergeRemoteOverLocal(array $localParticipants, array $remoteParticipants): array
+    {
+        $merged = $this->keepLocalPresentOnly($localParticipants);
+
+        foreach ($remoteParticipants as $pid => $row) {
+            $merged[(int) $pid] = $row;
+        }
+
+        return $merged;
     }
 
     /* -------------------------------------------------------------------------
@@ -599,7 +656,24 @@ class CourseDayAttendanceSyncService
             }
         }
 
-        $attendance['participants'] = $participants;
+        // Regel (wie besprochen):
+        // - Remote-Datensätze (mit src_api_id) bleiben bestehen.
+        // - Lokale-only Datensätze werden entfernt, außer "anwesend" (present=true) bleibt lokal bestehen.
+        foreach ($participants as $pid => $row) {
+            if (! is_array($row)) {
+                unset($participants[$pid]);
+                continue;
+            }
+
+            $srcApiId = $row['src_api_id'] ?? null;
+            $present  = array_key_exists('present', $row) ? (bool) $row['present'] : false;
+
+            if (empty($srcApiId) && ! $present) {
+                unset($participants[$pid]);
+            }
+        }
+
+$attendance['participants'] = $participants;
 
         $day->attendance_data           = $attendance;
         $day->attendance_updated_at     = $now;

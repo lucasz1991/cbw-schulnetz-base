@@ -143,6 +143,13 @@
                 <span class="hidden md:inline">Fehlend</span>
             </span>
             <span class="w-px bg-gray-200"></span>
+            {{-- Unbekannt --}}
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-50 text-gray-700">
+                <i class="fas fa-question-circle text-gray-600"></i>
+                <span class="font-semibold">{{ $stats['unknown'] ?? $stats['unmarked'] }}</span>
+                <span class="hidden md:inline">Unbekannt</span>
+            </span>
+            <span class="w-px bg-gray-200"></span>
             {{-- Gesamt --}}
             <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-50 text-gray-800">
                 <i class="fas fa-users text-gray-600"></i>
@@ -184,18 +191,19 @@
                       // -----------------------------
                       // EINHEITLICHER STATUS (Key)
                       // -----------------------------
-                      // Regel: "kein Entry" gilt bei dir als Anwesend -> also gleicher Key wie "present"
-                      if (($d['excused'] ?? false) === true) {
-                          $statusKey = 'excused';
-                      } elseif (($d['present'] ?? false) === true && $late > 0) {
-                          $statusKey = 'partial';
-                      } elseif (!$hasEntry || (($d['present'] ?? false) === true)) {
-                          $statusKey = 'present';
-                      } elseif ($hasEntry && (($d['present'] ?? null) === false) && !($d['excused'] ?? false)) {
-                          $statusKey = 'absent';
-                      } else {
-                          $statusKey = 'unknown';
-                      }
+                    if (!$hasEntry) {
+                        $statusKey = 'unknown';
+                    } elseif (($d['excused'] ?? false) === true) {
+                        $statusKey = 'excused';
+                    } elseif (($d['present'] ?? false) === true && $late > 0) {
+                        $statusKey = 'partial';
+                    } elseif (($d['present'] ?? false) === true) {
+                        $statusKey = 'present';
+                    } elseif ((($d['present'] ?? null) === false) && !($d['excused'] ?? false)) {
+                        $statusKey = 'absent';
+                    } else {
+                        $statusKey = 'unknown';
+                    }
 
                       // -----------------------------
                       // Mapping: Label + Icon + Pill
@@ -203,27 +211,27 @@
                       $statusMap = [
                           'present' => [
                               'label' => 'Anwesend',
-                              'icon'  => 'fas fa-check-circle',
-                              'pill'  => 'bg-green-100/60 text-green-800 ring-1 ring-green-400',
+                              'icon'  => 'fas fa-check',
+                              'pill'  => 'bg-green-100/60 text-green-800 ring-1 ring-green-400 gap-1.5',
                           ],
                           'partial' => [
                               'label' => 'Teilweise',
                               'icon'  => 'fas fa-clock',
-                              'pill'  => 'bg-yellow-100/60 text-yellow-900 ring-1 ring-yellow-400',
+                              'pill'  => 'bg-yellow-100/60 text-yellow-900 ring-1 ring-yellow-400 gap-1.5',
                           ],
                           'excused' => [
                               'label' => 'Entschuldigt',
                               'icon'  => 'fas fa-file-medical',
-                              'pill'  => 'bg-blue-100/60 text-blue-800 ring-1 ring-blue-400',
+                              'pill'  => 'bg-blue-100/60 text-blue-800 ring-1 ring-blue-400 gap-1.5',
                           ],
                           'absent' => [
                               'label' => 'Fehlend',
-                              'icon'  => 'fas fa-times-circle',
-                              'pill'  => 'bg-red-100/60 text-red-800 ring-1 ring-red-400',
+                              'icon'  => 'fas fa-times',
+                              'pill'  => 'bg-red-100/60 text-red-800 ring-1 ring-red-400 gap-1.5',
                           ],
                           'unknown' => [
-                              'label' => 'Unbekannt',
-                              'icon'  => 'fas fa-question-circle',
+                              'label' => '',
+                              'icon'  => 'fas fa-question',
                               'pill'  => 'bg-gray-100/60 text-gray-700 ring-1 ring-gray-400',
                           ],
                       ];
@@ -234,6 +242,7 @@
 
                       // Für deinen Button-Switch (Abwesend -> "Anwesend"-Button anzeigen)
                       $isAbsent = ($statusKey === 'absent');
+                      $isPresent = ($statusKey === 'present');
                   @endphp
 
                       <tr
@@ -259,7 +268,7 @@
                         <td class="px-1 md:px-4 py-2">
                             <div class="flex items-center gap-2 flex-wrap">
                               <span
-                                  class="inline-flex items-center gap-1.5 rounded-full px-1 md:px-2 py-1 text-[11px] font-semibold shadow-sm {{ $statusPill }}"
+                                  class="inline-flex items-center rounded-full px-1 md:px-2 py-1 text-[11px] font-semibold shadow-sm {{ $statusPill }}"
                                   title="{{ $statusLabel }}"
                               >
                                   <i class="{{ $statusIcon }} text-[12px]"></i>
@@ -306,9 +315,9 @@
                                     </div>
                                 </div>
                                 {{-- Present/Absent (Buttons NICHT verändert) --}}
-                                @if($isAbsent)
+                                @if(!$isPresent)
                                     <button
-                                        class="inline-flex items-center justify-center w-8 h-8 rounded border border-green-600 text-green-700 hover:bg-green-50"
+                                        class="inline-flex items-center justify-center w-8 h-8 rounded border border-green-500 text-green-500 hover:bg-green-50"
                                         title="Anwesend"
                                         wire:key="row-markpresentbutton-{{ $r['id'] }}"
                                         wire:click="markPresent({{ $r['id'] }})"
@@ -317,9 +326,10 @@
                                     >
                                         <i class="fas fa-check text-sm"></i>
                                     </button>
-                                @else
+                                @endif
+                                @if(!$isAbsent)
                                     <button
-                                        class="inline-flex items-center justify-center w-8 h-8 rounded border border-red-600 text-red-700 hover:bg-red-50"
+                                        class="inline-flex items-center justify-center w-8 h-8 rounded border border-red-500 text-red-500 hover:bg-red-50"
                                         title="Abwesend"
                                         wire:key="row-markabsentbutton-{{ $r['id'] }}"
                                         wire:click="markAbsent({{ $r['id'] }})"

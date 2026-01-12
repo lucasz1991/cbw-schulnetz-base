@@ -127,7 +127,7 @@ class ParticipantsTable extends Component
     {
         $this->apply($participantId, $patch);
         $this->saveOne($participantId);
-         $this->loadAttendance();
+        $this->loadAttendance();
     }
 
     /**
@@ -438,11 +438,58 @@ class ParticipantsTable extends Component
 
     public function markPresent(int $participantId): void
     {
-        $this->applyAndSaveOne($participantId, [
-            'present' => true,
-            'excused' => false,
-        ]);
+        $day = $this->dayOrFail();
+
+        // Entscheidend: gab es vorher bereits einen Datensatz?
+        $hadEntry = array_key_exists(
+            (string)$participantId,
+            (array) data_get($day->attendance_data, 'participants', [])
+        ) || array_key_exists(
+            $participantId,
+            (array) data_get($day->attendance_data, 'participants', [])
+        );
+
+        // Patch für "Anwesend" (Default-Zustand)
+        // -> setzt Abwesenheit/Teilweise/Entschuldigt zurück
+        $patch = [
+            'present'            => true,
+            'excused'            => false,
+            'late_minutes'       => 0,
+            'left_early_minutes' => 0,
+            'arrived_at'         => null,
+            'left_at'            => null,
+            'timestamps'         => ['in' => null, 'out' => null],
+            'note'               => null,
+        ];
+
+        if (! $hadEntry) {
+            // Vorher "Unbekannt" -> nur lokal speichern, KEIN API Call
+            $patch['state'] = 'local';
+
+            $day->setAttendance($participantId, $patch);
+            $day->save();
+            $day->refresh();
+
+            $this->selectedDay = $day;
+
+            // UI-Source-of-truth sofort aktualisieren
+            $existing = $this->attendanceMap[$participantId]
+                ?? $this->normalizeRow($this->currentRow($participantId) ?? []);
+            $this->attendanceMap[$participantId] = $this->normalizeRow(array_replace_recursive($existing, $patch));
+
+            $this->arriveInput[$participantId] = null;
+            $this->leaveInput[$participantId]  = null;
+            $this->noteInput[$participantId]   = null;
+
+            $this->isDirty = false;
+            return;
+        }
+
+        // Vorher gab es schon einen Eintrag (z.B. "Fehlend/Teilweise/Entschuldigt")
+        // -> MUSS über API gesynct werden, damit der Remote-Eintrag entfernt wird.
+        $this->applyAndSaveOne($participantId, $patch);
     }
+
 
     public function markAbsent(int $participantId): void
     {
@@ -657,37 +704,38 @@ foreach ($allIds as $pid) {
         return $sorted->values();
     }
 
-    public function getStatsProperty(): array
-    {
-        $rows     = $this->rows;
-        $total    = $rows->count();
+function getStatsProperty(): array
+{
+    $rows     = $this->rows;
+    $total    = $rows->count();
 
-        $marked   = $rows->where('hasEntry', true);
-        $unmarked = $rows->where('hasEntry', false)->count();
+    $marked   = $rows->where('hasEntry', true);
+    $unmarked = $rows->where('hasEntry', false)->count();
 
-        $excused  = $marked->where('data.excused', true)->count();
-        $late     = $marked->filter(fn ($r) => (int)($r['data']['late_minutes'] ?? 0) > 0)->count();
+    $excused  = $marked->where('data.excused', true)->count();
+    $late     = $marked->filter(fn ($r) => (int)($r['data']['late_minutes'] ?? 0) > 0)->count();
 
-        $presentMarked = $marked
-            ->where('data.present', true)
-            ->filter(fn ($r) => ((int)($r['data']['late_minutes'] ?? 0)) === 0)
-            ->count();
+    $presentMarked = $marked
+        ->where('data.present', true)
+        ->filter(fn ($r) => ((int)($r['data']['late_minutes'] ?? 0)) === 0)
+        ->count();
 
-        $absent = $marked->filter(fn ($r) =>
-            empty($r['data']['present']) && empty($r['data']['excused'])
-        )->count();
+    $absent = $marked->filter(fn ($r) =>
+        empty($r['data']['present']) && empty($r['data']['excused'])
+    )->count();
 
-        $present = $presentMarked + $unmarked;
+    $present = $presentMarked;
 
-        return [
-            'present'  => $present,
-            'late'     => $late,
-            'excused'  => $excused,
-            'absent'   => $absent,
-            'unmarked' => $unmarked,
-            'total'    => $total,
-        ];
-    }
+    return [
+        'present'  => $present,
+        'late'     => $late,
+        'excused'  => $excused,
+        'absent'   => $absent,
+        'unknown'  => $unmarked,
+        'unmarked' => $unmarked,
+        'total'    => $total,
+    ];
+}
 
     // ---- Helpers ----
 
