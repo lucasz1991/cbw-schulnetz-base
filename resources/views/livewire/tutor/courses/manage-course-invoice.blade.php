@@ -3,7 +3,7 @@
       <x-alert class="bg-yellow-50 border border-yellow-800 text-yellow-800 rounded mb-6">
         <p class="text-sm leading-snug">
           Sobald alle Kursinhalte erfasst sind – z.&nbsp;B. <span class="font-medium">Roter Faden</span> und 
-          <span class="font-medium">Testergebnisse</span> – können Sie hier die <span class="font-medium">Rechnung</span> für diesen Kurs speichern.
+          <span class="font-medium">Prüfungsergebnisse</span> – können Sie hier die <span class="font-medium">Rechnung</span> für diesen Kurs speichern.
         </p>
       </x-alert>
     @endif
