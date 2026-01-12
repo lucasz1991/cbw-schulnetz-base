@@ -162,7 +162,7 @@
                 'anwesenheit' => ['label' => 'Anwesenheit',   'icon' => 'fad fa-user-clock'],
                 'doku'        => ['label' => 'Dokumentation', 'icon' => 'fad fa-file-signature'],
                 'medien'      => ['label' => 'Materialien',   'icon' => 'fad fa-books'],
-                'results'     => ['label' => 'Ergebnisse',    'icon' => 'fad fa-poll-people'],
+                'results'     => ['label' => 'Prüfungsergebnisse',    'icon' => 'fad fa-poll-people'],
                 'invoice'     => ['label' => 'Rechnung',      'icon' => 'fad fa-file-invoice-dollar']
             ]"
             :collapseAt="'lg'"

@@ -24,7 +24,7 @@
                     </svg>
                   </button>
                 </th>
-                <th class="px-4 py-2 text-right">Ergebnis</th>
+                <th class="px-4 py-2 text-right">Prüfungsergebnis</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
