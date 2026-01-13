@@ -77,10 +77,6 @@ class ParticipantsTable extends Component
 
         $this->loadAttendance();
 
-        Log::info('attendance sample', [
-            'sample' => data_get($this->selectedDay?->attendance_data, 'participants.' . array_key_first(data_get($this->selectedDay?->attendance_data, 'participants', []))),
-        ]);
-
         $this->updatePrevNextFlags();
     }
 

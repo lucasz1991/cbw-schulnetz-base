@@ -74,7 +74,17 @@
                               class="w-full text-left px-3 py-2 text-sm hover:bg-blue-50
                                     {{ $selectedDay?->date?->isSameDay($day->date) ? 'bg-blue-100 font-semibold' : '' }}"
                           >
+                          @if(!$day->isAttendanceCompletelyRecorded() && $day->date < now())
+                                <span class="mr-2 inline-block h-2 w-2 bg-yellow-500 rounded-full"></span>
+                          @elseif($day->isAttendanceCompletelyRecorded() && $day->date < now())
+                                <span class="mr-2 inline-block h-2 w-2 bg-green-500 rounded-full"></span>
+                          @endif
                               {{ $day->date->format('d.m.Y') }}
+                              @if($day->date->isToday())
+                                  <span class="ml-2 inline-block px-1.5 py-0.5 text-xs bg-green-100 border border-green-700 text-green-700 rounded-lg">
+                                      Heute
+                                  </span>
+                              @endif
                           </button>
                       @endforeach
                   </div>
@@ -112,6 +122,13 @@
             </div>
         </div>
     </div>
+    @if($selectedDay && !$selectedDay->isAttendanceCompletelyRecorded())
+        <x-alert class="bg-yellow-50 border border-yellow-800 text-yellow-800 rounded">
+            <p class="text-sm leading-snug">
+                Die Anwesenheit für diesen Kurstag ist noch nicht vollständig erfasst. Bitte stellen Sie sicher, dass die Anwesenheit aller Teilnehmer*innen markiert ist.
+            </p>
+        </x-alert>
+    @endif
     @if($selectedDay)
         <div class="inline-flex overflow-hidden rounded-full border border-gray-200 bg-white text-xs shadow-sm">
             {{-- Anwesend --}}

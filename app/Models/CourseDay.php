@@ -216,7 +216,17 @@ public function setAttendance(int $participantId, array $data): void
         $this->save(); // Speichern, damit Änderungen persistiert werden
     }
 
+    public function isAttendanceCompletelyRecorded(): bool
+    {
+        // Check if all participants have their attendance recorded
+        $attendanceData = $this->attendance_data['participants'] ?? [];
 
+        $allPersons = $this->course->participants()->pluck('persons.id')->map(fn($id) => (string)$id)->all();
+        $recorded   = array_map('strval', array_keys($attendanceData));
+
+        return empty(array_diff($allPersons, $recorded));
+
+    }
 
     public function course()
     {
