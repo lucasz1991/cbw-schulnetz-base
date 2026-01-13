@@ -74,11 +74,11 @@
                               class="w-full text-left px-3 py-2 text-sm hover:bg-blue-50
                                     {{ $selectedDay?->date?->isSameDay($day->date) ? 'bg-blue-100 font-semibold' : '' }}"
                           >
-                          @if(!$day->isAttendanceCompletelyRecorded() && $day->date < now()->startOfDay())
+                          @if(!$day->isAttendanceCompletelyRecorded() && $day->date < now()->endOfDay())
                                 <span class="mr-2 inline-block h-2 w-2 bg-yellow-500 rounded-full"></span>
-                          @elseif($day->isAttendanceCompletelyRecorded() && $day->date < now()->startOfDay())
+                          @elseif($day->isAttendanceCompletelyRecorded() && $day->date < now()->endOfDay())
                                 <span class="mr-2 inline-block h-2 w-2 bg-green-500 rounded-full"></span>
-                          @elseif($day->date >= now()->startOfDay())
+                          @elseif($day->date >= now()->endOfDay())
                                 <span class="mr-2 inline-block h-2 w-2 bg-blue-500 rounded-full"></span>
                           @endif
                               {{ $day->date->format('d.m.Y') }}
