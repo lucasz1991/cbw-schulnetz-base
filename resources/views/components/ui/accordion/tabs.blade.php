@@ -79,7 +79,7 @@
                     :tabindex="openTab === t.id ? 0 : -1"
                 >
                     <template x-if="t.icon">
-                        <i :class="t.icon + ' text-[14px]'" aria-hidden="true"></i>
+                        <i :class="t.icon + ' text-[14px] min-w-4'" aria-hidden="true"></i>
                     </template>
                     <span class="whitespace-nowrap" x-text="t.label"></span>
                 </button>
@@ -95,7 +95,7 @@
                     role="tab" aria-selected="true" tabindex="0"
                 >
                     <template x-if="active?.icon">
-                        <i :class="active.icon + ' text-[14px]'" aria-hidden="true"></i>
+                        <i :class="active.icon + ' text-[14px]  min-w-5'" aria-hidden="true"></i>
                     </template>
                     <span class="whitespace-nowrap" x-text="active?.label ?? ''"></span>
                 </button>
@@ -105,10 +105,10 @@
                         type="button"
                         @click="open=!open"
                         @keydown.escape.window="open=false"
-                        class="px-4 py-2 text-sm transition-all border border-blue-300 border-b-blue-300 rounded-t-lg inline-flex items-center gap-2 text-gray-500 font-medium bg-white border-b-blue-300"
+                        class="px-4 py-2 text-sm transition-all border border-blue-300  rounded-t-lg inline-flex items-center gap-2 text-gray-500 font-medium bg-white "
                         :aria-expanded="open" aria-haspopup="menu" title="Weitere Tabs"
                     >
-                        <i class="fad fa-bars text-[14px]" aria-hidden="true"></i>
+                        <i class="fad fa-bars text-[14px] min-w-5" aria-hidden="true"></i>
                         <span class="whitespace-nowrap">Mehr</span>
                     </button>
 
@@ -129,7 +129,7 @@
                                         @click="open=false; openTab = t.id"
                                     >
                                         <template x-if="t.icon">
-                                            <i :class="t.icon + ' text-[14px]'" aria-hidden="true"></i>
+                                            <i :class="t.icon + ' text-[14px]  min-w-5'" aria-hidden="true"></i>
                                         </template>
                                         <span x-text="t.label"></span>
                                     </button>

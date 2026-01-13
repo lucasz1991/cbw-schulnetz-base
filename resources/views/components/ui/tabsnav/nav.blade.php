@@ -128,7 +128,7 @@
                   @click="open=false; $nextTick(()=>selectedTab = t.id)"
                 >
                   <template x-if="t.icon">
-                    <i :class="t.icon + ' text-[14px]'" aria-hidden="true"></i>
+                    <i :class="t.icon + ' text-[14px] min-w-5'" aria-hidden="true"></i>
                   </template>
                   <span x-text="t.label"></span>
                 </button>
