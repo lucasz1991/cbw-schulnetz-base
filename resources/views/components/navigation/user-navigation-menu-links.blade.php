@@ -37,12 +37,12 @@
                     FAQ's
                     </a>
                 </li>
-                <li >
+                <!-- <li>
                     <a  href="{{ route('user.onboarding') }}" wire:navigate  class="max-md:text-lg max-md:px-3 max-md:rounded-lg flex items-center md:px-4 py-2 hover:bg-gray-100 {{ request()->is('user/onboarding') ? 'text-secondary' : '' }}">
                         <i class="fad fa-rocket-launch max-md:min-w-6 mr-2 max-md:mr-2 {{ request()->is('user/onboarding') ? 'text-primary-500' : '' }}"></i>
                     Onboarding
                     </a>
-                </li>
+                </li> -->
                 <li>
                     <a  href="{{ route('contact') }}" wire:navigate  class="max-md:text-lg max-md:px-3 max-md:rounded-lg flex items-center md:px-4 py-2 hover:bg-gray-100 {{ request()->is('user/contact') ? 'text-secondary' : '' }}">
                         <i class="fad fa-envelope max-md:min-w-6 mr-2 max-md:mr-2 {{ request()->is('user/contact') ? 'text-primary-500' : '' }}"></i>
