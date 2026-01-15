@@ -86,7 +86,7 @@ class Register extends Component
 
         if ($existingIncomplete) {
             // Link zum Setzen des Passworts erneut senden
-            // $existingIncomplete->notify(new SetPasswordNotification($existingIncomplete, $this->generateResetToken($existingIncomplete)));
+            $existingIncomplete->notify(new SetPasswordNotification($existingIncomplete, $this->generateResetToken($existingIncomplete)));
 
             $this->dispatch('showAlert', [
                 'type' => 'warning',
@@ -140,7 +140,7 @@ class Register extends Component
                 'role'     => $role,
                 'password' => bcrypt($randomPassword),
                 // vorläufig in dev verifizieren
-                'email_verified_at' => now(),
+                'email_verified_at' => null,
             ]);
 
             // Alle gefundenen Personen aus UVS durchlaufen und in unserer persons-Tabelle upserten
@@ -175,7 +175,7 @@ class Register extends Component
 
 
             // Passwort-Setzen-Mail versenden
-            // $newUser->notify(new SetPasswordNotification($newUser, $this->generateResetToken($newUser)));
+            $newUser->notify(new SetPasswordNotification($newUser, $this->generateResetToken($newUser)));
         });
 
         // 7) Erfolgsmeldung
