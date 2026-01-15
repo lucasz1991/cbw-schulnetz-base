@@ -36,10 +36,9 @@ class AdminStorageController extends Controller
         ]);
 
         $ttl     = $data['expires'] ?? 300;
-        $minutes = (int) max(1, ceil($ttl / 60)); // Model erwartet Minuten
+        $minutes = (int) max(1, ceil($ttl / 60)); 
         $disk    = ($data['disk'] ?? 'private') === 'public' ? 'public' : 'private';
 
-        // -------------------- A) file_id -> Model-Funktion nutzen --------------------
         if (!empty($data['file_id'])) {
             $file = \App\Models\File::find($data['file_id']);
             if (!$file) {
