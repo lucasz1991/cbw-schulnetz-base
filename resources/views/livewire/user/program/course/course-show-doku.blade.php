@@ -26,14 +26,13 @@
                 </span>
             </div>
         </div>
-
-        <div class="flex items-center gap-2">
-            <x-buttons.button-basic :size="'sm'"
+        <!--  <div class="flex items-center gap-2">
+            <xbuttons.button-basic size="'sm'"
                 wire:click="exportAllDoku"
                 title="Alle Doku-Einträge als TXT herunterladen (on-the-fly)">
                 Download
-            </x-buttons.button-basic>
-        </div>
+            </xbuttons.button-basic>
+        </div>  -->
     </div>
 
     @forelse($days as $day)

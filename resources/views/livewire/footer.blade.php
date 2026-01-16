@@ -1,21 +1,18 @@
 <footer x-data="{ screenWidth: window.innerWidth }" x-resize="screenWidth = $width"
-    class="absolute inset-x-0 bottom-0 footer bg-cover bg-center border-t border-gray-300 bg-white">
+    class=" footer bg-cover bg-center border-t border-gray-300 bg-white">
 
     <div class="bg-secondary tracking-wide px-8 py-12">
         <div class="container mx-auto">
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-x-6 gap-y-10">
-
                 {{-- Logo / Brand --}}
                 <div>
                     <a href='/' class="block h-auto bg-white w-max p-2.5 rounded-xl shadow-sm">
                         <x-application-logo />
                     </a>
-
                     <p class="text-white/90 text-sm mt-5 leading-6 max-w-xs">
                         Dein zentraler Zugang für Kurse, Berichtshefte, Anträge und Kommunikation.
                     </p>
                 </div>
- 
                 @auth
                     {{-- 1) Übersicht --}}
                     <div x-data="{ open: false }">
