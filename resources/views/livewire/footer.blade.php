@@ -1,5 +1,5 @@
 <footer x-data="{ screenWidth: window.innerWidth }" x-resize="screenWidth = $width"
-    class="footer bg-cover bg-center border-t border-gray-300 bg-white">
+    class="absolute inset-x-0 bottom-0 footer bg-cover bg-center border-t border-gray-300 bg-white">
 
     <div class="bg-secondary tracking-wide px-8 py-12">
         <div class="container mx-auto">

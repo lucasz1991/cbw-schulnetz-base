@@ -30,7 +30,7 @@
         <!-- Styles -->
         @livewireStyles
     </head>
-    <body class=" antialiased ">
+    <body class=" antialiased">
         <div id="main" class="snap-y">
             @livewire('user-alert')
             @if(Auth::check())
