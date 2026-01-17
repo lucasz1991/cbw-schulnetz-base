@@ -23,8 +23,8 @@ class Login extends Component
 {
     public $message;
     public $messageType;
-    public $email = 'test-teilnehmer@example.com';
-    public $password = '12345678910!LMZ';
+    public $email = '';
+    public $password = '';
     public $remember = false;
 
     protected $rules = [
@@ -42,15 +42,7 @@ class Login extends Component
         'password.max' => 'Das Passwort darf maximal 255 Zeichen lang sein.',
     ];
 
-    public function changeAccount()
-    {
-        // Beispiel für das Wechseln des Testzugangs
-        if ($this->email === 'test-teilnehmer@example.com') {
-            $this->email = 'test-tutor@example.com';
-        }else {
-            $this->email = 'test-teilnehmer@example.com';
-        }
-    }
+
 
     public function login()
     {
