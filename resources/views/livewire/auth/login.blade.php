@@ -20,6 +20,7 @@
                         required 
                         autofocus 
                         autocomplete="username" 
+                        placeholder="E-Mail" 
                     />
                     <x-input-error for="email" class="mt-2" />
                 </div>
