@@ -292,20 +292,20 @@
                     </x-buttons.button-basic>
                   </div>
                 </div>
-
-                <div class="swiper-slide">
-                  <div class="grid h-full grid-cols-1 place-content-stretch">
-                    <h3 class="text-gray-800 font-semibold mb-1">Berichtsheft</h3>
-                    <p class="text-xs text-gray-600 mb-2">
-                      Übersicht über deine Berichtsheft.
-                    </p>
-                    <x-buttons.button-basic :size="'sm'" :mode="'secondary'"  href="/user/reportbook" 
-                       class="w-full">
-                      Berichtsheft anzeigen
-                    </x-buttons.button-basic>
+                @if(Auth::user()?->person?->isEducation())
+                  <div class="swiper-slide">
+                    <div class="grid h-full grid-cols-1 place-content-stretch">
+                      <h3 class="text-gray-800 font-semibold mb-1">Berichtsheft</h3>
+                      <p class="text-xs text-gray-600 mb-2">
+                        Übersicht über deine Berichtsheft.
+                      </p>
+                      <x-buttons.button-basic :size="'sm'" :mode="'secondary'"  href="/user/reportbook" 
+                        class="w-full">
+                        Berichtsheft anzeigen
+                      </x-buttons.button-basic>
+                    </div>
                   </div>
-                </div>
-
+                @endif
                 <div class="swiper-slide">
                   <div class="grid h-full grid-cols-1 place-content-stretch">
                     <h3 class="text-gray-800 font-semibold mb-1">Anträge</h3>
