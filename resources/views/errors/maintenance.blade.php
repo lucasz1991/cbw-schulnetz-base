@@ -28,6 +28,7 @@
 
     <style>
         body { font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+        
         [x-cloak] { display: none !important; }
 
         /* angenehm + sanft */

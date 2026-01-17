@@ -6,10 +6,12 @@
             <i class="fad fa-user-circle max-md:min-w-6 mr-2 max-md:mr-2 {{ request()->is('user/dashboard') ? 'text-primary-500' : '' }}" aria-hidden="true"></i>
             {{ __('Konto') }}
         </x-nav-link>
-        <x-nav-link href="{{ route('reportbook') }}" wire:navigate  :active="request()->is('user/reportbook')">
-            <i class="fad fa-book-open max-md:min-w-6 mr-2 max-md:mr-2 {{ request()->is('user/reportbook') ? 'text-primary-500' : '' }}" aria-hidden="true"></i>
-            {{ __('Berichtsheft') }}
-        </x-nav-link>
+        @if(Auth::user()->isEducation())
+            <x-nav-link href="{{ route('reportbook') }}" wire:navigate  :active="request()->is('user/reportbook')">
+                <i class="fad fa-book-open max-md:min-w-6 mr-2 max-md:mr-2 {{ request()->is('user/reportbook') ? 'text-primary-500' : '' }}" aria-hidden="true"></i>
+                {{ __('Berichtsheft') }}
+            </x-nav-link>
+        @endif
         <x-nav-link href="{{ route('requests') }}" wire:navigate  :active="request()->is('user/user-requests')">
             <i class="fad fa-file-invoice max-md:min-w-6 mr-2 max-md:mr-2 {{ request()->is('user/user-requests') ? 'text-primary-500' : '' }}" aria-hidden="true"></i>
             {{ __('Anträge') }}

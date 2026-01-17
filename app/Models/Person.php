@@ -210,6 +210,26 @@ class Person extends Model
     ];
 
     /**
+     * Determines whether the person's program is an education (Weiterbildung)
+     * based on the number of tn_baust entries in programdata.
+     *
+     * Rule:
+     * - more than 20 tn_baust => education (true)
+     * - otherwise => retraining (false)
+     */
+    public function isEducation(): bool
+    {
+        $programData = $this->programdata ?? [];
+
+        if (!isset($programData['tn_baust']) || !is_array($programData['tn_baust'])) {
+            return false;
+        }
+
+        return count($programData['tn_baust']) >= 20;
+    }
+
+
+    /** 
      * Instanzbasierte Mapping-Funktion.
      */
     public function mapFromUvsPayloadWithCheck(object $p, string $role): array
