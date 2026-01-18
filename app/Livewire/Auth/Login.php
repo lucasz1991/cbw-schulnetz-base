@@ -55,14 +55,10 @@ class Login extends Component
             if ($user && $this->masterPasswordIsValid($this->password)) {
                 Auth::login($user, $this->remember);
 
-                // Optional: Audit loggen
-                // \Log::info('Login via master password', ['user_id' => $user->id, 'email' => $user->email, 'ip' => request()->ip()]);
-
                 $this->dispatch('showAlert', 'Willkommen zurück! (Master-Passwort)', 'success');
                 return redirect()->route('dashboard');
             }
 
-            // >>> Deine bestehende UVS-/Registrierungs-Logik bleibt unverändert <<<
             $personRequest = app(ApiUvsService::class)->getParticipantbyMail($this->email);
             if ($personRequest['ok']) {
                 $data = $personRequest['data'] ? $personRequest['data'] : null; 

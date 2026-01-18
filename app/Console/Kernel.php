@@ -21,7 +21,7 @@ class Kernel extends ConsoleKernel
 
         // Schedule the exports command to run monthly on the 1st at 2:00 AM
         // $schedule->command('exports:run')->monthlyOn(1, '02:00');
-          $schedule->command('uvs:update-persons')->dailyAt('01:46');
+        // $schedule->command('uvs:update-persons')->dailyAt('01:46');
 
 
     }
