@@ -53,9 +53,9 @@ class UpsertCourseParticipantEnrollment implements ShouldQueue, ShouldBeUniqueUn
 
         $tp = $this->participantRow;
 
-        // Datumskonvertierung helpers
-        $parseDate = fn($v) => $v ? Carbon::parse($v)->toDateString() : null;
-        $parseDateTime = fn($v) => $v ? Carbon::parse($v)->toDateTimeString() : null;
+        $parseDate = fn($v) => $this->parseUvsDate($v, false);
+        $parseDateTime = fn($v) => $this->parseUvsDate($v, true);
+
         $person = Person::updateOrCreate(
             ['person_id' => $tp['person_id']], // UVS-Person-ID als eindeutiger Schlüssel
             [
@@ -170,4 +170,66 @@ class UpsertCourseParticipantEnrollment implements ShouldQueue, ShouldBeUniqueUn
             optional($lock)->release();
         }
     }
+
+    private function parseUvsDate($value, bool $withTime = false): ?string
+    {
+        $v = trim((string) $value);
+
+        // typische "leer/invalid" Werte
+        if ($v === '' || $v === '0' || $v === '00.00.0000' || $v === '00.00.00' || $v === '0000-00-00') {
+            return null;
+        }
+
+        // führende Nicht-Ziffern entfernen (z.B. "//11.06.20", "  /11.06.20")
+        $v = preg_replace('/^[^\d]+/', '', $v) ?? $v;
+
+        // Whitespace raus
+        $v = preg_replace('/\s+/', ' ', $v) ?? $v;
+
+        // Separatoren vereinheitlichen ("/" oder "-" -> ".")
+        $base = str_replace(['/', '-'], '.', $v);
+
+        $formats = $withTime
+            ? [
+                'd.m.Y H:i:s',
+                'd.m.y H:i:s',
+                'd.m.Y H:i',
+                'd.m.y H:i',
+                'Y-m-d H:i:s',
+                'Y-m-d H:i',
+                'Y-m-d\TH:i:sP',
+                'Y-m-d\TH:i:s',
+            ]
+            : [
+                'd.m.Y',
+                'd.m.y',
+                'Y-m-d',
+                'Y.m.d',
+            ];
+
+        foreach ($formats as $fmt) {
+            try {
+                $dt = Carbon::createFromFormat($fmt, $base);
+                if ($dt !== false) {
+                    return $withTime ? $dt->toDateTimeString() : $dt->toDateString();
+                }
+            } catch (\Throwable $e) {
+                // nächstes Format probieren
+            }
+        }
+
+        // Fallback: nochmal "best effort", aber mit try/catch
+        try {
+            $dt = Carbon::parse($base);
+            return $withTime ? $dt->toDateTimeString() : $dt->toDateString();
+        } catch (\Throwable $e) {
+            Log::warning('Enrollment: Ungueltiges Datumsformat von UVS', [
+                'raw' => $value,
+                'normalized' => $base,
+                'withTime' => $withTime,
+            ]);
+            return null;
+        }
+    }
+
 }
