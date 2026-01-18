@@ -36,13 +36,15 @@ class CourseShow extends Component
         }
 
         // 1) Kurs laden
-        $this->course = Course::query()
+        $course = Course::query()
             ->where('klassen_id', $klassenId)
             ->first();
 
-        if (! $this->course) {
-            abort(404, 'Kurs nicht gefunden.');
+        if (! $course) {
+            abort(404, 'Kurs nicht gefunden. Synchronisation läuft...');
         }
+
+        $this->course = $course;
 
         // 2) Einschreibung prüfen (existiert eine Enrollment-Zeile?)
         $enrolled = CourseParticipantEnrollment::query()
