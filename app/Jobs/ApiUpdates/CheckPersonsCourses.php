@@ -12,6 +12,8 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Carbon;
+use App\Services\Helper\DateParser;
+
 
 class CheckPersonsCourses implements ShouldQueue, ShouldBeUniqueUntilProcessing
 {
@@ -21,8 +23,8 @@ class CheckPersonsCourses implements ShouldQueue, ShouldBeUniqueUntilProcessing
     public $backoff = [10, 60, 180];
 
     // Fenster konfigurieren: Vergangenheit/Zukunft
-    private const PAST_YEARS   = 10; // ab jetzt -1 Jahr
-    private const FUTURE_YEARS = 5; // bis jetzt +1 Jahr
+    private const PAST_YEARS   = 2; // ab jetzt -2 Jahre
+    private const FUTURE_YEARS = 1; // bis jetzt +1 Jahr
 
     public function __construct(public int $personPk) {}
 
@@ -100,45 +102,26 @@ class CheckPersonsCourses implements ShouldQueue, ShouldBeUniqueUntilProcessing
         $writeLog('info');
     }
 
-protected function windowStart(): Carbon
-{
-    return now()->startOfDay()->subYears(self::PAST_YEARS);
-}
+    protected function windowStart(): Carbon
+    {
+        return now()->startOfDay()->subYears(self::PAST_YEARS);
+    }
 
-protected function windowEnd(): Carbon
-{
-    return now()->endOfDay()->addYears(self::FUTURE_YEARS);
-}
+    protected function windowEnd(): Carbon
+    {
+        return now()->endOfDay()->addYears(self::FUTURE_YEARS);
+    }
 
-    /**
-     * Versucht ein Datum aus Strings wie "YYYY/MM/DD", "YYYY-MM-DD",
-     * "DD.MM.YYYY", "DD-MM-YYYY" zu parsen.
-     */
     protected function parseDate(?string $value): ?Carbon
     {
-        if (!is_string($value) || ($value = trim($value)) === '') {
+        $ymd = DateParser::date($value); // gibt null oder "YYYY-MM-DD"
+        if (! $ymd) {
             return null;
         }
 
-        // Normalisiere Punkte zu Bindestrich, damit auch "DD.MM.YYYY" etc. abgefangen werden kann
-        $normalized = str_replace('.', '-', $value);
-
-        $formats = ['Y/m/d', 'Y-m-d', 'd-m-Y', 'd/m/Y'];
-        foreach ($formats as $fmt) {
-            try {
-                $c = Carbon::createFromFormat($fmt, $normalized);
-                if ($c !== false) {
-                    return $c->startOfDay();
-                }
-            } catch (\Throwable $e) {
-                // weiterprobieren
-            }
-        }
-
-        // letzter Versuch: Carbon::parse (best effort)
         try {
-            return Carbon::parse($value)->startOfDay();
-        } catch (\Throwable $e) {
+            return Carbon::createFromFormat('Y-m-d', $ymd)->startOfDay();
+        } catch (\Throwable) {
             return null;
         }
     }
