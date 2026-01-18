@@ -171,65 +171,66 @@ class UpsertCourseParticipantEnrollment implements ShouldQueue, ShouldBeUniqueUn
         }
     }
 
-    private function parseUvsDate($value, bool $withTime = false): ?string
-    {
-        $v = trim((string) $value);
+private function parseUvsDate($value, bool $withTime = false): ?string
+{
+    $v = trim((string) $value);
 
-        // typische "leer/invalid" Werte
-        if ($v === '' || $v === '0' || $v === '00.00.0000' || $v === '00.00.00' || $v === '0000-00-00') {
-            return null;
-        }
+    if ($v === '' || $v === '0' || $v === '00.00.0000' || $v === '00.00.00' || $v === '0000-00-00') {
+        return null;
+    }
 
-        // führende Nicht-Ziffern entfernen (z.B. "//11.06.20", "  /11.06.20")
-        $v = preg_replace('/^[^\d]+/', '', $v) ?? $v;
+    $v = preg_replace('/^[^\d]+/', '', $v) ?? $v;
+    $v = preg_replace('/\s+/', ' ', $v) ?? $v;
 
-        // Whitespace raus
-        $v = preg_replace('/\s+/', ' ', $v) ?? $v;
+    // WICHTIG: nicht nur "." erzeugen, sondern original auch behalten
+    $normalized = str_replace(['/', '-'], '.', $v);
 
-        // Separatoren vereinheitlichen ("/" oder "-" -> ".")
-        $base = str_replace(['/', '-'], '.', $v);
+    $hasTime = (bool) preg_match('/\d{1,2}:\d{2}/', $v);
 
-        $formats = $withTime
-            ? [
-                'd.m.Y H:i:s',
-                'd.m.y H:i:s',
-                'd.m.Y H:i',
-                'd.m.y H:i',
-                'Y-m-d H:i:s',
-                'Y-m-d H:i',
-                'Y-m-d\TH:i:sP',
-                'Y-m-d\TH:i:s',
-            ]
-            : [
-                'd.m.Y',
-                'd.m.y',
-                'Y-m-d',
-                'Y.m.d',
-            ];
+    // Wenn withTime=true, aber keine Uhrzeit, dann Datum als Start-of-day behandeln
+    if ($withTime && !$hasTime) {
+        $date = $this->parseUvsDate($v, false);
+        return $date ? Carbon::parse($date)->startOfDay()->toDateTimeString() : null;
+    }
 
-        foreach ($formats as $fmt) {
-            try {
-                $dt = Carbon::createFromFormat($fmt, $base);
-                if ($dt !== false) {
-                    return $withTime ? $dt->toDateTimeString() : $dt->toDateString();
-                }
-            } catch (\Throwable $e) {
-                // nächstes Format probieren
-            }
-        }
+    $formats = $withTime
+        ? [
+            // original mit "/" oder "-" auch unterstützen
+            'Y/m/d H:i:s', 'Y/m/d H:i',
+            'Y-m-d H:i:s', 'Y-m-d H:i',
+            'd.m.Y H:i:s', 'd.m.y H:i:s',
+            'd.m.Y H:i',   'd.m.y H:i',
+            'Y-m-d\TH:i:sP', 'Y-m-d\TH:i:s',
+          ]
+        : [
+            'Y/m/d', 'Y-m-d', 'Y.m.d',
+            'd.m.Y', 'd.m.y',
+        ];
 
-        // Fallback: nochmal "best effort", aber mit try/catch
+    // Für createFromFormat immer mit passender Normalform arbeiten:
+    // - für Y/m/d Formate nimm original ($v)
+    // - für Y.m.d / d.m.Y Formate nimm $normalized
+    foreach ($formats as $fmt) {
         try {
-            $dt = Carbon::parse($base);
+            $input = str_contains($fmt, '/') || str_contains($fmt, '-') ? $v : $normalized;
+            $dt = Carbon::createFromFormat($fmt, $input);
             return $withTime ? $dt->toDateTimeString() : $dt->toDateString();
         } catch (\Throwable $e) {
-            Log::warning('Enrollment: Ungueltiges Datumsformat von UVS', [
-                'raw' => $value,
-                'normalized' => $base,
-                'withTime' => $withTime,
-            ]);
-            return null;
         }
     }
+
+    try {
+        $dt = Carbon::parse($v);
+        return $withTime ? $dt->toDateTimeString() : $dt->toDateString();
+    } catch (\Throwable $e) {
+        Log::warning('Enrollment: Ungueltiges Datumsformat von UVS', [
+            'raw' => $value,
+            'normalized' => $normalized,
+            'withTime' => $withTime,
+        ]);
+        return null;
+    }
+}
+
 
 }
