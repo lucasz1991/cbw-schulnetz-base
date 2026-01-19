@@ -27,7 +27,7 @@ class CoursesListPreview extends Component
         if ($this->showAll) {
             // Zeige alle Kurse (z. B. absteigend nach Startdatum)
             $this->courses = $base
-                ->where('planned_start_date', '>=', "2025-06-01")
+                ->where('planned_start_date', '>=', "2025-12-01")
                 ->orderBy('planned_start_date', 'desc')
                 ->get();
         } else {
