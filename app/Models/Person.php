@@ -191,10 +191,14 @@ class Person extends Model
             ->wherePivot('is_active', true);
     }
 
-    /** Kurse, in denen die Person primärer Tutor ist */
+    /** Kurse, in denen der User (über alle zugeordneten Personen) Tutor ist */
     public function taughtCourses()
     {
-        return $this->hasMany(Course::class, 'primary_tutor_person_id');
+        $personIds = $this->user_id
+            ? static::where('user_id', $this->user_id)->pluck('id')
+            : collect([$this->id]);
+
+        return Course::whereIn('primary_tutor_person_id', $personIds);
     }
 
     /**
