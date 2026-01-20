@@ -498,7 +498,7 @@ public function saveOne(int $participantId): void
         $day->setAttendance($participantId, $patch);
         $day->save();
         $day->refresh();
-
+ 
         $this->selectedDay = $day;
 
         // UI sofort konsistent halten

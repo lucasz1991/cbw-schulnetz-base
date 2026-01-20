@@ -25,17 +25,14 @@ class CoursesListPreview extends Component
         $base = $person->taughtCourses(); // Relation
 
         if ($this->showAll) {
-            // Zeige alle Kurse (z. B. absteigend nach Startdatum)
             $this->courses = $base
                 ->where('planned_start_date', '>=', "2025-12-01")
                 ->orderBy('planned_start_date', 'desc')
                 ->get();
         } else {
-            // Nur 3 relevante Kurse
             $weekStart = $now->copy()->startOfWeek(Carbon::MONDAY)->startOfDay();
             $weekEnd   = $now->copy()->endOfWeek(Carbon::SUNDAY)->endOfDay();
 
-            // 1) Aktiver Kurs (inkl. Wochenend-Kulanz)
             $active = (clone $base)
                 ->where('planned_start_date', '<=', $now)
                 ->where(function ($q) use ($now, $weekStart, $weekEnd) {

@@ -497,15 +497,15 @@
                                             @if($d['note']) border-blue-300 text-blue-400 bg-blue-50/70 hover:bg-blue-100
                                             @else border-gray-300 text-gray-500 hover:bg-gray-50
                                             @endif
-                                            @if(!$hasEntry) opacity-80 @endif
+                                            @if(!$hasEntry && $isAbsent) opacity-80 @endif
                                         "
                                         title="Notiz hinzufügen"
-                                        @mouseenter="@if(!$hasEntry) showTooltip() @endif"
+                                        @mouseenter="@if(!$hasEntry && $isAbsent) showTooltip() @endif"
                                         @mouseleave="hideTooltip()"
-                                        @focus="@if(!$hasEntry) showTooltip() @endif"
+                                        @focus="@if(!$hasEntry && $isAbsent) showTooltip() @endif"
                                         @blur="hideTooltip()"
                                         @click="
-                                            @if($hasEntry)
+                                            @if($hasEntry && $isAbsent)
                                                 noteOpen = !noteOpen
                                             @else
                                                 showTooltip()
@@ -520,7 +520,7 @@
                                         @endif
                                     </button>
                                 {{-- Tooltip wenn kein Entry --}}
-                                @if(!$hasEntry)
+                                @if(!$hasEntry && $isAbsent)
                                     <div
                                         x-cloak
                                         x-show="tipOpen"
