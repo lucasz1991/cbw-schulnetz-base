@@ -263,7 +263,7 @@
                       $isAbsent = ($statusKey === 'absent');
                       $isPresent = ($statusKey === 'present');
                       $isPartial = ($statusKey === 'partial');
-                      $canNote   = ($hasEntry && ($isAbsent || $isPartial)) || $noteInput != '';
+                      $canNote   = ($hasEntry && ($isAbsent || $isPartial));
                   @endphp
 
                       <tr
