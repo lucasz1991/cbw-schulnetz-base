@@ -489,7 +489,7 @@
                                 <div class="relative"
                                     x-data="{
                                         tipOpen: false,
-                                        showTooltip() { this.tipOpen = true; clearTimeout(this.__tipT); this.__tipT = setTimeout(() => this.tipOpen = false, 2500); },
+                                        showTooltip() { this.tipOpen = true; clearTimeout(this.__tipT); this.__tipT = setTimeout(() => this.tipOpen = false, 4500); },
                                         hideTooltip() { this.tipOpen = false; clearTimeout(this.__tipT); },
                                     }"
                                 >
