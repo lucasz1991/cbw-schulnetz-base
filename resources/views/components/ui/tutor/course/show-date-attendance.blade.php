@@ -262,6 +262,8 @@
                       // Für deinen Button-Switch (Abwesend -> "Anwesend"-Button anzeigen)
                       $isAbsent = ($statusKey === 'absent');
                       $isPresent = ($statusKey === 'present');
+                      $isPartial = ($statusKey === 'partial');
+                      $canNote   = ($hasEntry && ($isAbsent || $isPartial));
                   @endphp
 
                       <tr
@@ -497,15 +499,15 @@
                                             @if($d['note']) border-blue-300 text-blue-400 bg-blue-50/70 hover:bg-blue-100
                                             @else border-gray-300 text-gray-500 hover:bg-gray-50
                                             @endif
-                                            @if(!$hasEntry && $isAbsent) opacity-80 @endif
+                                            @if(!$canNote) opacity-80 @endif
                                         "
                                         title="Notiz hinzufügen"
-                                        @mouseenter="@if(!$hasEntry && $isAbsent) showTooltip() @endif"
+                                        @mouseenter="@if(!$canNote) showTooltip() @endif"
                                         @mouseleave="hideTooltip()"
-                                        @focus="@if(!$hasEntry && $isAbsent) showTooltip() @endif"
+                                        @focus="@if(!$canNote) showTooltip() @endif"
                                         @blur="hideTooltip()"
                                         @click="
-                                            @if($hasEntry && $isAbsent)
+                                            @if($canNote)
                                                 noteOpen = !noteOpen
                                             @else
                                                 showTooltip()
@@ -520,7 +522,7 @@
                                         @endif
                                     </button>
                                 {{-- Tooltip wenn kein Entry --}}
-                                @if(!$hasEntry && $isAbsent)
+                                @if(!$canNote)
                                     <div
                                         x-cloak
                                         x-show="tipOpen"
@@ -530,7 +532,7 @@
                                     >
                                         <div class="font-semibold mb-0.5">Notiz erst nach Eintrag</div>
                                         <div>
-                                            Bitte zuerst <span class="font-medium">Anwesend/Fehlend/Entschuldigt</span> setzen (oder eine Zeit eintragen),
+                                            Bitte zuerst <span class="font-medium">Fehlend/Teilweise Anwesend</span> setzen,
                                             dann kannst du eine Notiz speichern.
                                         </div>
                                     </div>
