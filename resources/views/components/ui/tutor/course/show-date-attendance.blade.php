@@ -253,7 +253,7 @@
                               'icon'  => 'fas fa-question',
                               'pill'  => 'bg-gray-100/60 text-gray-700 ring-1 ring-gray-400',
                           ],
-                      ];
+                      ]; 
 
                       $statusLabel = $statusMap[$statusKey]['label'];
                       $statusIcon  = $statusMap[$statusKey]['icon'];
