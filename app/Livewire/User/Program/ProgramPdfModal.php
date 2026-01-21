@@ -23,9 +23,9 @@ class ProgramPdfModal extends Component
     /** Merkt die Temp-Datei (public) zum sofortigen Aufräumen */
     public ?string $tempPublicPath = null;
 
-        public function mount (): void
+    public function mount (): void
     {
-        $this->showModal = false;
+        $this->show = false;
         $this->reset();
     }
     
@@ -385,7 +385,6 @@ class ProgramPdfModal extends Component
             // Seitenumbruch wie im Legacy; zusätzlich Briefbogen erneut auf Folgeseiten
             if ($startY > 270) {
                 $pdf->AddPage();
-                $pdf->useTemplate($pageId, 0, 0, 210);
                 $startY = 20;
             }
 
