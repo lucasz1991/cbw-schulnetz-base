@@ -104,11 +104,6 @@ class Person extends Model
                 return;
             }
 
-            // In Queue/Artisan keine Auto-API-Calls
-            if (app()->runningInConsole()) {
-                return;
-            }
-
             // Throttle über Cache (25 Minuten)
             static::dispatchApiUpdateIfNotThrottled($person, 'updated');
         });
@@ -116,11 +111,6 @@ class Person extends Model
         static::retrieved(function (Person $person) {
             // nur sinnvoll, wenn mit User verknüpft
             if (empty($person->user_id)) {
-                return;
-            }
-
-            // In Queue/Artisan keine Auto-API-Calls
-            if (app()->runningInConsole()) {
                 return;
             }
 
