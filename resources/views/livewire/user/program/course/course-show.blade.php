@@ -38,4 +38,8 @@
       </x-ui.tabsnav.panel>
   </x-ui.tabsnav.container>
 </div>
+
+<livewire:user.program.course.courses-slider :klassenId="$course->klassen_id" lazy />
+
+  
 </div>

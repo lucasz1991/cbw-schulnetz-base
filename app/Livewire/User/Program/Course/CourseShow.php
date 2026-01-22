@@ -24,6 +24,9 @@ class CourseShow extends Component
     public int $index = -1;
     public int $total = 0;
 
+
+    public EloquentCollection $enrolledCourses;
+
     public function mount(string $klassenId): void
     {
         $this->klassenId = $klassenId;

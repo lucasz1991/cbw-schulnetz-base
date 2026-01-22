@@ -29,7 +29,7 @@ public bool $openPreview = false;
     protected function rules(): array
     {
         return [
-            'roterFadenUpload' => 'nullable|file|max:30720', 
+            'roterFadenUpload' => 'nullable|file|max:30720|mimes:pdf', // max 30 MB
             'roterFadenExpires' => ['nullable', 'date'],
         ];
     }

@@ -77,7 +77,7 @@
                 <div class="flex justify-between  pb-4">
                     <div>
                         <h2 class="font-semibold text-lg tracking-tight">{{ $assistantName }}</h2>
-                        <p class="text-sm text-[#6b7280]">Hier kannst du Fragen zu Regulierungs-Check stellen.</p>
+                        <p class="text-sm text-[#6b7280]">Hier kannst du Fragen zum Schulnetz stellen.</p>
                     </div>
                     <button wire:click="clearChat()" x-on:click="showChat = false" class="text-gray-500 hover:text-gray-700">&times;</button>
                 </div>
@@ -116,13 +116,13 @@
                         <p class="mb-2 font-semibold">Fragen, die du stellen kannst:</p>
                         <ul class="space-y-2">
                             <li>
-                                <button @click="messagefront='Wie funktioniert Regulierungs-Check?'; sendMessage();" class="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-800 hover:bg-blue-100">
-                                    Wie funktioniert Regulierungs-Check?
+                                <button @click="messagefront='Wie funktioniert das Schulnetz?'; sendMessage();" class="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-800 hover:bg-blue-100">
+                                    Wie funktioniert das Schulnetz?
                                 </button>
                             </li>
                             <li>
-                                <button @click="messagefront='Was kostet Regulierungs-Check?'; sendMessage();" class="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-800 hover:bg-blue-100">
-                                    Was kostet Regulierungs-Check?
+                                <button @click="messagefront='Was bringt mir das Schulnetz?'; sendMessage();" class="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-800 hover:bg-blue-100">
+                                    Was bringt mir das Schulnetz?
                                 </button>
                             </li>
                         </ul>

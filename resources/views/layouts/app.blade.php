@@ -25,24 +25,22 @@
         <link rel="stylesheet" href="https://unpkg.com/dropzone@5/dist/min/dropzone.min.css" type="text/css" />
         <script src="{{ URL::asset('adminresources/apexcharts/apexcharts.min.js') }}"></script>
         <link rel="stylesheet" href="{{ asset('adminresources/fontawesome6/css/all.min.css') }}">
-        <!-- Styles -->
         @vite(['resources/css/app.css'])
-        <!-- Styles -->
         @livewireStyles
     </head>
-    <body class=" antialiased">
+    <body class="antialiased">
         <div id="main" class="snap-y">
-            @livewire('user-alert')
+            <livewire:user-alert/>
             @if(Auth::check())
                 <header class="snap-start">
-                    @livewire('user-navigation-menu')
+                    <livewire:user-navigation-menu />
                 </header>
             @endif
             <x-pagebuilder-module :position="'top_banner'"/>
-            <x-page-header />
+            <x-page-header/>
             <x-pagebuilder-module :position="'banner'"/>
             <x-pagebuilder-module :position="'bottom_banner'"/>
-            <main  class="snap-start z-0">
+            <main class="snap-start z-0">
                 <x-pagebuilder-module/>
                 <x-pagebuilder-module :position="'above_content'"/>
                 {{ $slot }}
@@ -51,7 +49,8 @@
         </div>
         @if(Auth::check())
             <x-pagebuilder-module :position="'footer'"/>
-            @livewire('footer')
+            <livewire:footer />
+            <!-- livewire:tools.chatbot  -->
             <livewire:tools.file-pools.file-preview-modal />
             @stack('modals')
         @endif
