@@ -16,15 +16,11 @@ class ManageCourseMedia extends Component
 
     public Course $course;
 
-    // Modal & Upload-Props für Roter Faden
     public bool $openRoterFadenForm = false;
-    public $roterFadenUpload = null;         // \Livewire\TemporaryUploadedFile
+    public $roterFadenUpload = null;
     public ?string $roterFadenExpires = null;
 
-    // ... oben in der Klasse
-public bool $openPreview = false;
-
- 
+    public bool $openPreview = false;
 
     protected function rules(): array
     {
@@ -34,22 +30,18 @@ public bool $openPreview = false;
         ];
     }
 
-    /** Deutsche Fehlermeldungen */
     protected function messages(): array
     {
         return [
-            // Upload
             'roterFadenUpload.file'       => 'Die ausgewählte Datei konnte nicht gelesen werden.',
             'roterFadenUpload.mimetypes'  => 'Bitte lade eine PDF-Datei hoch.',
-            'roterFadenUpload.mimes'      => 'Bitte lade eine PDF-Datei hoch.', // falls mimes statt mimetypes greift
+            'roterFadenUpload.mimes'      => 'Bitte lade eine PDF-Datei hoch.',
             'roterFadenUpload.max'        => 'Die Datei darf maximal 30 MB groß sein.',
-
-            // Ablaufdatum
             'roterFadenExpires.date'      => 'Bitte gib ein gültiges Datum ein.',
         ];
     }
 
-        /** Schöne Attribut-Namen in den Meldungen */
+    /** Schöne Attribut-Namen in den Meldungen */
     protected function validationAttributes(): array
     {
         return [
