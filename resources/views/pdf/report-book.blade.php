@@ -138,40 +138,40 @@
 
 
     $parseYmdSlash = function (?string $v): ?Carbon {
-$v = trim((string)$v);
-if ($v === '') return null;
+    $v = trim((string)$v);
+    if ($v === '') return null;
 
 
-// Format: "YYYY/MM/DD"
-try { return Carbon::createFromFormat('Y/m/d', $v); } catch (\Throwable $e) {}
+    // Format: "YYYY/MM/DD"
+    try { return Carbon::createFromFormat('Y/m/d', $v); } catch (\Throwable $e) {}
 
 
-// notfalls: Carbon parse
-try { return Carbon::parse(str_replace('\/', '/', $v)); } catch (\Throwable $e) {}
+    // notfalls: Carbon parse
+    try { return Carbon::parse(str_replace('\/', '/', $v)); } catch (\Throwable $e) {}
 
 
-return null;
-};
+    return null;
+    };
 
 
-$umschulungStartFromProgramm = function ($user) use ($parseYmdSlash): ?Carbon {
-$pd = data_get($user, 'person.programmdata', []);
-$baust = collect(data_get($pd, 'tn_baust', []));
+    $umschulungStartFromProgramm = function ($user) use ($parseYmdSlash): ?Carbon {
+    $pd = data_get($user, 'person.programmdata', []);
+    $baust = collect(data_get($pd, 'tn_baust', []));
 
 
-$min = $baust
-->map(fn ($b) => $parseYmdSlash(data_get($b, 'beginn_baustein')))
-->filter()
-->sort()
-->first();
+    $min = $baust
+    ->map(fn ($b) => $parseYmdSlash(data_get($b, 'beginn_baustein')))
+    ->filter()
+    ->sort()
+    ->first();
 
 
-if ($min) return $min;
+    if ($min) return $min;
 
 
-// Fallback: vertrag_beginn
-return $parseYmdSlash(data_get($pd, 'vertrag_beginn'));
-};
+    // Fallback: vertrag_beginn
+    return $parseYmdSlash(data_get($pd, 'vertrag_beginn'));
+    };
 @endphp
 
 
