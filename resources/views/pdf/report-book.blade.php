@@ -101,6 +101,9 @@
 @php
     use Carbon\Carbon;
 
+    /* -------------------------------------------------
+     * Helpers (Images / Labels)
+     * ------------------------------------------------- */
     $resolveImg = function (?string $src) {
         if (!$src) return null;
 
@@ -136,42 +139,56 @@
 
     $participantName = $user->name ?? '';
 
-
+    /* -------------------------------------------------
+     * Umschulungsstart aus programmdata (tn_baust) ermitteln
+     * ------------------------------------------------- */
     $parseYmdSlash = function (?string $v): ?Carbon {
-    $v = trim((string)$v);
-    if ($v === '') return null;
+        $v = trim((string)$v);
+        if ($v === '') return null;
 
+        $v = str_replace('\/', '/', $v);
 
-    // Format: "YYYY/MM/DD"
-    try { return Carbon::createFromFormat('Y/m/d', $v); } catch (\Throwable $e) {}
+        // erwartetes Format: YYYY/MM/DD
+        try { return Carbon::createFromFormat('Y/m/d', $v); } catch (\Throwable $e) {}
 
+        // Fallback: Carbon::parse
+        try { return Carbon::parse($v); } catch (\Throwable $e) {}
 
-    // notfalls: Carbon parse
-    try { return Carbon::parse(str_replace('\/', '/', $v)); } catch (\Throwable $e) {}
-
-
-    return null;
+        return null;
     };
-
 
     $umschulungStartFromProgramm = function ($user) use ($parseYmdSlash): ?Carbon {
-    $pd = data_get($user, 'person.programmdata', []);
-    $baust = collect(data_get($pd, 'tn_baust', []));
+        $pd = data_get($user, 'person.programmdata', []);
+        $baust = collect(data_get($pd, 'tn_baust', []));
 
+        $min = $baust
+            ->map(fn ($b) => $parseYmdSlash(data_get($b, 'beginn_baustein')))
+            ->filter()
+            ->sort()
+            ->first();
 
-    $min = $baust
-    ->map(fn ($b) => $parseYmdSlash(data_get($b, 'beginn_baustein')))
-    ->filter()
-    ->sort()
-    ->first();
+        if ($min) return $min;
 
-
-    if ($min) return $min;
-
-
-    // Fallback: vertrag_beginn
-    return $parseYmdSlash(data_get($pd, 'vertrag_beginn'));
+        // Fallback: vertrag_beginn (wenn vorhanden)
+        return $parseYmdSlash(data_get($pd, 'vertrag_beginn'));
     };
+
+    /* -------------------------------------------------
+     * Ausbildungsnachweis Nr. (Umschulungswoche) + Ausbildungsjahr
+     * ------------------------------------------------- */
+    $trainingWeekNo = function (Carbon $entryDate, Carbon $startDate): int {
+        $startWeek = $startDate->copy()->startOfWeek(Carbon::MONDAY);
+        $entryWeek = $entryDate->copy()->startOfWeek(Carbon::MONDAY);
+        return max(1, (int)($startWeek->diffInWeeks($entryWeek) + 1));
+    };
+
+    $trainingYearNo = function (Carbon $entryDate, Carbon $startDate): int {
+        $months = $startDate->copy()->startOfDay()->diffInMonths($entryDate->copy()->startOfDay());
+        // Umschulung: 24 Monate => 1..2 (Clamp entfernen, falls später länger)
+        return max(1, min(2, (int)(intdiv($months, 12) + 1)));
+    };
+
+    $padNachweis = fn (int $n): string => str_pad((string)$n, 2, '0', STR_PAD_LEFT);
 @endphp
 
 
@@ -180,39 +197,26 @@
 ========================================================= --}}
 @if(($mode ?? null) === 'single')
 @php
-    $d = $entry->entry_date instanceof Carbon ? $entry->entry_date : Carbon::parse($entry->entry_date);
+    $d  = $entry->entry_date instanceof Carbon ? $entry->entry_date : Carbon::parse($entry->entry_date);
     $kw = $kwLabel($d);
 
-    $start = $umschulungStartFromProgramm($user) ?? $d; // $d = Entry-Datum
+    $start = $umschulungStartFromProgramm($user) ?? $d;
 
-
-    $trainingWeekNo = function (Carbon $entryDate, Carbon $startDate) {
-    $startWeek = $startDate->copy()->startOfWeek(Carbon::MONDAY);
-    $entryWeek = $entryDate->copy()->startOfWeek(Carbon::MONDAY);
-    return max(1, $startWeek->diffInWeeks($entryWeek) + 1);
-    };
-
-
-    $trainingYearNo = function (Carbon $entryDate, Carbon $startDate) {
-    $months = $startDate->copy()->startOfDay()->diffInMonths($entryDate->copy()->startOfDay());
-    return max(1, min(2, intdiv($months, 12) + 1));
-    };
-
-
-    $padNachweis = fn (int $n) => str_pad((string)$n, 2, '0', STR_PAD_LEFT);
-
-
-    // für die jeweilige Seite/Woche:
-    $ausbildungsnachweisNr = $padNachweis($trainingWeekNo($firstDay /* oder $d */, $start));
-    $ausbildungsjahr = $trainingYearNo($firstDay /* oder $d */, $start);
+    $ausbildungsnachweisNr = $padNachweis($trainingWeekNo($d, $start));
+    $ausbildungsjahr       = $trainingYearNo($d, $start);
 
     $abteilung = $course->title ?? ($course->klassen_id ?? 'Kurs');
 
     $pImg = $resolveImg($participantSignatureUrl ?? null);
     $tImg = $resolveImg($trainerSignatureUrl ?? null);
 
-    $pDate = !empty($participantSignatureFile?->created_at) ? Carbon::parse($participantSignatureFile->created_at)->format('d.m.Y') : '';
-    $tDate = !empty($trainerSignatureFile?->created_at) ? Carbon::parse($trainerSignatureFile->created_at)->format('d.m.Y') : '';
+    $pDate = !empty($participantSignatureFile?->created_at)
+        ? Carbon::parse($participantSignatureFile->created_at)->format('d.m.Y')
+        : '';
+
+    $tDate = !empty($trainerSignatureFile?->created_at)
+        ? Carbon::parse($trainerSignatureFile->created_at)->format('d.m.Y')
+        : '';
 @endphp
 
 <div class="page">
@@ -269,7 +273,7 @@
                             @if($tImg)
                                 <img class="sig-img" src="{{ $tImg }}" alt="Unterschrift Ausbilder">
                             @endif
-                            
+
                         </td>
                     </tr>
                 </table>
@@ -289,7 +293,7 @@
                             @if($pImg)
                                 <img class="sig-img" src="{{ $pImg }}" alt="Unterschrift Teilnehmer">
                             @endif
-                            
+
                         </td>
                     </tr>
                 </table>
@@ -305,26 +309,40 @@
 ========================================================= --}}
 @if(($mode ?? null) === 'module')
 @php
-    $ausbildungsnachweisNr = $course->klassen_id ?? ('Kurs #' . ($course->id ?? ''));
-    $ausbildungsjahr = $course->planned_start_date ? Carbon::parse($course->planned_start_date)->format('Y') : now()->format('Y');
     $abteilung = $course->title ?? ($course->klassen_id ?? 'Kurs');
 
-    $groups = collect($entries)->map(function($e){
+    $groups = collect($entries)->map(function ($e) {
         $e->entry_date = $e->entry_date instanceof Carbon ? $e->entry_date : Carbon::parse($e->entry_date);
         return $e;
-    })->groupBy(function($e){
+    })->groupBy(function ($e) {
         return $e->entry_date->isoWeekYear() . '-KW' . $e->entry_date->isoWeek();
     });
+
+    // Umschulungsstart einmal ermitteln (für alle Wochen identisch)
+    $start = $umschulungStartFromProgramm($user);
+@endphp
+
+@foreach($groups as $groupKey => $weekEntries)
+@php
+    $firstDay = $weekEntries->first()->entry_date;
+    $kw = $kwLabel($firstDay);
+
+    $startEffective = $start ?? $firstDay;
+
+    $ausbildungsnachweisNr = $padNachweis($trainingWeekNo($firstDay, $startEffective));
+    $ausbildungsjahr       = $trainingYearNo($firstDay, $startEffective);
 
     $pImg = $resolveImg($participantSignatureUrl ?? null);
     $tImg = $resolveImg($trainerSignatureUrl ?? null);
 
-    $pDate = !empty($participantSignatureFile?->created_at) ? Carbon::parse($participantSignatureFile->created_at)->format('d.m.Y') : '';
-    $tDate = !empty($trainerSignatureFile?->created_at) ? Carbon::parse($trainerSignatureFile->created_at)->format('d.m.Y') : '';
-@endphp
+    $pDate = !empty($participantSignatureFile?->created_at)
+        ? Carbon::parse($participantSignatureFile->created_at)->format('d.m.Y')
+        : '';
 
-@foreach($groups as $groupKey => $weekEntries)
-@php $firstDay = $weekEntries->first()->entry_date; $kw = $kwLabel($firstDay); @endphp
+    $tDate = !empty($trainerSignatureFile?->created_at)
+        ? Carbon::parse($trainerSignatureFile->created_at)->format('d.m.Y')
+        : '';
+@endphp
 
 <div class="page">
     <div class="h1">Berichtsheft von: <span class="field wide">{{ $participantName }}</span></div>
@@ -382,7 +400,7 @@
                             @if($tImg)
                                 <img class="sig-img" src="{{ $tImg }}" alt="Unterschrift Ausbilder">
                             @endif
-                            
+
                         </td>
                     </tr>
                 </table>
@@ -401,7 +419,7 @@
                             @if($pImg)
                                 <img class="sig-img" src="{{ $pImg }}" alt="Unterschrift Teilnehmer">
                             @endif
-                            
+
                         </td>
                     </tr>
                 </table>
@@ -421,28 +439,43 @@
 @php
     $course = $book->course;
 
-    $ausbildungsnachweisNr = $course->klassen_id ?? ('Kurs #' . ($course->id ?? ''));
-    $ausbildungsjahr = $course->planned_start_date ? Carbon::parse($course->planned_start_date)->format('Y') : now()->format('Y');
     $abteilung = $course->title ?? ($course->klassen_id ?? 'Kurs');
 
-    $entriesAll = collect($book->entries)->map(function($e){
+    $entriesAll = collect($book->entries)->map(function ($e) {
         $e->entry_date = $e->entry_date instanceof Carbon ? $e->entry_date : Carbon::parse($e->entry_date);
         return $e;
     });
 
-    $groups = $entriesAll->groupBy(function($e){
+    $groups = $entriesAll->groupBy(function ($e) {
         return $e->entry_date->isoWeekYear() . '-KW' . $e->entry_date->isoWeek();
     });
+
+    // Hinweis: Falls $book einem anderen Teilnehmer gehört als $user, hier den passenden Bezug nutzen
+    // (z.B. $book->participant / $book->user), damit programmdata korrekt ist.
+    $start = $umschulungStartFromProgramm($user);
 
     $pImg  = $resolveImg($book->participantSignatureUrl ?? null);
     $tImg  = $resolveImg($book->trainerSignatureUrl ?? null);
 
-    $pDate = !empty($book->participantSignatureFile?->created_at) ? Carbon::parse($book->participantSignatureFile->created_at)->format('d.m.Y') : '';
-    $tDate = !empty($book->trainerSignatureFile?->created_at) ? Carbon::parse($book->trainerSignatureFile->created_at)->format('d.m.Y') : '';
+    $pDate = !empty($book->participantSignatureFile?->created_at)
+        ? Carbon::parse($book->participantSignatureFile->created_at)->format('d.m.Y')
+        : '';
+
+    $tDate = !empty($book->trainerSignatureFile?->created_at)
+        ? Carbon::parse($book->trainerSignatureFile->created_at)->format('d.m.Y')
+        : '';
 @endphp
 
 @foreach($groups as $groupKey => $weekEntries)
-@php $firstDay = $weekEntries->first()->entry_date; $kw = $kwLabel($firstDay); @endphp
+@php
+    $firstDay = $weekEntries->first()->entry_date;
+    $kw = $kwLabel($firstDay);
+
+    $startEffective = $start ?? $firstDay;
+
+    $ausbildungsnachweisNr = $padNachweis($trainingWeekNo($firstDay, $startEffective));
+    $ausbildungsjahr       = $trainingYearNo($firstDay, $startEffective);
+@endphp
 
 <div class="page">
     <div class="h1">Berichtsheft von: <span class="field wide">{{ $participantName }}</span></div>
@@ -500,7 +533,7 @@
                             @if($tImg)
                                 <img class="sig-img" src="{{ $tImg }}" alt="Unterschrift Ausbilder">
                             @endif
-                            
+
                         </td>
                     </tr>
                 </table>
@@ -519,7 +552,7 @@
                             @if($pImg)
                                 <img class="sig-img" src="{{ $pImg }}" alt="Unterschrift Teilnehmer">
                             @endif
-                            
+
                         </td>
                     </tr>
                 </table>
