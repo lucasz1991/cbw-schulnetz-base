@@ -36,8 +36,6 @@ class RequestDetailModal extends Component
     public function cancel(): void
     {
         if (!$this->request) return;
-
-        // nur eigene & pending
         if ($this->request->user_id !== Auth::id() || $this->request->status !== 'pending') {
             return;
         }

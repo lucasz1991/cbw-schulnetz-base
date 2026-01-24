@@ -34,7 +34,6 @@ class UserRequests extends Component
 
     public function openCreate(string $type): void
     {
-        // z. B. 'makeup' | 'external_makeup' | 'absence' | 'general'
         $this->dispatch('open-request-form', type: $type);
     }
 
