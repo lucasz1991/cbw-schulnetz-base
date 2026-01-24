@@ -135,6 +135,43 @@
     };
 
     $participantName = $user->name ?? '';
+
+
+    $parseYmdSlash = function (?string $v): ?Carbon {
+$v = trim((string)$v);
+if ($v === '') return null;
+
+
+// Format: "YYYY/MM/DD"
+try { return Carbon::createFromFormat('Y/m/d', $v); } catch (\Throwable $e) {}
+
+
+// notfalls: Carbon parse
+try { return Carbon::parse(str_replace('\/', '/', $v)); } catch (\Throwable $e) {}
+
+
+return null;
+};
+
+
+$umschulungStartFromProgramm = function ($user) use ($parseYmdSlash): ?Carbon {
+$pd = data_get($user, 'person.programmdata', []);
+$baust = collect(data_get($pd, 'tn_baust', []));
+
+
+$min = $baust
+->map(fn ($b) => $parseYmdSlash(data_get($b, 'beginn_baustein')))
+->filter()
+->sort()
+->first();
+
+
+if ($min) return $min;
+
+
+// Fallback: vertrag_beginn
+return $parseYmdSlash(data_get($pd, 'vertrag_beginn'));
+};
 @endphp
 
 
@@ -146,8 +183,29 @@
     $d = $entry->entry_date instanceof Carbon ? $entry->entry_date : Carbon::parse($entry->entry_date);
     $kw = $kwLabel($d);
 
-    $ausbildungsnachweisNr = $course->klassen_id ?? ('Kurs #' . ($course->id ?? ''));
-    $ausbildungsjahr = $course->planned_start_date ? Carbon::parse($course->planned_start_date)->format('Y') : $d->format('Y');
+    $start = $umschulungStartFromProgramm($user) ?? $d; // $d = Entry-Datum
+
+
+    $trainingWeekNo = function (Carbon $entryDate, Carbon $startDate) {
+    $startWeek = $startDate->copy()->startOfWeek(Carbon::MONDAY);
+    $entryWeek = $entryDate->copy()->startOfWeek(Carbon::MONDAY);
+    return max(1, $startWeek->diffInWeeks($entryWeek) + 1);
+    };
+
+
+    $trainingYearNo = function (Carbon $entryDate, Carbon $startDate) {
+    $months = $startDate->copy()->startOfDay()->diffInMonths($entryDate->copy()->startOfDay());
+    return max(1, min(2, intdiv($months, 12) + 1));
+    };
+
+
+    $padNachweis = fn (int $n) => str_pad((string)$n, 2, '0', STR_PAD_LEFT);
+
+
+    // für die jeweilige Seite/Woche:
+    $ausbildungsnachweisNr = $padNachweis($trainingWeekNo($firstDay /* oder $d */, $start));
+    $ausbildungsjahr = $trainingYearNo($firstDay /* oder $d */, $start);
+
     $abteilung = $course->title ?? ($course->klassen_id ?? 'Kurs');
 
     $pImg = $resolveImg($participantSignatureUrl ?? null);
