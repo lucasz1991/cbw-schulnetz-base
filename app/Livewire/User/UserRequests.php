@@ -11,8 +11,8 @@ class UserRequests extends Component
 {
     use WithPagination;
 
-    public string $filterStatus = 'all';        // all|pending|approved|rejected|canceled|in_review
-    public string $filterType   = 'all';        // all|makeup|external_makeup|absence|general
+    public string $filterStatus = 'all';
+    public string $filterType   = 'all';
     public string $search       = '';
     public int $perPage         = 10;
 

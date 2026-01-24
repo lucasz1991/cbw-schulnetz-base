@@ -348,12 +348,13 @@ class UserRequest extends Model
         // [ 123 => ['institut_id' => 123, 'email' => '...'], ... ]
         $institutions = $assets->getInstitutionsInfos(true);
 
-
+        
         if (! isset($institutions[$institutId])) {
+            log::warning("UVS-Institut mit ID {$institutId} nicht gefunden.");
             return null;
         }
-
         $inst = $institutions[$institutId];
+        log::info("UVS-Institut E-Mail für ID {$institutId}: " . ($inst['email'] ?? 'nicht gesetzt'));
 
         // Falls dein Feld anders heißt (z.B. 'mail' oder 'email1'), hier anpassen:
         return $inst['email'] ?? null;

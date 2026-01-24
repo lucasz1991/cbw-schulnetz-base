@@ -1,10 +1,8 @@
 <div>
   <section class="bg-slate-100 border-t border-slate-200 overflow-x-hidden">
     <div class="container mx-auto px-5 py-12">
-
       <div class="flex items-center justify-between gap-4 mb-8">
         <h3 class="text-lg font-semibold text-gray-900">Weitere Bausteine</h3>
-
         <div class="flex items-center gap-2">
           @if($prev)
             <x-buttons.button-basic :size="'sm'"
@@ -18,7 +16,6 @@
           @endif
         </div>
       </div>
-
       {{-- SWIPER WRAPPER (Funktionalität unverändert) --}}
       <div
         x-data="{
@@ -39,16 +36,13 @@
                 1024:{ spaceBetween: 24 },
               }
             });
-
-            // ⬇️ AKTUELLEN SLIDE FINDEN & ZENTRIEREN
             this.$nextTick(() => {
               const slides = [...this.$refs.coursesSwiper.querySelectorAll('.swiper-slide')];
               const currentIndex = slides.findIndex(
                 slide => slide.dataset.current === '1'
               );
-
               if (currentIndex >= 0) {
-                this.swiper.slideTo(currentIndex, 0); // sofort zentrieren
+                this.swiper.slideTo(currentIndex, 0);
               }
             });
           }
@@ -57,7 +51,6 @@
         class="relative"
         wire:ignore
       >
-
         <div class="swiper overflow-visible h-full" x-ref="coursesSwiper">
           <div class="swiper-wrapper h-full">
 
