@@ -346,7 +346,11 @@ class UserRequest extends Model
             return null;
         }
         $inst = $institutions[$institutId];
-        log::info("UVS-Institut E-Mail für ID {$institutId}: " . ($inst['email'] ?? 'nicht gesetzt'));
-        return $inst['email'] ?? null;
+        $email = $inst['email'] ?? null;
+        if ($email) {
+            $email = str_replace('info@', 'schulnetz@', $email);
+        }
+        log::info("UVS-Institut E-Mail für ID {$institutId}: " . ($email ?? 'nicht gesetzt'));
+        return $email;
     }
 }
