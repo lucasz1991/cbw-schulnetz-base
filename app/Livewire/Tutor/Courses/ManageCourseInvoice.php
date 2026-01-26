@@ -16,15 +16,15 @@ class ManageCourseInvoice extends Component
     public Course $course;
 
     public bool $openInvoiceForm = false;
-    public $invoiceUpload = null;       
-    public ?string $invoiceExpires = null; 
+    public $invoiceUpload = null;
+    public ?string $invoiceExpires = null;
 
     public bool $openPreview = false;
 
     protected function rules(): array
     {
         return [
-            'invoiceUpload'   => 'nullable|file|mimetypes:application/pdf|max:30720', 
+            'invoiceUpload'   => 'nullable|file|mimetypes:application/pdf|max:30720',
             'invoiceExpires'  => ['nullable', 'date'],
         ];
     }
@@ -52,18 +52,38 @@ class ManageCourseInvoice extends Component
         $this->course = $course;
     }
 
+    public function getCanUploadInvoiceProperty(): bool
+    {
+        $this->course->refresh();
+
+        return $this->course->isReadyForInvoice();
+    }
+
     public function getInvoiceFileProperty(): ?File
     {
         return $this->course->files()
-            ->where('type', 'invoice') 
+            ->where('type', 'invoice')
             ->latest('id')
             ->first();
     }
 
+    public function openInvoiceDialog(): void
+    {
+        if (! $this->canUploadInvoice) {
+            $this->dispatch('toast', type:'error', message:'Bitte zuerst Kursdaten (z. B. Roter Faden & Prüfungsergebnisse) vollständig pflegen.');
+            return;
+        }
+
+        $this->openInvoiceForm = true;
+    }
+
     public function openPreview(): void
     {
-        if ($this->invoiceFile) $this->openPreview = true;
+        if ($this->invoiceFile) {
+            $this->openPreview = true;
+        }
     }
+
     public function closePreview(): void
     {
         $this->openPreview = false;
@@ -73,7 +93,12 @@ class ManageCourseInvoice extends Component
     {
         $this->validate();
 
-        if (!$this->invoiceUpload) {
+        if (! $this->canUploadInvoice) {
+            $this->dispatch('toast', type:'error', message:'Rechnungen können erst nach vollständiger Kursdokumentation hochgeladen werden.');
+            return;
+        }
+
+        if (! $this->invoiceUpload) {
             $this->dispatch('toast', type:'error', message:'Bitte eine PDF-Datei auswählen.');
             return;
         }
@@ -91,9 +116,9 @@ class ManageCourseInvoice extends Component
             'name'       => $this->invoiceUpload->getClientOriginalName(),
             'path'       => $path,
             'mime_type'  => 'application/pdf',
-            'type'       => 'invoice',        
+            'type'       => 'invoice',
             'size'       => $this->invoiceUpload->getSize(),
-            'expires_at' => null,              
+            'expires_at' => null,
         ]);
 
         $this->reset(['invoiceUpload', 'invoiceExpires', 'openInvoiceForm']);
@@ -104,7 +129,10 @@ class ManageCourseInvoice extends Component
 
     public function removeInvoice(): void
     {
-        if (!$this->invoiceFile) return;
+        if (! $this->invoiceFile) {
+            return;
+        }
+
         $this->deleteFileRecord($this->invoiceFile);
         $this->invoiceFile = null;
         $this->dispatch('toast', type:'success', message:'Rechnung entfernt.');
@@ -115,8 +143,9 @@ class ManageCourseInvoice extends Component
         try {
             Storage::disk('private')->delete($file->path);
         } catch (\Throwable $e) {
-          
+            // ignore missing file
         }
+
         $file->delete();
     }
 
@@ -138,6 +167,7 @@ class ManageCourseInvoice extends Component
     {
         return view('livewire.tutor.courses.manage-course-invoice', [
             'invoice' => $this->invoiceFile,
+            'canUploadInvoice' => $this->canUploadInvoice,
         ]);
     }
 }

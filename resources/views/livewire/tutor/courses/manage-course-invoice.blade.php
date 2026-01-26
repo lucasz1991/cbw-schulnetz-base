@@ -1,5 +1,5 @@
 <div class="space-y-4 pt-6">
-    @if(!$invoice)
+    @if(!$invoice && !$canUploadInvoice)
       <x-alert class="bg-yellow-50 border border-yellow-800 text-yellow-800 rounded mb-6">
         <p class="text-sm leading-snug">
           Sobald alle Kursinhalte erfasst sind – z.&nbsp;B. <span class="font-medium">Roter Faden</span> und 
@@ -26,7 +26,6 @@
         </div>
         <div class="flex items-center flex-wrap gap-2">
         <x-buttons.btn-group.btn-group>
-            {{-- Öffnen (disabled falls keine Rechnung vorhanden) --}}
             <x-buttons.btn-group.btn-group-item
                 href="{{ $invoice?->getEphemeralPublicUrl(10) }}"
                 target="_blank"
@@ -40,7 +39,6 @@
             Öffnen
             </x-buttons.btn-group.btn-group-item>
 
-            {{-- Entfernen (disabled falls keine Rechnung vorhanden) --}}
             <x-buttons.btn-group.btn-group-item
                 wire:click="removeInvoice"
                 :disabled="!$invoice"
@@ -55,9 +53,8 @@
             Entfernen
             </x-buttons.btn-group.btn-group-item>
 
-            {{-- Ersetzen / Hochladen (öffnet dein Upload-Modal) --}}
             <x-buttons.btn-group.btn-group-item
-                wire:click="$set('openInvoiceForm', true)"
+                wire:click="openInvoiceDialog"
             >
             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 aspect-square mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
@@ -71,8 +68,9 @@
   @else
     <div class="flex items-center justify-between">
         <p class="text-gray-600 text-sm">Es ist noch keine Rechnung hinterlegt.</p>
-        <button  wire:click="$toggle('openInvoiceForm')"
-                class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 text-sm">
+        <button  wire:click="openInvoiceDialog"
+                @disabled(!$canUploadInvoice)
+                class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 text-sm disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed">
         PDF hochladen
         </button>
     </div>

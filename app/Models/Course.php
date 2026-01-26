@@ -181,6 +181,48 @@ class Course extends Model
 
     /*
     |--------------------------------------------------------------------------
+    | Business Logic
+    |--------------------------------------------------------------------------
+    */
+    public function hasRoterFaden(): bool
+    {
+        return $this->files()
+            ->where('type', 'roter_faden')
+            ->exists();
+    }
+
+    public function hasResultsForAllParticipants(): bool
+    {
+        $participantIds = $this->participants()
+            ->pluck('persons.id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        if (empty($participantIds)) {
+            return false;
+        }
+
+        $withResults = CourseResult::query()
+            ->where('course_id', $this->id)
+            ->whereIn('person_id', $participantIds)
+            ->where(function ($q) {
+                $q->whereNotNull('result')
+                    ->orWhereNotNull('status');
+            })
+            ->pluck('person_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        return empty(array_diff($participantIds, $withResults));
+    }
+
+    public function isReadyForInvoice(): bool
+    {
+        return $this->hasRoterFaden() && $this->hasResultsForAllParticipants();
+    }
+
+    /*
+    |--------------------------------------------------------------------------
     | Beziehungen
     |--------------------------------------------------------------------------
     */
