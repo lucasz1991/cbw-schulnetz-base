@@ -86,7 +86,7 @@ class Absences extends Component
             'klasse'      => ['required','string','max:12'],
 
             // Für <input type="date">:
-            'fehlDatum'   => ['required','date','date_format:Y-m-d','after_or_equal:today'],
+            'fehlDatum'   => ['required','date','date_format:Y-m-d'],
 
             // Wenn Vergangenheit erlaubt sein soll (stattdessen):
             // 'fehlDatum' => ['required','date','date_format:Y-m-d','before_or_equal:today'],
