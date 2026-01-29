@@ -411,8 +411,18 @@ class File extends Model
 
     public function getEphemeralPublicUrl(int $minutes = 10): string
     {
+        $disk      = $this->disk ?: 'private';
+        $path      = (string) $this->path;
+
+        // Bei public-Dateien direkt den URL zurückgeben – keine temporäre Kopie nötig
+        if ($disk === 'public') {
+            return $path && Storage::disk('public')->exists($path)
+                ? Storage::disk('public')->url($path)
+                : '';
+        }
+
         $publicDisk = 'public';
-        $sourceDisk = 'private';
+        $sourceDisk = $disk ?: 'private';
         $cacheKey   = "file:{$this->getKey()}:temp_url";
         $cached = Cache::get($cacheKey);
 
