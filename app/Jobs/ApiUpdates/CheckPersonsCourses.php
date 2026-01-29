@@ -54,7 +54,7 @@ class CheckPersonsCourses implements ShouldQueue, ShouldBeUniqueUntilProcessing
 
         $writeLog = function (string $level = 'info') use (&$log) {
             $log['messages'] = array_values(array_unique($log['messages']));
-            Log::$level('CheckPersonsCourses summary', $log);
+            // Log::$level('CheckPersonsCourses summary', $log);
         };
 
         $person = Person::find($this->personPk);

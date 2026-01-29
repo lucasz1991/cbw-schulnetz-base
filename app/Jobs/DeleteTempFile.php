@@ -34,7 +34,7 @@ class DeleteTempFile implements ShouldQueue
     {
         if (Storage::disk($this->disk)->exists($this->path)) {
             Storage::disk($this->disk)->delete($this->path);
-            Log::info("Temporäre Datei gelöscht: {$this->path}");
+            // Log::info("Temporäre Datei gelöscht: {$this->path}");
         }
     }
 }

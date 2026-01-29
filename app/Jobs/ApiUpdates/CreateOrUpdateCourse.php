@@ -63,7 +63,7 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
         // Helper zum finalen Loggen
         $writeLog = function (string $level = 'info') use (&$log) {
             $log['messages'] = array_values(array_unique($log['messages']));
-            Log::$level('CreateOrUpdateCourse summary', $log);
+            // Log::$level('CreateOrUpdateCourse summary', $log);
         };
 
         if (empty($this->klassenId)) {
