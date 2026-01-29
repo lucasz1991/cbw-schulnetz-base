@@ -21,6 +21,7 @@ class File extends Model
         'user_id',
         'name',
         'path',
+        'disk',
         'mime_type',
         'type',
         'size',
