@@ -24,7 +24,7 @@
   x-init="
     const payload = @js($pendingRequiredRating ?? []);
     if (payload.course_id) {
-      $dispatch('open-course-rating-required-modal', payload);
+      $dispatch('open-course-rating-required-modal',[ payload]);
     }
   "
 ></div>
@@ -600,7 +600,7 @@
                 <x-buttons.button-basic
                   :size="'sm'"
                   class="!rounded-xl"
-                  @click="$dispatch('open-course-rating-modal', { course_id: '{{ $aktuellesModul['klassen_id'] }}' });isClicked = true; setTimeout(() => isClicked = false, 100)"
+                  @click="$dispatch('open-course-rating-modal', [{ course_id: '{{ $aktuellesModul['klassen_id'] }}' }]);isClicked = true; setTimeout(() => isClicked = false, 100)"
                 >
                   Bewerten
                   <i class="fa fa-star text-[18px] text-slate-300 ml-2 hover:text-yellow-400 animate-pulse"></i>

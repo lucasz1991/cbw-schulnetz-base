@@ -181,17 +181,14 @@ class CourseRatingFormModal extends Component
 
 
     public function open(array $payload = []): void
-    {
-        if (empty($payload['course_id'])) {
-            return;
-        }
+    {   
         $this->resetValidation();
 
         // „Normaler“ Modus: nicht erzwungen
         $this->isRequired = false;
 
         $this->courseId = $payload['course_id'] ?? null;
-        $this->course   = Course::where('klassen_id', $this->courseId)->first();
+        $this->course   = $this->resolveCourse($this->courseId);
         if (!$this->course) {
             return;
         }
@@ -213,15 +210,12 @@ class CourseRatingFormModal extends Component
 
     #[On('open-course-rating-required-modal')]
     public function openRequired(array $payload = []): void
-    {
-        if (empty($payload['course_id'])) {
-            return;
-        }
+    {   
         $this->resetValidation();
 
         $this->isRequired = true;
         $this->courseId = $payload['course_id'] ?? null;
-        $this->course   = Course::where('klassen_id', $this->courseId)->first();
+        $this->course   = $this->resolveCourse($this->courseId);
         if (!$this->course) {
             // Kurs nicht gefunden: Required-Modus deaktivieren
             $this->isRequired = false;
@@ -236,6 +230,13 @@ class CourseRatingFormModal extends Component
 
         $this->prefillIfExisting();
         $this->showModal = true;
+    }
+
+    protected function resolveCourse($id): ?Course
+    {
+        if (!$id) return null;
+        // fallback: klassen_id
+        return Course::where('klassen_id', $id)->first();
     }
 
     public function updatedShowModal($open): void

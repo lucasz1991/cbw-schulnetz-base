@@ -222,7 +222,7 @@ class ProgramShow extends Component
     $this->aktuellesModul = $strip($aktuellesModul ? (array) $aktuellesModul : null);
     $this->naechstesModul = $strip($naechstesModul ? (array) $naechstesModul : null);
 
-    $this->currentProgress = $this->calcCurrentProgress($this->aktuellesModul);
+        $this->currentProgress = $this->calcCurrentProgress($this->aktuellesModul);
 
     // ---------- Summen ----------
     $summen = $raw['summen'] ?? [];
@@ -337,7 +337,7 @@ class ProgramShow extends Component
     )->all();                                                               // ["Modul · 03.10.", ...]
     $this->bausteinColors = array_fill(0, count($this->bausteinSerie), '#2b5c9e'); // optional: einfarbig
 
-    // ----------  Wichtig: heute letzter Kurstag? ----------
+        // ----------  Wichtig: heute letzter Kurstag? ----------
         if ($this->aktuellesModul) {
             $ende = $this->toCarbon($this->aktuellesModul['ende']);
 
@@ -354,8 +354,20 @@ class ProgramShow extends Component
             $this->hasCurrentCourseRating = false;
         }
 
-    
-}
+        
+    }
+
+    public function hydrate(): void
+    {
+        if (!empty($this->pendingRequiredRating['course_id'])) {
+            $this->dispatch(
+                'open-course-rating-required-modal',
+                course_id: $this->pendingRequiredRating['course_id']
+            );
+            // Nur einmal senden
+            $this->pendingRequiredRating = [];
+        }
+    }
 
 private function checkHasRatingForModule(?array $modul): bool
 {
