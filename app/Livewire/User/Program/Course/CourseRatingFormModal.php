@@ -8,6 +8,7 @@ use App\Models\CourseRating;
 use Illuminate\Validation\ValidationException;
 use App\Models\Course;
 use App\Models\CourseDay;
+use Livewire\Attributes\On;
 
 class CourseRatingFormModal extends Component
 {
@@ -203,12 +204,13 @@ class CourseRatingFormModal extends Component
      * Required-Variante: kann nicht „einfach so“ geschlossen werden,
      * solange noch keine Bewertung existiert.
      */
+
+    #[On('open-course-rating-required-modal')]
     public function openRequired(array $payload = []): void
     {
         $this->resetValidation();
 
         $this->isRequired = true;
-
         $this->courseId = $payload['course_id'] ?? null;
         $this->course   = Course::where('klassen_id', $this->courseId)->first();
         $this->classId  = $payload['class_id'] ?? null;

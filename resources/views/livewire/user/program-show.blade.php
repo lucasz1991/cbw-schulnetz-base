@@ -16,7 +16,18 @@
         </div>
     @else
   <livewire:user.program.program-pdf-modal lazy />
-  <livewire:user.program.course.course-rating-form-modal />
+<livewire:user.program.course.course-rating-form-modal />
+
+{{-- Client-seitiger Trigger für required Modal (nach Hydration) --}}
+<div
+  x-data
+  x-init="
+    const payload = @js($pendingRequiredRating ?? []);
+    if (payload.course_id) {
+      $dispatch('open-course-rating-required-modal', payload);
+    }
+  "
+></div>
 
   <section class="relative space-y-6">
     <div class="mt-8">
@@ -589,8 +600,7 @@
                 <x-buttons.button-basic
                   :size="'sm'"
                   class="!rounded-xl"
-                  @click="$dispatch('open-course-rating-modal', [{ course_id: '{{ $aktuellesModul['klassen_id'] }}' }]);isClicked = true; setTimeout(() => isClicked = false, 100)"
-                  @dblclick="$dispatch('open-course-rating-required-modal', { course_id: '{{ $aktuellesModul['klassen_id'] }}' });isClicked = true; setTimeout(() => isClicked = false, 100)"
+                  @click="$dispatch('open-course-rating-modal', { course_id: '{{ $aktuellesModul['klassen_id'] }}' });isClicked = true; setTimeout(() => isClicked = false, 100)"
                 >
                   Bewerten
                   <i class="fa fa-star text-[18px] text-slate-300 ml-2 hover:text-yellow-400 animate-pulse"></i>

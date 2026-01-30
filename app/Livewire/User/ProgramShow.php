@@ -36,6 +36,7 @@ class ProgramShow extends Component
     public int $currentProgress = 0;
 
     public bool $hasCurrentCourseRating = false;
+    public array $pendingRequiredRating = [];
 
 
     public array $excludeFromProgress = ['FERI', 'PRAK', 'PRUE']; // alles, was nicht als Kurs zählt
@@ -337,22 +338,21 @@ class ProgramShow extends Component
     $this->bausteinColors = array_fill(0, count($this->bausteinSerie), '#2b5c9e'); // optional: einfarbig
 
     // ----------  Wichtig: heute letzter Kurstag? ----------
-    if ($this->aktuellesModul) {
-        $ende = $this->toCarbon($this->aktuellesModul['ende']);
+        if ($this->aktuellesModul) {
+            $ende = $this->toCarbon($this->aktuellesModul['ende']);
 
-        // zuerst prüfen, ob schon eine Bewertung existiert
-        $this->hasCurrentCourseRating = $this->checkHasRatingForModule($this->aktuellesModul);
+            // zuerst prüfen, ob schon eine Bewertung existiert
+            $this->hasCurrentCourseRating = $this->checkHasRatingForModule($this->aktuellesModul);
 
-        // Nur wenn heute letzter Tag UND noch keine Bewertung → Modal erzwingen
-        if ($ende && $ende->isToday() && ! $this->hasCurrentCourseRating) {
-            $this->dispatch(
-                'open-course-rating-required-modal',
-                course_id: $this->aktuellesModul['baustein_id'],
-            );
+            // Nur wenn heute letzter Tag UND noch keine Bewertung → Modal erzwingen
+            if ($ende && $ende->isToday() && ! $this->hasCurrentCourseRating) {
+                $this->pendingRequiredRating = [
+                    'course_id' => $this->aktuellesModul['klassen_id'],
+                ];
+            }
+        } else {
+            $this->hasCurrentCourseRating = false;
         }
-    } else {
-        $this->hasCurrentCourseRating = false;
-    }
 
     
 }
