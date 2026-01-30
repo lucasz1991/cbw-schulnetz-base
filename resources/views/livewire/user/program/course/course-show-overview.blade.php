@@ -1,7 +1,7 @@
 <div class="">
 
   <section class="container mx-auto px-5 py-10">
-    @if(!$hasCurrentCourseRating)
+    @if(!$hasCurrentCourseRating && !empty($course['end']) && \Illuminate\Support\Carbon::parse($course['end'])->lt(now()))
       <div class="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 flex flex-wrap items-center gap-3">
         <div class="flex items-center gap-2">
           <span class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-amber-600 border border-amber-200">
@@ -16,7 +16,7 @@
         <x-buttons.button-basic
           :size="'sm'"
           class="!rounded-xl"
-          @click="$dispatch('open-course-rating-modal',[ { course_id: '{{ $klassenId }}' }]);"
+          @click="$dispatch('open-course-rating-modal', { course_id: '{{ $klassenId }}' });"
         >
           Jetzt bewerten
                   <i class="fa fa-star text-[18px] text-slate-300 ml-2 hover:text-yellow-400 animate-pulse"></i>
