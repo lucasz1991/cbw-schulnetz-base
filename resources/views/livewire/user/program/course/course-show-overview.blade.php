@@ -16,7 +16,7 @@
         <x-buttons.button-basic
           :size="'sm'"
           class="!rounded-xl"
-          @click="$dispatch('open-course-rating-modal', { course_id: '{{ $klassenId }}' });"
+          @click="$dispatch('open-course-rating-modal',[{ course_id: '{{ $klassenId }}' }]);"
         >
           Jetzt bewerten
                   <i class="fa fa-star text-[18px] text-slate-300 ml-2 hover:text-yellow-400 animate-pulse"></i>
