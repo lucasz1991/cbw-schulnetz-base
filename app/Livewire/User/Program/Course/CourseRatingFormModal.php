@@ -182,6 +182,9 @@ class CourseRatingFormModal extends Component
 
     public function open(array $payload = []): void
     {
+        if (empty($payload['course_id'])) {
+            return;
+        }
         $this->resetValidation();
 
         // „Normaler“ Modus: nicht erzwungen
@@ -211,6 +214,9 @@ class CourseRatingFormModal extends Component
     #[On('open-course-rating-required-modal')]
     public function openRequired(array $payload = []): void
     {
+        if (empty($payload['course_id'])) {
+            return;
+        }
         $this->resetValidation();
 
         $this->isRequired = true;
