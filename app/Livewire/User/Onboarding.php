@@ -5,6 +5,7 @@ namespace App\Livewire\User;
 use App\Models\OnboardingVideo;
 use App\Models\OnboardingVideoView;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Collection;
 use Livewire\Component;
 
 class Onboarding extends Component
@@ -14,11 +15,15 @@ class Onboarding extends Component
 
     public function mount(): void
     {
-        $this->selectedVideoId = OnboardingVideo::query()
-            ->active()
-            ->currentlyValid()
-            ->orderBy('sort_order')
-            ->value('id');
+        $items = $this->filterVideos(
+            OnboardingVideo::query()
+                ->active()
+                ->currentlyValid()
+                ->orderBy('sort_order')
+                ->get()
+        );
+
+        $this->selectedVideoId = $items->value('id');
 
         $this->hydrateStartTime();
     }
@@ -127,11 +132,13 @@ public function markCompleted(int $videoId, int $duration = 0): void
     {
         $userId = $this->resolveUserId();
 
-        $items = OnboardingVideo::query()
-            ->active()
-            ->currentlyValid()
-            ->orderBy('sort_order')
-            ->get();
+        $items = $this->filterVideos(
+            OnboardingVideo::query()
+                ->active()
+                ->currentlyValid()
+                ->orderBy('sort_order')
+                ->get()
+        );
 
         $viewsById = collect();
         if ($userId) {
@@ -174,5 +181,24 @@ public function markCompleted(int $videoId, int $duration = 0): void
             'videos' => $list,
             'selected' => $selected,
         ])->layout('layouts.app');
+    }
+
+    protected function filterVideos(Collection $items): Collection
+    {
+        $isEducation = Auth::user()?->person?->isEducation();
+
+        return $items->filter(function (OnboardingVideo $video) use ($isEducation) {
+            $type = $video->setting('type');
+
+            if ($type === null || $type === '') {
+                return true;
+            }
+
+            return match ($type) {
+                'umschulung'    => $isEducation === false,
+                'weiterbildung' => $isEducation === true,
+                default         => false,
+            };
+        })->values();
     }
 }
