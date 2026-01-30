@@ -95,7 +95,7 @@
                         <div class="px-6 py-5 border-b border-slate-100 flex items-start justify-between gap-4">
                             <div class="min-w-0">
                                 <div class="text-lg font-semibold text-slate-900 truncate">
-                                    {{ $selected['title'] ?? 'Inhalt auswählen' }}
+                                    {{ $selected['title'] ?? '' }}
                                 </div>
 
                                 @if(($selected['progress']['is_completed'] ?? false) === true)
@@ -107,9 +107,7 @@
                                         Status: teilweise gesehen
                                     </div>
                                 @else
-                                    <div class="mt-1 text-sm text-slate-600">
-                                        Status: noch nicht begonnen
-                                    </div>
+                                  
                                 @endif
 
                                 @if(($startAtSeconds ?? 0) > 2 && (($selected['progress']['is_completed'] ?? false) === false) && !($selected['is_pdf'] ?? false))
@@ -222,7 +220,7 @@
                                 </div>
                             @else
                                 <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                                    Kein Element ausgewählt.
+                                    Leider wurde bisher noch kein Inhalt zur Verfügung gestellt.
                                 </div>
                             @endif
                         </div>
