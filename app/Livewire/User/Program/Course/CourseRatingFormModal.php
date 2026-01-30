@@ -213,6 +213,10 @@ class CourseRatingFormModal extends Component
         $this->isRequired = true;
         $this->courseId = $payload['course_id'] ?? null;
         $this->course   = Course::where('klassen_id', $this->courseId)->first();
+        if (!$this->course) {
+            // Kurs nicht gefunden: Required-Modus deaktivieren
+            $this->isRequired = false;
+        }
         $this->classId  = $payload['class_id'] ?? null;
         $this->tutorId  = $payload['tutor_id'] ?? null;
 
