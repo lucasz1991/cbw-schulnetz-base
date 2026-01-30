@@ -1,5 +1,28 @@
 <div class="">
+
   <section class="container mx-auto px-5 py-10">
+    @if(!$hasCurrentCourseRating)
+      <div class="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 flex flex-wrap items-center gap-3">
+        <div class="flex items-center gap-2">
+          <span class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-amber-600 border border-amber-200">
+            <i class="fal fa-star text-lg"></i>
+          </span>
+          <div class="text-sm">
+            <div class="font-semibold text-amber-900">Bewertung ausstehend</div>
+            <div class="text-amber-800/90">Bitte bewerte diesen Baustein.</div>
+          </div>
+        </div>
+        <div class="flex-1"></div>
+        <x-buttons.button-basic
+          :size="'sm'"
+          class="!rounded-xl"
+          @click="$dispatch('open-course-rating-modal',[ { course_id: '{{ $klassenId }}' }]);"
+        >
+          Jetzt bewerten
+                  <i class="fa fa-star text-[18px] text-slate-300 ml-2 hover:text-yellow-400 animate-pulse"></i>
+        </x-buttons.button-basic>
+      </div>
+    @endif
     <div class="flex flex-wrap items-start justify-between gap-4">
 
       {{-- Status --}}

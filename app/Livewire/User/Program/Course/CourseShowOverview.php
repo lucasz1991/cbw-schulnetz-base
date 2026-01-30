@@ -8,6 +8,7 @@ use Illuminate\Support\Carbon;
 use App\Models\Course;
 use App\Models\Person;
 use App\Models\CourseParticipantEnrollment;
+use App\Models\CourseRating;
 use Illuminate\Support\Collection;
 
 class CourseShowOverview extends Component
@@ -22,6 +23,7 @@ class CourseShowOverview extends Component
 
     public ?float $participantScore = null; // Dein Ergebnis (Ø tn_punkte > 0)
     public ?float $classAverage     = null; // Klassenschnitt (Ø klassenschnitt > 0)
+    public bool $hasCurrentCourseRating = false;
 
     protected function safeAvg(Collection $c, string $key): ?float
     {
@@ -78,6 +80,10 @@ class CourseShowOverview extends Component
 
         $this->tutor = $course->tutor;
         $this->participantsCount = (int) ($course->participantsCount ?? 0);
+        $this->hasCurrentCourseRating = CourseRating::query()
+            ->where('user_id', Auth::id())
+            ->where('course_id', $course->id)
+            ->exists();
 
         $this->stats = [
             'tage'      => $course->days->count(),
@@ -126,3 +132,4 @@ class CourseShowOverview extends Component
         return view('livewire.user.program.course.course-show-overview');
     }
 }
+
