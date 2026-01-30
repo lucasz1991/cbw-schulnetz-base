@@ -10,7 +10,6 @@
     <main class="relative z-10 container mx-auto px-5 md:px-10 pt-8 pb-14">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-            {{-- LIST --}}
             <aside class="lg:col-span-4" data-aos="fade-up">
                 <div class="rounded-3xl p-[1px] bg-gradient-to-br from-blue-400 via-emerald-300 to-blue-200 shadow-[0_18px_60px_-40px_rgba(15,23,42,0.35)]">
                     <div class="rounded-3xl bg-white border border-white/60 overflow-hidden">
@@ -152,7 +151,6 @@
 
                                     </div>
 
-                                {{-- VIDEO --}}
                                 @else
                                     <div
                                         x-data="{
