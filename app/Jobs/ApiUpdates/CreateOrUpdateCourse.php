@@ -30,7 +30,7 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
     public $backoff = [10, 60, 180];
 
     /** Cooldown: innerhalb dieses Fensters nicht erneut syncen */
-    private const COOLDOWN_MINUTES = 10;
+    private const COOLDOWN_MINUTES = 20;
 
     public function __construct(string $klassenId)
     {
