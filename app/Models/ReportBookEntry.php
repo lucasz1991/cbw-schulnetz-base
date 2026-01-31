@@ -61,8 +61,7 @@ class ReportBookEntry extends Model
                 return;
             }
 
-            CheckReportBooks::dispatch([$bookId])
-                ->delay(now()->addMinutes(5));
+           // CheckReportBooks::dispatch([$bookId])->delay(now()->addMinutes(5));
         });
     }
 
