@@ -16,7 +16,7 @@ class Person extends Model
 
     protected $table = 'persons';
 
-    public const API_UPDATE_COOLDOWN_MINUTES = 15;
+    public const API_UPDATE_COOLDOWN_MINUTES = 30;
 
     protected $fillable = [
         'user_id',

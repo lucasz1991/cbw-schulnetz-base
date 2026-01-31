@@ -5,8 +5,6 @@ namespace App\Jobs\ApiUpdates;
 use App\Models\Person;
 use App\Services\ApiUvs\ApiUvsService;
 use App\Jobs\ApiUpdates\CheckPersonsCourses;
-
-
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -14,19 +12,23 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 
 class PersonApiUpdate implements ShouldQueue, ShouldBeUnique
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
     public $tries = 3;
     public $backoff = [10, 60, 180];
 
+    /** Cooldown: innerhalb dieses Fensters nicht erneut syncen */
+    private const COOLDOWN_MINUTES = 20;
+
     // ← Constructor Property Promotion: garantiert initialisiert
-    public function __construct(public int $personPk) 
+    public function __construct(public int $personPk)
     {
         $this->personPk = $personPk;
     }
-
 
     public function uniqueId(): string
     {
@@ -47,6 +49,17 @@ class PersonApiUpdate implements ShouldQueue, ShouldBeUnique
             return;
         }
 
+        // COOLDOWN über Cache, verhindert exzessive UVS-Calls pro Person
+        $cacheKey = "person-sync-cooldown:{$person->person_id}";
+        if (!Cache::add($cacheKey, now()->toDateTimeString(), now()->addMinutes(self::COOLDOWN_MINUTES))) {
+            Log::info('PersonApiUpdate: Cooldown aktiv, überspringe Sync.', [
+                'person_id'   => $person->person_id,
+                'last_run_at' => Cache::get($cacheKey),
+                'cooldown_m'  => self::COOLDOWN_MINUTES,
+            ]);
+            return;
+        }
+
         // 1) Status
         $statusResp = $api->getPersonStatus($person->person_id) ?? null;
         $statusData = $statusResp['data']['data'] ?? null;
@@ -64,7 +77,7 @@ class PersonApiUpdate implements ShouldQueue, ShouldBeUnique
             if ($quali_data) {
                 $programData = $quali_data;
             } else {
-                Log::info("No Qualiprogram data found for person_id {$person->person_id }. API response: " . json_encode($apiResponse));
+                Log::info("No Qualiprogram data found for person_id {$person->person_id}. API response: " . json_encode($apiResponse));
             }
         } else {
             $apiResponse = $api->getTutorProgramDataByPersonId($person->person_id);
@@ -77,10 +90,9 @@ class PersonApiUpdate implements ShouldQueue, ShouldBeUnique
             if ($program_data) {
                 $programData = $program_data;
             } else {
-                Log::info("No Tutor program data found for person_id {$person->person_id }. API response: " . json_encode($apiResponse));
+                Log::info("No Tutor program data found for person_id {$person->person_id}. API response: " . json_encode($apiResponse));
             }
         }
-
 
         // 3) Persist
         $person->fill([
@@ -91,6 +103,7 @@ class PersonApiUpdate implements ShouldQueue, ShouldBeUnique
             'programdata'     => $programData ?? null,
             'last_api_update' => now(),
         ])->save();
+
         if ($person->user_id != null) {
             CheckPersonsCourses::dispatch($person->id);
         }
