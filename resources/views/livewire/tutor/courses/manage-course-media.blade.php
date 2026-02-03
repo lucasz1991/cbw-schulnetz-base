@@ -98,9 +98,7 @@
             <x-slot name="title">Roter Faden (PDF) hochladen</x-slot>
             <x-slot name="content">
             <x-ui.filepool.drop-zone :model="'roterFadenUpload'" mode="single" acceptedFiles=".pdf" :maxFilesize="30" />
-            @error('roterFadenUpload')
-                <span class="text-sm text-red-600">{{ $message }}</span>
-            @enderror
+
             </x-slot>
             <x-slot name="footer">
             <div class="flex justify-end space-x-2">

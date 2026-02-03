@@ -25,6 +25,25 @@
       acceptedFiles: @js($dzAccepted),
     },
 
+    isAllowedFile(file) {
+      const rules = (this.opts.acceptedFiles || '')
+        .split(',')
+        .map(r => r.trim().toLowerCase())
+        .filter(Boolean);
+
+      // Ohne Regeln alles erlauben
+      if (!rules.length) return true;
+
+      const name = (file.name || '').toLowerCase();
+      const type = (file.type || '').toLowerCase();
+
+      return rules.some(rule => {
+        if (rule.startsWith('.')) return name.endsWith(rule);
+        if (rule.endsWith('/*')) return type.startsWith(rule.slice(0, -1));
+        return type === rule;
+      });
+    },
+
     init() {
       console.log('Dropzone init', @js($model), this.single, this.opts);
       // optionales externes Reset (z. B. nach Server-Save)
@@ -63,7 +82,7 @@
         addRemoveLinks: true,
         maxFiles: this.opts.maxFiles,
         maxFilesize: this.opts.maxFilesize,
-        acceptedFiles: this.opts.acceptedFiles ?? undefined,
+        acceptedFiles: this.opts.acceptedFiles ?? '',
         chunking: true,
         chunkSize: 1000000, // rein visuell
         dictRemoveFile: 'Datei löschen',
@@ -88,6 +107,13 @@
 
       // Datei hinzugefügt → verstecktes Input aktualisieren (Livewire-Upload anstoßen)
       this.dz.on('addedfile', (file) => {
+        if (!this.isAllowedFile(file)) {
+          const msg = this.dz.options.dictInvalidFileType || 'Dieser Dateityp ist nicht erlaubt.';
+          this.dz.emit('error', file, msg);
+          this.dz.removeFile(file);
+          return;
+        }
+
         const dt = new DataTransfer();
         if (this.single) {
           dt.items.add(file);
@@ -188,6 +214,7 @@
     type="file"
     @if(!$isSingle) multiple @endif
     class="hidden"
+    accept="{{ $acceptedFiles }}"
     wire:model="{{ $model }}"
   >
 
