@@ -45,7 +45,7 @@ class PersonApiUpdate implements ShouldQueue, ShouldBeUnique
         if (empty($person->person_id)) {
             Log::warning("PersonApiUpdate: 'person_id' leer für persons.id={$person->id}.");
             return;
-        }
+        } 
 
         // 1) Status
         $statusResp = $api->getPersonStatus($person->person_id) ?? null;

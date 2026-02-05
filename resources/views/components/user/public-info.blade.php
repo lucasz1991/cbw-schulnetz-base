@@ -13,7 +13,7 @@
     // Anzeige-Name
     $first = trim((string)($resolvedPerson->vorname ?? ''));
     $last  = trim((string)($resolvedPerson->nachname ?? ''));
-    $displayName = trim($first.' '.$last)
+    $displayName = trim($last.', '.$first)
         ?: ($resolvedUser->name ?? '')
         ?: ($resolvedUser->email ?? '')
         ?: 'Unbekannt';
