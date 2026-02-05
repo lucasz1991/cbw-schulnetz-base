@@ -17,7 +17,7 @@
         ?: ($resolvedUser->name ?? '')
         ?: ($resolvedUser->email ?? '')
         ?: 'Unbekannt';
-
+ 
     // Initialen
     $initials = '';
     if ($first !== '') { $initials .= mb_strtoupper(mb_substr($first, 0, 1)); }
