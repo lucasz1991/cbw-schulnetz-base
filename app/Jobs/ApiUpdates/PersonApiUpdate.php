@@ -53,7 +53,7 @@ class PersonApiUpdate implements ShouldQueue, ShouldBeUnique
         $role = (is_array($statusData) && !empty($statusData['mitarbeiter_nr'])) ? 'tutor' : 'guest';
 
         // 2) Programmdaten
-        if ($role === 'guest') {
+        if ($role === 'guest' && $statusData['teilnehmer_nr'] !== null) {
             $apiResponse = $api->getParticipantAndQualiprogrambyId($person->person_id);
             if ($apiResponse['ok']) {
                 $data = $apiResponse['data'] ? $apiResponse['data'] : null;
@@ -91,7 +91,7 @@ class PersonApiUpdate implements ShouldQueue, ShouldBeUnique
             'programdata'     => $programData ?? null,
             'last_api_update' => now(),
         ])->save();
-        if ($person->user_id != null) {
+        if ($person->user_id != null && $person->programdata != null) {
             CheckPersonsCourses::dispatch($person->id);
         }
     }
