@@ -53,31 +53,35 @@ class PersonApiUpdate implements ShouldQueue, ShouldBeUnique
         $role = (is_array($statusData) && !empty($statusData['mitarbeiter_nr'])) ? 'tutor' : 'guest';
 
         // 2) Programmdaten
-        if ($role === 'guest' && $statusData['teilnehmer_nr'] !== null) {
-            $apiResponse = $api->getParticipantAndQualiprogrambyId($person->person_id);
-            if ($apiResponse['ok']) {
-                $data = $apiResponse['data'] ? $apiResponse['data'] : null;
-                $quali_data = !empty($data['quali_data']) ? $data['quali_data'] : null;
-            } else {
-                $quali_data = null;
-            }
-            if ($quali_data) {
-                $programData = $quali_data;
-            } else {
-                Log::info("No Qualiprogram data found for person_id {$person->person_id }. API response: " . json_encode($apiResponse));
-            }
+        if ($statusData['teilnehmer_nr'] == null && $statusData['mitarbeiter_nr'] == null) {
+            Log::info("PersonApiUpdate: Keine Teilnehmer- oder Mitarbeiternummer für person_id={$person->person_id}");
         } else {
-            $apiResponse = $api->getTutorProgramDataByPersonId($person->person_id);
-            if ($apiResponse['ok']) {
-                $data = $apiResponse['data'] ? $apiResponse['data'] : null;
-                $program_data = !empty($data['data']) ? $data['data'] : null;
+            if ($role === 'guest') {
+                $apiResponse = $api->getParticipantAndQualiprogrambyId($person->person_id);
+                if ($apiResponse['ok']) {
+                    $data = $apiResponse['data'] ? $apiResponse['data'] : null;
+                    $quali_data = !empty($data['quali_data']) ? $data['quali_data'] : null;
+                } else {
+                    $quali_data = null;
+                }
+                if ($quali_data) {
+                    $programData = $quali_data;
+                } else {
+                    Log::info("No Qualiprogram data found for person_id {$person->person_id }. API response: " . json_encode($apiResponse));
+                }
             } else {
-                $program_data = null;
-            }
-            if ($program_data) {
-                $programData = $program_data;
-            } else {
-                Log::info("No Tutor program data found for person_id {$person->person_id }. API response: " . json_encode($apiResponse));
+                $apiResponse = $api->getTutorProgramDataByPersonId($person->person_id);
+                if ($apiResponse['ok']) {
+                    $data = $apiResponse['data'] ? $apiResponse['data'] : null;
+                    $program_data = !empty($data['data']) ? $data['data'] : null;
+                } else {
+                    $program_data = null;
+                }
+                if ($program_data) {
+                    $programData = $program_data;
+                } else {
+                    Log::info("No Tutor program data found for person_id {$person->person_id }. API response: " . json_encode($apiResponse));
+                }
             }
         }
 
