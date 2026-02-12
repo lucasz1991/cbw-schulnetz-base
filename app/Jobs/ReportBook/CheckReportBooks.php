@@ -48,12 +48,12 @@ class CheckReportBooks implements ShouldQueue
             }
 
             // Nur wenn mindestens ein Eintrag noch "Eingereicht" (Status 1) ist.
-            // Bereits komplett gepruefte Berichtshefte (nur 2/3) sollen keinen Task (re)aktivieren.
             $hasStatusOne = $book->entries->contains(fn ($e) => (int) $e->status === 1);
 
             if (! $hasStatusOne) {
                 continue;
             }
+
             // expected (aus days() Relation)
             $expectedDays = $book->days()
                 ->pluck('date')
@@ -65,7 +65,6 @@ class CheckReportBooks implements ShouldQueue
             // existing (aus entries, Feld ggf. anpassen!)
             $existingDays = $book->entries
                 ->map(function ($e) {
-                    // passe an: bei dir heißt es ggf. day_date / date / report_date ...
                     $d = $e->date ?? $e->day ?? $e->entry_date ?? null;
                     return $d ? \Illuminate\Support\Carbon::parse($d)->toDateString() : null;
                 })
@@ -96,8 +95,6 @@ class CheckReportBooks implements ShouldQueue
             }
 
             if ($task) {
-                // Schon vorhanden -> niemals neu erstellen
-
                 // Wenn gerade in Bearbeitung: nichts ändern
                 if ((int) $task->status === (int) AdminTask::STATUS_IN_PROGRESS) {
                     Log::info("CheckReportBooks: Task {$task->id} für Berichtsheft {$book->id} ist in Bearbeitung – unverändert.");
