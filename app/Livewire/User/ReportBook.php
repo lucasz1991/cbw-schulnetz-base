@@ -366,7 +366,7 @@ public function reloadForCurrentCourse(): void
         $book = ReportBookModel::with('files')->find($this->reportBookId);
 
         if ($book) {
-            if (method_exists($book, 'participantSignatureFile')) {
+            if (method_exists($book, 'participantSignatureFile') ) {
                 $sig = $book->participantSignatureFile();
             } else {
                 $sig = $book->files()
@@ -377,6 +377,19 @@ public function reloadForCurrentCourse(): void
 
             if ($sig) {
                 $sig->delete();
+            }
+
+            if (method_exists($book, 'trainerSignatureFile') ) {
+                $sigtrainer = $book->trainerSignatureFile();
+            } else {
+                $sigtrainer = $book->files()
+                    ->where('type', 'sign_reportbook_trainer')
+                    ->latest()
+                    ->first();
+            }
+
+            if ($sigtrainer) {
+                $sigtrainer->delete();
             }
         }
 

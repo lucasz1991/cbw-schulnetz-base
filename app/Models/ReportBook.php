@@ -66,6 +66,14 @@ class ReportBook extends Model
             ->first();
     }
 
+    public function trainerSignatureFile(): ?File
+    {
+        return $this->files()
+            ->where('type', 'sign_reportbook_trainer')
+            ->latest('id')
+            ->first();
+    }
+
     /**
      * Hilfsmethode: Status durch Einträge status 
      * == Sobald alle Einträge den Status "Entwurf" == 0 haben dann ist der Status "fertig" 
