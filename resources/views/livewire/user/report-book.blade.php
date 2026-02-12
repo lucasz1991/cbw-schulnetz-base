@@ -392,17 +392,7 @@
                   </x-slot>
                   <x-slot name="content">
                       <div class="py-1 text-sm text-gray-700">
-                          {{-- Tag-Export --}}
-                          <button
-                              type="button"
-                              wire:click="exportReportEntry"
-                              wire:target="exportReportEntry"
-                              wire:loading.attr="disabled"
-                              class="flex w-full items-center gap-2 px-3 py-2 hover:bg-gray-50 "
-                          >
-                              <i class="fal fa-file-pdf text-[14px] "></i>
-                              <span>Tag einzeln</span>
-                          </button>
+                          
                           @if($this->isReportBookReviewed)
                           {{-- Baustein-Export (TODO: passende Methode implementieren) --}}
                           <button
