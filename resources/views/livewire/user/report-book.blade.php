@@ -427,7 +427,7 @@
                   <x-buttons.button-basic
                       :size="'sm'"
                       class="px-2 opacity-40 cursor-not-allowed !text-gray-500"
-                      title="Dozenten-Dokumentation noch nicht vorhanden"
+                      title="Export erst verfügbar, wenn alle Einträge von der Lehrkraft überprüft wurden"
                   >
                       <i class="fad fa-download text-[16px]  mr-1"></i>
                           <span class="hidden sm:inline">Download</span>
