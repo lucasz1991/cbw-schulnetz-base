@@ -437,7 +437,7 @@ public function reloadForCurrentCourse(): void
             'entry_date'   => $day->date,
             'text'         => $this->text,
             'submitted_at' => now(),
-        ])->save();
+        ])->saveQuietly();
 
         $this->reportBookEntryId = $entry->id;
 
@@ -446,7 +446,7 @@ public function reloadForCurrentCourse(): void
         if (!$needsSignature) {
             $entry->fill([
                 'status' => 1,
-            ])->save();
+            ])->saveQuietly();
 
             $this->status   = 1;
             $this->hasDraft = false;
