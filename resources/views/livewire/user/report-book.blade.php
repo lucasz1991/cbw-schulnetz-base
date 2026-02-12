@@ -422,6 +422,16 @@
                       </div>
                   </x-slot>
               </x-ui.dropdown.anchor-dropdown>
+              @else
+                  {{-- disabled Variante bleibt ein normaler Button --}}
+                  <x-buttons.button-basic
+                      :size="'sm'"
+                      class="px-2 opacity-40 cursor-not-allowed !text-gray-500"
+                      title="Dozenten-Dokumentation noch nicht vorhanden"
+                  >
+                      <i class="fad fa-download text-[16px]  mr-1"></i>
+                          <span class="hidden sm:inline">Download</span>
+                  </x-buttons.button-basic>
               @endif
 
               {{-- Dozenten-Doku übernehmen --}}
