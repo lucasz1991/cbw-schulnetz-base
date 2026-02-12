@@ -13,6 +13,9 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
+        $schedule->command('activity:clean-old')
+            ->dailyAt('02:00');
+
         // Schedule the shelf rentals check command to run at 9 AM, 4 PM, and 7 PM daily
         // $schedule->command('shelf:check-rentals')->cron('0 9,16,19 * * *');
 
