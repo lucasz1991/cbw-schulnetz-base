@@ -366,7 +366,7 @@
                       <span class="hidden sm:inline">Fertigstellen</span>
                   </x-buttons.button-basic>
               @endif
-              @if($this->status === 2)
+              @if($this->isReportBookReviewed)
               {{-- Export-Dropdown (statt einfachem Download-Button) --}}
               <x-ui.dropdown.anchor-dropdown
                   align="left"
