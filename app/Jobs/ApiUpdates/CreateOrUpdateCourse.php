@@ -136,7 +136,7 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
 
             // Person anhand person_id upserten (jede UVS-Person -> eigener Datensatz)
             $tutorPerson = Person::updateOrCreate(
-                ['person_id' => $tp['person_id']], // UVS-Person-ID als eindeutiger Schlüssel
+                ['person_id' => $tp['person_id']],
                 [
                     'institut_id'     => $tp['institut_id']   ?? null,
                     'person_nr'       => $tp['person_nr']     ?? null,

@@ -34,6 +34,11 @@ class ReportBook extends Model
         return $this->belongsTo(\App\Models\Course::class);
     }
 
+    public function days(): HasMany
+    {
+        return $this->hasMany(CourseDay::class, 'course_id', 'course_id');
+    }
+
     public function entries(): HasMany
     {
         return $this->hasMany(ReportBookEntry::class);

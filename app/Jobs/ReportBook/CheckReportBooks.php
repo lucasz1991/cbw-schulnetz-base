@@ -46,6 +46,14 @@ class CheckReportBooks implements ShouldQueue
             if (! $allSubmitted) {
                 continue;
             }
+
+            // Nur wenn mindestens ein Eintrag noch "Eingereicht" (Status 1) ist.
+            // Bereits komplett gepruefte Berichtshefte (nur 2/3) sollen keinen Task (re)aktivieren.
+            $hasStatusOne = $book->entries->contains(fn ($e) => (int) $e->status === 1);
+
+            if (! $hasStatusOne) {
+                continue;
+            }
             // expected (aus days() Relation)
             $expectedDays = $book->days()
                 ->pluck('date')

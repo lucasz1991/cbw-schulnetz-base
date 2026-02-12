@@ -54,6 +54,8 @@ class PersonApiUpdate implements ShouldQueue, ShouldBeUnique
 
         // 2) Programmdaten
         if ($statusData['teilnehmer_nr'] == null && $statusData['mitarbeiter_nr'] == null) {
+
+            // Hier müsste die Person gelöscht werden, da sie weder Teilnehmer noch Mitarbeiter ist.
             Log::info("PersonApiUpdate: Keine Teilnehmer- oder Mitarbeiternummer für person_id={$person->person_id}");
         } else {
             if ($role === 'guest') {

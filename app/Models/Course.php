@@ -71,6 +71,47 @@ class Course extends Model
      */
     protected $appends = ['participants_count', 'dates_count'];
 
+    protected static function booted(): void
+    {
+        static::deleting(function (Course $course) {
+            // Course days + their files
+            $days = $course->days()->withTrashed()->get();
+            foreach ($days as $day) {
+                $day->files()->delete();
+                $day->forceDelete();
+            }
+
+            // Enrollments (pivot) with soft deletes
+            $enrollments = $course->enrollments()->withTrashed()->get();
+            foreach ($enrollments as $enrollment) {
+                $enrollment->forceDelete();
+            }
+
+            // Course results
+            $course->results()->delete();
+
+            // Course ratings
+            $course->ratings()->delete();
+
+            // Material acknowledgements + their files
+            $acks = $course->materialAcknowledgements()->get();
+            foreach ($acks as $ack) {
+                $ack->files()->delete();
+                $ack->delete();
+            }
+
+            // Files attached directly to course
+            $course->files()->delete();
+
+            // File pool + its files
+            $pool = $course->filePool;
+            if ($pool) {
+                $pool->files()->delete();
+                $pool->delete();
+            }
+        });
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Accessors
@@ -273,6 +314,11 @@ class Course extends Model
     public function ratings()
     {
         return $this->hasMany(CourseRating::class);
+    }
+
+    public function results()
+    {
+        return $this->hasMany(CourseResult::class);
     }
 
     // FilePool (morphable) – lässt du wie gehabt

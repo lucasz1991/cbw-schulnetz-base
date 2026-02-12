@@ -9,10 +9,11 @@ use Illuminate\Support\Facades\Log;
 use App\Jobs\ApiUpdates\PersonApiUpdate;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Person extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $table = 'persons';
 
