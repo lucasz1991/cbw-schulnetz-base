@@ -73,7 +73,7 @@ class ReportBookEntry extends Model
         return $this->belongsTo(ReportBook::class);
     }
 
-        public function courseDay(): BelongsTo
+    public function courseDay(): BelongsTo
     {
         return $this->belongsTo(CourseDay::class, 'course_day_id');
     }
@@ -94,8 +94,8 @@ class ReportBookEntry extends Model
         return match ($this->status) {
             0 => 'Entwurf',
             1 => 'Eingereicht',
-            2 => 'Geprüft',
-            3 => 'Freigegeben',
+            2 => 'Geprüft / Freigegeben',
+            3 => 'Abgelehnt',
             default => 'Unbekannt',
         };
     }
@@ -128,8 +128,9 @@ class ReportBookEntry extends Model
         return $query->where('status', 2);
     }
 
-    public function scopeReleased(Builder $query): Builder
+    public function scopeRejected(Builder $query): Builder
     {
         return $query->where('status', 3);
     }
+
 }

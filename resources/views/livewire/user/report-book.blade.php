@@ -32,8 +32,9 @@
         $total    = max(0, (int)($sel['days_total'] ?? 0));
         $missing  = max(0, (int)($sel['days_missing'] ?? 0));
         $draft    = max(0, (int)($sel['days_draft'] ?? 0));
+        $rejected = max(0, (int)($sel['days_rejected'] ?? 0));
         $finished = max(0, (int)($sel['days_finished'] ?? 0));
-        $sum = $missing + $draft + $finished;
+        $sum = $missing + $draft + $rejected + $finished;
         if ($total > 0 && $sum !== $total) { $draft = max(0, $draft + ($total - $sum)); }
         $p = fn($n) => $total > 0 ? round(($n / $total) * 100, 2) : 0;
 
@@ -43,6 +44,7 @@
         } else {
           if ($missing  > 0) $segments[] = ['w'=>$p($missing), 'class'=>'bg-gray-300',  'title'=>'Fehlend'];
           if ($draft    > 0) $segments[] = ['w'=>$p($draft),   'class'=>'bg-amber-400', 'title'=>'Entwurf'];
+          if ($rejected > 0) $segments[] = ['w'=>$p($rejected),'class'=>'bg-red-500',   'title'=>'Abgelehnt'];
           if ($finished > 0) $segments[] = ['w'=>$p($finished),'class'=>'bg-green-500', 'title'=>'Fertig'];
           if (empty($segments)) $segments = [['w'=>100,'class'=>'bg-slate-200','title'=>'Keine Kurstage']];
         }
@@ -76,6 +78,7 @@
                   @endif
                   <div class="mt-1 flex items-center gap-1.5 text-xs overflow-hidden">
                     <div class="shrink-0">{!! $phaseBadge !!}</div>
+                    <div class="shrink-0">{!! $ampelBadge !!}</div>
                   </div>
                 </div>
                 <div class="text-left mt-2">
@@ -104,6 +107,7 @@
                               $count = match($seg['title']) {
                                 'Fehlend' => $missing,
                                 'Entwurf' => $draft,
+                                'Abgelehnt' => $rejected,
                                 'Fertig'  => $finished,
                                 default   => null
                               };
@@ -173,8 +177,9 @@
                   $total2    = max(0, (int)($c['days_total'] ?? 0));
                   $missing2  = max(0, (int)($c['days_missing'] ?? 0));
                   $draft2    = max(0, (int)($c['days_draft'] ?? 0));
+                  $rejected2 = max(0, (int)($c['days_rejected'] ?? 0));
                   $finished2 = max(0, (int)($c['days_finished'] ?? 0));
-                  $sum2 = $missing2 + $draft2 + $finished2;
+                  $sum2 = $missing2 + $draft2 + $rejected2 + $finished2;
                   if ($total2 > 0 && $sum2 !== $total2) $draft2 = max(0, $draft2 + ($total2 - $sum2));
                   $p2 = fn($n) => $total2 > 0 ? round(($n / $total2) * 100, 2) : 0;
 
@@ -184,6 +189,7 @@
                   } else {
                     if ($missing2  > 0) $segments2[] = ['w'=>$p2($missing2),  'class'=>'bg-gray-300',  'title'=>'Fehlend'];
                     if ($draft2    > 0) $segments2[] = ['w'=>$p2($draft2),    'class'=>'bg-amber-400', 'title'=>'Entwurf'];
+                    if ($rejected2 > 0) $segments2[] = ['w'=>$p2($rejected2), 'class'=>'bg-red-500',   'title'=>'Abgelehnt'];
                     if ($finished2 > 0) $segments2[] = ['w'=>$p2($finished2), 'class'=>'bg-green-500', 'title'=>'Fertig'];
                     if (empty($segments2)) $segments2 = [['w'=>100,'class'=>'bg-slate-200','title'=>'Keine Kurstage']];
                   }
@@ -551,10 +557,14 @@
               </span>
           </div>
             <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border
-                {{ $status === 1 
-                    ? 'bg-green-50 text-green-700 border-green-200' 
-                    : 'bg-slate-50 text-slate-700 border-slate-200' }}">
-                Status: {{ $status >= 2 ? 'Freigegeben' : ($status === 1 ? 'Fertig' : ($status === 0 ? 'Entwurf' : 'Fehlend') ) }}
+                {{ $status === 3
+                    ? 'bg-red-50 text-red-700 border-red-200'
+                    : ($status === 2
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : ($status === 1
+                            ? 'bg-green-50 text-green-700 border-green-200'
+                            : 'bg-slate-50 text-slate-700 border-slate-200')) }}">
+                Status: {{ $status === 3 ? 'Abgelehnt' : ($status === 2 ? 'Freigegeben' : ($status === 1 ? 'Fertig' : ($status === 0 ? 'Entwurf' : 'Fehlend'))) }}
             </span>
         </div>
         <div>

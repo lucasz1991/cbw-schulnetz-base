@@ -129,7 +129,8 @@ public function mount(): void
                 DB::raw('COUNT(DISTINCT cd.id) AS days_total'),
                 DB::raw('SUM(CASE WHEN rbe.id IS NOT NULL THEN 1 ELSE 0 END) AS days_with_entry'),
                 DB::raw('SUM(CASE WHEN rbe.status = 0 THEN 1 ELSE 0 END) AS days_draft'),
-                DB::raw('SUM(CASE WHEN rbe.status >= 1 THEN 1 ELSE 0 END) AS days_finished'),
+                DB::raw('SUM(CASE WHEN rbe.status = 3 THEN 1 ELSE 0 END) AS days_rejected'),
+                DB::raw('SUM(CASE WHEN rbe.status IN (1, 2) THEN 1 ELSE 0 END) AS days_finished'),
             ])
             ->groupBy(
                 'courses.id', 'courses.title', 'courses.klassen_id',
@@ -160,12 +161,15 @@ public function mount(): void
 
             $total     = (int) $c->days_total;
             $withEntry = (int) $c->days_with_entry;
+            $rejected  = (int) $c->days_rejected;
             $finished  = (int) $c->days_finished;
             $missing   = max(0, $total - $withEntry);
             $hasAllFinished = ($total > 0 && $finished === $total);
 
             if ($total === 0) {
                 $ampel = ['label' => 'Keine Kurstage', 'color' => 'slate', 'info' => null];
+            } elseif ($rejected > 0) {
+                $ampel = ['label' => "{$rejected} Tag(e) abgelehnt", 'color' => 'red', 'info' => "$finished/$total"];
             } elseif ($hasAllFinished) {
                 $ampel = ['label' => 'Alle Tage fertig', 'color' => 'green', 'info' => "$finished/$total"];
             } elseif ($withEntry === $total) {
@@ -183,6 +187,7 @@ public function mount(): void
                 'days_total'        => $total,
                 'days_with_entry'   => $withEntry,
                 'days_draft'        => (int) $c->days_draft,
+                'days_rejected'     => $rejected,
                 'days_finished'     => $finished,
                 'days_missing'      => $missing,
                 'phase'             => $phase,
@@ -229,7 +234,8 @@ public function mount(): void
             $dot = match (true) {
                 $status === null => ['color' => 'gray',  'title' => 'Kein Eintrag'],
                 $status === 0    => ['color' => 'amber', 'title' => 'Entwurf'],
-                $status >= 1     => ['color' => 'green', 'title' => 'Fertig'],
+                $status === 3    => ['color' => 'red',   'title' => 'Abgelehnt'],
+                $status >= 1     => ['color' => 'green', 'title' => 'Fertig/Freigegeben'],
             };
 
             return [
