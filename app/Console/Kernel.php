@@ -17,7 +17,7 @@ class Kernel extends ConsoleKernel
             ->dailyAt('02:00');
 
         $schedule->command('reportbooks:dispatch-missing-reminders')
-            ->dailyAt('10:30');
+            ->weeklyOn(1, '10:30');
     }
 
     /**
