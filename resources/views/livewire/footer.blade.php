@@ -79,7 +79,7 @@
                                         Nachrichten
                                     </a>
                                 </li>
-
+                            @if(Auth::user()?->person?->isEducation())
                                 <li>
                                     <a href="/user/reportbook" wire:navigate
                                        class="group inline-flex items-center gap-2 text-white/90 hover:text-white text-sm transition">
@@ -89,6 +89,7 @@
                                         Berichtsheft
                                     </a>
                                 </li>
+                            @endif
                             </ul>
                         </div>
                     </div>
