@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Jobs\ReportBook\SendMissingReportBookReminderJob;
+use App\Models\ReportBook;
 use App\Models\Setting;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
@@ -70,6 +71,28 @@ class DispatchMissingReportBookReminders extends Command
             ->orderBy('rb.id')
             ->get();
 
+        // Bereits erinnerte ReportBooks (über settings) ausfiltern:
+        // settings.missing_reportbook_reminder_sent_at gesetzt => nicht erneut senden
+        $reportBookIds = $rows->pluck('report_book_id')
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
+
+        if (!empty($reportBookIds)) {
+            $booksById = ReportBook::query()
+                ->whereIn('id', $reportBookIds)
+                ->get(['id', 'settings'])
+                ->keyBy('id');
+
+            $rows = $rows->reject(function ($row) use ($booksById) {
+                $reportBook = $booksById->get((int) $row->report_book_id);
+                $sentAt = data_get($reportBook?->settings, 'missing_reportbook_reminder_sent_at');
+                return !empty($sentAt);
+            })->values();
+        }
+
         $total = $rows->count();
 
         if ($total === 0) {
@@ -105,7 +128,7 @@ class DispatchMissingReportBookReminders extends Command
 
     private function isReminderEnabled(): bool
     {
-        $rawValue = Setting::getValue('mails', 'reminder_missing_report_book');
+        $rawValue = Setting::getValueUncached('mails', 'reminder_missing_report_book');
         $decoded = json_decode((string) $rawValue, true);
         $value = $decoded ?? $rawValue;
 

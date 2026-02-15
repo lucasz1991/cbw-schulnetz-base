@@ -3,6 +3,7 @@
 namespace App\Jobs\ReportBook;
 
 use App\Models\Message;
+use App\Models\ReportBook;
 use App\Models\Setting;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -47,6 +48,18 @@ class SendMissingReportBookReminderJob implements ShouldQueue
                 continue;
             }
 
+            $reportBook = ReportBook::find($reportBookId);
+            if (! $reportBook) {
+                $skipped++;
+                continue;
+            }
+
+            // Doppelschutz: wenn bereits per settings markiert, nicht erneut senden
+            if ($reportBook->getSetting('missing_reportbook_reminder_sent_at')) {
+                $skipped++;
+                continue;
+            }
+
             $courseTitle = trim((string) ($item['course_title'] ?? ''));
             $courseTitle = $courseTitle !== '' ? $courseTitle : 'Baustein';
 
@@ -80,7 +93,7 @@ class SendMissingReportBookReminderJob implements ShouldQueue
                 . "Dein Berichtsheft ist noch nicht vollstaendig (offene Tage: {$openDays} von {$totalDays}).<br><br>"
                 . "<a href='{$reportBookUrl}' target='_blank'>Berichtsheft ansehen</a>";
 
-            Message::create([
+            $message = Message::create([
                 'subject' => $subject,
                 'message' => $messageBody,
                 'from_user' => 1,
@@ -88,13 +101,12 @@ class SendMissingReportBookReminderJob implements ShouldQueue
                 'status' => '1',
             ]);
 
+            // Versand im ReportBook markieren (einmalige Erinnerung)
+            $reportBook->setSetting('missing_reportbook_reminder_sent_at', now()->toIso8601String());
+            $reportBook->setSetting('missing_reportbook_reminder_message_id', $message->id);
+            $reportBook->save();
+
             $created++;
         }
-
-        Log::info('SendMissingReportBookReminderJob abgeschlossen.', [
-            'created' => $created,
-            'skipped' => $skipped,
-            'total' => count($this->reminders),
-        ]);
     }
 }

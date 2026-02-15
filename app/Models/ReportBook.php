@@ -18,6 +18,11 @@ class ReportBook extends Model
         'description',
         'start_date',
         'end_date',
+        'settings',
+    ];
+
+    protected $casts = [
+        'settings' => 'array',
     ];
 
     /**
@@ -170,6 +175,18 @@ class ReportBook extends Model
             ->where('type', $type)
             ->latest()
             ->first();
+    }
+
+    public function getSetting(string $key, $default = null)
+    {
+        return $this->settings[$key] ?? $default;
+    }
+
+    public function setSetting(string $key, $value): void
+    {
+        $s = $this->settings ?? [];
+        $s[$key] = $value;
+        $this->settings = $s;
     }
 
     /* ---------- Nützliche Helper/Scopes ---------- */
