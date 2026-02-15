@@ -4,6 +4,33 @@
         Hier findest du die Notizen des Dozenten zu jedem Bausteintag. Klicke einen Tag an, um die Details zu öffnen.
     </x-alert>
 
+    @if($this->allCourseDaysCompleted)
+        @if(!$this->dokuAcknowledged)
+            <x-alert :type="$this->classRepresentativeUserId ? 'info' : 'warning'">
+                <p class="text-sm font-semibold">Teilnehmer-Bestätigung erforderlich</p>
+                @if(!$this->classRepresentativeUserId)
+                    <p class="mt-1 text-sm">
+                        Es konnte kein Klassensprecher ermittelt werden.
+                    </p>
+                @elseif($this->isClassRepresentative)
+                    <p class="mt-1 text-sm">
+                        Als Klassensprecher bestätigst du die vollständige Kenntnisnahme der Kurs-Dokumentation.
+                    </p>
+                    <div class="mt-3">
+                        <x-buttons.button-basic :size="'sm'" wire:click="startCourseDokuAcknowledgement">
+                            <i class="fas fa-check"></i> Jetzt
+                            bestätigen
+                        </x-buttons.button-basic>
+                    </div>
+                @else
+                    <p class="mt-1 text-sm">
+                        Die Bestätigung kann nur durch den aktuell zugewiesenen Klassensprecher erfolgen.
+                    </p>
+                @endif
+            </x-alert>
+        @endif
+    @endif
+
     <!-- Menüleiste -->
     <div class="flex items-center justify-between gap-4 ">
         <div class="flex items-center gap-4 text-sm text-gray-700">
@@ -82,4 +109,9 @@
     @empty
         <p class="text-sm text-gray-500">Keine Bausteintage vorhanden.</p>
     @endforelse
+
+    <livewire:tools.signatures.signature-form
+        :key="'signature-form-course-doku-'.$courseId"
+        lazy
+    />
 </div>
