@@ -125,7 +125,7 @@
         </div>
     </div>
     @if($selectedDay && !$selectedDay->isAttendanceCompletelyRecorded() && $selectedDay->date < now()->endOfDay())
-        <x-alert class="bg-yellow-50 border border-yellow-800 text-yellow-800 rounded">
+        <x-alert type="warning">
             <p class="text-sm leading-snug">
                 Die Anwesenheit für diesen Kurstag ist noch nicht vollständig erfasst. Bitte stellen Sie sicher, dass die Anwesenheit aller Teilnehmer*innen markiert ist.
             </p>
