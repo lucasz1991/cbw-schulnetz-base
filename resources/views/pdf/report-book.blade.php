@@ -5,42 +5,84 @@
     <title>{{ $title ?? 'Berichtsheft' }}</title>
 
     <style>
-        @page { margin: 18mm 14mm 16mm; }
+        @page { margin: 20px 20px 30px 20px; }
 
-        body { font-family: DejaVu Sans, sans-serif; font-size: 10.5px; color:#111; }
+        body { font-family: DejaVu Sans, sans-serif; font-size: 10px; color: #1f2937; }
         .page { page-break-after: always; }
         .page:last-child { page-break-after: auto; }
 
-        .h1 { font-size: 13px; font-weight: 700; margin: 0 0 8px; }
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+        .header-table td {
+            padding: 4px 6px;
+            vertical-align: top;
+        }
 
-        .head-grid { width:100%; border-collapse:collapse; margin-bottom: 8px; }
-        .head-grid td { padding: 2px 6px 2px 0; vertical-align: bottom; }
-        .label { font-size: 10px; color:#111; white-space: nowrap; }
-        .field { display:inline-block; min-width: 80px; border-bottom: 1px solid #111; padding: 0 2px 1px; }
-        .field.wide { min-width: 260px; }
-        .field.mid  { min-width: 160px; }
-        .field.sml  { min-width: 100px; }
+        .logo {
+            width: 120px;
+            margin-bottom: 8px;
+        }
+
+        .title-center {
+            text-align: center;
+            font-weight: bold;
+            font-size: 13px;
+            color: #0f172a;
+            padding-top: 6px;
+        }
+
+        .subtitle {
+            font-size: 9px;
+            color: #64748b;
+            margin-top: 2px;
+            font-weight: normal;
+        }
+
+        .meta-box {
+            border: 0.4px solid #cbd5e1;
+            background: #f8fafc;
+            border-radius: 6px;
+            padding: 6px 8px;
+            line-height: 1.35;
+        }
+
+        .meta-k {
+            display: inline-block;
+            min-width: 120px;
+            font-weight: bold;
+            color: #334155;
+        }
 
         table.sheet {
             width: 100%;
             border-collapse: collapse;
             table-layout: fixed;
-            border: 1px solid #111;
+            margin-top: 8px;
         }
+
         .sheet th, .sheet td {
-            border: 1px solid #111;
-            padding: 6px 6px;
+            border: 0.4px solid #cbd5e1;
+            padding: 6px;
             vertical-align: top;
             word-wrap: break-word;
         }
-        .sheet th { font-weight: 700; text-align: left; background: #fff; }
 
-        .col-date { width: 13%; }
-        .col-text { width: 87%; }
+        .sheet th {
+            font-weight: 700;
+            text-align: left;
+            background: #eef2f7;
+            color: #334155;
+        }
 
-        .datecell { line-height: 1.15; }
-        .datecell .d { font-weight: 700; }
-        .datecell .w { font-size: 9px; color:#444; margin-top: 2px; }
+        .col-date { width: 17%; }
+        .col-text { width: 83%; }
+
+        .datecell { line-height: 1.2; }
+        .datecell .d { font-weight: 700; color: #0f172a; }
+        .datecell .w { font-size: 9px; color: #64748b; margin-top: 2px; }
 
         .work-text { line-height: 1.25; }
         .work-text h1, .work-text h2, .work-text h3, .work-text h4, .work-text h5, .work-text h6 {
@@ -60,40 +102,34 @@
         }
 
         .sign-col { width: 50%; vertical-align: top; }
-        .sign-title { font-weight: 700; margin: 0 0 6px; }
+        .sign-title { font-weight: 700; margin: 0 0 6px; color: #0f172a; }
 
         .sign-box {
-            border: 1px solid #111;
+            border: 0.4px solid #cbd5e1;
             width: 100%;
             border-collapse: collapse;
             table-layout: fixed;
+            background: #fff;
         }
+
         .sign-box td {
-            border: 1px solid #111;
+            border: 0.4px solid #cbd5e1;
             padding: 6px;
             vertical-align: middle;
             font-size: 10px;
         }
-        .sign-box .lbl { width: 30%; white-space: nowrap; font-weight: 700; }
+
+        .sign-box .lbl { width: 30%; white-space: nowrap; font-weight: 700; color: #334155; background: #f8fafc; }
         .sign-box .val { width: 70%; }
 
         .sig-img {
             max-height: 70px;
             max-width: 230px;
             display: block;
-            margin: 0 0 6px;
+            margin: 0;
         }
 
-        .sig-line {
-            border-bottom: 1px solid #111;
-            height: 14px;
-            display: block;
-            width: 100%;
-        }
-
-        .sig-cell {
-            min-height: 90px;
-        }
+        .sig-cell { min-height: 90px; }
     </style>
 </head>
 <body>
@@ -101,9 +137,11 @@
 @php
     use Carbon\Carbon;
 
-    /* -------------------------------------------------
-     * Helpers (Images / Labels)
-     * ------------------------------------------------- */
+    $logoPath = public_path('site-images/logo.png');
+    $logoSrc = file_exists($logoPath)
+        ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath))
+        : null;
+
     $resolveImg = function (?string $src) {
         if (!$src) return null;
 
@@ -139,19 +177,13 @@
 
     $participantName = $user->name ?? '';
 
-    /* -------------------------------------------------
-     * Umschulungsstart aus programmdata (tn_baust) ermitteln
-     * ------------------------------------------------- */
     $parseYmdSlash = function (?string $v): ?Carbon {
         $v = trim((string)$v);
         if ($v === '') return null;
 
-        $v = str_replace('\/', '/', $v);
+        $v = str_replace('\\/', '/', $v);
 
-        // erwartetes Format: YYYY/MM/DD
         try { return Carbon::createFromFormat('Y/m/d', $v); } catch (\Throwable $e) {}
-
-        // Fallback: Carbon::parse
         try { return Carbon::parse($v); } catch (\Throwable $e) {}
 
         return null;
@@ -169,13 +201,9 @@
 
         if ($min) return $min;
 
-        // Fallback: vertrag_beginn (wenn vorhanden)
         return $parseYmdSlash(data_get($pd, 'vertrag_beginn'));
     };
 
-    /* -------------------------------------------------
-     * Ausbildungsnachweis Nr. (Umschulungswoche) + Ausbildungsjahr
-     * ------------------------------------------------- */
     $trainingWeekNo = function (Carbon $entryDate, Carbon $startDate): int {
         $startWeek = $startDate->copy()->startOfWeek(Carbon::MONDAY);
         $entryWeek = $entryDate->copy()->startOfWeek(Carbon::MONDAY);
@@ -184,17 +212,12 @@
 
     $trainingYearNo = function (Carbon $entryDate, Carbon $startDate): int {
         $months = $startDate->copy()->startOfDay()->diffInMonths($entryDate->copy()->startOfDay());
-        // Umschulung: 24 Monate => 1..2 (Clamp entfernen, falls später länger)
         return max(1, min(2, (int)(intdiv($months, 12) + 1)));
     };
 
     $padNachweis = fn (int $n): string => str_pad((string)$n, 2, '0', STR_PAD_LEFT);
 @endphp
 
-
-{{-- =========================================================
-    SINGLE
-========================================================= --}}
 @if(($mode ?? null) === 'single')
 @php
     $d  = $entry->entry_date instanceof Carbon ? $entry->entry_date : Carbon::parse($entry->entry_date);
@@ -220,22 +243,29 @@
 @endphp
 
 <div class="page">
-    <div class="h1">Berichtsheft von: <span class="field wide">{{ $participantName }}</span></div>
-
-    <table class="head-grid">
+    <table class="header-table">
         <tr>
-            <td class="label">Ausbildungsnachweis Nr.:</td>
-            <td><span class="field mid">{{ $ausbildungsnachweisNr }}</span></td>
-
-            <td class="label">Ausbildungsjahr</td>
-            <td><span class="field sml">{{ $ausbildungsjahr }}</span></td>
-        </tr>
-        <tr>
-            <td class="label">Für die Kalenderwoche:</td>
-            <td><span class="field mid">{{ $kw }}</span></td>
-
-            <td class="label">Ausbildungsabteilung:</td>
-            <td><span class="field mid">{{ $abteilung }}</span></td>
+            <td style="width: 32%;">
+                @if($logoSrc)
+                    <img src="{{ $logoSrc }}" class="logo" alt="Logo">
+                @endif
+                <div class="meta-box">
+                    <div><span class="meta-k">Teilnehmer:</span> {{ $participantName ?: '�' }}</div>
+                    <div><span class="meta-k">Abteilung:</span> {{ $abteilung }}</div>
+                    <div><span class="meta-k">Kalenderwoche:</span> {{ $kw }}</div>
+                </div>
+            </td>
+            <td class="title-center" style="width: 40%;">
+                Berichtsheft
+                <div class="subtitle">Ausbildungsnachweis und Tätigkeitsdokumentation</div>
+            </td>
+            <td style="width: 28%;">
+                <div class="meta-box">
+                    <div><span class="meta-k">Nachweis Nr.:</span> {{ $ausbildungsnachweisNr }}</div>
+                    <div><span class="meta-k">Ausbildungsjahr:</span> {{ $ausbildungsjahr }}</div>
+                    <div><span class="meta-k">Export:</span> {{ now()->format('d.m.Y H:i') }}</div>
+                </div>
+            </td>
         </tr>
     </table>
 
@@ -261,7 +291,6 @@
         <tr>
             <td class="sign-col" style="padding-right:10px;">
                 <div class="sign-title">Ausbilder/in</div>
-
                 <table class="sign-box">
                     <tr>
                         <td class="lbl">Datum</td>
@@ -273,7 +302,6 @@
                             @if($tImg)
                                 <img class="sig-img" src="{{ $tImg }}" alt="Unterschrift Ausbilder">
                             @endif
-
                         </td>
                     </tr>
                 </table>
@@ -281,7 +309,6 @@
 
             <td class="sign-col" style="padding-left:10px;">
                 <div class="sign-title">Auszubildende/r</div>
-
                 <table class="sign-box">
                     <tr>
                         <td class="lbl">Datum</td>
@@ -293,7 +320,6 @@
                             @if($pImg)
                                 <img class="sig-img" src="{{ $pImg }}" alt="Unterschrift Teilnehmer">
                             @endif
-
                         </td>
                     </tr>
                 </table>
@@ -303,10 +329,6 @@
 </div>
 @endif
 
-
-{{-- =========================================================
-    MODULE: pro ISO-KW eine Seite
-========================================================= --}}
 @if(($mode ?? null) === 'module')
 @php
     $abteilung = $course->title ?? ($course->klassen_id ?? 'Kurs');
@@ -318,7 +340,6 @@
         return $e->entry_date->isoWeekYear() . '-KW' . $e->entry_date->isoWeek();
     });
 
-    // Umschulungsstart einmal ermitteln (für alle Wochen identisch)
     $start = $umschulungStartFromProgramm($user);
 @endphp
 
@@ -345,22 +366,29 @@
 @endphp
 
 <div class="page">
-    <div class="h1">Berichtsheft von: <span class="field wide">{{ $participantName }}</span></div>
-
-    <table class="head-grid">
+    <table class="header-table">
         <tr>
-            <td class="label">Ausbildungsnachweis Nr.:</td>
-            <td><span class="field mid">{{ $ausbildungsnachweisNr }}</span></td>
-
-            <td class="label">Ausbildungsjahr</td>
-            <td><span class="field sml">{{ $ausbildungsjahr }}</span></td>
-        </tr>
-        <tr>
-            <td class="label">Für die Kalenderwoche:</td>
-            <td><span class="field mid">{{ $kw }}</span></td>
-
-            <td class="label">Ausbildungsabteilung:</td>
-            <td><span class="field mid">{{ $abteilung }}</span></td>
+            <td style="width: 32%;">
+                @if($logoSrc)
+                    <img src="{{ $logoSrc }}" class="logo" alt="Logo">
+                @endif
+                <div class="meta-box">
+                    <div><span class="meta-k">Teilnehmer:</span> {{ $participantName ?: '�' }}</div>
+                    <div><span class="meta-k">Abteilung:</span> {{ $abteilung }}</div>
+                    <div><span class="meta-k">Kalenderwoche:</span> {{ $kw }}</div>
+                </div>
+            </td>
+            <td class="title-center" style="width: 40%;">
+                Berichtsheft
+                <div class="subtitle">Ausbildungsnachweis und Tätigkeitsdokumentation</div>
+            </td>
+            <td style="width: 28%;">
+                <div class="meta-box">
+                    <div><span class="meta-k">Nachweis Nr.:</span> {{ $ausbildungsnachweisNr }}</div>
+                    <div><span class="meta-k">Ausbildungsjahr:</span> {{ $ausbildungsjahr }}</div>
+                    <div><span class="meta-k">Export:</span> {{ now()->format('d.m.Y H:i') }}</div>
+                </div>
+            </td>
         </tr>
     </table>
 
@@ -400,7 +428,6 @@
                             @if($tImg)
                                 <img class="sig-img" src="{{ $tImg }}" alt="Unterschrift Ausbilder">
                             @endif
-
                         </td>
                     </tr>
                 </table>
@@ -419,7 +446,6 @@
                             @if($pImg)
                                 <img class="sig-img" src="{{ $pImg }}" alt="Unterschrift Teilnehmer">
                             @endif
-
                         </td>
                     </tr>
                 </table>
@@ -430,10 +456,6 @@
 @endforeach
 @endif
 
-
-{{-- =========================================================
-    ALL: pro Kurs + pro KW eine Seite
-========================================================= --}}
 @if(($mode ?? null) === 'all')
 @foreach($books as $book)
 @php
@@ -450,8 +472,6 @@
         return $e->entry_date->isoWeekYear() . '-KW' . $e->entry_date->isoWeek();
     });
 
-    // Hinweis: Falls $book einem anderen Teilnehmer gehört als $user, hier den passenden Bezug nutzen
-    // (z.B. $book->participant / $book->user), damit programmdata korrekt ist.
     $start = $umschulungStartFromProgramm($user);
 
     $pImg  = $resolveImg($book->participantSignatureUrl ?? null);
@@ -478,22 +498,29 @@
 @endphp
 
 <div class="page">
-    <div class="h1">Berichtsheft von: <span class="field wide">{{ $participantName }}</span></div>
-
-    <table class="head-grid">
+    <table class="header-table">
         <tr>
-            <td class="label">Ausbildungsnachweis Nr.:</td>
-            <td><span class="field mid">{{ $ausbildungsnachweisNr }}</span></td>
-
-            <td class="label">Ausbildungsjahr</td>
-            <td><span class="field sml">{{ $ausbildungsjahr }}</span></td>
-        </tr>
-        <tr>
-            <td class="label">Für die Kalenderwoche:</td>
-            <td><span class="field mid">{{ $kw }}</span></td>
-
-            <td class="label">Ausbildungsabteilung:</td>
-            <td><span class="field mid">{{ $abteilung }}</span></td>
+            <td style="width: 32%;">
+                @if($logoSrc)
+                    <img src="{{ $logoSrc }}" class="logo" alt="Logo">
+                @endif
+                <div class="meta-box">
+                    <div><span class="meta-k">Teilnehmer:</span> {{ $participantName ?: '�' }}</div>
+                    <div><span class="meta-k">Abteilung:</span> {{ $abteilung }}</div>
+                    <div><span class="meta-k">Kalenderwoche:</span> {{ $kw }}</div>
+                </div>
+            </td>
+            <td class="title-center" style="width: 40%;">
+                Berichtsheft
+                <div class="subtitle">Ausbildungsnachweis und Tätigkeitsdokumentation</div>
+            </td>
+            <td style="width: 28%;">
+                <div class="meta-box">
+                    <div><span class="meta-k">Nachweis Nr.:</span> {{ $ausbildungsnachweisNr }}</div>
+                    <div><span class="meta-k">Ausbildungsjahr:</span> {{ $ausbildungsjahr }}</div>
+                    <div><span class="meta-k">Export:</span> {{ now()->format('d.m.Y H:i') }}</div>
+                </div>
+            </td>
         </tr>
     </table>
 
@@ -533,7 +560,6 @@
                             @if($tImg)
                                 <img class="sig-img" src="{{ $tImg }}" alt="Unterschrift Ausbilder">
                             @endif
-
                         </td>
                     </tr>
                 </table>
@@ -552,7 +578,6 @@
                             @if($pImg)
                                 <img class="sig-img" src="{{ $pImg }}" alt="Unterschrift Teilnehmer">
                             @endif
-
                         </td>
                     </tr>
                 </table>
@@ -561,7 +586,6 @@
     </table>
 </div>
 @endforeach
-
 @endforeach
 @endif
 
