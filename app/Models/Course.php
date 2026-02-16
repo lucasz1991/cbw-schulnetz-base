@@ -10,14 +10,28 @@ use Illuminate\Support\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Cache;
 use App\Models\File;
 use App\Models\CourseDay;
 use App\Models\CourseResult;
 use App\Models\CourseRating;
+use App\Jobs\ApiUpdates\CreateOrUpdateCourse;
 
 class Course extends Model
 {
     use HasFactory, SoftDeletes;
+
+    public const API_UPDATE_COOLDOWN_MINUTES = 20;
+
+    /**
+     * Nur auf diesen Routen wird beim Laden eines Kurses ein API-Update angestoßen.
+     */
+    private const API_UPDATE_ROUTES = [
+        'user.program.course.show',
+        'dashboard',
+        'tutor.courses.show',
+        'tutor.courses',
+    ];
 
     /**
      * Wenn du lieber alles freigeben willst:
@@ -46,6 +60,8 @@ class Course extends Model
         // Sync/Offline
         'source_snapshot',
         'source_last_upd',
+        'sync_status',
+
         'type',
         'settings',
         'is_active',
@@ -73,6 +89,23 @@ class Course extends Model
 
     protected static function booted(): void
     {
+        static::retrieved(function (Course $course) {
+            if (app()->runningInConsole()) {
+                return;
+            }
+
+            if (! $course->id || empty($course->klassen_id)) {
+                return;
+            }
+
+            $routeName = request()?->route()?->getName();
+            if (! $routeName || ! in_array($routeName, self::API_UPDATE_ROUTES, true)) {
+                return;
+            }
+
+            static::dispatchApiUpdateIfNotThrottled($course, 'retrieved');
+        });
+
         static::deleting(function (Course $course) {
             // Course days + their files
             $days = $course->days()->withTrashed()->get();
@@ -110,6 +143,30 @@ class Course extends Model
                 $pool->delete();
             }
         });
+
+        
+    }
+
+    /**
+     * Zentraler Throttle für Course-API-Updates.
+     */
+    protected static function dispatchApiUpdateIfNotThrottled(Course $course, string $source): void
+    {
+        if (! $course->id || empty($course->klassen_id)) {
+            return;
+        }
+
+        $cacheKey = "course-sync-cooldown:{$course->klassen_id}";
+        $payload = [
+            'last'   => now()->toDateTimeString(),
+            'source' => $source,
+        ];
+
+        if (! Cache::add($cacheKey, $payload, now()->addMinutes(self::API_UPDATE_COOLDOWN_MINUTES))) {
+            return;
+        }
+
+        CreateOrUpdateCourse::dispatch((string) $course->klassen_id);
     }
 
     /*

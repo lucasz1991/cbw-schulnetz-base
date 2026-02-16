@@ -456,7 +456,7 @@ class File extends Model
                     Log::error("Fehler beim Schreiben der temporären Datei: {$tmpPath}");
                     throw new \RuntimeException("Ziel nicht schreibbar: {$tmpPath}");
                 } else {
-                    Log::info("Temporäre Datei erstellt: {$tmpPath}");
+                    // Log::info("Temporäre Datei erstellt: {$tmpPath}");
                 }
                 if (is_resource($read)) {
                     fclose($read);
@@ -489,7 +489,7 @@ class File extends Model
             Log::error("Fehler beim Schreiben der temporären Datei: {$tmpPath}");
             throw new \RuntimeException("Ziel nicht schreibbar: {$tmpPath}");
         } else {
-            Log::info("Temporäre Datei erstellt: {$tmpPath}");
+            // Log::info("Temporäre Datei erstellt: {$tmpPath}");
         }
         if (is_resource($read)) {
             fclose($read);

@@ -208,6 +208,7 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
                 'settings'                => [],
                 'source_snapshot'         => $payload, // gesamte Payload speichern
                 'source_last_upd'         => now(),
+                'sync_status'             => 1, // 1 = erfolgreich synchronisiert (UVS-Daten aktuell)
                 'is_active'               => true,
                 'primary_tutor_person_id' => $tutorPersonId,
                 'last_synced_at'          => now(),
