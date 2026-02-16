@@ -50,7 +50,7 @@ class PersonApiUpdate implements ShouldQueue, ShouldBeUnique
         $programData = is_array($person->programdata) ? $person->programdata : null;
         $oldProgramHash = md5(json_encode($programData ?? []));
 
-        // 1) Status
+        // 1) Status 
         $statusResp = $api->getPersonStatus($person->person_id) ?? null;
         $statusData = $statusResp['data']['data'] ?? [];
         if (! is_array($statusData)) {

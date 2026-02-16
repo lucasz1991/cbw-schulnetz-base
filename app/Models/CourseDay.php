@@ -77,6 +77,8 @@ class CourseDay extends Model
             }
         });
 
+        
+
 
     }
 
