@@ -151,6 +151,10 @@ class ApiUvsService
                 'url'    => $url,
                 'status' => $status,
                 'resp'   => $json,
+                'message' => $msg,
+                'payload' => $payload,
+                'query'   => $query,
+
             ]);
 
             return ['ok' => false, 'status' => $status, 'message' => $msg, 'data' => $json];
