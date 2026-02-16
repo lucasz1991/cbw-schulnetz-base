@@ -4,11 +4,11 @@ namespace App\Jobs\ApiUpdates;
 
 use App\Models\Course;
 use App\Models\CourseDay;
+use App\Models\CourseParticipantEnrollment as Enrollment;
 use App\Models\Person;
 use App\Models\User;
 use App\Services\ApiUvs\ApiUvsService;
 use App\Services\Helper\DateParser;
-use App\Jobs\ApiUpdates\UpsertCourseParticipantEnrollment;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -63,7 +63,9 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
         // Helper zum finalen Loggen
         $writeLog = function (string $level = 'info') use (&$log) {
             $log['messages'] = array_values(array_unique($log['messages']));
-            // Log::$level('CreateOrUpdateCourse summary', $log);
+            if (config('api_sync.debug_logs', false)) {
+                Log::log($level, 'CreateOrUpdateCourse summary', $log);
+            }
         };
 
         if (empty($this->klassenId)) {
@@ -216,29 +218,28 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
         $log['messages'][] = "Kurs upserted (id={$course->id}).";
 
         // ---------------------------------------------------------------------
-        // 4) Participants einzeln verarbeiten (ohne Einzel-Logs)
+        // 4) Participants gesammelt verarbeiten (ohne Einzel-Jobs)
         // ---------------------------------------------------------------------
         $participantsCount = 0;
 
         foreach (($participantsData ?? []) as $pRow) {
             $participantsCount++;
-
-            UpsertCourseParticipantEnrollment::dispatch(
-                courseId: $course->id,
-                klassenId: $this->klassenId,
+            $this->upsertParticipantEnrollment(
+                course: $course,
                 participantRow: $pRow,
                 courseMeta: [
                     'termin_id'        => $courseData['termin_id']    ?? null,
                     'vtz'              => $courseData['vtz_kennz_ks']  ?? null,
                     'kurzbez_ba'       => $courseData['kurzbez']       ?? ($courseData['kurzbez_ba'] ?? null),
                     'baustein_id'      => $courseData['baustein_id']   ?? null,
-                    'participantsdata' => $participantsData            ?? [],
                 ]
             );
         }
 
         $log['participants_count'] = $participantsCount;
-        $log['messages'][] = "Teilnehmer-Jobs dispatched: {$participantsCount}.";
+        $log['messages'][] = "Teilnehmer gesammelt upserted: {$participantsCount}.";
+
+        $this->cleanupRemovedEnrollments($course, $participantsData ?? []);
 
         // ---------------------------------------------------------------------
         // 5) Kurstage synchronisieren (zusammenfassendes Logging)
@@ -406,4 +407,119 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
             return null;
         }
     }
+
+    private function upsertParticipantEnrollment(Course $course, array $participantRow, array $courseMeta = []): void
+    {
+        $uvsPid = $participantRow['person_id'] ?? null;
+        if (! $uvsPid) {
+            Log::warning("Enrollment: fehlende person_id (course_id={$course->id}, klassen_id={$this->klassenId})");
+            return;
+        }
+
+        $tp = $participantRow;
+        $parseDate = fn($v) => DateParser::date($v);
+        $parseDateTime = fn($v) => DateParser::dateTime($v);
+
+        $person = Person::updateOrCreate(
+            ['person_id' => $tp['person_id']],
+            [
+                'institut_id'       => $tp['institut_id']   ?? null,
+                'person_nr'         => $tp['person_nr']     ?? null,
+                'role'              => 'guest',
+                'status'            => $tp['status']        ?? null,
+                'upd_date'          => $parseDateTime($tp['upd_date'] ?? null),
+                'nachname'          => $tp['nachname']      ?? null,
+                'vorname'           => $tp['vorname']       ?? null,
+                'geschlecht'        => $tp['geschlecht']    ?? null,
+                'titel_kennz'       => $tp['titel_kennz']   ?? null,
+                'nationalitaet'     => $tp['nationalitaet'] ?? null,
+                'familien_stand'    => $tp['familien_stand']?? null,
+                'geburt_datum'      => $parseDate($tp['geburt_datum'] ?? null),
+                'geburt_name'       => $tp['geburt_name']   ?? null,
+                'geburt_land'       => $tp['geburt_land']   ?? null,
+                'geburt_ort'        => $tp['geburt_ort']    ?? null,
+                'lkz'               => $tp['lkz']           ?? null,
+                'plz'               => $tp['plz']           ?? null,
+                'ort'               => $tp['ort']           ?? null,
+                'strasse'           => $tp['strasse']       ?? null,
+                'adresszusatz1'     => $tp['adresszusatz1'] ?? null,
+                'adresszusatz2'     => $tp['adresszusatz2'] ?? null,
+                'telefon1'          => $tp['telefon1']      ?? null,
+                'telefon2'          => $tp['telefon2']      ?? null,
+                'email_priv'        => $tp['email_priv']    ?? null,
+                'email_cbw'         => $tp['email_cbw']     ?? null,
+                'personal_nr'       => $tp['personal_nr']   ?? null,
+                'angestellt_von'    => $parseDateTime($tp['angestellt_von'] ?? null),
+                'angestellt_bis'    => $parseDateTime($tp['angestellt_bis'] ?? null),
+                'last_api_update'   => now(),
+            ]
+        );
+
+        $enrollment = Enrollment::withTrashed()->firstOrNew([
+            'course_id' => $course->id,
+            'person_id' => $person->id,
+        ]);
+
+        if ($enrollment->trashed()) {
+            $enrollment->restore();
+        }
+
+        $enrollment->fill([
+            'course_id'      => $course->id,
+            'person_id'      => $person->id,
+
+            'teilnehmer_id'  => $participantRow['teilnehmer_id']  ?? $enrollment->teilnehmer_id,
+            'tn_baustein_id' => $participantRow['tn_baustein_id'] ?? $enrollment->tn_baustein_id,
+            'baustein_id'    => $courseMeta['baustein_id']        ?? $enrollment->baustein_id,
+
+            'klassen_id'     => $this->klassenId,
+            'termin_id'      => $courseMeta['termin_id']          ?? $enrollment->termin_id,
+            'vtz'            => $courseMeta['vtz']                ?? $enrollment->vtz,
+            'kurzbez_ba'     => $courseMeta['kurzbez_ba']         ?? ($courseMeta['kurzbez'] ?? $enrollment->kurzbez_ba),
+
+            'source_snapshot'=> $participantRow,
+            'source_last_upd'=> now(),
+            'last_synced_at' => now(),
+        ]);
+
+        $enrollment->save();
+    }
+
+    private function cleanupRemovedEnrollments(Course $course, array $participantsData): void
+    {
+        $lock = Cache::lock("cleanup:enrollments:{$this->klassenId}", 20);
+        if (! $lock->get()) {
+            return;
+        }
+
+        try {
+            $remoteUvIds = collect($participantsData)
+                ->pluck('person_id')
+                ->filter()
+                ->unique()
+                ->values();
+
+            $active = Enrollment::where('course_id', $course->id)
+                ->whereNull('deleted_at')
+                ->get(['id', 'person_id']);
+
+            $mapLocalToUv = Person::whereIn('id', $active->pluck('person_id'))
+                ->pluck('person_id', 'id');
+
+            $toSoftDelete = $active->filter(function ($enr) use ($remoteUvIds, $mapLocalToUv) {
+                $uvsPid = $mapLocalToUv[$enr->person_id] ?? null;
+                return $uvsPid && ! $remoteUvIds->contains($uvsPid);
+            });
+
+            if ($toSoftDelete->isNotEmpty()) {
+                $toSoftDelete->each->delete();
+                Log::info("Enrollment-Cleanup: SoftDeleted {$toSoftDelete->count()} (course_id={$course->id}, klassen_id={$this->klassenId}).");
+            }
+        } catch (\Throwable $e) {
+            Log::error("Enrollment-Cleanup Fehler (klassen_id={$this->klassenId}): " . $e->getMessage());
+        } finally {
+            optional($lock)->release();
+        }
+    }
 }
+

@@ -5,6 +5,7 @@ namespace App\Jobs\ReportBook;
 use App\Models\Message;
 use App\Models\ReportBook;
 use App\Models\Setting;
+use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -44,6 +45,12 @@ class SendMissingReportBookReminderJob implements ShouldQueue
             $reportBookId = (int) ($item['report_book_id'] ?? 0);
 
             if ($toUserId <= 0 || $reportBookId <= 0) {
+                $skipped++;
+                continue;
+            }
+
+            $user = User::query()->find($toUserId);
+            if (! $user || (int) $user->status === 0) {
                 $skipped++;
                 continue;
             }
