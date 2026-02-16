@@ -63,7 +63,7 @@ class PersonApiUpdate implements ShouldQueue, ShouldBeUnique
         if (($statusData['teilnehmer_nr'] ?? null) == null && ($statusData['mitarbeiter_nr'] ?? null) == null) {
             // Person ist weder Teilnehmer noch Mitarbeiter
 
-            
+
             Log::info("PersonApiUpdate: Keine Teilnehmer- oder Mitarbeiternummer fuer person_id={$person->person_id}");
 
         } else {
@@ -106,7 +106,7 @@ class PersonApiUpdate implements ShouldQueue, ShouldBeUnique
 
         $newProgramHash = md5(json_encode($programData ?? []));
         $programDataChanged = $oldProgramHash !== $newProgramHash;
-
+        $lastApiUpdate = $person->last_api_update;
         // 3) Persist
         $person->fill([
             'teilnehmer_nr' => $programData['teilnehmer_nr'] ?? null,
@@ -119,7 +119,9 @@ class PersonApiUpdate implements ShouldQueue, ShouldBeUnique
 
         $shouldDispatchCourseSync = $person->user_id != null
             && $person->programdata != null
-            && $programDataChanged;
+            && $programDataChanged
+            || $lastApiUpdate == null || $lastApiUpdate->lt(now()->subDays(2)); // Immer Course-Sync dispatchen, wenn es das erste API-Update ist (z.B. nach Anlegen der Person)
+
 
         if (config('api_sync.debug_logs', false)) {
             Log::info('PersonApiUpdate summary', [
