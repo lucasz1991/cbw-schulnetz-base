@@ -5,8 +5,6 @@ namespace App\Livewire;
 use Livewire\Component;
 use App\Models\Message;
 use Livewire\WithPagination;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
 use App\Models\File;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -45,6 +43,45 @@ class MessageBox extends Component
         $this->dispatch('refreshComponent');
     }
 
+    public function markAsRead(int $messageId): void
+    {
+        $message = auth()->user()->receivedMessages()->find($messageId);
+
+        if (! $message) {
+            return;
+        }
+
+        if ((int) $message->status !== 2) {
+            $message->update(['status' => 2]);
+        }
+
+        $this->dispatch('refreshComponent');
+    }
+
+    public function deleteMessage(int $messageId): void
+    {
+        $message = auth()->user()->receivedMessages()
+            ->with('files')
+            ->find($messageId);
+
+        if (! $message) {
+            return;
+        }
+
+        foreach ($message->files as $file) {
+            $file->delete();
+        }
+
+        $message->delete();
+
+        if ($this->selectedMessage && (int) $this->selectedMessage->id === $messageId) {
+            $this->selectedMessage = null;
+            $this->showMessageModal = false;
+        }
+
+        $this->dispatch('refreshComponent');
+    }
+
     public function downloadFile(int $fileId): StreamedResponse
     {
         $file = File::findOrFail($fileId);
@@ -75,4 +112,3 @@ class MessageBox extends Component
         return view('livewire.message-box', compact('messages'))->layout('layouts/app');
     }
 }
-
