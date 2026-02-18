@@ -11,7 +11,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use App\Models\User;
-
+use Illuminate\Support\Facades\Notification;
 
 class ProcessMailJob implements ShouldQueue
 {
@@ -32,19 +32,27 @@ class ProcessMailJob implements ShouldQueue
      */
     public function handle(): void
     {
-        $recipients = $this->mail->recipients;
+        $recipients = is_array($this->mail->recipients) ? $this->mail->recipients : [];
         $sendMailTo = $this->mail->type == 'message' ? false : true;
-        $files = $this->mail->files ?? []; 
+        $files = $this->mail->files ?? [];
 
         foreach ($recipients as &$recipient) {
             try {
-                // Lade den Benutzer anhand der Empfänger-ID
-                $user = User::find($recipient['user_id']);
-                if ($user) {
-                    // Sende die Message
+                $userId = (int) ($recipient['user_id'] ?? 0);
+                $email = (string) ($recipient['email'] ?? '');
+                $recipient['status'] = false;
+
+                // User-Empfaenger: immer interne Message, optional E-Mail
+                if ($userId > 0) {
+                    $user = User::find($userId);
+                    if (! $user) {
+                        Log::warning("Benutzer mit ID {$userId} nicht gefunden.");
+                        continue;
+                    }
+
                     $user->receiveMessage(
-                        $this->mail->content['subject'],
-                        $this->mail->content['body'],
+                        $this->mail->content['subject'] ?? 'Nachricht',
+                        $this->mail->content['body'] ?? '',
                         $this->mail->from_user_id ?? 1,
                         $files
                     );
@@ -53,22 +61,34 @@ class ProcessMailJob implements ShouldQueue
                         $user->notify(new MailNotification($this->mail));
                     }
 
-                    // Markiere den Empfänger als erfolgreich
                     $recipient['status'] = true;
-                } else {
-                    Log::warning("Benutzer mit ID {$recipient['user_id']} nicht gefunden.");
+                    continue;
                 }
+
+                // Externer Empfaenger ohne User: nur E-Mail
+                if ($sendMailTo && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    Notification::route('mail', $email)->notify(new MailNotification($this->mail));
+                    $recipient['status'] = true;
+                    continue;
+                }
+
+                Log::warning('Empfaenger ohne gueltigen user_id/email in ProcessMailJob.', [
+                    'recipient' => $recipient,
+                    'mail_id' => $this->mail->id,
+                ]);
             } catch (\Exception $e) {
-                // Fehler beim Senden protokollieren
-                Log::error("Fehler beim Senden der Mail an {$recipient['email']}: {$e->getMessage()}");
+                Log::error('Fehler beim Senden der Mail.', [
+                    'mail_id' => $this->mail->id,
+                    'recipient' => $recipient,
+                    'error' => $e->getMessage(),
+                ]);
                 $recipient['status'] = false;
             }
         }
 
-        // Aktualisiere den Status der Empfänger und der Mail
         $this->mail->update([
             'recipients' => $recipients,
-            'status' => collect($recipients)->every(fn($r) => $r['status']),
+            'status' => collect($recipients)->every(fn ($r) => (bool) ($r['status'] ?? false)),
         ]);
     }
 }

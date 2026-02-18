@@ -158,7 +158,7 @@ class AdminTask extends Model
     public function assignTo(int $userId): void
     {
         if ($this->assigned_to && $this->assigned_to !== $userId) {
-            // Schon jemand anderem zugewiesen → hier könnte man eine Exception werfen
+            return;
         }
 
         $this->assigned_to = $userId;
@@ -172,7 +172,6 @@ class AdminTask extends Model
         if ($this->status === self::STATUS_COMPLETED) {
             return;
         }
-
         $this->status       = self::STATUS_COMPLETED;
         $this->completed_at = now();
         $this->save();
