@@ -2,10 +2,14 @@
     @if(!$invoice && !$canUploadInvoice)
       <x-alert type="warning">
         <p class="text-sm leading-snug">
-          Sobald alle Kursinhalte erfasst sind – z.&nbsp;B. <span class="font-medium">Roter Faden</span> und 
-          <span class="font-medium">Prüfungsergebnisse</span> – können Sie hier die <span class="font-medium">Rechnung</span> für diesen Kurs speichern.
+          Die Rechnung kann erst hochgeladen werden, wenn die Kursdokumentation vollständig ist:
+          <span class="font-medium">Roter Faden</span>,
+          <span class="font-medium">Dokumentation mit Teilnehmer-Unterschrift</span>,
+          <span class="font-medium">vollständige Teilnehmer-Anwesenheit</span> sowie
+          <span class="font-medium">Klausurergebnisse</span> (oder <span class="font-medium">externe Prüfung</span>).
         </p>
       </x-alert>
+
     @endif
   @if($invoice)
     <div class="md:flex items-center flex-wrap justify-between rounded border p-3 bg-white ">

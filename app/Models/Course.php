@@ -314,10 +314,65 @@ class Course extends Model
         return empty(array_diff($participantIds, $withResults));
     }
 
+    public function hasParticipantDocumentationSignature(): bool
+    {
+        return $this->files()
+            ->where('type', 'sign_course_doku_participant')
+            ->exists();
+    }
+
+    public function areAllCourseDaysDocumentationCompleted(): bool
+    {
+        $totalDays = $this->days()->count();
+        if ($totalDays === 0) {
+            return false;
+        }
+
+        $completedDays = $this->days()
+            ->where('note_status', CourseDay::NOTE_STATUS_COMPLETED)
+            ->count();
+
+        return $completedDays === $totalDays;
+    }
+
+    public function hasDocumentationWithParticipantSignature(): bool
+    {
+        return $this->areAllCourseDaysDocumentationCompleted()
+            && $this->hasParticipantDocumentationSignature();
+    }
+
+    public function hasAttendanceForAllCourseDays(): bool
+    {
+        $days = $this->days()->get();
+        if ($days->isEmpty()) {
+            return false;
+        }
+
+        foreach ($days as $day) {
+            if (! $day->isAttendanceCompletelyRecorded()) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public function hasResultsForAllParticipantsOrExternalExam(): bool
+    {
+        if ((bool) $this->getSetting('isExternalExam', false)) {
+            return true;
+        }
+
+        return $this->hasResultsForAllParticipants();
+    }
+
     public function isReadyForInvoice(): bool
     {
-        return $this->hasRoterFaden() && $this->hasResultsForAllParticipants();
-    }
+        return $this->hasRoterFaden()
+            && $this->hasDocumentationWithParticipantSignature()
+            && $this->hasAttendanceForAllCourseDays()
+            && $this->hasResultsForAllParticipantsOrExternalExam();
+    } 
 
     /*
     |--------------------------------------------------------------------------
