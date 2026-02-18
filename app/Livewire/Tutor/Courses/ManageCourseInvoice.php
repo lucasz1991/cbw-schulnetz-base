@@ -52,6 +52,11 @@ class ManageCourseInvoice extends Component
         $this->course = $course;
     }
 
+    public function reloadOnTabActivated(): void
+    {
+        $this->course->refresh();
+    }
+
     public function getCanUploadInvoiceProperty(): bool
     {
         $this->course->refresh();

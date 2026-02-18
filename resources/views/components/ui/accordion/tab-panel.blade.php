@@ -5,6 +5,7 @@
 
 <div
     x-show="openTab === '{{ $for }}'"
+    x-effect="if (openTab === '{{ $for }}') { window.dispatchEvent(new CustomEvent('accordion-tab-changed', { detail: { tab: '{{ $for }}' } })) }"
     x-cloak
     wire:ignore
     role="tabpanel"

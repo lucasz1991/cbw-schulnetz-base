@@ -1,4 +1,7 @@
-<div class="space-y-4 pt-6">
+<div
+    class="space-y-4 pt-6"
+    x-on:accordion-tab-changed.window="if ($event.detail?.tab === 'invoice') { $wire.reloadOnTabActivated() }"
+>
     @if(!$invoice && !$canUploadInvoice)
       <x-alert type="warning">
         <p class="text-sm leading-snug">
