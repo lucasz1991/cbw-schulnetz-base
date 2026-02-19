@@ -33,7 +33,9 @@ class ProcessMailJob implements ShouldQueue
     public function handle(): void
     {
         $recipients = is_array($this->mail->recipients) ? $this->mail->recipients : [];
-        $sendMailTo = $this->mail->type == 'message' ? false : true;
+        $type = strtolower((string) $this->mail->type);
+        $sendMessageTo = $type !== 'mail';
+        $sendMailTo = $type !== 'message';
         $files = $this->mail->files ?? [];
 
         foreach ($recipients as &$recipient) {
@@ -42,7 +44,7 @@ class ProcessMailJob implements ShouldQueue
                 $email = (string) ($recipient['email'] ?? '');
                 $recipient['status'] = false;
 
-                // User-Empfaenger: immer interne Message, optional E-Mail
+                // Bei User-Empfaengern je nach Typ interne Nachricht und/oder E-Mail senden.
                 if ($userId > 0) {
                     $user = User::find($userId);
                     if (! $user) {
@@ -50,18 +52,24 @@ class ProcessMailJob implements ShouldQueue
                         continue;
                     }
 
-                    $user->receiveMessage(
-                        $this->mail->content['subject'] ?? 'Nachricht',
-                        $this->mail->content['body'] ?? '',
-                        $this->mail->from_user_id ?? 1,
-                        $files
-                    );
+                    $didProcess = false;
+
+                    if ($sendMessageTo) {
+                        $user->receiveMessage(
+                            $this->mail->content['subject'] ?? 'Nachricht',
+                            $this->mail->content['body'] ?? '',
+                            $this->mail->from_user_id ?? 1,
+                            $files
+                        );
+                        $didProcess = true;
+                    }
 
                     if ($sendMailTo) {
                         $user->notify(new MailNotification($this->mail));
+                        $didProcess = true;
                     }
 
-                    $recipient['status'] = true;
+                    $recipient['status'] = $didProcess;
                     continue;
                 }
 
@@ -72,9 +80,10 @@ class ProcessMailJob implements ShouldQueue
                     continue;
                 }
 
-                Log::warning('Empfaenger ohne gueltigen user_id/email in ProcessMailJob.', [
+                Log::warning('Empfaenger konnte fuer den gewaehlten Mail-Typ nicht verarbeitet werden.', [
                     'recipient' => $recipient,
                     'mail_id' => $this->mail->id,
+                    'type' => $this->mail->type,
                 ]);
             } catch (\Exception $e) {
                 Log::error('Fehler beim Senden der Mail.', [
