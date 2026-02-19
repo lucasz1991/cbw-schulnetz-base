@@ -299,7 +299,7 @@ class DispatchLecturerReminders extends Command
             ->all();
 
         Mail::create([
-            'type' => 'mail',
+            'type' => 'both',
             'status' => false,
             'content' => [
                 'subject' => $subject,
