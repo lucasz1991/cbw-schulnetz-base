@@ -20,7 +20,7 @@ class Kernel extends ConsoleKernel
             ->weeklyOn(1, '10:30');
 
         $schedule->command('courses:dispatch-lecturer-reminders')
-            ->dailyAt('08:30');
+            ->dailyAt('09:30');
     }
 
     /**
