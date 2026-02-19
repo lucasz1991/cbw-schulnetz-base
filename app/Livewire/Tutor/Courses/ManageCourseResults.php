@@ -4,6 +4,7 @@ namespace App\Livewire\Tutor\Courses;
 
 use App\Models\Course;
 use App\Models\CourseResult;
+use App\Services\ApiUvs\ApiUvsService;
 use App\Services\ApiUvs\CourseApiServices\CourseResultsSyncService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
@@ -202,6 +203,118 @@ class ManageCourseResults extends Component
             type: 'success',
             message: 'Ergebnisse wurden vollständig aus UVS neu geladen.'
         );
+    }
+
+    /**
+     * Debug: Loescht alle lokalen CourseResults dieses Kurses.
+     */
+    public function deleteLocalResults(): void
+    {
+        $deleted = CourseResult::query()
+            ->where('course_id', $this->course->id)
+            ->delete();
+
+        $this->prefillResults();
+
+        $this->dispatch(
+            'notify',
+            type: 'success',
+            message: "Lokal geloescht: {$deleted} Ergebnis-Eintraege."
+        );
+    }
+
+    /**
+     * Debug: Versucht alle UVS-Ergebnisse fuer diesen Kurs zu loeschen
+     * und loescht danach lokal.
+     */
+    public function deleteRemoteAndLocalResults(): void
+    {
+        if (! $this->course->termin_id || ! $this->course->klassen_id) {
+            $this->dispatch(
+                'notify',
+                type: 'error',
+                message: 'Fehlende termin_id/klassen_id. Remote-Loeschen nicht moeglich.'
+            );
+            return;
+        }
+
+        $participants = $this->course->participants()->get();
+
+        $changes = [];
+        foreach ($participants as $person) {
+            if (! $person->teilnehmer_id) {
+                continue;
+            }
+
+            $changes[] = [
+                'teilnehmer_id'  => (string) $person->teilnehmer_id,
+                'person_id'      => (string) ($person->person_id ?? ''),
+                'institut_id'    => (int) ($person->institut_id ?? $this->course->institut_id ?? 0),
+                'teilnehmer_fnr' => (string) ($person->teilnehmer_fnr ?? '00'),
+                'action'         => 'delete',
+            ];
+        }
+
+        if (empty($changes)) {
+            $this->dispatch(
+                'notify',
+                type: 'error',
+                message: 'Keine gueltigen Teilnehmer fuer Remote-Loeschen gefunden.'
+            );
+            return;
+        }
+
+        $payload = [
+            'termin_id'      => (string) $this->course->termin_id,
+            'klassen_id'     => (string) $this->course->klassen_id,
+            'teilnehmer_ids' => collect($changes)->pluck('teilnehmer_id')->unique()->values()->all(),
+            'changes'        => $changes,
+        ];
+
+        try {
+            /** @var ApiUvsService $api */
+            $api = app(ApiUvsService::class);
+            $response = $api->request('POST', '/api/course/courseresults/syncdata', $payload, []);
+
+            if (empty($response['ok'])) {
+                Log::warning('ManageCourseResults.deleteRemoteAndLocalResults: Remote delete failed', [
+                    'course_id' => $this->course->id,
+                    'response'  => $response,
+                    'payload'   => $payload,
+                ]);
+
+                $this->dispatch(
+                    'notify',
+                    type: 'error',
+                    message: 'Remote-Loeschen fehlgeschlagen. Details im Log.'
+                );
+                return;
+            }
+
+            $deletedLocal = CourseResult::query()
+                ->where('course_id', $this->course->id)
+                ->delete();
+
+            $this->prefillResults();
+
+            $this->dispatch(
+                'notify',
+                type: 'success',
+                message: "Remote geloescht (".count($changes)." Teilnehmer), lokal geloescht: {$deletedLocal}."
+            );
+        } catch (\Throwable $e) {
+            Log::error('ManageCourseResults.deleteRemoteAndLocalResults exception', [
+                'course_id'   => $this->course->id,
+                'error'       => $e->getMessage(),
+                'trace_short' => substr($e->getTraceAsString(), 0, 1000),
+            ]);
+
+            $this->dispatch(
+                'notify',
+                type: 'error',
+                message: 'Fehler beim Remote-/Lokal-Loeschen. Details im Log.'
+            );
+        }
     }
 
     public function sort(string $col): void

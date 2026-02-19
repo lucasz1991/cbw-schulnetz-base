@@ -214,6 +214,11 @@ class CourseResultsSyncService
             $remotePruefKennz  = $this->mapLocalStatusToPruefKennz($result->status);
             $remotePruefPunkte = $this->mapLocalResultToPruefPunkte($result->result);
 
+            // Leere Datensaetze nicht als 0/0 nach UVS pushen.
+            if ($remoteStatus === 0 && $remotePruefPunkte === null && $remotePruefKennz === '') {
+                continue;
+            }
+
             $changes[] = [
                 'teilnehmer_id'  => $teilnehmerId,
                 'person_id'      => $personIdUvs,
@@ -268,19 +273,51 @@ class CourseResultsSyncService
         };
     }
 
-    protected function mapLocalResultToPruefPunkte(mixed $result): int
+    protected function mapLocalResultToPruefPunkte(mixed $result): ?int
     {
         if ($result === null || $result === '') {
-            return 0;
+            return null;
         }
 
         if (! is_numeric($result)) {
-            return 0;
+            return null;
         }
 
         $value = (int) round($result);
 
         return max(0, min(255, $value));
+    }
+
+    protected function parseNullableInt(mixed $value): ?int
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        if (is_string($value)) {
+            $value = trim($value);
+            if ($value === '') {
+                return null;
+            }
+        }
+
+        if (! is_numeric($value)) {
+            return null;
+        }
+
+        return (int) $value;
+    }
+
+    protected function hasMeaningfulRemoteExamData(?int $status, ?int $punkte, ?string $pruefKennz): bool
+    {
+        $kennz = is_string($pruefKennz) ? trim($pruefKennz) : '';
+
+        // Typischer "kein Ergebnis vorhanden"-Fall aus UVS.
+        if (($status === null || $status === 0) && ($punkte === null || $punkte === 0) && $kennz === '') {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -343,8 +380,8 @@ class CourseResultsSyncService
                 continue;
             }
 
-            $remoteStatus     = isset($item['status'])       ? (int) $item['status']       : null;
-            $remotePunkte     = isset($item['pruef_punkte']) ? (int) $item['pruef_punkte'] : null;
+            $remoteStatus     = $this->parseNullableInt($item['status'] ?? null);
+            $remotePunkte     = $this->parseNullableInt($item['pruef_punkte'] ?? null);
             $remotePruefKennz = $item['pruef_kennz'] ?? null;
             $remoteUid        = isset($item['uid']) ? (int) $item['uid'] : null;
             $remoteUpdRaw     = $item['upd_date'] ?? null; // Y/m/d
@@ -356,6 +393,10 @@ class CourseResultsSyncService
                 } catch (\Throwable $e) {
                     $remoteUpdDate = null;
                 }
+            }
+
+            if (! $this->hasMeaningfulRemoteExamData($remoteStatus, $remotePunkte, $remotePruefKennz)) {
+                continue;
             }
 
             $localStatus = $this->mapRemoteStatusToLocalStatus($remoteStatus, $remotePruefKennz);
@@ -467,8 +508,8 @@ class CourseResultsSyncService
                 continue;
             }
 
-            $remoteStatus     = isset($item['status'])       ? (int) $item['status']       : null;
-            $remotePunkte     = isset($item['pruef_punkte']) ? (int) $item['pruef_punkte'] : null;
+            $remoteStatus     = $this->parseNullableInt($item['status'] ?? null);
+            $remotePunkte     = $this->parseNullableInt($item['pruef_punkte'] ?? null);
             $remotePruefKennz = $item['pruef_kennz'] ?? null;
             $remoteUid        = isset($item['uid']) ? (int) $item['uid'] : null;
             $remoteUpdRaw     = $item['upd_date'] ?? null; // Y/m/d
@@ -482,6 +523,7 @@ class CourseResultsSyncService
                 }
             }
 
+            $hasRemoteData = $this->hasMeaningfulRemoteExamData($remoteStatus, $remotePunkte, $remotePruefKennz);
             $localStatus = $this->mapRemoteStatusToLocalStatus($remoteStatus, $remotePruefKennz);
             $localResult = $this->mapRemotePunkteToLocalResult($remotePunkte);
 
@@ -492,6 +534,21 @@ class CourseResultsSyncService
                     'course_id' => $course->id,
                     'person_id' => $person->id,
                 ]);
+
+                // Im Load-Modus sollen "keine Ergebnisdaten" nicht als 0 gespeichert werden.
+                // Existierende lokale Daten werden dabei auf null zurueckgesetzt.
+                if (! $hasRemoteData) {
+                    if ($courseResult->exists) {
+                        $courseResult->result          = null;
+                        $courseResult->status          = null;
+                        $courseResult->remote_uid      = $remoteUid;
+                        $courseResult->remote_upd_date = $remoteUpdDate;
+                        $courseResult->sync_state      = CourseResult::SYNC_STATE_SYNCED;
+                        $courseResult->saveQuietly();
+                        $updatedCount++;
+                    }
+                    continue;
+                }
 
                 $courseResult->result          = $localResult;
                 $courseResult->status          = $localStatus;
@@ -522,6 +579,10 @@ class CourseResultsSyncService
     protected function mapRemoteStatusToLocalStatus(?int $status, ?string $pruefKennz): ?string
     {
         if ($status === null) {
+            return null;
+        }
+
+        if ($status === 0 && (! is_string($pruefKennz) || trim($pruefKennz) === '')) {
             return null;
         }
 
