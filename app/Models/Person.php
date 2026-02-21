@@ -111,7 +111,7 @@ class Person extends Model
 
         static::retrieved(function (Person $person) {
             // nur sinnvoll, wenn mit User verknüpft
-            if (empty($person->user_id)) {
+            if (empty($person->user_id) || !empty($person->programdata)) {
                 return;
             }
 
