@@ -127,7 +127,7 @@ class Person extends Model
      */
     protected static function dispatchApiUpdateIfNotThrottled(Person $person, string $source): void
     {
-        if (empty($person->user_id) || empty($person->id)) {
+        if (empty($person->user_id) || empty($person->id) || !empty($person->programdata)) {
             return;
         }
 
