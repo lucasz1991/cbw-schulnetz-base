@@ -17,8 +17,6 @@ class Contact extends Component
     public function send()
     {
         $this->validate([
-            'name' => ['required', 'string', 'max:255', 'regex:/^[a-zA-ZäöüÄÖÜß\s]+$/'],
-            'email' => ['required', 'email', 'max:255', 'regex:/^[\w._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/'],
             'subject' => ['required', 'string', 'max:255'],
             'message' => ['required', 'string'],
         ], [
@@ -39,7 +37,8 @@ class Contact extends Component
             'message.required' => 'Bitte gib deine Nachricht ein.',
             'message.string' => 'Die Nachricht muss aus Zeichen bestehen.',
         ]);
-
+        $this->name = Auth()->check() ? Auth()->user()->name : $this->name;
+        $this->email = Auth()->check() ? Auth()->user()->email : $this->email;
         try {
             $adminEmailFromSettings = Setting::getValue('mails', 'admin_email');
             $superAdminEmail = env('SUPER_ADMIN_MAIL');
