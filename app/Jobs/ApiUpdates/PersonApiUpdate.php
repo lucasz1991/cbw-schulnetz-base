@@ -106,7 +106,7 @@ class PersonApiUpdate implements ShouldQueue, ShouldBeUnique
         $lastApiUpdate = $person->last_api_update;
         // 3) Persist
         $person->fill([
-            'teilnehmer_nr' => $programData['teilnehmer_nr'] ?? null,
+            'teilnehmer_nr' => $statusData['teilnehmer_nr'] ?? ($programData['teilnehmer_nr'] ?? null),
             'teilnehmer_id' => $programData['teilnehmer_id'] ?? null,
             'role' => $role,
             'statusdata' => $statusData,
