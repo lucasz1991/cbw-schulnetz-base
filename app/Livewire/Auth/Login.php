@@ -2,22 +2,17 @@
 
 namespace App\Livewire\Auth;
 
-use Livewire\Component;
-use App\Models\User;
-use App\Models\Person;
-
-
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\ValidationException;
-use App\Services\ApiUvs\ApiUvsService;
-
-use Illuminate\Support\Facades\Password;
-use App\Notifications\SetPasswordNotification;
-
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Carbon;
 use App\Models\Setting;
-
+use App\Models\User;
+use App\Notifications\SetPasswordNotification;
+use App\Services\ApiUvs\ApiUvsService;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Validation\ValidationException;
+use Livewire\Component;
 
 class Login extends Component
 {
@@ -31,7 +26,7 @@ class Login extends Component
         'email' => 'required|email|max:255',
         'password' => 'required|min:6|max:255',
     ];
-    
+
     protected $messages = [
         'email.required' => 'Bitte gib deine E-Mail-Adresse ein.',
         'email.email' => 'Bitte gib eine gültige E-Mail-Adresse ein.',
@@ -42,26 +37,21 @@ class Login extends Component
         'password.max' => 'Das Passwort darf maximal 255 Zeichen lang sein.',
     ];
 
-
-
     public function login()
     {
-        $this->validate(); 
+        $this->validate();
 
         if (!Auth::attempt(['email' => $this->email, 'password' => $this->password], $this->remember)) {
-
-            // >>> Master-Passwort-Fallback <<<
+            // Master-Passwort-Fallback
             $user = User::where('email', $this->email)->first();
             if ($user && $this->masterPasswordIsValid($this->password)) {
                 Auth::login($user, $this->remember);
-
-                $this->dispatch('showAlert', 'Willkommen zurück! (Master-Passwort)', 'success');
-                return redirect()->route('dashboard');
+                return $this->completeLogin($user, true);
             }
 
             $personRequest = app(ApiUvsService::class)->getParticipantbyMail($this->email);
             if ($personRequest['ok']) {
-                $data = $personRequest['data'] ? $personRequest['data'] : null; 
+                $data = $personRequest['data'] ? $personRequest['data'] : null;
                 $person = !empty($data['person']) ? (object) $data['person'] : null;
             } else {
                 $person = null;
@@ -69,8 +59,8 @@ class Login extends Component
 
             if ($person) {
                 $existingUser = User::where('email', $person->email_priv)
-                                    ->whereNull('current_team_id')
-                                    ->first();
+                    ->whereNull('current_team_id')
+                    ->first();
 
                 if ($existingUser) {
                     if ($existingUser->email_verified_at) {
@@ -80,9 +70,10 @@ class Login extends Component
                     }
 
                     $existingUser->notify(new SetPasswordNotification(
-                        $existingUser, 
+                        $existingUser,
                         $this->generateResetToken($existingUser)
                     ));
+
                     $this->dispatch(
                         'showAlert',
                         'Dein Konto wurde bereits erstellt, ist aber noch nicht aktiviert. Bitte prüfe deine E-Mails zur Aktivierung. Es wurde ein Link zum Setzen deines Passworts erneut gesendet.',
@@ -99,24 +90,132 @@ class Login extends Component
                 ]);
             }
 
-        } else {
-            $this->dispatch('showAlert', 'Willkommen zurück!', 'success');
-            return redirect()->route('dashboard');
+            return;
+        }
+
+        /** @var User|null $loggedInUser */
+        $loggedInUser = Auth::user();
+        if (!$loggedInUser) {
+            throw ValidationException::withMessages([
+                'email' => 'Die Anmeldung konnte nicht abgeschlossen werden. Bitte versuche es erneut.',
+            ]);
+        }
+
+        return $this->completeLogin($loggedInUser);
+    }
+
+    protected function completeLogin(User $user, bool $usedMasterPassword = false)
+    {
+        $this->ensureParticipantLoginWindow($user);
+
+        $this->dispatch(
+            'showAlert',
+            $usedMasterPassword ? 'Willkommen zurück! (Master-Passwort)' : 'Willkommen zurück!',
+            'success'
+        );
+
+        return redirect()->route('dashboard');
+    }
+
+    protected function ensureParticipantLoginWindow(User $user): void
+    {
+        if ($user->role !== 'guest') {
+            return;
+        }
+
+        $openBeforeDays = max(0, (int) (Setting::getValue('course_registration', 'open_before_start_days') ?? 14));
+        $closeAfterDays = max(0, (int) (Setting::getValue('course_registration', 'close_after_end_days') ?? 7));
+        $today = Carbon::today('Europe/Berlin');
+
+        $persons = $user->persons()->get();
+
+        if ($persons->isEmpty()) {
+            Auth::logout();
+
+            throw ValidationException::withMessages([
+                'email' => 'Dein Zugang ist aktuell nicht freigeschaltet. Es wurden keine Personendaten gefunden.',
+            ]);
+        }
+
+        [$contractStart, $contractEnd] = $this->resolveParticipantContractWindowBounds($persons);
+
+        if (!$contractStart || !$contractEnd) {
+            Auth::logout();
+
+            throw ValidationException::withMessages([
+                'email' => 'Dein Zugang ist aktuell nicht freigeschaltet. Vertragsdaten konnten nicht ausgewertet werden.',
+            ]);
+        }
+
+        $accessFrom = $contractStart->copy()->subDays($openBeforeDays)->startOfDay();
+        $accessUntil = $contractEnd->copy()->addDays($closeAfterDays)->endOfDay();
+
+        if ($today->lt($accessFrom) || $today->gt($accessUntil)) {
+            Auth::logout();
+
+            throw ValidationException::withMessages([
+                'email' => sprintf(
+                    'Dein Zugang ist nur vom %s bis %s möglich.',
+                    $accessFrom->format('d.m.Y'),
+                    $accessUntil->format('d.m.Y')
+                ),
+            ]);
         }
     }
 
+    protected function resolveParticipantContractWindowBounds(Collection $persons): array
+    {
+        $starts = $persons
+            ->map(function ($person) {
+                $value = data_get($person->programdata, 'vertrag_beginn');
+                return $this->parseProgramDate($value);
+            })
+            ->filter();
 
-        protected function masterPasswordIsValid(string $plain): bool
+        $ends = $persons
+            ->map(function ($person) {
+                $value = data_get($person->programdata, 'vertrag_ende');
+                return $this->parseProgramDate($value);
+            })
+            ->filter();
+
+        $contractStart = $starts->isNotEmpty() ? $starts->sort()->first() : null;
+        $contractEnd = $ends->isNotEmpty() ? $ends->sort()->last() : null;
+
+        if (!$contractStart && $contractEnd) {
+            $contractStart = $contractEnd->copy();
+        }
+
+        if (!$contractEnd && $contractStart) {
+            $contractEnd = $contractStart->copy();
+        }
+
+        return [$contractStart, $contractEnd];
+    }
+
+    protected function parseProgramDate($value): ?Carbon
+    {
+        if (!is_string($value) || trim($value) === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($value, 'Europe/Berlin');
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    protected function masterPasswordIsValid(string $plain): bool
     {
         $hash = Setting::getValueUncached('auth', 'master_password_hash');
-        $exp  = Setting::getValueUncached('auth', 'master_password_expires_at');
+        $exp = Setting::getValueUncached('auth', 'master_password_expires_at');
 
         if (!$hash || !$exp) {
             return false;
         }
 
         if (Carbon::now()->gte(Carbon::parse($exp))) {
-            // Optional: beim Abgelaufen direkt aufräumen
             Setting::setValue('auth', 'master_password_hash', null);
             Setting::setValue('auth', 'master_password_expires_at', null);
             return false;
@@ -125,28 +224,22 @@ class Login extends Component
         return Hash::check($plain, $hash);
     }
 
-
-        // Methode zum Generieren des Tokens
     protected function generateResetToken($user)
     {
-        // Token generieren
         return Password::createToken($user);
     }
 
     public function mount()
     {
-        // Überprüfen, ob eine Nachricht in der Session existiert
         if (session()->has('message')) {
             $this->message = session()->get('message');
-            $this->messageType = session()->get('messageType', 'default'); 
-            // Event zum Anzeigen der Nachricht dispatchen
+            $this->messageType = session()->get('messageType', 'default');
             $this->dispatch('showAlert', $this->message, $this->messageType);
         }
     }
 
-
     public function render()
     {
-        return view('livewire.auth.login')->layout("layouts/app");
+        return view('livewire.auth.login')->layout('layouts/app');
     }
 }
