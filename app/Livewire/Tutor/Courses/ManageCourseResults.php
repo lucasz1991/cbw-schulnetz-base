@@ -497,7 +497,7 @@ class ManageCourseResults extends Component
             return '+';
         }
 
-        if (($status === null || $raw === '') && $result !== null && $result !== '') {
+        if ($result !== null && $result !== '') {
             return '+';
         }
 
