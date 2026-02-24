@@ -1,4 +1,4 @@
-<div class="space-y-4 transition-opacity duration-300  pt-6" wire:loading.class="" x-data>
+<div class="space-y-4 transition-opacity duration-300  pt-6" wire:loading.class="" x-data> 
     <div class="w-max">
       <x-ui.forms.toggle-button 
           model="isExternalExam"
@@ -40,7 +40,7 @@
                   </td>
                   <td class="px-4 py-2 text-right">
                       <div 
-                          class="flex items-stretch justify-end gap-2 relative"
+                          class="flex items-center justify-end gap-2 relative"
                           wire:target="saveOne('{{ $personId }}')"
                           wire:loading.class="opacity-60"
                       >
@@ -54,7 +54,62 @@
                                 <span class="loader2 w-4 h-4"></span>
                             </div>
                           </div>
+                          @php
+                              $statusMap = [
+                                  'V' => 'Betrugsversuch',
+                                  '+' => 'Teilgenommen',
+                                  '-' => 'Nicht teilgenommen',
+                              ];
+                              $currentStatus = $statuses[$personId] ?? '';
+                              $currentStatusLabel = $statusMap[$currentStatus] ?? 'Status wählen';
+                              $statusBadgeClass = match ($currentStatus) {
+                                  'V' => 'bg-red-50 text-red-700 border-red-200',
+                                  '-' => 'bg-amber-50 text-amber-700 border-amber-200',
+                                  '+' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                                  default => 'bg-gray-50 text-gray-700 border-gray-200',
+                              };
+                          @endphp
+                          <x-ui.dropdown.anchor-dropdown
+                              align="left"
+                              width="auto"
+                              dropdownClasses="mt-2 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden"
+                              contentClasses="bg-white"
+                              :overlay="false"
+                              :trap="false"
+                              :offset="6"
+                          >
+                              <x-slot name="trigger">
+                                  <button
+                                      type="button"
+                                      class="inline-flex w-44 items-center justify-between gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold {{ $statusBadgeClass }} transition"
+                                      wire:loading.attr="disabled"
+                                      wire:loading.class="cursor-wait opacity-70"
+                                      wire:target="saveOne('{{ $personId }}'), setStatus('{{ $personId }}', 'V'), setStatus('{{ $personId }}', '+'), setStatus('{{ $personId }}', '-')"
+                                  >
+                                      <span class="truncate text-left">{{ $currentStatusLabel }}</span>
+                                      <i wire:loading.remove wire:target="setStatus('{{ $personId }}', 'V'), setStatus('{{ $personId }}', '+'), setStatus('{{ $personId }}', '-')" class="fal fa-angle-down text-[10px]"></i>
+                                      <span wire:loading wire:target="setStatus('{{ $personId }}', 'V'), setStatus('{{ $personId }}', '+'), setStatus('{{ $personId }}', '-')" class="loader2 w-3 h-3"></span>
+                                  </button>
+                              </x-slot>
+                              <x-slot name="content">
+                                  <div class="py-1 text-sm" wire:loading.class="pointer-events-none opacity-70" wire:target="setStatus('{{ $personId }}', 'V'), setStatus('{{ $personId }}', '+'), setStatus('{{ $personId }}', '-')">
+                                      <button type="button" wire:click="setStatus('{{ $personId }}', '+')" wire:loading.attr="disabled" class="flex w-full items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left disabled:cursor-wait">
+                                          <span class="inline-block h-2 w-2 rounded-full aspect-square bg-emerald-500"></span>
+                                          <span>An Prüfung teilgenommen</span>
+                                      </button>
+                                      <button type="button" wire:click="setStatus('{{ $personId }}', '-')" wire:loading.attr="disabled" class="flex w-full items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left disabled:cursor-wait">
+                                          <span class="inline-block h-2 w-2 rounded-full aspect-square bg-amber-500"></span>
+                                          <span>Nicht an Prüfung teilgenommen</span>
+                                      </button>
+                                      <button type="button" wire:click="setStatus('{{ $personId }}', 'V')" wire:loading.attr="disabled" class="flex w-full items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left disabled:cursor-wait">
+                                          <span class="inline-block h-2 w-2 rounded-full aspect-square bg-red-500"></span>
+                                          <span>0 Punkte wegen versuchtem Betruges</span>
+                                      </button>
+                                  </div>
+                              </x-slot>
+                          </x-ui.dropdown.anchor-dropdown>
                           {{-- Ergebnis-Input --}}
+                          @php($disableResultInput = in_array(($statuses[$personId] ?? null), ['-', 'V'], true))
                           <input 
                               type="text"
                               x-data 
@@ -69,7 +124,8 @@
                               wire:model.live.defer.200ms="results.{{ $personId }}"
                               placeholder="0–100"
                               wire:change="saveOne('{{ $personId }}')"
-                              class="flex-1 rounded-md border border-gray-300 px-2 max-w-20 text-center"
+                              class="flex-1 rounded-md border border-gray-300 px-2 max-w-20 text-center disabled:opacity-50 disabled:cursor-not-allowed"
+                              @disabled($disableResultInput)
                               wire:loading.attr="disabled"
                               wire:target="saveOne('{{ $personId }}')"
                           />
@@ -86,3 +142,4 @@
         </div>
     @endif
 </div>
+

@@ -61,6 +61,7 @@ class PersonApiUpdate implements ShouldQueue, ShouldBeUnique
 
         // 2) Programmdaten
         if (($statusData['teilnehmer_nr'] ?? null) == null && ($statusData['mitarbeiter_nr'] ?? null) == null) {
+            
             Log::info("PersonApiUpdate: Keine Teilnehmer- oder Mitarbeiternummer fuer person_id={$person->person_id}");
         } else {
             if ($role === 'guest') {

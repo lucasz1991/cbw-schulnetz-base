@@ -578,20 +578,18 @@ class CourseResultsSyncService
 
     protected function mapRemoteStatusToLocalStatus(?int $status, ?string $pruefKennz): ?string
     {
-        if ($status === null) {
+        $kennz = is_string($pruefKennz) ? trim($pruefKennz) : '';
+
+        // Wenn UVS ein Prüfkennzeichen liefert, dieses direkt lokal verwenden.
+        if ($kennz !== '') {
+            return $kennz;
+        }
+
+        if ($status === null || $status === 0) {
             return null;
         }
 
-        if ($status === 0 && (! is_string($pruefKennz) || trim($pruefKennz) === '')) {
-            return null;
-        }
-
-        return match ($status) {
-            1       => 'bestanden',
-            2       => 'nicht_bestanden',
-            3       => 'nicht_teilgenommen',
-            default => (string) $status,
-        };
+        return (string) $status;
     }
 
     protected function mapRemotePunkteToLocalResult(?int $punkte): ?int

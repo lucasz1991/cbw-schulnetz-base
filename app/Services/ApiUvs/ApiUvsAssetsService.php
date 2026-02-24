@@ -47,11 +47,42 @@ class ApiUvsAssetsService
      */
     public function getTestResultStatusOptions(bool $refresh = false): array
     {
-        return Cache::remember('uvs_assets_test_result_status_options', $this->ttl, function () {
-            
-            $response = $this->api->request('GET', '/api/assets/pruef-kennz-options');
+        $cacheKey = 'uvs_assets_test_result_status_options';
 
-            return $response['ok'] ? ($response['data'] ?? []) : [];
+        if ($refresh) {
+            Cache::forget($cacheKey);
+        }
+
+        return Cache::remember($cacheKey, $this->ttl, function () {
+            $response = $this->api->request('GET', '/api/assets/pruef-kennz-options');
+            if (! ($response['ok'] ?? false)) {
+                return [];
+            }
+
+            $payload = $response['data'] ?? [];
+
+            // Format A: {"ok":true,"data":{"pruef_kennz":{"V":"...","+":"..."}}}
+            $assocOptions = $payload['data']['pruef_kennz']
+                ?? $payload['pruef_kennz']
+                ?? null;
+
+            if (is_array($assocOptions) && ! empty($assocOptions)) {
+                return $assocOptions;
+            }
+
+            // Format B: {"result":[{"schluessel_wert":"V","text1":"..."}, ...]}
+            $rows = $payload['result']
+                ?? $payload['data']['result']
+                ?? [];
+
+            if (! is_array($rows)) {
+                return [];
+            }
+
+            return collect($rows)
+                ->filter(fn ($row) => is_array($row) && isset($row['schluessel_wert'], $row['text1']))
+                ->mapWithKeys(fn (array $row) => [(string) $row['schluessel_wert'] => (string) $row['text1']])
+                ->toArray();
         });
     }
 }

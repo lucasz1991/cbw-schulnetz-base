@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\Tutor\Courses;
+namespace App\Livewire\Tutor\Courses; 
 
 use App\Models\Course;
 use App\Models\CourseResult;
@@ -48,6 +48,7 @@ class ManageCourseResults extends Component
 
         $this->loadRows();
         $this->prefillResults();
+        $this->normalizeStatusesForInitialRender();
     }
 
     public function render(): View
@@ -77,9 +78,14 @@ class ManageCourseResults extends Component
         $value  = $this->results[$personId] ?? null;
         $status = $this->statuses[$personId] ?? null;
 
+        if (in_array($status, ['-', 'V'], true)) {
+            $value = null;
+            $this->results[$personId] = null;
+        }
+
         // Wenn Punkte gesetzt und kein Status → automatisch "An Prüfung teilgenommen"
-        if ($value !== null && $value !== '' && $status === null) {
-            $status = 'An Prüfung teilgenommen';
+        if ($value !== null && $value !== '' && ($status === null || $status === '')) {
+            $status = '+';
             $this->statuses[$personId] = $status;
         }
 
@@ -137,6 +143,12 @@ class ManageCourseResults extends Component
                 message: "Gespeichert für Person #$personId (inkl. UVS-Sync)."
             );
         }
+    }
+
+    public function setStatus(string $personId, ?string $status): void
+    {
+        $this->statuses[$personId] = $status ?: null;
+        $this->saveOne($personId, silent: true);
     }
 
     /**
@@ -456,6 +468,40 @@ class ManageCourseResults extends Component
             $this->results[$pid]  = $existing[$pid]->result ?? null;
             $this->statuses[$pid] = $existing[$pid]->status ?? null;
         }
+    }
+
+    private function normalizeStatusesForInitialRender(): void
+    {
+        foreach ($this->rows as $pid => $_) {
+            $this->statuses[$pid] = $this->normalizeStatusValue(
+                $this->statuses[$pid] ?? null,
+                $this->results[$pid] ?? null
+            );
+        }
+    }
+
+    private function normalizeStatusValue(?string $status, mixed $result): ?string
+    {
+        $raw = is_string($status) ? trim($status) : '';
+        $lower = mb_strtolower($raw);
+
+        if ($raw === 'V' || in_array($lower, ['v', 'betrug', 'betrugsversuch'], true)) {
+            return 'V';
+        }
+
+        if ($raw === '-' || in_array($lower, ['-', 'nicht_teilgenommen', 'nicht teilgenommen', 'nt', 'not_participated', '3'], true)) {
+            return '-';
+        }
+
+        if ($raw === '+' || in_array($lower, ['+', 'an prüfung teilgenommen', 'teilgenommen', 'bestanden', 'passed', '1'], true)) {
+            return '+';
+        }
+
+        if (($status === null || $raw === '') && $result !== null && $result !== '') {
+            return '+';
+        }
+
+        return null;
     }
 
     public function placeholder(): string
