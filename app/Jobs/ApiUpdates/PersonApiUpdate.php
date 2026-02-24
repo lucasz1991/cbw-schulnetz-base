@@ -104,10 +104,16 @@ class PersonApiUpdate implements ShouldQueue, ShouldBeUnique
         $newProgramHash = md5(json_encode($programData ?? []));
         $programDataChanged = $oldProgramHash !== $newProgramHash;
         $lastApiUpdate = $person->last_api_update;
+
+        $teilnehmerNr = $statusData['teilnehmer_nr'] ?? ($programData['teilnehmer_nr'] ?? null);
+        $teilnehmerIdFallback = $teilnehmerNr
+            ? (($statusData['institut_id'] ?? null) ? $statusData['institut_id'] . '-' . $teilnehmerNr : null)
+            : data_get($statusData, 'vertraege.0.teilnehmer_id');
+
         // 3) Persist
         $person->fill([
-            'teilnehmer_nr' => $statusData['teilnehmer_nr'] ?? ($programData['teilnehmer_nr'] ?? null),
-            'teilnehmer_id' => $programData['teilnehmer_id'] ?? ($statusData['vertraege'][0]['teilnehmer_id'] ?? null),
+            'teilnehmer_nr' => $teilnehmerNr,
+            'teilnehmer_id' => $programData['teilnehmer_id'] ?? $teilnehmerIdFallback,
             'role' => $role,
             'statusdata' => $statusData,
             'programdata' => $programData ?? null,
