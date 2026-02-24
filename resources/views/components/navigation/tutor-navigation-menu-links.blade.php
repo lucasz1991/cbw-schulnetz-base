@@ -12,3 +12,11 @@
                 </svg>
             Meine Kurse 
         </x-nav-link>
+        <x-nav-link href="{{ route('tutor.contact') }}" wire:navigate :active="request()->routeIs('tutor.contact')">
+                <svg class="w-5 max-md:w-6 aspect-square mr-1 max-md:mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="9" stroke-width="1.5"/>
+                    <path d="M9.1 9.2a3 3 0 1 1 4.8 2.4c-1.2 1-1.9 1.5-1.9 2.5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="12" cy="17" r="0.8" fill="currentColor" stroke="none"/>
+                </svg>
+            Hilfe & Kontakt
+        </x-nav-link>

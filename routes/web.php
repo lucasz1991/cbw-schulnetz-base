@@ -9,10 +9,13 @@ use Illuminate\Support\Facades\Auth;
 use App\Livewire\Dashboard;
 use App\Livewire\User\ReportBook;
 use App\Livewire\User\UserRequests;
+
 use App\Livewire\Tutor\TutorDashboard;
 use App\Livewire\Tutor\CourseList;
+use App\Livewire\Tutor\HelpContact;
 use App\Livewire\Tutor\Courses\CourseShow as TutorCourseShow;
 use App\Livewire\Tutor\Participants\Show as ParticipantShow;
+
 
 
 use App\Livewire\MessageBox;
@@ -98,8 +101,9 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/tutor-courses', CourseList::class)->name('tutor.courses');
         Route::get('/tutor-course/{courseId}', TutorCourseShow::class)->name('tutor.courses.show');
         Route::get('/messages', MessageBox::class)->name('tutor.messages');
+        Route::get('/help-contact', HelpContact::class)->name('tutor.contact');
         Route::get('/participants/{participant}', ParticipantShow::class)->name('tutor.participants.show');
+
     });
 
 });
-
