@@ -27,8 +27,16 @@ class CourseShow extends Component
 
     public function mount($courseId)
     {
-        // passe die Relations an deine tatsächlichen Beziehungsnamen an
         $this->course = Course::with(['tutor', 'dates'])->findOrFail($courseId);
+
+        $isTutorOfCourse = auth()->user()
+            ->persons()
+            ->whereKey($this->course->tutor()->pluck('id'))
+            ->exists();
+
+        if (! $isTutorOfCourse) {
+            abort(403);
+        }
     }
 
     public function updatingSearch()
