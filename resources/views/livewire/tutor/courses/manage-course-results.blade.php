@@ -1,4 +1,26 @@
-<div class="space-y-4 transition-opacity duration-300  pt-6" wire:loading.class="" x-data> 
+<div
+    class="space-y-4 transition-opacity duration-300 pt-6"
+    wire:loading.class=""
+    x-data="{
+        hoveredPersonId: null,
+        hoverTimer: null,
+        setHover(personId) {
+            clearTimeout(this.hoverTimer);
+            this.hoverTimer = setTimeout(() => {
+                this.hoveredPersonId = String(personId);
+            }, 300);
+        },
+        clearHover(personId) {
+            clearTimeout(this.hoverTimer);
+            if (String(this.hoveredPersonId) === String(personId)) {
+                this.hoveredPersonId = null;
+            }
+        },
+        isHovered(personId) {
+            return String(this.hoveredPersonId) === String(personId);
+        }
+    }"
+>
     <div class="w-max">
       <x-ui.forms.toggle-button 
           model="isExternalExam"
@@ -43,6 +65,8 @@
                           class="flex items-center justify-end gap-2 relative"
                           wire:target="saveOne('{{ $personId }}')"
                           wire:loading.class="opacity-60"
+                          x-on:mouseenter="setHover('{{ $personId }}')"
+                          x-on:mouseleave="clearHover('{{ $personId }}')"
                       >
                           <div class="w-8 flex items-center">
                             {{-- Loader LINKS neben dem Input (nur für diese Person) --}}
@@ -110,6 +134,7 @@
                           </x-ui.dropdown.anchor-dropdown>
                           {{-- Ergebnis-Input --}}
                           @php($disableResultInput = in_array(($statuses[$personId] ?? null), ['-', 'V'], true))
+                          @php($hasEntryToDelete = !empty($statuses[$personId]) || ($results[$personId] ?? null) !== null && (string) ($results[$personId] ?? '') !== '')
                           <input 
                               type="text"
                               x-data 
@@ -129,6 +154,16 @@
                               wire:loading.attr="disabled"
                               wire:target="saveOne('{{ $personId }}')"
                           />
+                          <div x-show="isHovered('{{ $personId }}') && @js($hasEntryToDelete)" x-transition class="absolute -top-2 -right-2 ">
+                            <button 
+                                type="button" 
+                                wire:click="clearResult('{{ $personId }}')" 
+                                wire:loading.attr="disabled" 
+                                class="text-red-400 hover:text-red-600 transition disabled:cursor-wait aspect-square border border-red-200 hover:border-red-300 rounded-full px-1.5 py-0.5 bg-white hover:bg-red-50/70"
+                            >
+                                <i class="fal fa-trash-alt text-xs aspect-square"></i>
+                            </button>
+                          </div>
                       </div>
                   </td>
                 </tr>

@@ -151,6 +151,94 @@ class ManageCourseResults extends Component
         $this->saveOne($personId, silent: true);
     }
 
+    public function clearResult(string $personId): void
+    {
+        if (! $this->course->termin_id || ! $this->course->klassen_id) {
+            $this->dispatch(
+                'notify',
+                type: 'error',
+                message: 'Fehlende termin_id/klassen_id. Löschen in UVS nicht möglich.'
+            );
+            return;
+        }
+
+        $person = $this->course->participants()
+            ->where('persons.id', $personId)
+            ->first();
+
+        if (! $person || ! $person->teilnehmer_id) {
+            $this->dispatch(
+                'notify',
+                type: 'error',
+                message: "Teilnehmer #{$personId} konnte nicht für UVS-Löschung aufgelöst werden."
+            );
+            return;
+        }
+
+        $payload = [
+            'termin_id'      => (string) $this->course->termin_id,
+            'klassen_id'     => (string) $this->course->klassen_id,
+            'teilnehmer_ids' => [(string) $person->teilnehmer_id],
+            'changes'        => [[
+                'teilnehmer_id'  => (string) $person->teilnehmer_id,
+                'person_id'      => (string) ($person->person_id ?? ''),
+                'institut_id'    => (int) ($person->institut_id ?? $this->course->institut_id ?? 0),
+                'teilnehmer_fnr' => (string) ($person->teilnehmer_fnr ?? '00'),
+                'action'         => 'delete',
+            ]],
+        ];
+
+        try {
+            /** @var ApiUvsService $api */
+            $api = app(ApiUvsService::class);
+            $response = $api->request('POST', '/api/course/courseresults/syncdata', $payload, []);
+
+            if (empty($response['ok'])) {
+                Log::warning('ManageCourseResults.clearResult: Remote delete failed', [
+                    'course_id' => $this->course->id,
+                    'person_id' => $personId,
+                    'payload' => $payload,
+                    'response' => $response,
+                ]);
+
+                $this->dispatch(
+                    'notify',
+                    type: 'error',
+                    message: "UVS-Löschung für Person #{$personId} fehlgeschlagen."
+                );
+                return;
+            }
+        } catch (\Throwable $e) {
+            Log::error('ManageCourseResults.clearResult exception', [
+                'course_id' => $this->course->id,
+                'person_id' => $personId,
+                'error' => $e->getMessage(),
+                'trace_short' => substr($e->getTraceAsString(), 0, 1000),
+            ]);
+
+            $this->dispatch(
+                'notify',
+                type: 'error',
+                message: "Fehler bei UVS-Löschung für Person #{$personId}."
+            );
+            return;
+        }
+
+        CourseResult::query()
+            ->where('course_id', $this->course->id)
+            ->where('person_id', $personId)
+            ->delete();
+
+        $this->results[$personId] = null;
+        $this->statuses[$personId] = null;
+
+        $this->dispatch(
+            'notify',
+            type: 'success',
+            message: "Ergebnis für Person #{$personId} wurde gelöscht."
+        );
+    }
+
     /**
      * Manueller SYNC-Button:
      * - Lädt nur DIRTY/unsynced Einträge hoch (syncToRemote)
