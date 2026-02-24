@@ -107,7 +107,7 @@ class PersonApiUpdate implements ShouldQueue, ShouldBeUnique
         // 3) Persist
         $person->fill([
             'teilnehmer_nr' => $statusData['teilnehmer_nr'] ?? ($programData['teilnehmer_nr'] ?? null),
-            'teilnehmer_id' => $programData['teilnehmer_id'] ?? null,
+            'teilnehmer_id' => $programData['teilnehmer_id'] ?? ($statusData['vertraege'][0]['teilnehmer_id'] ?? null),
             'role' => $role,
             'statusdata' => $statusData,
             'programdata' => $programData ?? null,
