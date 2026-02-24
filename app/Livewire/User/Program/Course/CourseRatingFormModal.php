@@ -43,6 +43,7 @@ class CourseRatingFormModal extends Component
     public ?int $do_1 = null;
     public ?int $do_2 = null;
     public ?int $do_3 = null;
+    public bool $skip_course_rating = false;
     public string $message = '';
 
     /** Bereits bewertet? */
@@ -67,11 +68,12 @@ class CourseRatingFormModal extends Component
             'il_1' => 'required|integer|min:1|max:5',
             'il_2' => 'required|integer|min:1|max:5',
             'il_3' => 'required|integer|min:1|max:5',
-            'do_1' => 'required|integer|min:1|max:5',
-            'do_2' => 'required|integer|min:1|max:5',
-            'do_3' => 'required|integer|min:1|max:5',
+            'do_1' => 'required_unless:skip_course_rating,1|nullable|integer|min:1|max:5',
+            'do_2' => 'required_unless:skip_course_rating,1|nullable|integer|min:1|max:5',
+            'do_3' => 'required_unless:skip_course_rating,1|nullable|integer|min:1|max:5',
             'message' => 'nullable|string|max:500',
             'is_anonymous' => 'boolean',
+            'skip_course_rating' => 'boolean',
         ];
     }
 
@@ -143,12 +145,16 @@ class CourseRatingFormModal extends Component
         'do_3.integer'  => $between,
         'do_3.min'      => $between,
         'do_3.max'      => $between,
+        'do_1.required_unless' => 'Bitte bewerten Sie den/die Dozent/-in oder nutzen Sie die Option Ich möchte nicht bewerten.',
+        'do_2.required_unless' => 'Bitte bewerten Sie den/die Dozent/-in oder nutzen Sie die Option Ich möchte nicht bewerten.',
+        'do_3.required_unless' => 'Bitte bewerten Sie den/die Dozent/-in oder nutzen Sie die Option Ich möchte nicht bewerten.',
 
         // Freitext
         'message.max'   => 'Ihre Nachricht darf maximal 500 Zeichen enthalten.',
 
         // Checkbox
         'is_anonymous.boolean' => 'Die Angabe zur anonymen Bewertung ist ungültig.',
+        'skip_course_rating.boolean' => 'Die Auswahl "Ich möchte nicht bewerten" ist ungültig.',
     ];
 }
 
@@ -270,9 +276,40 @@ class CourseRatingFormModal extends Component
                 'sa_1','sa_2','sa_3',
                 'il_1','il_2','il_3',
                 'do_1','do_2','do_3',
-                'message','is_anonymous'
+                'message','is_anonymous','skip_course_rating'
             ]));
         }
+    }
+
+    public function skipCourseRating(): void
+    {
+        if ($this->alreadyRated) {
+            $this->dispatch('toast', type:'info', message:'Sie haben diesen Baustein bereits bewertet.');
+            return;
+        }
+
+        $participant = Auth::user();
+
+        CourseRating::create([
+            'user_id'        => Auth::id(),
+            'course_id'      => $this->course->id,
+            'is_anonymous'   => $this->is_anonymous,
+            'skip_course_rating' => true,
+            'participant_id' => $participant?->id,
+
+            'kb_1' => null, 'kb_2' => null, 'kb_3' => null,
+            'sa_1' => null, 'sa_2' => null, 'sa_3' => null,
+            'il_1' => null, 'il_2' => null, 'il_3' => null,
+            'do_1' => null, 'do_2' => null, 'do_3' => null,
+            'message' => '',
+        ]);
+
+        $this->alreadyRated = true;
+        $this->isRequired = false;
+        $this->showModal  = false;
+
+        $this->dispatch('toast', type:'success', message:'Bewertung wurde ohne Abgabe gespeichert.');
+        $this->dispatch('refreshParent');
     }
 
     protected function setStepFromErrors(array $errorKeys): void
@@ -325,6 +362,7 @@ class CourseRatingFormModal extends Component
             'user_id'        => Auth::id(),
             'course_id'      => $this->course->id,
             'is_anonymous'   => $this->is_anonymous,
+            'skip_course_rating' => $this->skip_course_rating,
             'participant_id' => $participant?->id,
 
             'kb_1' => $this->kb_1, 'kb_2' => $this->kb_2, 'kb_3' => $this->kb_3,
@@ -352,3 +390,4 @@ class CourseRatingFormModal extends Component
         ]);
     }
 }
+

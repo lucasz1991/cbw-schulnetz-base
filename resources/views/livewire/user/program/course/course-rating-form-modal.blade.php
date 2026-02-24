@@ -6,6 +6,18 @@
                 {{-- Linke Spalte: Titel (ellipsen auf kleinen Screens) --}}
                 <div class="min-w-0 flex-1">
                 <span class="text-sm text-gray-800 block truncate" title="Baustein Bewertung">Baustein Bewertung</span>
+                @if(!$alreadyRated)
+                    <button
+                        type="button"
+                        wire:confirm="Möchten Sie diesen Baustein wirklich überspringen? Ihre Meinung ist uns wichtig und hilft uns, unser Angebot zu verbessern. Vielen Dank!"
+                        wire:click="skipCourseRating"
+                        wire:loading.attr="disabled"
+                        class="mt-2 text-xs px-3 py-1.5 rounded-md border transition-colors border-gray-200 bg-white text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    >
+                        <i class="far fa-thumbs-down w-3 h-3 mr-1"></i>
+                        Ich möchte nicht bewerten
+                    </button>
+                @endif
                 </div>
 
                 {{-- Rechte Spalte: Actions (fixbreit) --}}
@@ -171,8 +183,9 @@
                 </div>
             @endif
         </x-slot>
-    
-        {{-- Optional: Footer leer lassen oder entfernen, da wir die Step-Navigation im Content haben --}}
-        <x-slot name="footer"></x-slot>
+        <x-slot name="footer">
+            {{-- Footer leer, da Navigation innerhalb content --}}
+        </x-slot>
     </x-dialog-modal>
 </div>
+
