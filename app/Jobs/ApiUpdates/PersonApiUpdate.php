@@ -38,12 +38,17 @@ class PersonApiUpdate implements ShouldQueue, ShouldBeUnique
         $person = Person::find($this->personPk);
 
         if (! $person) {
-            Log::warning("PersonApiUpdate: Person {$this->personPk} nicht gefunden.");
+            if (config('api_sync.debug_logs', false)) {
+                Log::warning("PersonApiUpdate: Person {$this->personPk} nicht gefunden.");
+            }
             return;
+
         }
 
         if (empty($person->person_id)) {
-            Log::warning("PersonApiUpdate: 'person_id' leer fuer persons.id={$person->id}.");
+            if (config('api_sync.debug_logs', false)) {
+                Log::warning("PersonApiUpdate: 'person_id' leer fuer persons.id={$person->id}.");
+            }
             return;
         }
 
@@ -61,8 +66,9 @@ class PersonApiUpdate implements ShouldQueue, ShouldBeUnique
 
         // 2) Programmdaten
         if (($statusData['teilnehmer_nr'] ?? null) == null && ($statusData['mitarbeiter_nr'] ?? null) == null) {
-            
-            Log::info("PersonApiUpdate: Keine Teilnehmer- oder Mitarbeiternummer fuer person_id={$person->person_id}");
+            if (config('api_sync.debug_logs', false)) {
+                Log::info("PersonApiUpdate: Keine Teilnehmer- oder Mitarbeiternummer fuer person_id={$person->person_id}");
+            }
         } else {
             if ($role === 'guest') {
                 $apiResponse = $api->getParticipantAndQualiprogrambyId($person->person_id);
@@ -76,10 +82,12 @@ class PersonApiUpdate implements ShouldQueue, ShouldBeUnique
                 if ($qualiData) {
                     $programData = $qualiData;
                 } else {
-                    Log::info('PersonApiUpdate: No Qualiprogram data found.', [
-                        'person_id' => $person->person_id,
-                        'api_response' => $apiResponse ?? null,
-                    ]);
+                    if (config('api_sync.debug_logs', false)) {
+                        Log::info('PersonApiUpdate: No Qualiprogram data found.', [
+                            'person_id' => $person->person_id,
+                            'api_response' => $apiResponse ?? null,
+                        ]);
+                    }
                 }
             } else {
                 $apiResponse = $api->getTutorProgramDataByPersonId($person->person_id);
@@ -93,10 +101,12 @@ class PersonApiUpdate implements ShouldQueue, ShouldBeUnique
                 if ($programDataRaw) {
                     $programData = $programDataRaw;
                 } else {
-                    Log::info('PersonApiUpdate: No Tutor program data found.', [
-                        'person_id' => $person->person_id,
-                        'api_response' => $apiResponse ?? null,
-                    ]);
+                    if (config('api_sync.debug_logs', false)) {
+                        Log::info('PersonApiUpdate: No Tutor program data found.', [
+                            'person_id' => $person->person_id,
+                            'api_response' => $apiResponse ?? null,
+                        ]);
+                    }
                 }
             }
         }
