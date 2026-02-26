@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Jobs\ApiUpdates\SyncCourseRatingsJob;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 class CourseRating extends Model
 {
@@ -37,7 +38,16 @@ class CourseRating extends Model
     protected static function booted(): void
     {
         static::created(function (CourseRating $rating) {
-            SyncCourseRatingsJob::dispatch($rating->id);
+            if (! $rating->course_id) {
+                return;
+            }
+
+            $cacheKey = 'course-rating-sync-dispatch:' . (string) $rating->course_id;
+
+            // Nur einmal je Stunde dispatchen, um Einzel-Dispatches zu bündeln.
+            if (Cache::add($cacheKey, now()->toDateTimeString(), now()->addHour())) {
+                SyncCourseRatingsJob::dispatch($rating->id)->delay(now()->addHour());
+            }
         });
     }
 
