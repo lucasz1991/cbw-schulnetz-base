@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Jobs\ApiUpdates\SyncCourseRatingsJob;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -35,10 +36,9 @@ class CourseRating extends Model
 
     protected static function booted(): void
     {
-        // deine bisherigen Defaults beim Erzeugen
-        //static::created(function (CourseRating $rating) {
-
-        //});
+        static::created(function (CourseRating $rating) {
+            SyncCourseRatingsJob::dispatch($rating->id);
+        });
     }
 
     /**
