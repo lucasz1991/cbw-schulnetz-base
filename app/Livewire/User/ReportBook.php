@@ -99,6 +99,23 @@ public function mount(): void
     {
         $personId = Auth::user()?->person?->id;
         if (!$personId) return [];
+        $userId = Auth::id();
+        $massnahmeId = $this->massnahmeId;
+        $applicationStartDate = config('application.app_start_date');
+        $lastReportEntryDate = DB::table('report_books as rb_legacy')
+            ->join('report_book_entries as rbe_legacy', 'rbe_legacy.report_book_id', '=', 'rb_legacy.id')
+            ->where('rb_legacy.user_id', '=', $userId)
+            ->when(!is_null($massnahmeId), fn ($query) => $query->where('rb_legacy.massnahme_id', '=', $massnahmeId))
+            ->max('rbe_legacy.entry_date');
+
+        $visibilityStartDate = $applicationStartDate;
+        if ($applicationStartDate && $lastReportEntryDate) {
+            if (Carbon::parse($lastReportEntryDate)->lt(Carbon::parse($applicationStartDate))) {
+                $visibilityStartDate = $lastReportEntryDate;
+            }
+        } elseif ($lastReportEntryDate) {
+            $visibilityStartDate = $lastReportEntryDate;
+        }
 
         $q = DB::table('courses')
             ->join('course_participant_enrollments as cpe', function ($join) use ($personId) {
@@ -120,6 +137,32 @@ public function mount(): void
                     ->on('rbe.course_day_id', '=', 'cd.id');
             })
             ->whereNull('courses.deleted_at')
+            ->when($visibilityStartDate, function ($query) use ($visibilityStartDate, $userId, $massnahmeId) {
+                $query->where(function ($visibility) use ($visibilityStartDate, $userId, $massnahmeId) {
+                    // Sperre nur Kurse, die vor der Sichtbarkeitsgrenze liegen.
+                    $visibility->where(function ($byStartDate) use ($visibilityStartDate) {
+                        $byStartDate
+                            ->whereDate('courses.planned_end_date', '>=', $visibilityStartDate)
+                            ->orWhere(function ($fallbackToStart) use ($visibilityStartDate) {
+                                $fallbackToStart
+                                    ->whereNull('courses.planned_end_date')
+                                    ->whereDate('courses.planned_start_date', '>=', $visibilityStartDate);
+                            });
+                    })
+                    // Der Kurs des letzten (oder späteren) Eintrags bleibt immer sichtbar.
+                    ->orWhereExists(function ($legacyEntries) use ($userId, $massnahmeId) {
+                        $legacyEntries->selectRaw('1')
+                            ->from('report_books as rb_legacy')
+                            ->join('report_book_entries as rbe_legacy', 'rbe_legacy.report_book_id', '=', 'rb_legacy.id')
+                            ->whereColumn('rb_legacy.course_id', 'courses.id')
+                            ->where('rb_legacy.user_id', '=', $userId);
+
+                        if (!is_null($massnahmeId)) {
+                            $legacyEntries->where('rb_legacy.massnahme_id', '=', $massnahmeId);
+                        }
+                    });
+                });
+            })
             ->select([
                 'courses.id',
                 'courses.title',
