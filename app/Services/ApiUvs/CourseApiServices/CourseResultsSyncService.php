@@ -265,11 +265,12 @@ class CourseResultsSyncService
         $status = strtolower($status);
 
         return match ($status) {
-            'passed', 'bestanden'        => 'P',
-            'failed', 'nicht_bestanden'  => 'F',
-            'not_participated', 'nt',
-            'nicht_teilgenommen'         => 'NT',
-            default                      => strtoupper(substr($status, 0, 3)),
+            'passed', 'bestanden'         => '+',
+            'failed', 'nicht_bestanden', 
+            'nicht_teilgenommen', 
+            'not_participated', 'nt'      => '-',
+            'betrug'                      => 'V',
+            default                       => strtoupper(substr($status, 0, 3)),
         };
     }
 
