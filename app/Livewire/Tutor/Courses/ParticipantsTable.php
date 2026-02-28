@@ -131,88 +131,88 @@ class ParticipantsTable extends Component
      * Wichtig: nach Sync wird attendanceMap + wrapper Inputs aktualisiert,
      * damit UI sofort den frischen Stand zeigt (ohne loadAttendance()).
      */
-public function saveOne(int $participantId): void
-{
-    $day = $this->dayOrFail();
+    public function saveOne(int $participantId): void
+    {
+        $day = $this->dayOrFail();
 
-    try {
-        /** @var CourseDayAttendanceSyncService $service */
-        $service = app(CourseDayAttendanceSyncService::class);
+        try {
+            /** @var CourseDayAttendanceSyncService $service */
+            $service = app(CourseDayAttendanceSyncService::class);
 
-        $ok = $service->syncToRemote($day, [$participantId]);
+            $ok = $service->syncToRemote($day, [$participantId]);
 
-        // DB/Model frisch holen
-        $day->refresh();
-        $this->selectedDay = $day;
+            // DB/Model frisch holen
+            $day->refresh();
+            $this->selectedDay = $day;
 
-        $fresh = data_get($day->attendance_data, "participants.$participantId", null);
+            $fresh = data_get($day->attendance_data, "participants.$participantId", null);
 
-        /**
-         * WICHTIG:
-         * - Wenn UVS den Remote-Eintrag gelöscht hat, liefert load/pull häufig KEIN item mehr.
-         * - Dann wäre $fresh = null/[] und normalizeRow([]) -> present=false -> UI "unknown".
-         * - Lösung: Wenn $fresh leer ist, den zuletzt gesetzten UI-Zustand behalten
-         *   (oder einen Present-Default setzen).
-         */
-        if (empty($fresh) || !is_array($fresh)) {
-            // Wenn wir schon einen UI-Stand haben, behalten wir ihn
-            $fallback = $this->attendanceMap[$participantId] ?? null;
+            /**
+             * WICHTIG:
+             * - Wenn UVS den Remote-Eintrag gelöscht hat, liefert load/pull häufig KEIN item mehr.
+             * - Dann wäre $fresh = null/[] und normalizeRow([]) -> present=false -> UI "unknown".
+             * - Lösung: Wenn $fresh leer ist, den zuletzt gesetzten UI-Zustand behalten
+             *   (oder einen Present-Default setzen).
+             */
+            if (empty($fresh) || !is_array($fresh)) {
+                // Wenn wir schon einen UI-Stand haben, behalten wir ihn
+                $fallback = $this->attendanceMap[$participantId] ?? null;
 
-            if ($fallback) {
-                // sicherstellen, dass "anwesend" nicht als unknown endet
-                $fallback['present']            = (bool)($fallback['present'] ?? true);
-                $fallback['excused']            = (bool)($fallback['excused'] ?? false);
-                $fallback['late_minutes']       = (int)($fallback['late_minutes'] ?? 0);
-                $fallback['left_early_minutes'] = (int)($fallback['left_early_minutes'] ?? 0);
+                if ($fallback) {
+                    // sicherstellen, dass "anwesend" nicht als unknown endet
+                    $fallback['present']            = (bool)($fallback['present'] ?? true);
+                    $fallback['excused']            = (bool)($fallback['excused'] ?? false);
+                    $fallback['late_minutes']       = (int)($fallback['late_minutes'] ?? 0);
+                    $fallback['left_early_minutes'] = (int)($fallback['left_early_minutes'] ?? 0);
 
-                $this->attendanceMap[$participantId] = $this->normalizeRow($fallback);
+                    $this->attendanceMap[$participantId] = $this->normalizeRow($fallback);
 
-                $this->arriveInput[$participantId] = $fallback['arrived_at'] ?? null;
-                $this->leaveInput[$participantId]  = $fallback['left_at'] ?? null;
-                $this->noteInput[$participantId]   = $fallback['note'] ?? null;
+                    $this->arriveInput[$participantId] = $fallback['arrived_at'] ?? null;
+                    $this->leaveInput[$participantId]  = $fallback['left_at'] ?? null;
+                    $this->noteInput[$participantId]   = $fallback['note'] ?? null;
+                } else {
+                    // Kein Fallback vorhanden -> setze "present" als Default
+                    $default = [
+                        'present'            => true,
+                        'excused'            => false,
+                        'late_minutes'       => 0,
+                        'left_early_minutes' => 0,
+                        'arrived_at'         => null,
+                        'left_at'            => null,
+                        'note'               => null,
+                    ];
+
+                    $this->attendanceMap[$participantId] = $this->normalizeRow($default);
+                    $this->arriveInput[$participantId]   = null;
+                    $this->leaveInput[$participantId]    = null;
+                    $this->noteInput[$participantId]     = null;
+                }
             } else {
-                // Kein Fallback vorhanden -> setze "present" als Default
-                $default = [
-                    'present'            => true,
-                    'excused'            => false,
-                    'late_minutes'       => 0,
-                    'left_early_minutes' => 0,
-                    'arrived_at'         => null,
-                    'left_at'            => null,
-                    'note'               => null,
-                ];
+                // Normalfall: frische Daten vorhanden -> UI updaten
+                $freshNormalized = $this->normalizeRow($fresh);
 
-                $this->attendanceMap[$participantId] = $this->normalizeRow($default);
-                $this->arriveInput[$participantId]   = null;
-                $this->leaveInput[$participantId]    = null;
-                $this->noteInput[$participantId]     = null;
+                $this->attendanceMap[$participantId] = $freshNormalized;
+
+                $this->arriveInput[$participantId] = data_get($fresh, 'arrived_at');
+                $this->leaveInput[$participantId]  = data_get($fresh, 'left_at');
+                $this->noteInput[$participantId]   = data_get($fresh, 'note');
             }
-        } else {
-            // Normalfall: frische Daten vorhanden -> UI updaten
-            $freshNormalized = $this->normalizeRow($fresh);
 
-            $this->attendanceMap[$participantId] = $freshNormalized;
+            $this->isDirty = false;
 
-            $this->arriveInput[$participantId] = data_get($fresh, 'arrived_at');
-            $this->leaveInput[$participantId]  = data_get($fresh, 'left_at');
-            $this->noteInput[$participantId]   = data_get($fresh, 'note');
+            if (! $ok) {
+                $this->dispatch('notify', type: 'error', message: "UVS-Sync fehlgeschlagen (#{$participantId}).");
+            }
+        } catch (\Throwable $e) {
+            Log::error('ParticipantsTable.saveOne: Fehler beim UVS-Sync', [
+                'day_id'         => $day->id ?? null,
+                'participant_id' => $participantId,
+                'error'          => $e->getMessage(),
+            ]);
+
+            $this->dispatch('notify', type: 'error', message: "Fehler beim Speichern (#{$participantId}).");
         }
-
-        $this->isDirty = false;
-
-        if (! $ok) {
-            $this->dispatch('notify', type: 'error', message: "UVS-Sync fehlgeschlagen (#{$participantId}).");
-        }
-    } catch (\Throwable $e) {
-        Log::error('ParticipantsTable.saveOne: Fehler beim UVS-Sync', [
-            'day_id'         => $day->id ?? null,
-            'participant_id' => $participantId,
-            'error'          => $e->getMessage(),
-        ]);
-
-        $this->dispatch('notify', type: 'error', message: "Fehler beim Speichern (#{$participantId}).");
     }
-}
 
 
     #[On('calendarEventClick')]
