@@ -263,6 +263,7 @@
                       $isAbsent = ($statusKey === 'absent');
                       $isPresent = ($statusKey === 'present');
                       $isPartial = ($statusKey === 'partial');
+                      $canEditTime = ($isPresent || $isPartial);
                       $canNote   = ($hasEntry && ($isAbsent || $isPartial)) || $d['note'] != '';
                   @endphp
 
@@ -365,7 +366,8 @@
                                     <button
                                         class="relative inline-flex items-center justify-center w-8 h-8 rounded border  @if(($d['arrived_at'] ?? null) || ($d['left_at'] ?? null)) border-yellow-500 text-yellow-600 bg-yellow-50 hover:bg-yellow-100 @else border-gray-300 text-gray-500 hover:bg-gray-200  @endif"
                                         title="Verspätung / Früh weg eintragen"
-                                        @click="lateOpen = !lateOpen"
+                                        @click="@if($canEditTime) lateOpen = !lateOpen @endif"
+                                        @disabled(!$canEditTime)
                                     >
                                         <i class="far fa-clock text-sm"></i>
                                         @if(($d['arrived_at'] ?? null) || ($d['left_at'] ?? null))
@@ -407,6 +409,7 @@
                                                             wire:change="saveArrival({{ $r['id'] }})"
                                                             wire:loading.attr="disabled"
                                                             wire:target="saveArrival({{ $r['id'] }})"
+                                                            @disabled(!$canEditTime)
                                                         />
                                                     </div>
                                                     {{-- Schnellauswahl (BEHALTEN) --}}
@@ -421,6 +424,7 @@
                                                             class="bg-gray-50 border border-gray-300 text-white/0 text-sm rounded-r-lg focus:ring-blue-500 focus:border-blue-500 block p-2 cursor-pointer h-[40px] w-10 "
                                                             wire:loading.attr="disabled"
                                                             wire:target="saveArrival({{ $r['id'] }})"
+                                                            @disabled(!$canEditTime)
                                                         >
                                                             <option class="text-gray-700" value="">Bitte wählen</option>
                                                             <option class="text-gray-700" value="{{ $plannedStart }}">Pünktlich</option>
@@ -452,6 +456,7 @@
                                                             wire:change="saveLeave({{ $r['id'] }})"
                                                             wire:loading.attr="disabled"
                                                             wire:target="saveLeave({{ $r['id'] }})"
+                                                            @disabled(!$canEditTime)
                                                         />
                                                     </div>
                                                     {{-- Schnellauswahl (BEHALTEN) --}}
@@ -466,6 +471,7 @@
                                                             class="bg-gray-50 border border-gray-300 text-white/0 text-sm rounded-r-lg focus:ring-blue-500 focus:border-blue-500 block p-2 cursor-pointer h-[40px] w-10 "
                                                             wire:loading.attr="disabled"
                                                             wire:target="saveLeave({{ $r['id'] }})"
+                                                            @disabled(!$canEditTime)
                                                         >
                                                             <option class="text-gray-700" value="">Bitte wählen</option>
                                                             <option class="text-gray-700" value="12:30">12:30</option>

@@ -572,32 +572,31 @@ public function saveOne(int $participantId): void
         $this->applyAndSaveOne($participantId, [
             'present' => false,
             'excused' => false,
+            'arrived_at' => null,
+            'left_at' => null,
+            'timestamps' => ['in' => null, 'out' => null],
+            'late_minutes' => 0,
+            'left_early_minutes' => 0,
         ]);
     }
 
     public function markAbsentNow(int $participantId): void
     {
-        $row = $this->currentRow($participantId) ?? [];
-        $now = Carbon::now('Europe/Berlin');
-
-        [, $end] = $this->plannedTimesForSelectedDay();
-
-        $patch = [
+        $this->applyAndSaveOne($participantId, [
             'present' => false,
             'excused' => false,
-        ];
-
-        if (!empty($row['present']) && $end && $now->lt($end)) {
-            $patch['left_early_minutes'] = $now->diffInMinutes($end);
-            $patch['timestamps'] = ['out' => $now->toDateTimeString()];
-        }
-
-        $this->applyAndSaveOne($participantId, $patch);
+            'arrived_at' => null,
+            'left_at' => null,
+            'timestamps' => ['in' => null, 'out' => null],
+            'late_minutes' => 0,
+            'left_early_minutes' => 0,
+        ]);
     }
 
     public function setLateMinutes(int $participantId, $minutes): void
     {
         $this->applyAndSaveOne($participantId, [
+            'present' => false,
             'late_minutes' => max(0, (int) $minutes),
         ]);
     }
@@ -605,12 +604,17 @@ public function saveOne(int $participantId): void
     public function setLeftEarlyMinutes(int $participantId, $minutes): void
     {
         $this->applyAndSaveOne($participantId, [
+            'present' => false,
             'left_early_minutes' => max(0, (int) $minutes),
         ]);
     }
 
     public function setArrivalTime(int $participantId, ?string $hhmm): void
     {
+        if (! $this->canEditTimes($participantId)) {
+            return;
+        }
+
         $time = $this->normalizeTime($hhmm);
         $arr  = $this->toCarbonOnSelectedDate($time);
 
@@ -623,12 +627,15 @@ public function saveOne(int $participantId): void
         $this->applyAndSaveOne($participantId, [
             'arrived_at'   => $time,
             'late_minutes' => $late,
-            'present'      => true,
         ]);
     }
 
     public function setLeaveTime(int $participantId, ?string $hhmm): void
     {
+        if (! $this->canEditTimes($participantId)) {
+            return;
+        }
+
         $time = $this->normalizeTime($hhmm);
         $out  = $this->toCarbonOnSelectedDate($time);
 
@@ -641,7 +648,6 @@ public function saveOne(int $participantId): void
         $this->applyAndSaveOne($participantId, [
             'left_at'            => $time,
             'left_early_minutes' => $early,
-            'present'            => true,
         ]);
     }
 
@@ -690,6 +696,14 @@ public function saveOne(int $participantId): void
             ],
         ];
         $this->applyAndSaveOne($participantId, $patch);
+    }
+
+    protected function canEditTimes(int $participantId): bool
+    {
+        $row = $this->attendanceMap[$participantId]
+            ?? $this->normalizeRow($this->currentRow($participantId) ?? []);
+
+        return (bool) ($row['present'] ?? false) === true;
     }
 
     public function bulk(string $action): void
