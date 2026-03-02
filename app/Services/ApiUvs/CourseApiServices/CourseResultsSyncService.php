@@ -12,6 +12,16 @@ use Illuminate\Support\Facades\Log;
 
 class CourseResultsSyncService
 {
+    private const SUPPORTED_PRUEF_KENNZ = ['V', '+', 'XO', 'B', 'D', 'X', 'N', 'K', '-', 'I', 'E'];
+    private const PRUEF_KENNZ_TO_REMOTE_STATUS = [
+        '+' => 1,
+        'B' => 1,
+        'D' => 2,
+        '-' => 3,
+        'X' => 3,
+        'V' => 3,
+    ];
+
     protected ApiUvsService $api;
 
     public function __construct(ApiUvsService $api)
@@ -241,36 +251,32 @@ class CourseResultsSyncService
 
     protected function mapLocalStatusToRemoteStatus(?string $status): int
     {
-        if ($status === null || $status === '') {
-            return 0;
+        $kennz = $this->normalizeStatusToPruefKennz($status);
+        if ($kennz !== '') {
+            return self::PRUEF_KENNZ_TO_REMOTE_STATUS[$kennz] ?? 0;
         }
 
-        $status = strtolower($status);
-
-        return match ($status) {
-            'passed', 'bestanden'        => 1,
-            'failed', 'nicht_bestanden'  => 2,
-            'not_participated', 'nt',
-            'nicht_teilgenommen'         => 3,
-            default                      => is_numeric($status) ? (int) $status : 0,
-        };
+        $raw = is_string($status) ? trim($status) : '';
+        return is_numeric($raw) ? (int) $raw : 0;
     }
 
     protected function mapLocalStatusToPruefKennz(?string $status): string
     {
-        if ($status === null || $status === '') {
+        $kennz = $this->normalizeStatusToPruefKennz($status);
+        if ($kennz !== '') {
+            return $kennz;
+        }
+
+        $raw = is_string($status) ? trim($status) : '';
+        if (! is_numeric($raw)) {
             return '';
         }
 
-        $status = strtolower($status);
-
-        return match ($status) {
-            'passed', 'bestanden'         => '+',
-            'failed', 'nicht_bestanden', 
-            'nicht_teilgenommen', 
-            'not_participated', 'nt'      => '-',
-            'betrug'                      => 'V',
-            default                       => strtoupper(substr($status, 0, 3)),
+        return match ((int) $raw) {
+            1       => '+',
+            2       => 'D',
+            3       => '-',
+            default => '',
         };
     }
 
@@ -577,11 +583,38 @@ class CourseResultsSyncService
         ]);
     }
 
+    protected function normalizeStatusToPruefKennz(?string $status): string
+    {
+        $raw = is_string($status) ? trim($status) : '';
+        if ($raw === '') {
+            return '';
+        }
+
+        $upper = strtoupper($raw);
+        if (in_array($upper, self::SUPPORTED_PRUEF_KENNZ, true)) {
+            return $upper;
+        }
+
+        $normalized = str_replace([' ', '-'], '_', strtolower($raw));
+
+        return match ($normalized) {
+            'passed', 'bestanden', 'teilgenommen', 'an_pruefung_teilgenommen' => '+',
+            'failed', 'durchgefallen', 'nicht_bestanden' => 'D',
+            'not_participated', 'nt', 'nicht_teilgenommen' => '-',
+            'betrug', 'betrugsversuch' => 'V',
+            'ausstehend', 'pending' => 'XO',
+            'nachklausur', 'retake' => 'N',
+            'nachkorrektur', 'recheck' => 'K',
+            'pruefung_ignorieren', 'ignorieren', 'ignore' => 'I',
+            default => '',
+        };
+    }
+
     protected function mapRemoteStatusToLocalStatus(?int $status, ?string $pruefKennz): ?string
     {
-        $kennz = is_string($pruefKennz) ? trim($pruefKennz) : '';
+        $kennz = $this->normalizeStatusToPruefKennz($pruefKennz);
 
-        // Wenn UVS ein Prüfkennzeichen liefert, dieses direkt lokal verwenden.
+        // Wenn UVS ein Pruefkennzeichen liefert, dieses direkt lokal verwenden.
         if ($kennz !== '') {
             return $kennz;
         }
@@ -590,7 +623,12 @@ class CourseResultsSyncService
             return null;
         }
 
-        return (string) $status;
+        return match ($status) {
+            1       => '+',
+            2       => 'D',
+            3       => '-',
+            default => (string) $status,
+        };
     }
 
     protected function mapRemotePunkteToLocalResult(?int $punkte): ?int
@@ -602,3 +640,5 @@ class CourseResultsSyncService
         return $punkte;
     }
 }
+
+

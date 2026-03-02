@@ -12,6 +12,10 @@ use Livewire\Component;
 
 class ManageCourseResults extends Component
 {
+    private const SUPPORTED_STATUS_CODES = ['V', '+', 'XO', 'B', 'D', 'X', 'N', 'K', '-', 'I', 'E'];
+    private const STATUS_CODES_FORCE_ZERO_RESULT = ['V'];
+    private const STATUS_CODES_WITHOUT_RESULT = ['-', 'XO', 'B', 'D', 'X', 'I', 'E'];
+
     public Course $course;
 
     public bool $isExternalExam = false;
@@ -76,9 +80,13 @@ class ManageCourseResults extends Component
         ]);
 
         $value  = $this->results[$personId] ?? null;
-        $status = $this->statuses[$personId] ?? null;
+        $status = $this->normalizeStatusValue($this->statuses[$personId] ?? null, $value);
+        $this->statuses[$personId] = $status;
 
-        if (in_array($status, ['-', 'V'], true)) {
+        if ($this->statusForcesZeroResult($status)) {
+            $value = 0;
+            $this->results[$personId] = 0;
+        } elseif ($this->statusHasNoResult($status)) {
             $value = null;
             $this->results[$personId] = null;
         }
@@ -147,7 +155,10 @@ class ManageCourseResults extends Component
 
     public function setStatus(string $personId, ?string $status): void
     {
-        $this->statuses[$personId] = $status ?: null;
+        $this->statuses[$personId] = $this->normalizeStatusValue(
+            $status,
+            $this->results[$personId] ?? null
+        );
         $this->saveOne($personId, silent: true);
     }
 
@@ -566,23 +577,52 @@ class ManageCourseResults extends Component
                 $this->results[$pid] ?? null
             );
         }
-    }
+    } 
 
     private function normalizeStatusValue(?string $status, mixed $result): ?string
     {
         $raw = is_string($status) ? trim($status) : '';
-        $lower = mb_strtolower($raw);
 
-        if ($raw === 'V' || in_array($lower, ['v', 'betrug', 'betrugsversuch'], true)) {
+        if ($raw !== '') {
+            $upper = mb_strtoupper($raw);
+            if (in_array($upper, self::SUPPORTED_STATUS_CODES, true)) {
+                return $upper;
+            }
+        }
+
+        $lower = mb_strtolower($raw);
+        $normalized = str_replace([' ', '-'], '_', $lower);
+
+        if (in_array($normalized, ['v', 'betrug', 'betrugsversuch'], true)) {
             return 'V';
         }
 
-        if ($raw === '-' || in_array($lower, ['-', 'nicht_teilgenommen', 'nicht teilgenommen', 'nt', 'not_participated', '3'], true)) {
+        if (in_array($normalized, ['nicht_teilgenommen', 'nt', 'not_participated', '3'], true)) {
             return '-';
         }
 
-        if ($raw === '+' || in_array($lower, ['+', 'an prüfung teilgenommen', 'teilgenommen', 'bestanden', 'passed', '1'], true)) {
+        if (in_array($normalized, ['an_pruefung_teilgenommen', 'teilgenommen', 'bestanden', 'passed', '1'], true)) {
             return '+';
+        }
+
+        if (in_array($normalized, ['ausstehend', 'pending'], true)) {
+            return 'XO';
+        }
+
+        if (in_array($normalized, ['durchgefallen', 'failed', 'nicht_bestanden', '2'], true)) {
+            return 'D';
+        }
+
+        if (in_array($normalized, ['nachklausur', 'retake'], true)) {
+            return 'N';
+        }
+
+        if (in_array($normalized, ['nachkorrektur', 'recheck'], true)) {
+            return 'K';
+        }
+
+        if (in_array($normalized, ['pruefung_ignorieren', 'ignorieren', 'ignore'], true)) {
+            return 'I';
         }
 
         if ($result !== null && $result !== '') {
@@ -590,6 +630,16 @@ class ManageCourseResults extends Component
         }
 
         return null;
+    }
+
+    private function statusForcesZeroResult(?string $status): bool
+    {
+        return in_array((string) $status, self::STATUS_CODES_FORCE_ZERO_RESULT, true);
+    }
+
+    private function statusHasNoResult(?string $status): bool
+    {
+        return in_array((string) $status, self::STATUS_CODES_WITHOUT_RESULT, true);
     }
 
     public function placeholder(): string
@@ -605,3 +655,4 @@ class ManageCourseResults extends Component
         HTML;
     }
 }
+

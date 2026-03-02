@@ -22,7 +22,7 @@
     }"
 >
     <div class="w-max">
-      <x-ui.forms.toggle-button 
+      <x-ui.forms.toggle-button
           model="isExternalExam"
           label="Keine Klausurpflicht"
       />
@@ -31,9 +31,9 @@
         <x-alert type="info" class="!mb-0">
             <strong>Keine Klausurpflicht:</strong>
               <br>
-           Für diesen Baustein besteht keine Klausurpflicht.
+           Fuer diesen Baustein besteht keine Klausurpflicht.
         </x-alert>
-    @else 
+    @else
         <div class="border rounded bg-white">
           <table class="min-w-full text-sm table-fixed">
             <thead class="bg-gray-50">
@@ -61,7 +61,7 @@
                     @endif
                   </td>
                   <td class="px-4 py-2 text-right">
-                      <div 
+                      <div
                           class="flex items-center justify-end gap-2 relative"
                           wire:target="saveOne('{{ $personId }}')"
                           wire:loading.class="opacity-60"
@@ -69,29 +69,55 @@
                           x-on:mouseleave="clearHover('{{ $personId }}')"
                       >
                           <div class="w-8 flex items-center">
-                            {{-- Loader LINKS neben dem Input (nur für diese Person) --}}
-                            <div 
-                                wire:loading 
-                                wire:target="saveOne('{{ $personId }}')" 
+                            {{-- Loader LINKS neben dem Input (nur fuer diese Person) --}}
+                            <div
+                                wire:loading
+                                wire:target="saveOne('{{ $personId }}')"
                                 class="flex items-center"
                             >
                                 <span class="loader2 w-4 h-4"></span>
                             </div>
                           </div>
                           @php
-                              $statusMap = [
-                                  'V' => 'Betrugsversuch',
-                                  '+' => 'Teilgenommen',
-                                  '-' => 'Nicht teilgenommen',
+                              $statusOptions = [
+                                  ''   => 'Bitte auswählen',
+                                  'V'  => '0 Punkte wegen versuchtem Betruges',
+                                  '+'  => 'An Prüfung teilgenommen',
+                                  'XO' => 'externe Prüfung (Zertifizierung): ausstehend',
+                                  'B'  => 'externe Prüfung (Zertifizierung): bestanden',
+                                  'D'  => 'externe Prüfung (Zertifizierung): durchgefallen',
+                                  'X'  => 'externe Prüfung (Zertifizierung): nicht teilgenommen',
+                                  'N'  => 'Nachklausur',
+                                  'K'  => 'Nachkorrektur',
+                                  '-'  => 'Nicht an Prüfung teilgenommen',
+                                  'I'  => 'Prüfung ignorieren',
                               ];
-                              $currentStatus = $statuses[$personId] ?? '';
-                              $currentStatusLabel = $statusMap[$currentStatus] ?? 'Status wählen';
-                              $statusBadgeClass = match ($currentStatus) {
-                                  'V' => 'bg-red-50 text-red-700 border-red-200',
-                                  '-' => 'bg-amber-50 text-amber-700 border-amber-200',
-                                  '+' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
-                                  default => 'bg-gray-50 text-gray-700 border-gray-200',
-                              };
+
+                              $statusOptionsForSelect = [
+                                    ''   => 'Status wählen',
+                                    'V'  => '0 Punkte wegen versuchtem Betruges',
+                                    '+'  => 'An Prüfung teilgenommen',
+                                    '-'  => 'Nicht an Prüfung teilgenommen',
+                              ];
+
+                              $statusBadgeClassMap = [
+                                  ''   => 'bg-gray-50 text-gray-700 border-gray-200',
+                                  'V'  => 'bg-red-50 text-red-700 border-red-200',
+                                  '+'  => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                                  'XO' => 'bg-blue-50 text-blue-700 border-blue-200',
+                                  'B'  => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                                  'D'  => 'bg-rose-50 text-rose-700 border-rose-200',
+                                  'X'  => 'bg-amber-50 text-amber-700 border-amber-200',
+                                  'N'  => 'bg-indigo-50 text-indigo-700 border-indigo-200',
+                                  'K'  => 'bg-sky-50 text-sky-700 border-sky-200',
+                                  '-'  => 'bg-amber-50 text-amber-700 border-amber-200',
+                                  'I'  => 'bg-slate-50 text-slate-700 border-slate-200',
+                              ];
+
+                              $currentStatusRaw = (string) ($statuses[$personId] ?? '');
+                              $currentStatus = array_key_exists($currentStatusRaw, $statusOptions) ? $currentStatusRaw : '';
+                              $currentStatusLabel = $statusOptions[$currentStatus] ?? 'Status waehlen';
+                              $statusBadgeClass = $statusBadgeClassMap[$currentStatus] ?? 'bg-gray-50 text-gray-700 border-gray-200';
                           @endphp
                           <x-ui.dropdown.anchor-dropdown
                               align="left"
@@ -105,40 +131,47 @@
                               <x-slot name="trigger">
                                   <button
                                       type="button"
-                                      class="inline-flex w-44 items-center justify-between gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold {{ $statusBadgeClass }} transition"
+                                      class="inline-flex w-80 items-center justify-between gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold {{ $statusBadgeClass }} transition"
                                       wire:loading.attr="disabled"
                                       wire:loading.class="cursor-wait opacity-70"
-                                      wire:target="saveOne('{{ $personId }}'), setStatus('{{ $personId }}', 'V'), setStatus('{{ $personId }}', '+'), setStatus('{{ $personId }}', '-')"
+                                      wire:target="saveOne('{{ $personId }}'), setStatus"
                                   >
                                       <span class="truncate text-left">{{ $currentStatusLabel }}</span>
-                                      <i wire:loading.remove wire:target="setStatus('{{ $personId }}', 'V'), setStatus('{{ $personId }}', '+'), setStatus('{{ $personId }}', '-')" class="fal fa-angle-down text-[10px]"></i>
-                                      <span wire:loading wire:target="setStatus('{{ $personId }}', 'V'), setStatus('{{ $personId }}', '+'), setStatus('{{ $personId }}', '-')" class="loader2 w-3 h-3"></span>
+                                      <i wire:loading.remove wire:target="setStatus" class="fal fa-angle-down text-[10px]"></i>
+                                      <span wire:loading wire:target="setStatus" class="loader2 w-3 h-3"></span>
                                   </button>
                               </x-slot>
                               <x-slot name="content">
-                                  <div class="py-1 text-sm" wire:loading.class="pointer-events-none opacity-70" wire:target="setStatus('{{ $personId }}', 'V'), setStatus('{{ $personId }}', '+'), setStatus('{{ $personId }}', '-')">
-                                      <button type="button" wire:click="setStatus('{{ $personId }}', '+')" wire:loading.attr="disabled" class="flex w-full items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left disabled:cursor-wait">
-                                          <span class="inline-block h-2 w-2 rounded-full aspect-square bg-emerald-500"></span>
-                                          <span>An Prüfung teilgenommen</span>
-                                      </button>
-                                      <button type="button" wire:click="setStatus('{{ $personId }}', '-')" wire:loading.attr="disabled" class="flex w-full items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left disabled:cursor-wait">
-                                          <span class="inline-block h-2 w-2 rounded-full aspect-square bg-amber-500"></span>
-                                          <span>Nicht an Prüfung teilgenommen</span>
-                                      </button>
-                                      <button type="button" wire:click="setStatus('{{ $personId }}', 'V')" wire:loading.attr="disabled" class="flex w-full items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left disabled:cursor-wait">
-                                          <span class="inline-block h-2 w-2 rounded-full aspect-square bg-red-500"></span>
-                                          <span>0 Punkte wegen versuchtem Betruges</span>
-                                      </button>
+                                  <div class="py-1 text-sm" wire:loading.class="pointer-events-none opacity-70" wire:target="setStatus">
+                                      @foreach($statusOptionsForSelect as $statusValue => $statusLabel)
+                                          @php
+                                              $dotClass = match ($statusValue) {
+                                                  'V' => 'bg-red-500',
+                                                  '+' => 'bg-emerald-500',
+                                                  '-' => 'bg-amber-500',
+                                                  default => 'bg-gray-400',
+                                              };
+                                          @endphp
+                                          <button
+                                              type="button"
+                                              wire:click="setStatus('{{ $personId }}', '{{ $statusValue }}')"
+                                              wire:loading.attr="disabled"
+                                              class="flex w-full items-center gap-2 px-3 py-2 text-left disabled:cursor-wait {{ (string) $currentStatus === (string) $statusValue ? 'bg-gray-100' : 'hover:bg-gray-50' }}"
+                                          >
+                                              <span class="inline-block h-2 w-2 rounded-full aspect-square {{ $dotClass }}"></span>
+                                              <span>{{ $statusLabel }}</span>
+                                          </button>
+                                      @endforeach
                                   </div>
                               </x-slot>
                           </x-ui.dropdown.anchor-dropdown>
                           {{-- Ergebnis-Input --}}
-                          @php($disableResultInput = in_array(($statuses[$personId] ?? null), ['-', 'V'], true))
+                          @php($disableResultInput = in_array(($statuses[$personId] ?? null), ['-', 'V', 'XO', 'B', 'D', 'X', 'I', 'E'], true))
                           @php($hasEntryToDelete = !empty($statuses[$personId]) || ($results[$personId] ?? null) !== null && (string) ($results[$personId] ?? '') !== '')
-                          <input 
+                          <input
                               type="text"
-                              x-data 
-                              x-mask="999" 
+                              x-data
+                              x-mask="999"
                                   x-on:input="
                                   let v = $event.target.value.replace(/[^0-9]/g, '');
                                   if (v === '') { $event.target.value = ''; return; }
@@ -147,7 +180,7 @@
                                   $event.target.value = n;
                               "
                               wire:model.live.defer.200ms="results.{{ $personId }}"
-                              placeholder="0–100"
+                              placeholder="0-100"
                               wire:change="saveOne('{{ $personId }}')"
                               class="flex-1 rounded-md border border-gray-300 px-2 max-w-20 text-center disabled:opacity-50 disabled:cursor-not-allowed"
                               @disabled($disableResultInput)
@@ -155,10 +188,10 @@
                               wire:target="saveOne('{{ $personId }}')"
                           />
                           <div x-show="isHovered('{{ $personId }}') && @js($hasEntryToDelete)" x-transition class="absolute -top-2 -right-2 ">
-                            <button 
-                                type="button" 
-                                wire:click="clearResult('{{ $personId }}')" 
-                                wire:loading.attr="disabled" 
+                            <button
+                                type="button"
+                                wire:click="clearResult('{{ $personId }}')"
+                                wire:loading.attr="disabled"
                                 class="text-red-400 hover:text-red-600 transition disabled:cursor-wait aspect-square border border-red-200 hover:border-red-300 rounded-full px-1.5 py-0.5 bg-white hover:bg-red-50/70"
                             >
                                 <i class="fal fa-trash-alt text-xs aspect-square"></i>
@@ -177,4 +210,3 @@
         </div>
     @endif
 </div>
-
