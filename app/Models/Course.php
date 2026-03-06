@@ -156,16 +156,6 @@ class Course extends Model
             return;
         }
 
-        $cacheKey = "course-sync-cooldown:{$course->klassen_id}";
-        $payload = [
-            'last'   => now()->toDateTimeString(),
-            'source' => $source,
-        ];
-
-        if (! Cache::add($cacheKey, $payload, now()->addMinutes(self::API_UPDATE_COOLDOWN_MINUTES))) {
-            return;
-        }
-
         CreateOrUpdateCourse::dispatch((string) $course->klassen_id);
     }
 
