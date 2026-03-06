@@ -1016,6 +1016,46 @@ public function exportReportAll(): ?StreamedResponse
         return $reportBook ? $reportBook->status : 0;
     }
 
+    public function getReportBookProperty(): ?ReportBookModel
+    {
+        if (! $this->selectedCourseId) {
+            return null;
+        }
+
+        return ReportBookModel::query()
+            ->with(['entries:id,report_book_id,course_day_id,status,submitted_at,updated_at'])
+            ->where('user_id', Auth::id())
+            ->where('course_id', $this->selectedCourseId)
+            ->when($this->massnahmeId, fn ($q) => $q->where('massnahme_id', $this->massnahmeId))
+            ->first();
+    }
+
+    public function isSubmitted(): bool
+    {
+        return (bool) $this->reportBook?->isSubmitted();
+    }
+
+    public function isReviewed(): bool
+    {
+        return (bool) $this->reportBook?->isReviewed();
+    }
+
+    public function isRejected(): bool
+    {
+        return (bool) $this->reportBook?->isRejected();
+    }
+
+    public function getReportBookSubmittedAtProperty(): ?string
+    {
+        $submittedAt = $this->reportBook?->latestSubmittedAt();
+
+        if (! $submittedAt) {
+            return null;
+        }
+
+        return Carbon::parse($submittedAt)->format('d.m.Y');
+    }
+
     public function getAreAllReportBooksReviewedProperty(): bool
     {
         $reportBook = ReportBookModel::where('user_id', Auth::id())

@@ -8,6 +8,24 @@
 @endphp
 
 <div class="w-full relative  bg-[#eeeeeebd] pb-20  min-h-[70vh] pt-6"  wire:loading.class="cursor-wait opacity-50 animate-pulse"  wire:target="date,selectCourse,selectCourseDay,selectPrevCourse,selectNextCourse,selectPrevDay,selectNextDay,selectedCourseId,submit,save,importTutorDocToDraft" >
+  @if($this->isSubmitted() || $this->isReviewed() || $this->isRejected())
+    <div class="container mx-auto px-3 md:px-5">
+      @if($this->isSubmitted())
+        <x-alert type="warning">
+          Das Berichtsheft wurde am {{ $this->reportBookSubmittedAt ?? '—' }} eingereicht und befindet sich aktuell in Prüfung durch den Ausbilder. Nach der Freigabe können Sie das Berichtsheft herunterladen.
+        </x-alert>
+      @elseif($this->isReviewed())
+        <x-alert type="success">
+          Das Berichtsheft wurde freigegeben. Der Download für diesen Baustein ist jetzt verfügbar.
+        </x-alert>
+      @elseif($this->isRejected())
+        <x-alert type="error">
+          Das Berichtsheft wurde zur Überarbeitung zurückgegeben. Bitte prüfen Sie die Einträge und reichen Sie das Berichtsheft anschließend erneut ein.
+        </x-alert>
+      @endif
+    </div>
+  @endif
+
   <div class="container mx-auto px-3 md:px-5">
   <div class="max-w-full grid grid-cols-1 lg:grid-cols-3 gap-6">
 
