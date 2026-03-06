@@ -95,6 +95,23 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
         // ---------------------------------------------------------------------
         $res = $api->getCourseByKlassenId($this->klassenId);
 
+        if (($res['status'] ?? null) === 404) {
+            $existingCourse = Course::where('klassen_id', $this->klassenId)->first();
+
+            if ($existingCourse) {
+                $log['course_id'] = $existingCourse->id;
+                $existingCourse->delete();
+                $log['status'] = 'deleted_missing_remote';
+                $log['messages'][] = 'Kurs in UVS nicht gefunden (404) und lokal softdeleted.';
+            } else {
+                $log['status'] = 'missing_remote_missing_local';
+                $log['messages'][] = 'Kurs in UVS nicht gefunden (404); lokal kein Course vorhanden.';
+            }
+
+            $writeLog('warning');
+            return;
+        }
+
         // Erwartete Strukturen abdecken:
         $payloadOk = $res['ok'] ?? ($res['data']['ok'] ?? null);
         $payload   = $res['data']['data'] ?? $res['data'] ?? $res;
@@ -523,4 +540,3 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
         }
     }
 }
-
