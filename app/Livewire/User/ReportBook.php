@@ -59,6 +59,12 @@ public ?int $selectedCourseDayId = null; // aktueller Kurs-Tag
     protected ?string $initialHash = null;
 
     public int $editorVersion = 0;
+    public ?string $pendingSignatureAction = null;
+
+    protected const SIGNATURE_ACTION_SUBMIT = 'submit';
+    protected const SIGNATURE_ACTION_EXPORT_ENTRY = 'export_entry';
+    protected const SIGNATURE_ACTION_EXPORT_MODULE = 'export_module';
+    protected const SIGNATURE_ACTION_EXPORT_ALL = 'export_all';
 
 public function mount(): void
 {
@@ -464,6 +470,7 @@ public function reloadForCurrentCourse(): void
     public function submit(): void
     {
         $this->ensureReportBookId();
+        $this->pendingSignatureAction = null;
 
         if (!$this->selectedCourseDayId) {
             $this->dispatch('toast', type: 'warning', message: 'Kein Kurstag ausgewählt.');
@@ -493,6 +500,7 @@ public function reloadForCurrentCourse(): void
         $needsSignature = $this->checkCourseCompletionAndOpenSignature();
 
         if (!$needsSignature) {
+            $this->pendingSignatureAction = null;
             $entry->fill([
                 'status' => 1,
             ])->saveQuietly();
@@ -524,6 +532,85 @@ public function reloadForCurrentCourse(): void
         );
 
         $this->reportBookId = $book->id;
+    }
+
+    protected function reportBookContextName(ReportBookModel $book): string
+    {
+        $course = $book->course;
+
+        if (!$course) {
+            return 'Kurs';
+        }
+
+        $courseTitle = $course->title ?? 'Kurs';
+        $klasse = $course->klassen_id ?? null;
+
+        return $klasse ? "{$courseTitle} - {$klasse}" : $courseTitle;
+    }
+
+    protected function hasParticipantSignature(ReportBookModel $book): bool
+    {
+        if ($book->relationLoaded('files')) {
+            return $book->files->contains(fn ($file) => $file->type === 'sign_reportbook_participant');
+        }
+
+        if (method_exists($book, 'participantSignatureFile')) {
+            return (bool) $book->participantSignatureFile();
+        }
+
+        return $book->files()
+            ->where('type', 'sign_reportbook_participant')
+            ->exists();
+    }
+
+    protected function openParticipantSignatureForm(
+        ReportBookModel $book,
+        string $label,
+        string $confirmText,
+    ): void {
+        $contextName = $this->reportBookContextName($book);
+
+        $this->dispatch('openSignatureForm', [
+            'fileableType' => ReportBookModel::class,
+            'fileableId'   => $book->id,
+            'fileType'     => 'sign_reportbook_participant',
+            'label'        => $label,
+            'signForName'  => 'Berichtsheft',
+            'contextName'  => $contextName,
+            'confirmText'  => str_replace('{context}', $contextName, $confirmText),
+        ]);
+    }
+
+    protected function ensureParticipantSignatureForDownload(ReportBookModel $book, string $pendingAction): bool
+    {
+        if ($this->hasParticipantSignature($book)) {
+            return true;
+        }
+
+        $this->pendingSignatureAction = $pendingAction;
+
+        $this->openParticipantSignatureForm(
+            $book,
+            'Berichtsheft Download bestaetigen',
+            'Ich bestaetige, dass die Angaben in meinem <strong>Berichtsheft<br>({context})</strong><br>vollstaendig und wahrheitsgemaess sind.'
+        );
+
+        $this->dispatch('toast', type: 'warning', message: 'Vor dem Download ist eine Teilnehmer-Unterschrift erforderlich.');
+
+        return false;
+    }
+
+    protected function resumePendingExport(): ?StreamedResponse
+    {
+        $action = $this->pendingSignatureAction;
+        $this->pendingSignatureAction = null;
+
+        return match ($action) {
+            self::SIGNATURE_ACTION_EXPORT_ENTRY => $this->exportReportEntry(),
+            self::SIGNATURE_ACTION_EXPORT_MODULE => $this->exportReportModule(),
+            self::SIGNATURE_ACTION_EXPORT_ALL => $this->exportReportAll(),
+            default => null,
+        };
     }
 
     protected function checkCourseCompletionAndOpenSignature(): bool
@@ -562,35 +649,16 @@ public function reloadForCurrentCourse(): void
         }
 
         // Gibt es bereits eine Teilnehmer-Signatur?
-        $hasSignature = false;
-
-        if (method_exists($book, 'participantSignatureFile')) {
-            $hasSignature = (bool) $book->participantSignatureFile();
-        } else {
-            $hasSignature = $book->files()
-                ->where('type', 'sign_reportbook_participant')
-                ->exists();
-        }
-
-        if ($hasSignature) {
+        if ($this->hasParticipantSignature($book)) {
             return false;
         }
 
-        // Kontext-Name für den Dialog
-        $courseTitle = $book->course->title ?? 'Kurs';
-        $klasse      = $book->course->klassen_id ?? null;
-        $contextName = $klasse ? "{$courseTitle} – {$klasse}" : $courseTitle;
-
-        // Generisches Signature-Form öffnen
-        $this->dispatch('openSignatureForm', [
-            'fileableType' => ReportBookModel::class,
-            'fileableId'   => $book->id,
-            'fileType'     => 'sign_reportbook_participant',
-            'label'        => 'Berichtsheft abschließen',
-            'signForName'  => 'Berichtsheft',
-            'contextName'  => $contextName,
-            'confirmText'  => "Ich bestätige, dass alle Angaben in meinem <strong>Berichtsheft<br>({$contextName})</strong><br>vollständig und wahrheitsgemäß sind.",
-        ]);
+        $this->pendingSignatureAction = self::SIGNATURE_ACTION_SUBMIT;
+        $this->openParticipantSignatureForm(
+            $book,
+            'Berichtsheft abschliessen',
+            'Ich bestaetige, dass alle Angaben in meinem <strong>Berichtsheft<br>({context})</strong><br>vollstaendig und wahrheitsgemaess sind.'
+        );
 
         return true;
     }
@@ -598,36 +666,49 @@ public function reloadForCurrentCourse(): void
     /* ======================= Signature Events (neuer Flow) ======================= */
 
     #[On('signatureCompleted')]
-    public function handleSignatureCompleted(array $payload): void
+    public function handleSignatureCompleted(array $payload): ?StreamedResponse
     {
         $fileableType = data_get($payload, 'fileableType');
         $fileType     = data_get($payload, 'fileType');
         $fileableId   = (int) data_get($payload, 'fileableId');
 
-        // Nur reagieren, wenn es UNSER Berichtsheft-Signaturtyp ist
         if (
             $fileableType !== ReportBookModel::class ||
             $fileType !== 'sign_reportbook_participant' ||
             !$fileableId
         ) {
-            return;
+            return null;
         }
 
         $book = ReportBookModel::with('course')->find($fileableId);
         if (!$book || $book->user_id !== Auth::id()) {
-            return;
+            $this->pendingSignatureAction = null;
+            return null;
         }
 
+        if (in_array($this->pendingSignatureAction, [
+            self::SIGNATURE_ACTION_EXPORT_ENTRY,
+            self::SIGNATURE_ACTION_EXPORT_MODULE,
+            self::SIGNATURE_ACTION_EXPORT_ALL,
+        ], true)) {
+            return $this->resumePendingExport();
+        }
+
+        if ($this->pendingSignatureAction !== self::SIGNATURE_ACTION_SUBMIT) {
+            return null;
+        }
+
+        $this->pendingSignatureAction = null;
+
         if (!$this->selectedCourseDayId) {
-            return;
+            return null;
         }
 
         $day = CourseDay::find($this->selectedCourseDayId);
         if (!$day || $day->course_id !== $book->course_id) {
-            return;
+            return null;
         }
 
-        // Eintrag holen (per ID oder Kombination)
         if ($this->reportBookEntryId) {
             $entry = ReportBookEntry::find($this->reportBookEntryId);
         } else {
@@ -638,10 +719,9 @@ public function reloadForCurrentCourse(): void
 
         if (!$entry) {
             $this->dispatch('toast', type: 'warning', message: 'Kein Eintrag zum Unterschreiben gefunden.');
-            return;
+            return null;
         }
 
-        // Finalen Status setzen
         $entry->status = 1;
         if (!$entry->submitted_at) {
             $entry->submitted_at = now();
@@ -656,17 +736,15 @@ public function reloadForCurrentCourse(): void
         $this->recomputeFlags();
         $this->reloadForCurrentCourse();
 
-        $this->dispatch('toast', type: 'success', message: 'Berichtsheft für diesen Kurs wurde unterschrieben.');
+        $this->dispatch('toast', type: 'success', message: 'Berichtsheft fuer diesen Kurs wurde unterschrieben.');
+
+        return null;
     }
 
     #[On('signatureAborted')]
     public function handleSignatureAborted(array $payload = []): void
     {
-        // Hier musst du nichts löschen; beim Berichtsheft wird nur unterschrieben,
-        // es wird kein eigener Zwischen-Datensatz erzeugt.
-        // Optional: Info ausgeben oder einfach still ignorieren.
-        // $this->dispatch('toast', type: 'info', message: 'Signatur abgebrochen.');
-        return;
+        $this->pendingSignatureAction = null;
     }
     #[On('updated')]
     public function reloadEntry(): void
@@ -886,10 +964,16 @@ public function exportReportEntry(): ?StreamedResponse
         return null;
     }
 
+    if (!$this->ensureParticipantSignatureForDownload($book, self::SIGNATURE_ACTION_EXPORT_ENTRY)) {
+        return null;
+    }
+
     $entry->entry_date = \Carbon\Carbon::parse($entry->entry_date);
 
-    $participantSignatureFile = $book->signature('sign_reportbook_participant');
-    $trainerSignatureFile     = $book->signature('sign_reportbook_trainer');
+    $participantSignatureFile = $book->files->firstWhere('type', 'sign_reportbook_participant')
+        ?? $book->signature('sign_reportbook_participant');
+    $trainerSignatureFile = $book->files->firstWhere('type', 'sign_reportbook_trainer')
+        ?? $book->signature('sign_reportbook_trainer');
 
     $participantSignatureUrl = $participantSignatureFile ? $participantSignatureFile->getEphemeralPublicUrl(10) : null;
     $trainerSignatureUrl     = $trainerSignatureFile ? $trainerSignatureFile->getEphemeralPublicUrl(10) : null;
@@ -928,7 +1012,11 @@ public function exportReportModule(): ?StreamedResponse
         ->first();
 
     if (!$book || $book->entries->isEmpty()) {
-        $this->dispatch('toast', type: 'warning', message: 'Keine Einträge vorhanden.');
+        $this->dispatch('toast', type: 'warning', message: 'Keine Eintraege vorhanden.');
+        return null;
+    }
+
+    if (!$this->ensureParticipantSignatureForDownload($book, self::SIGNATURE_ACTION_EXPORT_MODULE)) {
         return null;
     }
 
@@ -936,8 +1024,10 @@ public function exportReportModule(): ?StreamedResponse
         $e->entry_date = \Carbon\Carbon::parse($e->entry_date);
     }
 
-    $participantSignatureFile = $book->signature('sign_reportbook_participant');
-    $trainerSignatureFile     = $book->signature('sign_reportbook_trainer');
+    $participantSignatureFile = $book->files->firstWhere('type', 'sign_reportbook_participant')
+        ?? $book->signature('sign_reportbook_participant');
+    $trainerSignatureFile = $book->files->firstWhere('type', 'sign_reportbook_trainer')
+        ?? $book->signature('sign_reportbook_trainer');
 
     $participantSignatureUrl = $participantSignatureFile ? $participantSignatureFile->getEphemeralPublicUrl(10) : null;
     $trainerSignatureUrl     = $trainerSignatureFile ? $trainerSignatureFile->getEphemeralPublicUrl(10) : null;
@@ -947,7 +1037,7 @@ public function exportReportModule(): ?StreamedResponse
         'entries'                 => $book->entries,
         'course'                  => $book->course,
         'user'                    => Auth::user(),
-        'title'                   => 'Berichtsheft – ' . ($book->course->klassen_id ?? $book->course->title ?? ''),
+        'title'                   => 'Berichtsheft - ' . ($book->course->klassen_id ?? $book->course->title ?? ''),
         'participantSignatureFile' => $participantSignatureFile,
         'trainerSignatureFile'     => $trainerSignatureFile,
         'participantSignatureUrl'  => $participantSignatureUrl,
@@ -980,13 +1070,20 @@ public function exportReportAll(): ?StreamedResponse
         return null;
     }
 
+    $bookNeedingSignature = $books->first(fn ($book) => !$this->hasParticipantSignature($book));
+    if ($bookNeedingSignature && !$this->ensureParticipantSignatureForDownload($bookNeedingSignature, self::SIGNATURE_ACTION_EXPORT_ALL)) {
+        return null;
+    }
+
     foreach ($books as $book) {
         foreach ($book->entries as $e) {
             $e->entry_date = \Carbon\Carbon::parse($e->entry_date);
         }
 
-        $pFile = $book->signature('sign_reportbook_participant');
-        $tFile = $book->signature('sign_reportbook_trainer');
+        $pFile = $book->files->firstWhere('type', 'sign_reportbook_participant')
+            ?? $book->signature('sign_reportbook_participant');
+        $tFile = $book->files->firstWhere('type', 'sign_reportbook_trainer')
+            ?? $book->signature('sign_reportbook_trainer');
         $book->participantSignatureFile = $pFile;
         $book->trainerSignatureFile     = $tFile;
         $book->participantSignatureUrl = $pFile ? $pFile->getEphemeralPublicUrl(10) : null;
@@ -997,7 +1094,7 @@ public function exportReportAll(): ?StreamedResponse
         'mode'  => 'all',
         'books' => $books,
         'user'  => Auth::user(),
-        'title' => 'Berichtsheft – Alle Kurse',
+        'title' => 'Berichtsheft - Alle Kurse',
     ]);
 
     return response()->streamDownload(
