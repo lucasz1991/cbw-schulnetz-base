@@ -8,6 +8,11 @@ return [
     'enabled' => env('ACTIVITY_LOGGER_ENABLED', true),
 
     /*
+     * If set to false, middleware-based activity jobs will not be dispatched.
+     */
+    'dispatch_enabled' => env('LOG_ACTIVITY_DISPATCH_ENABLED', true),
+
+    /*
      * When the clean-command is executed, all recording activities older than
      * the number of days specified here will be deleted.
      */
