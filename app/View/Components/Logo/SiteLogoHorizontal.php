@@ -19,9 +19,10 @@ class SiteLogoHorizontal extends Component
 
     public function render(): View|Closure|string
     {
-        $cacheKey = 'settings.logo_horizontal.v1';
+        $cacheKey = 'settings.logo_horizontal.v2';
+        $baseUrl = rtrim((string) (Setting::where('key', 'base_api_url')->value('value') ?: config('app.url') ?: url('/')), '/');
 
-        $src = Cache::remember($cacheKey, now()->addHours(1), function () {
+        $src = Cache::remember($cacheKey, now()->addHours(1), function () use ($baseUrl) {
             $val = Setting::getValue('base', 'logo_horizontal');
 
             if (!$val) {
@@ -33,10 +34,10 @@ class SiteLogoHorizontal extends Component
             }
 
             if (Storage::disk('public')->exists($val)) {
-                return Storage::disk('public')->url($val);
+                return $baseUrl . '/storage/' . ltrim($val, '/');
             }
 
-            return asset($val);
+            return $baseUrl . '/' . ltrim($val, '/');
         });
 
         $alt = $this->alt ?: config('app.name', 'Logo');

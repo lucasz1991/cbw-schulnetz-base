@@ -2,7 +2,7 @@ APP_NAME=CBW-Schulnetz
 APP_ENV=production
 APP_KEY=base64:an7YagPib2oNeV66l9naAqpLCc+TfxuvJUcGXAHlEUM=
 APP_DEBUG=false
-APP_URL=https://schulnetz.cbw-hh.de
+APP_URL=https://dev-schulnetz.cbw-hh.de
 
 LOG_CHANNEL=stack
 LOG_DEPRECATIONS_CHANNEL=null
