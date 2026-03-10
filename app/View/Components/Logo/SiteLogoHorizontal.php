@@ -5,7 +5,6 @@ namespace App\View\Components\Logo;
 use Closure;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\View\Component;
 use App\Models\Setting;
 
@@ -19,7 +18,7 @@ class SiteLogoHorizontal extends Component
 
     public function render(): View|Closure|string
     {
-        $cacheKey = 'settings.logo_horizontal.v2';
+        $cacheKey = 'settings.logo_horizontal.v3';
         $baseUrl = rtrim((string) (Setting::where('key', 'base_api_url')->value('value') ?: config('app.url') ?: url('/')), '/');
 
         $src = Cache::remember($cacheKey, now()->addHours(1), function () use ($baseUrl) {
@@ -33,11 +32,14 @@ class SiteLogoHorizontal extends Component
                 return $val;
             }
 
-            if (Storage::disk('public')->exists($val)) {
-                return $baseUrl . '/storage/' . ltrim($val, '/');
+            $normalized = ltrim($val, '/');
+
+            if (str_starts_with($normalized, 'storage/')) {
+                return $baseUrl . '/' . $normalized;
             }
 
-            return $baseUrl . '/' . ltrim($val, '/');
+            // Settings speichern i.d.R. den relativen Public-Disk-Pfad (z.B. settings/branding/...)
+            return $baseUrl . '/storage/' . $normalized;
         });
 
         $alt = $this->alt ?: config('app.name', 'Logo');
