@@ -18,7 +18,7 @@ class SiteLogoHorizontal extends Component
 
     public function render(): View|Closure|string
     {
-        $cacheKey = 'settings.logo_horizontal.v3';
+        $cacheKey = 'settings.logo_horizontal';
         $baseUrl = rtrim((string) (Setting::where('key', 'base_api_url')->value('value') ?: config('app.url') ?: url('/')), '/');
 
         $src = Cache::remember($cacheKey, now()->addHours(1), function () use ($baseUrl) {
