@@ -120,6 +120,7 @@
                                         Anträge
                                     </a>
                                 </li>
+                                <!-- 
                                 <li>
                                     <a href="/user/faqs" wire:navigate
                                        class="group inline-flex items-center gap-2 text-white/90 hover:text-white text-sm transition">
@@ -138,6 +139,7 @@
                                         Kontakt
                                     </a>
                                 </li>
+                                    -->
                             </ul>
                         </div>
                     </div>
