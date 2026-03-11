@@ -54,8 +54,8 @@ Route::middleware('guest')->group(function () {
 
     Route::get('/forgot-password', RequestPasswordResetLink::class)->name('password.request');
     // Route::post('/forgot-password', [RequestPasswordResetLink::class, 'sendResetLink'])->name('password.email');
-    Route::get('/reset-password/{token}', ResetPassword::class)->name('password.reset');
     // Route::post('/reset-password', [ResetPassword::class, 'reset'])->name('password.update');
+    Route::get('/reset-password/{token}', ResetPassword::class)->name('password.reset');
     // Überschreibe die Standard-POST-Routen
     Route::post('/forgot-password', function () {
         abort(404);
