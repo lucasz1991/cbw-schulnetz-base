@@ -1,4 +1,4 @@
-<div>
+<div class="bg-slate-50">
 <header class="relative bg-cover bg-center min-h-36  md:px-8 " style="background-image: url('{{ asset('site-images/bg_footer.jpg') }}');">
   <div class="absolute inset-0 bg-white opacity-60"></div>
   <div class="relative container mx-auto px-5 pb-12 pt-8 text-xl  space-x-6 flex justify-start  items-center">
@@ -10,24 +10,23 @@
       </h1>
   </div>   
 </header>
-<div class="w-full relative border-t border-t-gray-300 bg-cover bg-center bg-slate-50" wire:loading.class="cursor-wait">
-  <livewire:user.program.course.course-rating-form-modal />
-  <x-ui.tabsnav.container storage-key="selectedTabcourse-{{ $course->id }}" default="basic" class="w-full">
+<div class="w-full relative border-t border-t-gray-300 min-h-[400px]" wire:loading.class="cursor-wait">
+  <x-ui.tabsnav.container storage-key="selectedTabcourse-{{ $course->id }}" default="basic" class="w-full min-h-[400px]">
     <div class="container mx-auto px-3 md:px-5 min-h-0 h-0">
       <x-ui.tabsnav.nav
-        :tabs="[
+      :tabs="[
           'basic'    => ['label' => 'Übersicht',      'icon' => 'fad fa-tachometer-alt'],
           'doku'     => ['label' => 'Dokumentation',  'icon' => 'fad fa-file-alt'],
           'material' => ['label' => 'Materialien',    'icon' => 'fad fa-books'],
-        ]"
+          ]"
         collapseAt="md"
-      />
-    </div>
+        />
+      </div>
       <x-ui.tabsnav.panel name="basic">
         <livewire:user.program.course.course-show-overview
-          :klassen-id="$klassenId ?? ($courseArray['klassen_id'] ?? null)"
-          :key="'overview-'.$klassenId"
-          lazy
+        :klassen-id="$klassenId ?? ($courseArray['klassen_id'] ?? null)"
+        :key="'overview-'.$klassenId"
+        lazy
         />
       </x-ui.tabsnav.panel>
       <x-ui.tabsnav.panel name="doku">
@@ -36,7 +35,8 @@
       <x-ui.tabsnav.panel name="material">
         <livewire:user.program.course.course-show-media :course="$course" lazy />
       </x-ui.tabsnav.panel>
-  </x-ui.tabsnav.container>
-</div>
-<livewire:user.program.course.courses-slider :klassenId="$course->klassen_id" />
+    </x-ui.tabsnav.container>
+  </div>
+  <livewire:user.program.course.courses-slider :klassenId="$course->klassen_id" />
+  <livewire:user.program.course.course-rating-form-modal />
 </div>

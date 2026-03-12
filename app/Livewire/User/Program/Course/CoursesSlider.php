@@ -5,6 +5,8 @@ namespace App\Livewire\User\Program\Course;
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Course;
+use App\Models\CourseMaterialAcknowledgement;
+use App\Models\CourseRating;
 use App\Models\Person;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
@@ -40,6 +42,20 @@ class CoursesSlider extends Component
 
         $this->courseId = (int) $currentCourse->id;
 
+        $programBlocks = collect(data_get($this->person->programdata, 'tn_baust', []));
+        $programKlassenIds = $programBlocks
+            ->pluck('klassen_id')
+            ->filter(fn ($id) => is_string($id) && trim($id) !== '')
+            ->map(fn ($id) => trim($id))
+            ->unique()
+            ->values();
+        $programBausteinIds = $programBlocks
+            ->pluck('baustein_id')
+            ->filter(fn ($id) => is_string($id) && trim($id) !== '')
+            ->map(fn ($id) => trim($id))
+            ->unique()
+            ->values();
+
         // Alle eingeschriebenen Kurse laden (für Slider)
         $this->enrolledCourses = Course::query()
             ->select('courses.*') // wichtig bei join
@@ -47,8 +63,61 @@ class CoursesSlider extends Component
             ->withCount('days')
             ->join('course_participant_enrollments as cpe', 'cpe.course_id', '=', 'courses.id')
             ->where('cpe.person_id', $this->person->id)
+            ->when(
+                $programKlassenIds->isNotEmpty() || $programBausteinIds->isNotEmpty(),
+                function ($query) use ($programKlassenIds, $programBausteinIds) {
+                    $query->where(function ($scope) use ($programKlassenIds, $programBausteinIds) {
+                        if ($programKlassenIds->isNotEmpty()) {
+                            $scope->whereIn('courses.klassen_id', $programKlassenIds->all());
+                        }
+
+                        if ($programBausteinIds->isNotEmpty()) {
+                            if ($programKlassenIds->isNotEmpty()) {
+                                $scope->orWhereIn('cpe.baustein_id', $programBausteinIds->all());
+                            } else {
+                                $scope->whereIn('cpe.baustein_id', $programBausteinIds->all());
+                            }
+                        }
+                    });
+                }
+            )
             ->orderBy('courses.planned_start_date')
             ->get();
+
+        $courseIds = $this->enrolledCourses
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn (int $id) => $id > 0)
+            ->values()
+            ->all();
+
+        $ratedCourseIds = [];
+        $materialAckCourseIds = [];
+
+        if (! empty($courseIds)) {
+            $ratedCourseIds = CourseRating::query()
+                ->where('user_id', Auth::id())
+                ->whereIn('course_id', $courseIds)
+                ->pluck('course_id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+
+            $materialAckCourseIds = CourseMaterialAcknowledgement::query()
+                ->where('person_id', $this->person->id)
+                ->whereIn('course_id', $courseIds)
+                ->whereNotNull('acknowledged_at')
+                ->pluck('course_id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+        }
+
+        $ratedLookup = array_flip($ratedCourseIds);
+        $materialAckLookup = array_flip($materialAckCourseIds);
+
+        $this->enrolledCourses->each(function (Course $course) use ($ratedLookup, $materialAckLookup) {
+            $course->setAttribute('has_rating', isset($ratedLookup[(int) $course->id]));
+            $course->setAttribute('has_material_ack', isset($materialAckLookup[(int) $course->id]));
+        });
 
         $this->total = $this->enrolledCourses->count();
 

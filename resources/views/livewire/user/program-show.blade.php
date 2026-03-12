@@ -542,12 +542,63 @@
         <div class="p-5  flex flex-col justify-between place-self-stretch">
           {{-- Aktuelles Modul --}}
       @if($aktuellesModul)
+        @php
+          $currentStartDate = !empty($aktuellesModul['beginn'])
+            ? \Illuminate\Support\Carbon::parse(str_replace('/', '-', (string) $aktuellesModul['beginn']))->startOfDay()
+            : null;
+          $isCurrentModuleFuture = $currentStartDate ? $currentStartDate->isFuture() : false;
+
+          $ratingTitle = $isCurrentModuleFuture
+            ? 'Bewertung: noch nicht verfügbar'
+            : ($hasCurrentCourseRating ? 'Bewertung: erledigt' : 'Bewertung: offen');
+          $materialTitle = $isCurrentModuleFuture
+            ? 'Materialbestätigung: noch nicht verfügbar'
+            : ($hasCurrentCourseMaterialsAck ? 'Materialbestätigung: erledigt' : 'Materialbestätigung: offen');
+
+          $ratingBadgeClasses = $isCurrentModuleFuture
+            ? 'bg-slate-100 text-slate-400 ring-slate-200'
+            : ($hasCurrentCourseRating ? 'bg-emerald-100 text-emerald-800 ring-emerald-200' : 'bg-amber-100 text-amber-800 ring-amber-200');
+          $materialBadgeClasses = $isCurrentModuleFuture
+            ? 'bg-slate-100 text-slate-400 ring-slate-200'
+            : ($hasCurrentCourseMaterialsAck ? 'bg-emerald-100 text-emerald-800 ring-emerald-200' : 'bg-amber-100 text-amber-800 ring-amber-200');
+          $ratingNeedsAction = ! $isCurrentModuleFuture && ! $hasCurrentCourseRating;
+          $materialNeedsAction = ! $isCurrentModuleFuture && ! $hasCurrentCourseMaterialsAck;
+          $showMaterialsConfirmButton = $materialNeedsAction && !empty($currentCourseId);
+        @endphp
 
         <div class="space-y-6">
           <div class="space-y-6">
-            <p class="text-base font-semibold text-slate-900">
-              {{ $aktuellesModul['baustein'] }}
-            </p>
+            <div class="flex items-start justify-between gap-3">
+              <p class="text-base font-semibold text-slate-900">
+                {{ $aktuellesModul['baustein'] }}
+              </p>
+
+              <div class="flex items-center gap-2">
+                <div class="relative h-6 w-6">
+                  @if($ratingNeedsAction)
+                    <span class="absolute inset-0 inline-flex rounded-full bg-amber-300/70 animate-ping"></span>
+                  @endif
+                  <span
+                    title="{{ $ratingTitle }}"
+                    class="relative z-10 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full ring-1 {{ $ratingBadgeClasses }}"
+                  >
+                    <i class="fal fa-star text-xs {{ $ratingNeedsAction ? 'animate-pulse' : '' }}"></i>
+                  </span>
+                </div>
+
+                <div class="relative h-6 w-6">
+                  @if($materialNeedsAction)
+                    <span class="absolute inset-0 inline-flex rounded-full bg-amber-300/70 animate-ping"></span>
+                  @endif
+                  <span
+                    title="{{ $materialTitle }}"
+                    class="relative z-10 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full ring-1 {{ $materialBadgeClasses }}"
+                  >
+                    <i class="fal fa-books text-xs {{ $materialNeedsAction ? 'animate-pulse' : '' }}"></i>
+                  </span>
+                </div>
+              </div>
+            </div>
 
             <p class="mt-1 text-sm text-slate-600 flex flex-wrap items-center gap-x-2 gap-y-1">
               <span class="inline-flex items-center gap-2">
@@ -584,28 +635,42 @@
 
         {{-- Actions --}}
         <div class="pt-5">
-          <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             @if($aktuellesModul['klassen_id'] != null)
+              <div class="flex w-full flex-col gap-3 md:w-auto md:flex-row md:items-center">
+                @if(!$hasCurrentCourseRating)
+                  <x-buttons.button-basic
+                    :size="'sm'"
+                    class="!rounded-xl !w-full md:!w-auto"
+                    @click="$dispatch('open-course-rating-modal', [{ course_id: '{{ $aktuellesModul['klassen_id'] }}' }]);isClicked = true; setTimeout(() => isClicked = false, 100)"
+                  >
+                    Bewerten
+                    <i class="fa fa-star text-[18px] text-slate-300 ml-2 hover:text-yellow-400 animate-pulse"></i>
+                  </x-buttons.button-basic>
+                @endif
+
+                @if($showMaterialsConfirmButton && !empty($aktuellesModul['klassen_id']))
+                  <x-buttons.button-basic
+                    :size="'sm'"
+                    href="{{ route('user.program.course.show', $aktuellesModul['klassen_id']) }}"
+                    wire:navigate
+                    class="!rounded-xl !w-full md:!w-auto !bg-amber-50 !text-amber-800 !border-amber-200"
+                    x-on:click="localStorage.setItem('selectedTabcourse-{{ $currentCourseId }}', JSON.stringify('material')); localStorage.setItem('acc-course-{{ $currentCourseId }}', JSON.stringify('resources'));"
+                  >
+                    Zu Bestätigungen
+                    <i class="fal fa-books ml-2"></i>
+                  </x-buttons.button-basic>
+                @endif
+              </div>
 
               <x-buttons.button-basic
                 :size="'sm'"
                 href="{{ route('user.program.course.show', $aktuellesModul['klassen_id']) }}"
-                class="!rounded-xl"
+                class="!rounded-xl !w-full md:!w-auto md:ml-auto"
               >
                 Details
                 <i class="fal fa-arrow-right ml-2 text-slate-400"></i>
               </x-buttons.button-basic>
-
-              @if(!$hasCurrentCourseRating)
-                <x-buttons.button-basic
-                  :size="'sm'"
-                  class="!rounded-xl"
-                  @click="$dispatch('open-course-rating-modal', [{ course_id: '{{ $aktuellesModul['klassen_id'] }}' }]);isClicked = true; setTimeout(() => isClicked = false, 100)"
-                >
-                  Bewerten
-                  <i class="fa fa-star text-[18px] text-slate-300 ml-2 hover:text-yellow-400 animate-pulse"></i>
-                </x-buttons.button-basic>
-              @endif
 
             @endif
           </div>

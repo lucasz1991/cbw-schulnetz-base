@@ -1,217 +1,245 @@
-<div class="">
+<div class="bg-slate-50">
+  @php
+    $status = $course['status'] ?? 'Offen';
+    $statusClasses = match ($status) {
+      'Geplant' => 'bg-amber-100 text-amber-800 border border-amber-200',
+      'Laufend' => 'bg-emerald-100 text-emerald-800 border border-emerald-200',
+      'Abgeschlossen' => 'bg-slate-200 text-slate-700 border border-slate-300',
+      default => 'bg-white text-slate-700 border border-slate-300',
+    };
 
-  <section class="container mx-auto px-5 py-10">
-    @if(!$hasCurrentCourseRating && !empty($course['end']) && \Illuminate\Support\Carbon::parse($course['end'])->lt(now()))
-      <div class="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 flex flex-wrap items-center gap-3">
-        <div class="flex items-center gap-2">
-          <span class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-amber-600 border border-amber-200">
-            <i class="fal fa-star text-lg"></i>
-          </span>
-          <div class="text-sm">
-            <div class="font-semibold text-amber-900">Bewertung ausstehend</div>
-            <div class="text-amber-800/90">Bitte bewerte diesen Baustein.</div>
-          </div>
-        </div>
-        <div class="flex-1"></div>
-        <x-buttons.button-basic
-          :size="'sm'"
-          class="!rounded-xl"
-          @click="$dispatch('open-course-rating-modal',[{ course_id: '{{ $klassenId }}' }]);"
-        >
-          Jetzt bewerten
-                  <i class="fa fa-star text-[18px] text-slate-300 ml-2 hover:text-yellow-400 animate-pulse"></i>
-        </x-buttons.button-basic>
+    $showRatingReminder = !$hasCurrentCourseRating && $isCompletedCourse;
+    $showMaterialsReminder = $hasCourseMaterials && !$hasCurrentCourseMaterialsAck && !$isFutureCourse;
+
+    $participantPercent = is_null($participantScore) ? null : max(0, min(100, (int) round($participantScore)));
+    $classPercent = is_null($classAverage) ? null : max(0, min(100, (int) round($classAverage)));
+    $reminderBaseDelay = 320;
+    $ratingReminderDelay = $reminderBaseDelay;
+    $materialsReminderDelay = $showRatingReminder ? ($reminderBaseDelay * 2) : $reminderBaseDelay;
+  @endphp
+
+  <section class="container mx-auto px-5 py-8">
+    @if($showRatingReminder || $showMaterialsReminder)
+      <div class="mb-5 grid grid-cols-1 gap-3">
+        @if($showRatingReminder)
+          <x-ui.animation.anim-container
+            type="fade-up"
+            :duration="400"
+            :delay="$ratingReminderDelay"
+            :once="true"
+          >
+            <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-md">
+              <div class="flex items-start gap-3">
+                <div class="relative mt-0.5 h-9 w-9 shrink-0">
+                  <span class="absolute inset-0 inline-flex rounded-full bg-amber-300/70 animate-ping"></span>
+                  <span class="relative z-10 inline-flex h-9 w-9 items-center justify-center rounded-full border border-amber-200 bg-white text-amber-700">
+                    <i class="fal fa-star animate-pulse"></i>
+                  </span>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm font-semibold text-amber-900">Bewertung ausstehend</p>
+                  <p class="mt-1 text-sm text-amber-800">Bitte bewerte diesen Baustein, damit dein Feedback berücksichtigt wird.</p>
+                </div>
+                <x-buttons.button-basic
+                  :size="'sm'"
+                  class="!rounded-xl !bg-white"
+                  @click="$dispatch('open-course-rating-modal',[{ course_id: '{{ $klassenId }}' }]);"
+                >
+                  <i class="fal fa-star mr-1"></i>
+                  Jetzt bewerten
+                </x-buttons.button-basic>
+              </div>
+            </div>
+          </x-ui.animation.anim-container>
+        @endif
+
+        @if($showMaterialsReminder)
+          <x-ui.animation.anim-container
+            type="fade-up"
+            :duration="400"
+            :delay="$materialsReminderDelay"
+            :once="true"
+          >
+            <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-md">
+              <div class="flex items-start gap-3">
+                <div class="relative mt-0.5 h-9 w-9 shrink-0">
+                  <span class="absolute inset-0 inline-flex rounded-full bg-amber-300/70 animate-ping"></span>
+                  <span class="relative z-10 inline-flex h-9 w-9 items-center justify-center rounded-full border border-amber-200 bg-white text-amber-700">
+                    <i class="fal fa-books animate-pulse"></i>
+                  </span>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm font-semibold text-amber-900">Materialbestätigung fehlt</p>
+                  <p class="mt-1 text-sm text-amber-800">Bestätige den Erhalt deiner Bildungsmittel im Tab "Materialien".</p>
+                </div>
+                <x-buttons.button-basic
+                  :size="'sm'"
+                  class="!rounded-xl !bg-white"
+                  x-on:click.prevent="selectedTab = 'material'; localStorage.setItem('selectedTabcourse-{{ $course['id'] }}', JSON.stringify('material')); localStorage.setItem('acc-course-{{ $course['id'] }}', JSON.stringify('resources')); $nextTick(() => { window.dispatchEvent(new CustomEvent('accordion-set', { detail: { group: 'course-{{ $course['id'] }}', id: 'resources' } })); document.getElementById('tabpanel-material')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); });"
+                >
+                  <i class="fal fa-books mr-1"></i>
+                  Zu Bildungsmitteln
+                </x-buttons.button-basic>
+              </div>
+            </div>
+          </x-ui.animation.anim-container>
+        @endif
       </div>
     @endif
-    <div class="flex flex-wrap items-start justify-between gap-4">
 
-      {{-- Status --}}
-      <div>
-@php
-  $status = $course['status'] ?? 'Offen';
+    <div class="rounded-3xl border border-blue-200 bg-gradient-to-br from-sky-50 via-blue-100 to-indigo-100 p-6 shadow-md">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-medium {{ $statusClasses }}">
+            <span class="h-2 w-2 rounded-full {{ $status === 'Laufend' ? 'bg-emerald-700' : ($status === 'Geplant' ? 'bg-amber-700' : 'bg-slate-500') }}"></span>
+            {{ $status }}
+          </span>
 
-  $badge = [
-    'Geplant' => 'bg-yellow-50 text-yellow-800 border border-yellow-200',
-    'Laufend' => 'bg-blue-50 text-blue-800 border border-blue-200',
-    'Abgeschlossen' => 'bg-slate-100 text-slate-700 border border-slate-300',
-    'Offen' => 'bg-white text-gray-700 border border-gray-300',
-  ][$status] ?? 'bg-white text-gray-700 border border-gray-300';
-
-  $point = [
-    'Geplant' => 'bg-yellow-800',
-    'Laufend' => 'bg-blue-800',
-    'Abgeschlossen' => 'bg-green-700',
-    'Offen' => 'bg-gray-700',
-  ][$status] ?? 'bg-gray-600';
-@endphp
-
-<span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium {{ $badge }}">
-  <span class="w-2 h-2 rounded-full {{ $point }}"></span>
-  {{ $status }}
-</span>
+          <span class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-sm text-slate-700">
+            <i class="fal fa-calendar-alt text-slate-500"></i>
+            {{ $course['zeitraum_fmt'] ?? '-' }}
+          </span>
+        </div>
       </div>
 
-      {{-- Zeitraum --}}
-      <div class="shrink-0">
-        <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium bg-white/15  ring-1 ring-white/20">
-          <i class="fal fa-calendar-alt opacity-90"></i>
-          {{ $course['zeitraum_fmt'] ?? '—' }}
+      <h1 class="mt-5 text-2xl font-semibold leading-tight text-slate-900 md:text-3xl">
+        {{ $course['title'] ?? '-' }}
+      </h1>
+
+      <p class="mt-2 max-w-3xl text-sm text-slate-600">
+        {{ !empty($course['description']) ? \Illuminate\Support\Str::limit($course['description'], 240) : '' }}
+      </p>
+
+      <div class="mt-5 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+        <span class="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 ring-1 ring-slate-200">
+          <i class="fal fa-door-open"></i>
+          Raum: {{ filled($course['room'] ?? null) ? $course['room'] : 'folgt' }}
+        </span>
+        <span class="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 ring-1 ring-slate-200">
+          <i class="fal fa-calendar"></i>
+          {{ $stats['tage'] ?? 0 }} Tage
         </span>
       </div>
     </div>
-
-    <h1 class="mt-6 text-xl md:text-2xl font-semibold  leading-tight">
-      {{ $course['title'] ?? '—' }}
-    </h1>
-
-    <p class="mt-2  text-sm">
-      Kursübersicht & Ergebnisse
-    </p>
   </section>
 
-  {{-- =========================================================
-      KPI / META CARDS
-  ========================================================== --}}
-  <section class="container mx-auto px-5  pb-10">
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-
-      {{-- Tutor --}}
-      <div class="bg-white rounded-2xl border shadow-sm p-4">
-        <div class="flex items-center justify-between gap-3">
-          <div>
-            <p class="text-xs text-gray-500 mb-1">Dozent/-in</p>
-            <x-user.public-info :person="$tutor" />
-          </div>
-          <div class="w-11 h-11 shrink-0 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center">
-            <i class="fal fa-chalkboard-teacher text-lg"></i>
-          </div>
-        </div>
-      </div>
-
-      {{-- Tage --}}
-      <div class="bg-white rounded-2xl border shadow-sm p-4">
-        <div class="flex items-center justify-between gap-3">
-          <div>
-            <p class="text-xs text-gray-500">Tage</p>
-            <p class="mt-1 text-xl font-semibold text-gray-900">
-              {{ $stats['tage'] ?? '—' }}
-            </p>
-          </div>
-          <div class="w-11 h-11 shrink-0 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center">
-            <i class="fal fa-calendar text-lg"></i>
-          </div>
-        </div>
-      </div>
-
-      {{-- Teilnehmer --}}
-      <div class="bg-white rounded-2xl border shadow-sm p-4">
-        <div class="flex items-center justify-between gap-3">
-          <div>
-            <p class="text-xs text-gray-500">Teilnehmer</p>
-            <p class="mt-1 text-xl font-semibold text-gray-900">
-              {{ $participantsCount }}
-            </p>
-          </div>
-          <div class="w-11 h-11 shrink-0 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center">
-            <i class="fal fa-users text-lg"></i>
-          </div>
-        </div>
-      </div>
-
-      {{-- Raum --}}
-      <div class="bg-white rounded-2xl border shadow-sm p-4">
+  <section class="container mx-auto px-5 pb-8">
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-md">
         <div class="flex items-center justify-between gap-3">
           <div class="min-w-0">
-            <p class="text-xs text-gray-500">Raum</p>
-            <p class="mt-1 text-xl font-semibold text-gray-900 truncate">
-              {{ $course['room'] ?? '—' }}
-            </p>
+            <p class="text-xs uppercase tracking-wide text-slate-500">Dozent/-in</p>
+            <div class="mt-2 text-sm text-slate-900">
+              <x-user.public-info :person="$tutor" />
+            </div>
           </div>
-          <div class="w-11 h-11bg- rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
-            <i class="fal fa-door-open text-lg"></i>
-          </div>
+          <span class="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-sky-100 text-sky-700">
+            <i class="fal fa-chalkboard-teacher"></i>
+          </span>
         </div>
       </div>
 
+      <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-md">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <p class="text-xs uppercase tracking-wide text-slate-500">Unterrichtstage</p>
+            <p class="mt-1 text-2xl font-semibold text-slate-900">{{ $stats['tage'] ?? '-' }}</p>
+          </div>
+          <span class="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
+            <i class="fal fa-calendar"></i>
+          </span>
+        </div>
+      </div>
+
+      <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-md">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <p class="text-xs uppercase tracking-wide text-slate-500">Einheiten</p>
+            <p class="mt-1 text-2xl font-semibold text-slate-900">{{ $stats['einheiten'] ?? '-' }}</p>
+          </div>
+          <span class="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700">
+            <i class="fal fa-clock"></i>
+          </span>
+        </div>
+      </div>
+
+      <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-md">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <p class="text-xs uppercase tracking-wide text-slate-500">Teilnehmer</p>
+            <p class="mt-1 text-2xl font-semibold text-slate-900">{{ $participantsCount }}</p>
+          </div>
+          <span class="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-violet-100 text-violet-700">
+            <i class="fal fa-users"></i>
+          </span>
+        </div>
+      </div>
+
+      <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-md">
+        <div class="flex items-center justify-between gap-3">
+          <div class="min-w-0">
+            <p class="text-xs uppercase tracking-wide text-slate-500">Raum</p>
+            <p class="mt-1 truncate text-xl font-semibold text-slate-900">{{ $course['room'] ?? '-' }}</p>
+          </div>
+          <span class="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+            <i class="fal fa-door-open"></i>
+          </span>
+        </div>
+      </div>
     </div>
   </section>
 
-  {{-- =========================================================
-      ERGEBNISSE
-  ========================================================== --}}
   <section class="container mx-auto px-5 pb-12">
-    <div class="flex items-center justify-between mb-6">
-      <h2 class="text-lg font-semibold text-gray-900">Ergebnisse</h2>
+    <div class="mb-5 flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-slate-900">Ergebnisse</h2>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-      {{-- Dein Ergebnis --}}
-      <div class="bg-white rounded-2xl border shadow-sm p-6">
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-md">
         <div class="flex items-start justify-between gap-3">
           <div>
-            <p class="text-sm text-gray-500">Dein Ergebnis</p>
-            <p class="mt-1 text-xs text-gray-400">Deine Bewertung in diesem Kurs</p>
+            <p class="text-sm text-slate-500">Dein Ergebnis</p>
+            <p class="mt-1 text-xs text-slate-400">Durchschnitt deiner Punkte in diesem Baustein</p>
           </div>
-
-          <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-blue-50 text-blue-700">
-            @if(!is_null($participantScore))
-              {{ number_format($participantScore, 0) }} / 100
-            @else
-              —
-            @endif
+          <span class="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-800">
+            {{ !is_null($participantScore) ? number_format($participantScore, 0) . ' / 100' : '-' }}
           </span>
         </div>
 
         <div class="mt-5">
-          @if(!is_null($participantScore))
-            <div class="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
-              <div class="h-2.5 bg-primary-600 rounded-full transition-all"
-                   style="width: {{ max(0, min(100, (int) round($participantScore))) }}%"></div>
+          @if(!is_null($participantPercent))
+            <div class="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
+              <div class="h-2.5 rounded-full bg-blue-600" style="width: {{ $participantPercent }}%"></div>
             </div>
-
-            <p class="mt-3 text-sm text-gray-600">
-              Note:
-              <span class="font-semibold text-gray-900">{{ $participantGrade ?? '—' }}</span>
-            </p>
+            <p class="mt-3 text-sm text-slate-600">Fortschritt: <span class="font-semibold text-slate-900">{{ $participantPercent }}%</span></p>
           @else
-            <p class="text-sm text-gray-500">Noch kein Ergebnis erfasst.</p>
+            <p class="text-sm text-slate-500">Noch kein Ergebnis erfasst.</p>
           @endif
         </div>
       </div>
 
-      {{-- Klassenschnitt --}}
-      <div class="bg-white rounded-2xl border shadow-sm p-6">
+      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-md">
         <div class="flex items-start justify-between gap-3">
           <div>
-            <p class="text-sm text-gray-500">Klassenschnitt</p>
-            <p class="mt-1 text-xs text-gray-400">Ø aus allen bewerteten Bausteinen</p>
+            <p class="text-sm text-slate-500">Klassenschnitt</p>
+            <p class="mt-1 text-xs text-slate-400">Durchschnitt aller bewerteten Teilnehmenden</p>
           </div>
-
-          <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-gray-100 text-gray-700">
-            @if(!is_null($classAverage))
-              {{ $classAverage }} / 100
-            @else
-              —
-            @endif
+          <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-700">
+            {{ !is_null($classAverage) ? number_format($classAverage, 0) . ' / 100' : '-' }}
           </span>
         </div>
 
         <div class="mt-5">
-          @if(!is_null($classAverage))
-            <div class="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
-              <div class="h-2.5 bg-gray-400 rounded-full"
-                   style="width: {{ max(0, min(100, (int) round($classAverage))) }}%"></div>
+          @if(!is_null($classPercent))
+            <div class="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
+              <div class="h-2.5 rounded-full bg-slate-400" style="width: {{ $classPercent }}%"></div>
             </div>
+            <p class="mt-3 text-sm text-slate-600">Klassenlevel: <span class="font-semibold text-slate-900">{{ $classPercent }}%</span></p>
           @else
-            <p class="text-sm text-gray-500">Noch keine Klassenergebnisse vorhanden.</p>
+            <p class="text-sm text-slate-500">Noch keine Klassenergebnisse vorhanden.</p>
           @endif
         </div>
       </div>
-
     </div>
   </section>
-
-
-
 </div>

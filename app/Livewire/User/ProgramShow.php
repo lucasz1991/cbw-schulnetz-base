@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use App\Models\User;
 use App\Models\Person;
 use App\Models\Course;
+use App\Models\CourseMaterialAcknowledgement;
 use App\Models\CourseRating;
 
 
@@ -36,6 +37,8 @@ class ProgramShow extends Component
     public int $currentProgress = 0;
 
     public bool $hasCurrentCourseRating = false;
+    public bool $hasCurrentCourseMaterialsAck = false;
+    public ?int $currentCourseId = null;
     public array $pendingRequiredRating = [];
 
 
@@ -340,9 +343,15 @@ class ProgramShow extends Component
         // ----------  Wichtig: heute letzter Kurstag? ----------
         if ($this->aktuellesModul) {
             $ende = $this->toCarbon($this->aktuellesModul['ende']);
+            $currentKlassenId = $this->aktuellesModul['klassen_id'] ?? null;
+            $currentCourseId = $currentKlassenId
+                ? Course::query()->where('klassen_id', $currentKlassenId)->value('id')
+                : null;
+            $this->currentCourseId = is_numeric($currentCourseId) ? (int) $currentCourseId : null;
 
             // zuerst prüfen, ob schon eine Bewertung existiert
             $this->hasCurrentCourseRating = $this->checkHasRatingForModule($this->aktuellesModul);
+            $this->hasCurrentCourseMaterialsAck = $this->checkHasMaterialsAckForModule($this->aktuellesModul);
 
             // Nur wenn heute letzter Tag UND noch keine Bewertung → Modal erzwingen
             if ($ende && $ende->isToday() && ! $this->hasCurrentCourseRating) {
@@ -352,6 +361,8 @@ class ProgramShow extends Component
             }
         } else {
             $this->hasCurrentCourseRating = false;
+            $this->hasCurrentCourseMaterialsAck = false;
+            $this->currentCourseId = null;
         }
 
         
@@ -399,6 +410,37 @@ private function checkHasRatingForModule(?array $modul): bool
     return CourseRating::query()
         ->where('user_id', $userId)
         ->whereIn('course_id', $courseIds)
+        ->exists();
+}
+
+private function checkHasMaterialsAckForModule(?array $modul): bool
+{
+    if (!$modul) {
+        return false;
+    }
+
+    $personId = Auth::user()?->person?->id;
+    if (!$personId) {
+        return false;
+    }
+
+    $klassenId = $modul['klassen_id'] ?? null;
+    if (!$klassenId) {
+        return false;
+    }
+
+    $courseIds = Course::query()
+        ->where('klassen_id', $klassenId)
+        ->pluck('id');
+
+    if ($courseIds->isEmpty()) {
+        return false;
+    }
+
+    return CourseMaterialAcknowledgement::query()
+        ->where('person_id', $personId)
+        ->whereIn('course_id', $courseIds)
+        ->whereNotNull('acknowledged_at')
         ->exists();
 }
 
@@ -515,6 +557,8 @@ private function calcCurrentProgress(?array $modul): int
             'bausteinLabels'            => $this->bausteinLabels,
             'bausteinColors'            => $this->bausteinColors,
             'hasCurrentCourseRating' => $this->hasCurrentCourseRating,
+            'hasCurrentCourseMaterialsAck' => $this->hasCurrentCourseMaterialsAck,
+            'currentCourseId' => $this->currentCourseId,
 
         ]);
     }
