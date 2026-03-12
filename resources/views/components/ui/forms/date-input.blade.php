@@ -12,6 +12,7 @@
     'altFormat' => 'Y-m-d',
     'altInput' => true,
     'mode' => 'single',
+    'disableWeekends' => false,
 ])
 
 @php
@@ -67,6 +68,9 @@
                     locale: 'de',
                     minDate: @js($min),
                     maxDate: @js($max),
+                    disable: @js($disableWeekends) ? [
+                        (date) => date.getDay() === 0 || date.getDay() === 6
+                    ] : [],
                     onChange: (selectedDates, dateStr) => {
                         if (lwModel) $wire.set(lwModel, dateStr)
                     },
