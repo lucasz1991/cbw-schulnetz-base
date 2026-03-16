@@ -191,25 +191,15 @@ class DispatchLecturerReminders extends Command
 
     private function dispatchMissingResults(Carbon $today, bool $dryRun): int
     {
-        if (! $today->isMonday()) {
-            return 0;
-        }
-
         $sent = 0;
+        $targetEndDate = $today->copy()->subDays(13)->toDateString();
 
         Course::query()
             ->with(['tutor:id,user_id,email_priv,email_cbw'])
             ->whereNotNull('primary_tutor_person_id')
-            ->whereDate('planned_end_date', '<', $today->toDateString())
+            ->whereDate('planned_end_date', '=', $targetEndDate)
             ->chunkById(100, function ($courses) use ($today, $dryRun, &$sent) {
                 foreach ($courses as $course) {
-                    $endDate = Carbon::parse($course->planned_end_date);
-                    $mondayAfterEnd = $endDate->copy()->next(Carbon::MONDAY);
-
-                    if (! $today->isSameDay($mondayAfterEnd)) {
-                        continue;
-                    }
-
                     if ($course->hasResultsForAllParticipantsOrExternalExam()) {
                         continue;
                     }
