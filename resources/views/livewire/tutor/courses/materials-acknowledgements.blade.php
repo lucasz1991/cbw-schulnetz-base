@@ -51,7 +51,6 @@
           <thead class="bg-gray-50">
             <tr>
               <th class="px-4 py-2 text-left font-medium text-gray-600">Name</th>
-              <th class="px-4 py-2 text-left font-medium text-gray-600">E-Mail</th>
               <th class="px-4 py-2 text-left font-medium text-gray-600">Status</th>
               <th class="px-4 py-2 text-left font-medium text-gray-600">Datum</th>
             </tr>
@@ -62,7 +61,6 @@
                 <td class="px-4 py-2">
                   <x-user.public-info :person="$r->person" />
                 </td>
-                <td class="px-4 py-2 text-gray-600">{{ $r->email }}</td>
                 <td class="px-4 py-2">
                   @if($r->acknowledged)
                     <span class="inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs bg-emerald-100 text-emerald-800">
