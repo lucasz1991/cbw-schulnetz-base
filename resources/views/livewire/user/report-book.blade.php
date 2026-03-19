@@ -597,10 +597,7 @@
     </div>
   </div>
   <livewire:tools.ai.report-book-ai-assistant />
-
   {{-- Signatur-Formular --}} 
-<livewire:tools.signatures.signature-form lazy />
-
-
+  <livewire:tools.signatures.signature-form lazy />
 </div>
 </div>

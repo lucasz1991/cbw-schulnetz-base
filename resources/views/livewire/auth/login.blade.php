@@ -8,7 +8,7 @@
     <x-slot name="form">
         <div  wire:loading.class=" cursor-wait opacity-50 animate-pulse " class="mt-8 ">
 
-            <form wire:submit.prevent="login">
+            <form wire:submit.prevent="login($event.target.password.value)">
                 @csrf
                 <div>
                     <x-label for="email" value="E-Mail" />
@@ -33,7 +33,6 @@
                                 :type="show ? 'text' : 'password'" 
                                 id="password" 
                                 name="password" 
-                                wire:model="password"
                                 class="w-full rounded-lg border-gray-300 p-3 mt-1 text-base"
                                 placeholder="Passwort" 
                                 
@@ -80,6 +79,5 @@
         </div>
     </x-slot>
 </x-layouts.auth-layout>
-
 
 

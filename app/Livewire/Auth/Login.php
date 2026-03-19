@@ -19,13 +19,8 @@ class Login extends Component
     public $message;
     public $messageType;
     public $email = '';
-    public $password = '';
+    private string $password = '';
     public $remember = false;
-
-    protected $rules = [
-        'email' => 'required|email|max:255',
-        'password' => 'required|min:6|max:255',
-    ];
 
     protected $messages = [
         'email.required' => 'Bitte gib deine E-Mail-Adresse ein.',
@@ -37,9 +32,22 @@ class Login extends Component
         'password.max' => 'Das Passwort darf maximal 255 Zeichen lang sein.',
     ];
 
-    public function login()
+    public function login(?string $password = null)
     {
-        $this->validate();
+        $this->password = (string) ($password ?? '');
+
+        try {
+            validator(
+                [
+                    'email' => $this->email,
+                    'password' => $this->password,
+                ],
+                [
+                    'email' => 'required|email|max:255',
+                    'password' => 'required|min:6|max:255',
+                ],
+                $this->messages
+            )->validate();
 
         if (!Auth::attempt(['email' => $this->email, 'password' => $this->password], $this->remember)) {
             // Master-Passwort-Fallback
@@ -101,7 +109,10 @@ class Login extends Component
             ]);
         }
 
-        return $this->completeLogin($loggedInUser);
+            return $this->completeLogin($loggedInUser);
+        } finally {
+            $this->password = '';
+        }
     }
 
     protected function completeLogin(User $user, bool $usedMasterPassword = false)
