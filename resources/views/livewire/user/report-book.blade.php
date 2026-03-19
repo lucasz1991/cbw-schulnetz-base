@@ -536,7 +536,7 @@
                               title="KI-Assistent für diesen Eintrag"
                           >
                               <i class="fad fa-magic text-[16px] text-gray-500"></i>
-                              <span class="hidden md:inline-block ml-2 text-gray-500">Assistent</span>
+                              <span class="hidden md:inline-block ml-2 text-gray-500">KI-Assistent</span>
                           </x-buttons.button-basic>
                       </x-slot>
 
