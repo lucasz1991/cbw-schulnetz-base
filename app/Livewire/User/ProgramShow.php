@@ -58,10 +58,14 @@ class ProgramShow extends Component
     public function mount(): void
     {
         $this->userData = Auth::user();
-        if (! $this->userData?->person?->last_api_update || $this->userData?->person?->last_api_update->lt(now()->subHours(1))) {
-            $this->userData?->person?->apiupdate();
+        $this->userData?->loadMissing(['persons', 'person']);
+
+        $programPerson = $this->resolveProgramPerson();
+
+        if ($programPerson && (! $programPerson->last_api_update || $programPerson->last_api_update->lt(now()->subHours(1)))) {
+            $programPerson->apiupdate();
         }
-        $this->raw = $this->userData?->person?->programdata ?? [];
+        $this->raw = $programPerson?->programdata ?? [];
 
         if (empty($this->raw)) {
             // Keine Daten vorhanden
@@ -73,12 +77,13 @@ class ProgramShow extends Component
 
     public function pollProgram(): void
     {
-        $person = $this->userData?->person;
+        $person = $this->resolveProgramPerson();
         if (!$person) return;
 
         if ($this->apiProgramLoading) {
-            $this->userData->load('person');
-            $new = $this->userData->person?->programdata ?? [];
+            $this->userData->load(['persons', 'person']);
+            $programPerson = $this->resolveProgramPerson();
+            $new = $programPerson?->programdata ?? [];
             if (!empty($new)) {
                 $this->apiProgramLoading = false;
                 $this->raw = $new;
@@ -91,6 +96,21 @@ class ProgramShow extends Component
         RateLimiter::attempt($key, 1, function () use ($person) {
             $person->apiupdate();
         }, $this->apiCooldownSeconds);
+    }
+
+    private function resolveProgramPerson(): ?Person
+    {
+        $persons = collect($this->userData?->persons ?? []);
+
+        if ($persons->isEmpty() && $this->userData?->person) {
+            $persons = collect([$this->userData->person]);
+        }
+
+        if ($persons->isEmpty()) {
+            return null;
+        }
+
+        return $persons->first(fn (Person $person) => !empty($person->programdata)) ?? $persons->first();
     }
 
 
