@@ -22,7 +22,7 @@ class ExternalMakeupRegistration extends Component
     public ?string $klasse = null;
     public ?string $certification_key = null;
     public ?string $certification_label = null;
-    public ?string $scheduled_at = null; // YYYY-mm-dd
+    public ?string $scheduled_at = null; // Unix-Timestamp (string)
     public ?string $exam_modality = 'online';
     public ?string $reason = null;
     public ?string $email_priv = null;
@@ -117,7 +117,7 @@ class ExternalMakeupRegistration extends Component
         return [
             'klasse' => ['nullable', 'string', 'max:12'],
             'certification_key' => ['required', 'exists:exam_appointments,id'],
-            'scheduled_at' => ['required', 'date_format:Y-m-d'],
+            'scheduled_at' => ['required', 'numeric'],
             'exam_modality' => ['required', 'in:online'],
             'reason' => ['required', 'in:zert_faild,krankMitAtest,krankOhneAtest'],
             'email_priv' => ['nullable', 'email'],
@@ -135,22 +135,22 @@ class ExternalMakeupRegistration extends Component
             ->where('type', 'extern')
             ->findOrFail($this->certification_key);
 
-        $minimumAllowedDate = Carbon::today()->addDays($this->minimumLeadDays)->startOfDay();
-        $maximumAllowedDate = Carbon::today()->addDays($this->maximumWindowDays)->endOfDay();
-        $scheduledAt = Carbon::createFromFormat('Y-m-d', (string) $this->scheduled_at)->startOfDay();
+        $examSlots = $this->getInternalExamSlots();
+        $allowedTimestamps = collect($examSlots)
+            ->pluck('timestamp')
+            ->map(fn ($ts) => (string) $ts)
+            ->all();
 
-        if (
-            $scheduledAt->lt($minimumAllowedDate) ||
-            $scheduledAt->gt($maximumAllowedDate) ||
-            $scheduledAt->isWeekend()
-        ) {
+        if (!in_array((string) $this->scheduled_at, $allowedTimestamps, true)) {
             $this->addError(
                 'scheduled_at',
-                'Bitte waehlen Sie einen Werktag zwischen heute + '.$this->minimumLeadDays.' Tagen und maximal einem Jahr.'
+                'Bitte waehlen Sie einen gueltigen internen Pruefungstermin (ab heute + '.$this->minimumLeadDays.' Tagen).'
             );
 
             return;
         }
+
+        $scheduledAt = Carbon::createFromTimestamp((int) $this->scheduled_at);
 
         $feeCents = $appointment->preis !== null
             ? (int) round(((float) $appointment->preis) * 100)
@@ -218,18 +218,64 @@ class ExternalMakeupRegistration extends Component
         $this->resetForm();
     }
 
+    /**
+     * Liefert interne Pruefungs-Slots, aber nur ab heute + minimumLeadDays.
+     *
+     * @return array<int, array{timestamp:int,label:string}>
+     */
+    protected function getInternalExamSlots(): array
+    {
+        $minimumDate = Carbon::today()->addDays($this->minimumLeadDays)->startOfDay();
+        $maximumDate = Carbon::today()->addDays($this->maximumWindowDays)->endOfDay();
+
+        $appointments = ExamAppointment::query()
+            ->where('type', 'intern')
+            ->orderBy('dates->0->datetime')
+            ->get();
+
+        $slots = [];
+
+        foreach ($appointments as $ap) {
+            if (!is_array($ap->dates)) {
+                continue;
+            }
+
+            foreach ($ap->dates as $entry) {
+                $dtStr = $entry['datetime'] ?? $entry['from'] ?? null;
+                if (!$dtStr) {
+                    continue;
+                }
+
+                $dt = Carbon::parse($dtStr);
+
+                // Nur Termine im Fenster [heute + lead days, heute + max window]
+                if ($dt->lt($minimumDate) || $dt->gt($maximumDate)) {
+                    continue;
+                }
+
+                $slots[] = [
+                    'timestamp' => $dt->timestamp,
+                    'label' => $dt->format('d.m.Y').' – '.$dt->format('H:i')
+                        .($ap->room ? ' ('.$ap->room.')' : ''),
+                ];
+            }
+        }
+
+        usort($slots, fn ($a, $b) => $a['timestamp'] <=> $b['timestamp']);
+
+        return $slots;
+    }
+
     public function render()
     {
         $this->certOptions = $this->loadCertOptions();
 
         $minimumDate = Carbon::today()->addDays($this->minimumLeadDays);
-        $maximumDate = Carbon::today()->addDays($this->maximumWindowDays);
+        $examSlots = $this->getInternalExamSlots();
 
         return view('livewire.user.external-makeup-registration', [
             'minimumDateLabel' => $minimumDate->format('d.m.Y'),
-            'maximumDateLabel' => $maximumDate->format('d.m.Y'),
-            'minimumDateForPicker' => $minimumDate->format('Y-m-d'),
-            'maximumDateForPicker' => $maximumDate->format('Y-m-d'),
+            'examSlots' => $examSlots,
         ])->layout('layouts.app');
     }
 }

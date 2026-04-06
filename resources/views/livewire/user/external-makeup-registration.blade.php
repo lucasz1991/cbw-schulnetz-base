@@ -39,16 +39,20 @@
       {{-- Termin + Begründung --}}
       <div class="grid md:grid-cols-2 gap-4">
         <div>
-          <x-ui.forms.date-input
-            id="termin"
-            model="scheduled_at"
-            label="Prüfungstermin"
-            :min="$minimumDateForPicker"
-            :max="$maximumDateForPicker"
-            :disableWeekends="true"
-            :inline="true"
+          <x-ui.forms.label for="scheduled_at" value="Prüfungstermin (ab {{ $minimumDateLabel }})" />
+          <select
+            id="scheduled_at"
+            class="mt-1 block w-full border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500"
+            wire:model.defer="scheduled_at"
             required
-          />
+          >
+            <option value="">- Bitte wählen -</option>
+            @forelse($examSlots as $slot)
+              <option value="{{ $slot['timestamp'] }}">{{ $slot['label'] }}</option>
+            @empty
+              <option value="" disabled>Keine passenden internen Prüfungstermine verfügbar</option>
+            @endforelse
+          </select>
           @error('scheduled_at')
             <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
           @enderror
