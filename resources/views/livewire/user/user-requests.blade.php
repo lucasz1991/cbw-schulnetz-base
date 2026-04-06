@@ -172,7 +172,6 @@
                 :columns="[
                     ['label'=>'Typ','key'=>'type','width'=>'30%','sortable'=>false,'hideOn'=>'none'],
                     ['label'=>'Zeitraum','key'=>'date_range','width'=>'40%','sortable'=>false,'hideOn'=>'none'],
-                    ['label'=>'Status','key'=>'status','width'=>'30%','sortable'=>false,'hideOn'=>'none'],
                 ]"
                 :items="$requests"
                 row-view="components.tables.rows.user-requests.row"
