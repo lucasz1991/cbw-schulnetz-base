@@ -153,15 +153,7 @@
                     <option value="general">Allgemein</option>
                 </select>
 
-                <select class="px-2 py-0.5 h-[30px] rounded border border-gray-300 pr-8 opacity-70 hover:opacity-100 transition"
-                        wire:model.live="filterStatus" title="Status">
-                    <option value="all">Alle Status</option>
-                    <option value="pending">Eingereicht</option>
-                    <option value="in_review">In Prüfung</option>
-                    <option value="approved">Genehmigt</option>
-                    <option value="rejected">Abgelehnt</option>
-                    <option value="canceled">Storniert</option>
-                </select>
+  
     
             </div>
         </div>
