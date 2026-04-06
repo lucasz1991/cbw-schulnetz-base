@@ -13,14 +13,6 @@ use Illuminate\Support\Facades\Log;
 class CourseResultsSyncService
 {
     private const SUPPORTED_PRUEF_KENNZ = ['V', '+', 'XO', 'B', 'D', 'X', 'N', 'K', '-', 'I', 'E'];
-    private const PRUEF_KENNZ_TO_REMOTE_STATUS = [
-        '+' => 1,
-        'B' => 1,
-        'D' => 2,
-        '-' => 3,
-        'X' => 3,
-        'V' => 3,
-    ];
 
     protected ApiUvsService $api;
 
@@ -261,8 +253,9 @@ class CourseResultsSyncService
             $remotePruefKennz  = $this->mapLocalStatusToPruefKennz($result->status);
             $remotePruefPunkte = $this->mapLocalResultToPruefPunkte($result->result);
 
-            // Leere Datensaetze nicht als 0/0 nach UVS pushen.
-            if ($remoteStatus === 0 && $remotePruefPunkte === null && $remotePruefKennz === '') {
+            // Leere Datensaetze nicht nach UVS pushen.
+            // UVS erwartet status=1 auch fuer "kein Ergebnis", daher entscheiden wir nur ueber Kennz/Punkte.
+            if ($remotePruefPunkte === null && $remotePruefKennz === '') {
                 continue;
             }
 
@@ -291,13 +284,8 @@ class CourseResultsSyncService
 
     protected function mapLocalStatusToRemoteStatus(?string $status): int
     {
-        $kennz = $this->normalizeStatusToPruefKennz($status);
-        if ($kennz !== '') {
-            return self::PRUEF_KENNZ_TO_REMOTE_STATUS[$kennz] ?? 0;
-        }
-
-        $raw = is_string($status) ? trim($status) : '';
-        return is_numeric($raw) ? (int) $raw : 0;
+        // UVS-Vorgabe: status immer 1
+        return 1;
     }
 
     protected function mapLocalStatusToPruefKennz(?string $status): string
@@ -359,12 +347,16 @@ class CourseResultsSyncService
     {
         $kennz = is_string($pruefKennz) ? trim($pruefKennz) : '';
 
-        // Typischer "kein Ergebnis vorhanden"-Fall aus UVS.
-        if (($status === null || $status === 0) && ($punkte === null || $punkte === 0) && $kennz === '') {
-            return false;
+        if ($kennz !== '') {
+            return true;
         }
 
-        return true;
+        if ($punkte !== null && $punkte !== 0) {
+            return true;
+        }
+
+        // Rueckwaertskompatibel: alte UVS-Kodierung ohne pruef_kennz ueber status.
+        return in_array($status, [2, 3], true);
     }
 
     /**
@@ -479,6 +471,25 @@ class CourseResultsSyncService
     }
 
     /**
+     * Mehrfachzeilen aus UVS auf einen Datensatz pro teilnehmer_id reduzieren.
+     * Bei Duplikaten gewinnt die Zeile mit der höchsten uid.
+     */
+    protected function deduplicatePulledItemsByParticipant(array $items): array
+    {
+        return collect($items)
+            ->filter(fn ($row) => is_array($row))
+            ->groupBy(fn (array $row) => (string) ($row['teilnehmer_id'] ?? ''))
+            ->reject(fn ($group, string $teilnehmerId) => $teilnehmerId === '')
+            ->map(function ($group) {
+                return $group
+                    ->sortByDesc(fn (array $row) => (int) ($row['uid'] ?? 0))
+                    ->first();
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
      * SYNC-Modus: UVS-Daten zurückschreiben, aber nur wenn UVS "neuer" ist
      * und das lokale Ergebnis NICHT dirty ist.
      */
@@ -489,6 +500,7 @@ class CourseResultsSyncService
 
         $pulled  = $innerData['pulled'] ?? null;
         $items   = (is_array($pulled) && ! empty($pulled['items'])) ? $pulled['items'] : [];
+        $items   = $this->deduplicatePulledItemsByParticipant($items);
 
         if (empty($items)) {
             return;
@@ -613,37 +625,67 @@ class CourseResultsSyncService
      */
     protected function applyLoadResponse(Course $course, array $response): void
     {
-        $outerData = $response['data'] ?? [];
-        $innerData = $outerData['data'] ?? $outerData;
+        $innerData = $this->extractInnerData($response);
+        $pulled    = $innerData['pulled'] ?? null;
+        $rawItems  = (is_array($pulled) && ! empty($pulled['items'])) ? $pulled['items'] : [];
+        $items     = $this->deduplicatePulledItemsByParticipant($rawItems);
 
-        $pulled  = $innerData['pulled'] ?? null;
-        $items   = (is_array($pulled) && ! empty($pulled['items'])) ? $pulled['items'] : [];
-
-        if (empty($items)) {
-            return;
-        }
-
-        $teilnehmerIds = collect($items)
-            ->pluck('teilnehmer_id')
+        // Zielmenge für "hartes" Ersetzen: zuerst explizit vom Request, sonst aus gelieferten Items.
+        $targetTeilnehmerIds = collect($innerData['teilnehmer_ids'] ?? [])
+            ->map(fn ($id) => (string) $id)
             ->filter()
             ->unique()
             ->values()
             ->all();
 
-        if (empty($teilnehmerIds)) {
+        if (empty($targetTeilnehmerIds)) {
+            $targetTeilnehmerIds = collect($items)
+                ->pluck('teilnehmer_id')
+                ->map(fn ($id) => (string) $id)
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+        }
+
+        if (empty($targetTeilnehmerIds)) {
             return;
         }
 
-        $persons = Person::whereIn('teilnehmer_id', $teilnehmerIds)
+        $persons = Person::whereIn('teilnehmer_id', $targetTeilnehmerIds)
             ->get()
             ->groupBy('teilnehmer_id');
 
-        $updatedCount = 0;
+        if ($persons->isEmpty()) {
+            return;
+        }
+
+        $targetPersonIds = $persons
+            ->flatten(1)
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        if (empty($targetPersonIds)) {
+            return;
+        }
+
+        // "Hart laden": bestehende lokale Einträge für die Zielteilnehmer zuerst entfernen.
+        $deletedCount = CourseResult::query()
+            ->where('course_id', $course->id)
+            ->whereIn('person_id', $targetPersonIds)
+            ->delete();
+
         $createdCount = 0;
+        $missingPersonMapping = 0;
+        $noRemoteDataCount = 0;
 
         foreach ($items as $item) {
             $teilnehmerId = $item['teilnehmer_id'] ?? null;
             if (! $teilnehmerId || empty($persons[$teilnehmerId])) {
+                $missingPersonMapping++;
                 continue;
             }
 
@@ -663,55 +705,43 @@ class CourseResultsSyncService
             }
 
             $hasRemoteData = $this->hasMeaningfulRemoteExamData($remoteStatus, $remotePunkte, $remotePruefKennz);
+            if (! $hasRemoteData) {
+                // Kein Ergebnis in UVS => lokal bewusst kein Datensatz.
+                $noRemoteDataCount++;
+                continue;
+            }
+
             $localStatus = $this->mapRemoteStatusToLocalStatus($remoteStatus, $remotePruefKennz);
             $localResult = $this->mapRemotePunkteToLocalResult($remotePunkte);
 
             foreach ($persons[$teilnehmerId] as $person) {
                 /** @var Person $person */
+                CourseResult::updateOrCreate(
+                    [
+                        'course_id' => $course->id,
+                        'person_id' => $person->id,
+                    ],
+                    [
+                        'result'          => $localResult,
+                        'status'          => $localStatus,
+                        'remote_uid'      => $remoteUid,
+                        'remote_upd_date' => $remoteUpdDate,
+                        'sync_state'      => CourseResult::SYNC_STATE_REMOTE,
+                    ]
+                );
 
-                $courseResult = CourseResult::firstOrNew([
-                    'course_id' => $course->id,
-                    'person_id' => $person->id,
-                ]);
-
-                // Im Load-Modus sollen "keine Ergebnisdaten" nicht als 0 gespeichert werden.
-                // Existierende lokale Daten werden dabei auf null zurueckgesetzt.
-                if (! $hasRemoteData) {
-                    if ($courseResult->exists) {
-                        $courseResult->result          = null;
-                        $courseResult->status          = null;
-                        $courseResult->remote_uid      = $remoteUid;
-                        $courseResult->remote_upd_date = $remoteUpdDate;
-                        $courseResult->sync_state      = CourseResult::SYNC_STATE_SYNCED;
-                        $courseResult->saveQuietly();
-                        $updatedCount++;
-                    }
-                    continue;
-                }
-
-                $courseResult->result          = $localResult;
-                $courseResult->status          = $localStatus;
-                $courseResult->remote_uid      = $remoteUid;
-                $courseResult->remote_upd_date = $remoteUpdDate;
-                $courseResult->sync_state      = $courseResult->exists
-                    ? CourseResult::SYNC_STATE_SYNCED
-                    : CourseResult::SYNC_STATE_REMOTE;
-
-                $courseResult->saveQuietly();
-
-                if ($courseResult->wasRecentlyCreated) {
-                    $createdCount++;
-                } else {
-                    $updatedCount++;
-                }
+                $createdCount++;
             }
         }
 
         Log::info('CourseResultsSyncService.applyLoadResponse: CourseResults aus UVS (hart) übernommen.', [
-            'course_id'   => $course->id,
-            'created'     => $createdCount,
-            'updated'     => $updatedCount,
-            'items_total' => count($items),
+            'course_id'      => $course->id,
+            'deleted_local'  => $deletedCount,
+            'created_local'  => $createdCount,
+            'items_total'    => count($items),
+            'targets_total'  => count($targetTeilnehmerIds),
+            'no_remote_data' => $noRemoteDataCount,
+            'missing_person_mapping' => $missingPersonMapping,
         ]);
     }
 

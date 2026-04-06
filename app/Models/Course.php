@@ -295,7 +295,10 @@ class Course extends Model
             ->whereIn('person_id', $participantIds)
             ->where(function ($q) {
                 $q->whereNotNull('result')
-                    ->orWhereNotNull('status');
+                    ->orWhere(function ($qq) {
+                        $qq->whereNotNull('status')
+                           ->where('status', '<>', '');
+                    });
             })
             ->pluck('person_id')
             ->map(fn ($id) => (int) $id)

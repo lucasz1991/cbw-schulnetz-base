@@ -172,7 +172,7 @@ class ManageCourseResults extends Component
             $this->dispatch(
                 'notify',
                 type: 'error',
-                message: 'Fehlende termin_id/klassen_id. Löschen in UVS nicht möglich.'
+                message: 'Fehlende termin_id/klassen_id. Zuruecksetzen in UVS nicht moeglich.'
             );
             return;
         }
@@ -185,7 +185,7 @@ class ManageCourseResults extends Component
             $this->dispatch(
                 'notify',
                 type: 'error',
-                message: "Teilnehmer #{$personId} konnte nicht für UVS-Löschung aufgelöst werden."
+                message: "Teilnehmer #{$personId} konnte nicht fuer UVS-Zuruecksetzen aufgeloest werden."
             );
             return;
         }
@@ -199,7 +199,11 @@ class ManageCourseResults extends Component
                 'person_id'      => (string) ($person->person_id ?? ''),
                 'institut_id'    => (int) ($person->institut_id ?? $this->course->institut_id ?? 0),
                 'teilnehmer_fnr' => (string) ($person->teilnehmer_fnr ?? '00'),
-                'action'         => 'delete',
+                'action'         => 'update',
+                'status'         => 1,
+                'pruef_punkte'   => null,
+                'pruef_kennz'    => '',
+                'aktiv'          => '',
             ]],
         ];
 
@@ -208,18 +212,42 @@ class ManageCourseResults extends Component
             $api = app(ApiUvsService::class);
             $response = $api->request('POST', '/api/course/courseresults/syncdata', $payload, []);
 
-            if (empty($response['ok'])) {
-                Log::warning('ManageCourseResults.clearResult: Remote delete failed', [
+            $inner = [];
+            if (is_array($response['data'] ?? null)) {
+                $inner = $response['data']['data'] ?? $response['data'];
+            }
+
+            $pushedResults = (is_array($inner['pushed'] ?? null) && is_array($inner['pushed']['results'] ?? null))
+                ? $inner['pushed']['results']
+                : [];
+
+            $remoteApplied = collect($pushedResults)
+                ->filter(fn ($row) => is_array($row))
+                ->contains(function (array $row) use ($person) {
+                    $tid = (string) ($row['teilnehmer_id'] ?? '');
+                    $action = strtolower(trim((string) ($row['action'] ?? '')));
+
+                    return $tid === (string) $person->teilnehmer_id
+                        && in_array($action, ['updated', 'inserted'], true);
+                });
+
+            $bodyNotOk = is_array($response['data'] ?? null)
+                && array_key_exists('ok', $response['data'])
+                && $response['data']['ok'] === false;
+
+            if (empty($response['ok']) || $bodyNotOk || ! $remoteApplied) {
+                Log::warning('ManageCourseResults.clearResult: Remote reset failed', [
                     'course_id' => $this->course->id,
                     'person_id' => $personId,
                     'payload' => $payload,
                     'response' => $response,
+                    'remote_applied' => $remoteApplied,
                 ]);
 
                 $this->dispatch(
                     'notify',
                     type: 'error',
-                    message: "UVS-Löschung für Person #{$personId} fehlgeschlagen."
+                    message: "UVS-Zuruecksetzen fuer Person #{$personId} fehlgeschlagen."
                 );
                 return;
             }
@@ -234,7 +262,7 @@ class ManageCourseResults extends Component
             $this->dispatch(
                 'notify',
                 type: 'error',
-                message: "Fehler bei UVS-Löschung für Person #{$personId}."
+                message: "Fehler beim UVS-Zuruecksetzen fuer Person #{$personId}."
             );
             return;
         }
@@ -250,10 +278,9 @@ class ManageCourseResults extends Component
         $this->dispatch(
             'notify',
             type: 'success',
-            message: "Ergebnis für Person #{$personId} wurde gelöscht."
+            message: "Ergebnis fuer Person #{$personId} wurde geloescht."
         );
     }
-
     /**
      * Manueller SYNC-Button:
      * - Lädt nur DIRTY/unsynced Einträge hoch (syncToRemote)
