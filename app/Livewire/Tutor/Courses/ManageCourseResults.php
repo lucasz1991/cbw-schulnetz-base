@@ -112,20 +112,17 @@ class ManageCourseResults extends Component
             ]
         );
 
+        $syncOk = false;
+        $syncFailMessage = "Lokal gespeichert, aber UVS-Sync fuer Person #$personId fehlgeschlagen.";
+
         try {
             /** @var CourseResultsSyncService $syncService */
             $syncService = app(CourseResultsSyncService::class);
 
             // SYNC-Modus: nur DIRTY/unsynced Ergebnisse hochladen
-            $ok = $syncService->syncToRemote($this->course);
+            $syncOk = $syncService->syncToRemote($this->course);
 
-            if (! $ok) {
-                $this->dispatch(
-                    'notify',
-                    type: 'error',
-                    message: "UVS-Sync für Person #$personId fehlgeschlagen."
-                );
-            } else {
+            if ($syncOk) {
                 // Nach Pull erneut Ergebnisse laden, falls UVS etwas angepasst hat
                 $this->prefillResults();
             }
@@ -137,11 +134,18 @@ class ManageCourseResults extends Component
                 'trace_short' => substr($e->getTraceAsString(), 0, 1000),
             ]);
 
+            $syncFailMessage = "Lokal gespeichert, aber UVS-Sync-Fehler fuer Person #$personId.";
+            $syncOk = false;
+        }
+
+        if (! $syncOk) {
             $this->dispatch(
                 'notify',
                 type: 'error',
-                message: "UVS-Sync Fehler für Person #$personId."
+                message: $syncFailMessage
             );
+
+            return;
         }
 
         if (! $silent) {

@@ -50,7 +50,7 @@ class CourseResultsSyncService
         }
 
         // 1) Lokale Ergebnisse, die überhaupt gesynct werden sollen
-        [$changes, $resultsForSync] = $this->mapResultsToUvsChanges($course);
+        [$changes, $syncCandidates] = $this->mapResultsToUvsChanges($course);
 
         // 2) Relevante Teilnehmer-IDs für Pull
         $teilnehmerIds = $this->collectTeilnehmerIds($course);
@@ -75,11 +75,48 @@ class CourseResultsSyncService
         );
 
         if (! empty($response['ok'])) {
-            // Alle erfolgreich rausgeschickten lokal als "synced" markieren
-            $this->markResultsSynced($resultsForSync);
+            if ($this->isResponseBodyExplicitlyNotOk($response)) {
+                Log::error('CourseResultsSyncService.syncToRemote: API body ok=false.', [
+                    'course_id' => $course->id,
+                    'response'  => $response,
+                ]);
+
+                return false;
+            }
+
+            $innerData = $this->extractInnerData($response);
+            $successfulTeilnehmerIds = $this->extractSuccessfulTeilnehmerIdsFromPush($innerData);
+
+            // Nur wirklich erfolgreich geschriebene Datensaetze lokal als synced markieren.
+            if (! empty($changes)) {
+                $this->markResultsSynced($syncCandidates, $successfulTeilnehmerIds);
+            }
 
             // Remote → lokal zurückschreiben (UVS gewinnt nur, wenn "neuer" und nicht dirty)
             $this->applySyncResponse($course, $response);
+
+            $allApplied = $this->areAllRequestedChangesApplied($changes, $successfulTeilnehmerIds);
+
+            if (! $allApplied) {
+                $requested = collect($changes)
+                    ->pluck('teilnehmer_id')
+                    ->map(fn ($id) => (string) $id)
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                $failedIds = array_values(array_diff($requested, $successfulTeilnehmerIds));
+
+                Log::warning('CourseResultsSyncService.syncToRemote: Partial sync detected.', [
+                    'course_id'                 => $course->id,
+                    'requested_teilnehmer_ids'  => $requested,
+                    'successful_teilnehmer_ids' => $successfulTeilnehmerIds,
+                    'failed_teilnehmer_ids'     => $failedIds,
+                ]);
+
+                return false;
+            }
 
             Log::info('CourseResultsSyncService.syncToRemote: Sync OK.', [
                 'course_id' => $course->id,
@@ -205,7 +242,7 @@ class CourseResultsSyncService
 
         $now           = Carbon::now();
         $changes       = [];
-        $syncedResults = collect();
+        $syncCandidates = collect();
 
         foreach ($results as $result) {
             /** @var CourseResult $result */
@@ -243,10 +280,13 @@ class CourseResultsSyncService
                 'updated_at'     => ($result->updated_at ?? $now)->toIso8601String(),
             ];
 
-            $syncedResults->push($result);
+            $syncCandidates->push([
+                'teilnehmer_id' => $teilnehmerId,
+                'result'        => $result,
+            ]);
         }
 
-        return [$changes, $syncedResults];
+        return [$changes, $syncCandidates];
     }
 
     protected function mapLocalStatusToRemoteStatus(?string $status): int
@@ -330,20 +370,112 @@ class CourseResultsSyncService
     /**
      * Nach erfolgreichem PUSH im SYNC-Modus: lokal als "synced" markieren.
      */
-    protected function markResultsSynced(Collection $results): void
+    protected function markResultsSynced(Collection $syncCandidates, array $successfulTeilnehmerIds = []): void
     {
-        if ($results->isEmpty()) {
+        if ($syncCandidates->isEmpty()) {
             return;
         }
 
+        $filterBySuccess = ! empty($successfulTeilnehmerIds);
+        $successLookup = $filterBySuccess
+            ? array_fill_keys($successfulTeilnehmerIds, true)
+            : [];
+
         $now = Carbon::now()->startOfDay();
 
-        foreach ($results as $result) {
-            /** @var CourseResult $result */
+        foreach ($syncCandidates as $candidate) {
+            $teilnehmerId = (string) ($candidate['teilnehmer_id'] ?? '');
+            $result = $candidate['result'] ?? null;
+
+            if (! $result instanceof CourseResult) {
+                continue;
+            }
+
+            if ($filterBySuccess && ! isset($successLookup[$teilnehmerId])) {
+                continue;
+            }
+
             $result->remote_upd_date = $now;
             $result->sync_state      = CourseResult::SYNC_STATE_SYNCED;
             $result->saveQuietly();
         }
+    }
+
+    protected function extractInnerData(array $response): array
+    {
+        $outerData = $response['data'] ?? [];
+
+        if (! is_array($outerData)) {
+            return [];
+        }
+
+        $innerData = $outerData['data'] ?? $outerData;
+
+        return is_array($innerData) ? $innerData : [];
+    }
+
+    protected function isResponseBodyExplicitlyNotOk(array $response): bool
+    {
+        $outerData = $response['data'] ?? null;
+
+        if (! is_array($outerData)) {
+            return false;
+        }
+
+        return array_key_exists('ok', $outerData) && $outerData['ok'] === false;
+    }
+
+    protected function extractSuccessfulTeilnehmerIdsFromPush(array $innerData): array
+    {
+        $pushed = $innerData['pushed'] ?? null;
+        if (! is_array($pushed)) {
+            return [];
+        }
+
+        $results = $pushed['results'] ?? null;
+        if (! is_array($results)) {
+            return [];
+        }
+
+        $successActions = ['updated', 'inserted', 'deleted'];
+
+        return collect($results)
+            ->filter(fn ($row) => is_array($row))
+            ->filter(function (array $row) use ($successActions) {
+                $action = strtolower(trim((string) ($row['action'] ?? '')));
+                return in_array($action, $successActions, true);
+            })
+            ->pluck('teilnehmer_id')
+            ->map(fn ($id) => (string) $id)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    protected function areAllRequestedChangesApplied(array $changes, array $successfulTeilnehmerIds): bool
+    {
+        $requested = collect($changes)
+            ->pluck('teilnehmer_id')
+            ->map(fn ($id) => (string) $id)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        if (empty($requested)) {
+            return true;
+        }
+
+        $successLookup = array_fill_keys($successfulTeilnehmerIds, true);
+
+        foreach ($requested as $teilnehmerId) {
+            if (! isset($successLookup[$teilnehmerId])) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
