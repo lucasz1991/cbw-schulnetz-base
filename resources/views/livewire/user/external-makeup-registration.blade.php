@@ -83,13 +83,6 @@
         </div>
       </div>
 
-      {{-- Optionale private E-Mail --}}
-      <div>
-        <label for="email_priv" class="block text-sm font-medium">Private E-Mail (optional)</label>
-        <input id="email_priv" type="email" placeholder="name@example.com"
-               class="mt-1 block w-full border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500"
-               wire:model.defer="email_priv">
-      </div>
 
       {{-- Upload-Platzhalter (später zu Livewire Upload migrieren) --}}
       <div class="border-t pt-4">
