@@ -41,10 +41,7 @@ class CourseRating extends Model
             if (! $rating->course_id) {
                 return;
             }
-
             $cacheKey = 'course-rating-sync-dispatch:' . (string) $rating->course_id;
-
-            // Nur einmal je Stunde dispatchen, um Einzel-Dispatches zu bündeln.
             if (Cache::add($cacheKey, now()->toDateTimeString(), now()->addHour())) {
                 SyncCourseRatingsJob::dispatch($rating->id)->delay(now()->addHour());
             }
