@@ -96,13 +96,22 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
         $res = $api->getCourseByKlassenId($this->klassenId);
 
         if (($res['status'] ?? null) === 404) {
-            $existingCourse = Course::where('klassen_id', $this->klassenId)->first();
+            $existingCourse = Course::withTrashed()
+                ->where('klassen_id', $this->klassenId)
+                ->first();
 
             if ($existingCourse) {
                 $log['course_id'] = $existingCourse->id;
-                $existingCourse->delete();
-                $log['status'] = 'deleted_missing_remote';
-                $log['messages'][] = 'Kurs in UVS nicht gefunden (404) und lokal softdeleted.';
+
+                if (! $existingCourse->trashed()) {
+                    $deleteSummary = $existingCourse->softDeleteForMissingApi();
+                    $log['status'] = 'deleted_missing_remote';
+                    $log['messages'][] = 'Kurs in UVS nicht gefunden (404) und lokal softdeleted.';
+                    $log['messages'][] = "Softdeleted relations: days={$deleteSummary['days_soft_deleted']}, enrollments={$deleteSummary['enrollments_soft_deleted']}.";
+                } else {
+                    $log['status'] = 'already_softdeleted_missing_remote';
+                    $log['messages'][] = 'Kurs in UVS nicht gefunden (404) und lokal bereits softdeleted.';
+                }
             } else {
                 $log['status'] = 'missing_remote_missing_local';
                 $log['messages'][] = 'Kurs in UVS nicht gefunden (404); lokal kein Course vorhanden.';
@@ -154,40 +163,47 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
             $parseDateTime = fn($v) => DateParser::dateTime($v);
 
             // Person anhand person_id upserten (jede UVS-Person -> eigener Datensatz)
-            $tutorPerson = Person::updateOrCreate(
-                ['person_id' => $tp['person_id']],
-                [
-                    'institut_id'     => $tp['institut_id']   ?? null,
-                    'person_nr'       => $tp['person_nr']     ?? null,
-                    'role'            => 'tutor',
-                    'status'          => $tp['status']        ?? null,
-                    'upd_date'        => $parseDateTime($tp['upd_date'] ?? null),
-                    'nachname'        => $tp['nachname']      ?? null,
-                    'vorname'         => $tp['vorname']       ?? null,
-                    'geschlecht'      => $tp['geschlecht']    ?? null,
-                    'titel_kennz'     => $tp['titel_kennz']   ?? null,
-                    'nationalitaet'   => $tp['nationalitaet'] ?? null,
-                    'familien_stand'  => $tp['familien_stand'] ?? null,
-                    'geburt_datum'    => $parseDate($tp['geburt_datum'] ?? null),
-                    'geburt_name'     => $tp['geburt_name']   ?? null,
-                    'geburt_land'     => $tp['geburt_land']   ?? null,
-                    'geburt_ort'      => $tp['geburt_ort']    ?? null,
-                    'lkz'             => $tp['lkz']           ?? null,
-                    'plz'             => $tp['plz']           ?? null,
-                    'ort'             => $tp['ort']           ?? null,
-                    'strasse'         => $tp['strasse']       ?? null,
-                    'adresszusatz1'   => $tp['adresszusatz1'] ?? null,
-                    'adresszusatz2'   => $tp['adresszusatz2'] ?? null,
-                    'telefon1'        => $tp['telefon1']      ?? null,
-                    'telefon2'        => $tp['telefon2']      ?? null,
-                    'email_priv'      => $tp['email_priv']    ?? null,
-                    'email_cbw'       => $tp['email_cbw']     ?? null,
-                    'personal_nr'     => $tp['personal_nr']   ?? null,
-                    'angestellt_von'  => $parseDateTime($tp['angestellt_von'] ?? null),
-                    'angestellt_bis'  => $parseDateTime($tp['angestellt_bis'] ?? null),
-                    'last_api_update' => now(),
-                ]
-            );
+            $tutorPerson = Person::withTrashed()->firstOrNew([
+                'person_id' => $tp['person_id'],
+            ]);
+
+            if ($tutorPerson->exists && $tutorPerson->trashed()) {
+                $tutorPerson->restore();
+                $log['messages'][] = "Tutor-Person {$tp['person_id']} wurde wiederhergestellt.";
+            }
+
+            $tutorPerson->fill([
+                'institut_id'     => $tp['institut_id']   ?? null,
+                'person_nr'       => $tp['person_nr']     ?? null,
+                'role'            => 'tutor',
+                'status'          => $tp['status']        ?? null,
+                'upd_date'        => $parseDateTime($tp['upd_date'] ?? null),
+                'nachname'        => $tp['nachname']      ?? null,
+                'vorname'         => $tp['vorname']       ?? null,
+                'geschlecht'      => $tp['geschlecht']    ?? null,
+                'titel_kennz'     => $tp['titel_kennz']   ?? null,
+                'nationalitaet'   => $tp['nationalitaet'] ?? null,
+                'familien_stand'  => $tp['familien_stand'] ?? null,
+                'geburt_datum'    => $parseDate($tp['geburt_datum'] ?? null),
+                'geburt_name'     => $tp['geburt_name']   ?? null,
+                'geburt_land'     => $tp['geburt_land']   ?? null,
+                'geburt_ort'      => $tp['geburt_ort']    ?? null,
+                'lkz'             => $tp['lkz']           ?? null,
+                'plz'             => $tp['plz']           ?? null,
+                'ort'             => $tp['ort']           ?? null,
+                'strasse'         => $tp['strasse']       ?? null,
+                'adresszusatz1'   => $tp['adresszusatz1'] ?? null,
+                'adresszusatz2'   => $tp['adresszusatz2'] ?? null,
+                'telefon1'        => $tp['telefon1']      ?? null,
+                'telefon2'        => $tp['telefon2']      ?? null,
+                'email_priv'      => $tp['email_priv']    ?? null,
+                'email_cbw'       => $tp['email_cbw']     ?? null,
+                'personal_nr'     => $tp['personal_nr']   ?? null,
+                'angestellt_von'  => $parseDateTime($tp['angestellt_von'] ?? null),
+                'angestellt_bis'  => $parseDateTime($tp['angestellt_bis'] ?? null),
+                'last_api_update' => now(),
+            ]);
+            $tutorPerson->save();
 
             // Falls der Dozent bereits ein User-Konto (Register-Flow) besitzt:
             if (empty($tutorPerson->user_id) && !empty($tp['email_priv'])) {
@@ -209,28 +225,46 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
         // ---------------------------------------------------------------------
         // 3) Kurs anlegen/aktualisieren
         // ---------------------------------------------------------------------
-        $course = Course::updateOrCreate(
-            ['klassen_id' => $this->klassenId],
-            [
-                'termin_id'               => $courseData['termin_id']      ?? null,
-                'institut_id'             => $courseData['institut_id_ks'] ?? null,
-                'vtz'                     => $courseData['vtz_kennz_ks']   ?? null,
-                'room'                    => $courseData['unterr_raum']    ?? null,
-                'title'                   => $courseData['bezeichnung']    ?? ('Kurs ' . $this->klassenId),
-                'description'             => $courseData['bemerkung']      ?? null,
-                'educational_materials'   => $materialsData                ?? [],
-                'planned_start_date'      => DateParser::date($courseData['beginn'] ?? null),
-                'planned_end_date'        => DateParser::date($courseData['ende']   ?? null),
-                'type'                    => 'basic',
-                'settings'                => [],
-                'source_snapshot'         => $payload, // gesamte Payload speichern
-                'source_last_upd'         => now(),
-                'sync_status'             => 1, // 1 = erfolgreich synchronisiert (UVS-Daten aktuell)
-                'is_active'               => true,
-                'primary_tutor_person_id' => $tutorPersonId,
-                'last_synced_at'          => now(),
-            ]
-        );
+        $course = Course::withTrashed()->firstOrNew([
+            'klassen_id' => $this->klassenId,
+        ]);
+
+        $restoreSummary = $course->restoreFromApiPayload($participantsData ?? [], $daysData ?? []);
+
+        if ($restoreSummary['course_restored']) {
+            $log['messages'][] = "Softdeleted Course {$course->id} wurde wiederhergestellt.";
+        }
+        if ($restoreSummary['persons_restored'] > 0) {
+            $log['messages'][] = "Teilnehmer-Personen wiederhergestellt: {$restoreSummary['persons_restored']}.";
+        }
+        if ($restoreSummary['enrollments_restored'] > 0) {
+            $log['messages'][] = "Enrollments wiederhergestellt: {$restoreSummary['enrollments_restored']}.";
+        }
+        if ($restoreSummary['days_restored'] > 0) {
+            $log['messages'][] = "Kurstage wiederhergestellt: {$restoreSummary['days_restored']}.";
+        }
+
+        $course->fill([
+            'termin_id'               => $courseData['termin_id']      ?? null,
+            'institut_id'             => $courseData['institut_id_ks'] ?? null,
+            'vtz'                     => $courseData['vtz_kennz_ks']   ?? null,
+            'room'                    => $courseData['unterr_raum']    ?? null,
+            'title'                   => $courseData['bezeichnung']    ?? ('Kurs ' . $this->klassenId),
+            'description'             => $courseData['bemerkung']      ?? null,
+            'educational_materials'   => $materialsData                ?? [],
+            'planned_start_date'      => DateParser::date($courseData['beginn'] ?? null),
+            'planned_end_date'        => DateParser::date($courseData['ende']   ?? null),
+            'type'                    => 'basic',
+            'settings'                => [],
+            'source_snapshot'         => $payload, // gesamte Payload speichern
+            'source_last_upd'         => now(),
+            'sync_status'             => 1, // 1 = erfolgreich synchronisiert (UVS-Daten aktuell)
+            'is_active'               => true,
+            'primary_tutor_person_id' => $tutorPersonId,
+            'last_synced_at'          => now(),
+        ]);
+
+        $course->save();
 
         $log['course_id']  = $course->id;
         $log['messages'][] = "Kurs upserted (id={$course->id}).";
@@ -301,10 +335,14 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
                     default => null,
                 };
 
-                $day = CourseDay::firstOrNew([
+                $day = CourseDay::withTrashed()->firstOrNew([
                     'course_id' => $course->id,
                     'date'      => $date,
                 ]);
+
+                if ($day->exists && $day->trashed()) {
+                    $day->restore();
+                }
 
                 $dirty = false;
 
@@ -438,40 +476,46 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
         $parseDate = fn($v) => DateParser::date($v);
         $parseDateTime = fn($v) => DateParser::dateTime($v);
 
-        $person = Person::updateOrCreate(
-            ['person_id' => $tp['person_id']],
-            [
-                'institut_id'       => $tp['institut_id']   ?? null,
-                'person_nr'         => $tp['person_nr']     ?? null,
-                'role'              => 'guest',
-                'status'            => $tp['status']        ?? null,
-                'upd_date'          => $parseDateTime($tp['upd_date'] ?? null),
-                'nachname'          => $tp['nachname']      ?? null,
-                'vorname'           => $tp['vorname']       ?? null,
-                'geschlecht'        => $tp['geschlecht']    ?? null,
-                'titel_kennz'       => $tp['titel_kennz']   ?? null,
-                'nationalitaet'     => $tp['nationalitaet'] ?? null,
-                'familien_stand'    => $tp['familien_stand']?? null,
-                'geburt_datum'      => $parseDate($tp['geburt_datum'] ?? null),
-                'geburt_name'       => $tp['geburt_name']   ?? null,
-                'geburt_land'       => $tp['geburt_land']   ?? null,
-                'geburt_ort'        => $tp['geburt_ort']    ?? null,
-                'lkz'               => $tp['lkz']           ?? null,
-                'plz'               => $tp['plz']           ?? null,
-                'ort'               => $tp['ort']           ?? null,
-                'strasse'           => $tp['strasse']       ?? null,
-                'adresszusatz1'     => $tp['adresszusatz1'] ?? null,
-                'adresszusatz2'     => $tp['adresszusatz2'] ?? null,
-                'telefon1'          => $tp['telefon1']      ?? null,
-                'telefon2'          => $tp['telefon2']      ?? null,
-                'email_priv'        => $tp['email_priv']    ?? null,
-                'email_cbw'         => $tp['email_cbw']     ?? null,
-                'personal_nr'       => $tp['personal_nr']   ?? null,
-                'angestellt_von'    => $parseDateTime($tp['angestellt_von'] ?? null),
-                'angestellt_bis'    => $parseDateTime($tp['angestellt_bis'] ?? null),
-                'last_api_update'   => now(),
-            ]
-        );
+        $person = Person::withTrashed()->firstOrNew([
+            'person_id' => $tp['person_id'],
+        ]);
+
+        if ($person->exists && $person->trashed()) {
+            $person->restore();
+        }
+
+        $person->fill([
+            'institut_id'       => $tp['institut_id']   ?? null,
+            'person_nr'         => $tp['person_nr']     ?? null,
+            'role'              => 'guest',
+            'status'            => $tp['status']        ?? null,
+            'upd_date'          => $parseDateTime($tp['upd_date'] ?? null),
+            'nachname'          => $tp['nachname']      ?? null,
+            'vorname'           => $tp['vorname']       ?? null,
+            'geschlecht'        => $tp['geschlecht']    ?? null,
+            'titel_kennz'       => $tp['titel_kennz']   ?? null,
+            'nationalitaet'     => $tp['nationalitaet'] ?? null,
+            'familien_stand'    => $tp['familien_stand']?? null,
+            'geburt_datum'      => $parseDate($tp['geburt_datum'] ?? null),
+            'geburt_name'       => $tp['geburt_name']   ?? null,
+            'geburt_land'       => $tp['geburt_land']   ?? null,
+            'geburt_ort'        => $tp['geburt_ort']    ?? null,
+            'lkz'               => $tp['lkz']           ?? null,
+            'plz'               => $tp['plz']           ?? null,
+            'ort'               => $tp['ort']           ?? null,
+            'strasse'           => $tp['strasse']       ?? null,
+            'adresszusatz1'     => $tp['adresszusatz1'] ?? null,
+            'adresszusatz2'     => $tp['adresszusatz2'] ?? null,
+            'telefon1'          => $tp['telefon1']      ?? null,
+            'telefon2'          => $tp['telefon2']      ?? null,
+            'email_priv'        => $tp['email_priv']    ?? null,
+            'email_cbw'         => $tp['email_cbw']     ?? null,
+            'personal_nr'       => $tp['personal_nr']   ?? null,
+            'angestellt_von'    => $parseDateTime($tp['angestellt_von'] ?? null),
+            'angestellt_bis'    => $parseDateTime($tp['angestellt_bis'] ?? null),
+            'last_api_update'   => now(),
+        ]);
+        $person->save();
 
         $enrollment = Enrollment::withTrashed()->firstOrNew([
             'course_id' => $course->id,

@@ -11,10 +11,12 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Cache;
+use App\Services\Helper\DateParser;
 use App\Models\File;
 use App\Models\CourseDay;
 use App\Models\CourseResult;
 use App\Models\CourseRating;
+use App\Models\Person;
 use App\Jobs\ApiUpdates\CreateOrUpdateCourse;
 
 class Course extends Model
@@ -107,41 +109,12 @@ class Course extends Model
         });
 
         static::deleting(function (Course $course) {
-            // Course days + their files
-            $days = $course->days()->withTrashed()->get();
-            foreach ($days as $day) {
-                $day->files()->delete();
-                $day->forceDelete();
+            if ($course->isForceDeleting()) {
+                $course->forceDeleteRelatedData();
+                return;
             }
 
-            // Enrollments (pivot) with soft deletes
-            $enrollments = $course->enrollments()->withTrashed()->get();
-            foreach ($enrollments as $enrollment) {
-                $enrollment->forceDelete();
-            }
-
-            // Course results
-            $course->results()->delete();
-
-            // Course ratings
-            $course->ratings()->delete();
-
-            // Material acknowledgements + their files
-            $acks = $course->materialAcknowledgements()->get();
-            foreach ($acks as $ack) {
-                $ack->files()->delete();
-                $ack->delete();
-            }
-
-            // Files attached directly to course
-            $course->files()->delete();
-
-            // File pool + its files
-            $pool = $course->filePool;
-            if ($pool) {
-                $pool->files()->delete();
-                $pool->delete();
-            }
+            $course->softDeleteRelatedData();
         });
 
         
@@ -157,6 +130,209 @@ class Course extends Model
         }
 
         CreateOrUpdateCourse::dispatch((string) $course->klassen_id);
+    }
+
+    public function softDeleteForMissingApi(): array
+    {
+        if ($this->trashed()) {
+            return [
+                'course_soft_deleted' => false,
+                'days_soft_deleted' => 0,
+                'enrollments_soft_deleted' => 0,
+            ];
+        }
+
+        $summary = [
+            'days_soft_deleted' => $this->days()->whereNull('deleted_at')->count(),
+            'enrollments_soft_deleted' => $this->enrollments()->whereNull('deleted_at')->count(),
+        ];
+
+        $this->delete();
+
+        return $summary + ['course_soft_deleted' => true];
+    }
+
+    public function restoreFromApiPayload(array $participantsData = [], array $daysData = []): array
+    {
+        $summary = [
+            'course_restored' => false,
+            'persons_restored' => 0,
+            'enrollments_restored' => 0,
+            'days_restored' => 0,
+        ];
+
+        if (! $this->exists) {
+            return $summary;
+        }
+
+        if ($this->trashed()) {
+            $this->restore();
+            $summary['course_restored'] = true;
+        }
+
+        $summary['persons_restored'] = $this->restoreParticipantsFromApiPayload($participantsData);
+        $summary['enrollments_restored'] = $this->restoreEnrollmentsFromApiPayload($participantsData);
+        $summary['days_restored'] = $this->restoreDaysFromApiPayload($daysData);
+
+        return $summary;
+    }
+
+    public function softDeleteRelatedData(): array
+    {
+        $days = $this->days()
+            ->whereNull('deleted_at')
+            ->get();
+
+        foreach ($days as $day) {
+            $day->delete();
+        }
+
+        $enrollments = $this->enrollments()
+            ->whereNull('deleted_at')
+            ->get();
+
+        foreach ($enrollments as $enrollment) {
+            $enrollment->delete();
+        }
+
+        return [
+            'days_soft_deleted' => $days->count(),
+            'enrollments_soft_deleted' => $enrollments->count(),
+        ];
+    }
+
+    public function forceDeleteRelatedData(): void
+    {
+        $days = $this->days()->withTrashed()->get();
+        foreach ($days as $day) {
+            $day->files()->delete();
+            $day->forceDelete();
+        }
+
+        $enrollments = $this->enrollments()->withTrashed()->get();
+        foreach ($enrollments as $enrollment) {
+            $enrollment->forceDelete();
+        }
+
+        $this->results()->delete();
+        $this->ratings()->delete();
+
+        $acks = $this->materialAcknowledgements()->get();
+        foreach ($acks as $ack) {
+            $ack->files()->delete();
+            $ack->delete();
+        }
+
+        $this->files()->delete();
+
+        $pool = $this->filePool;
+        if ($pool) {
+            $pool->files()->delete();
+            $pool->delete();
+        }
+    }
+
+    protected function restoreParticipantsFromApiPayload(array $participantsData): int
+    {
+        $uvsPersonIds = collect($participantsData)
+            ->pluck('person_id')
+            ->filter(fn ($value) => filled($value))
+            ->map(fn ($value) => (string) $value)
+            ->unique()
+            ->values();
+
+        if ($uvsPersonIds->isEmpty()) {
+            return 0;
+        }
+
+        $persons = Person::withTrashed()
+            ->whereIn('person_id', $uvsPersonIds->all())
+            ->get();
+
+        $restored = 0;
+
+        foreach ($persons as $person) {
+            if (! $person->trashed()) {
+                continue;
+            }
+
+            $person->restore();
+            $restored++;
+        }
+
+        return $restored;
+    }
+
+    protected function restoreEnrollmentsFromApiPayload(array $participantsData): int
+    {
+        $uvsPersonIds = collect($participantsData)
+            ->pluck('person_id')
+            ->filter(fn ($value) => filled($value))
+            ->map(fn ($value) => (string) $value)
+            ->unique()
+            ->values();
+
+        if ($uvsPersonIds->isEmpty()) {
+            return 0;
+        }
+
+        $personIds = Person::withTrashed()
+            ->whereIn('person_id', $uvsPersonIds->all())
+            ->pluck('id');
+
+        if ($personIds->isEmpty()) {
+            return 0;
+        }
+
+        $enrollments = $this->enrollments()
+            ->withTrashed()
+            ->whereIn('person_id', $personIds->all())
+            ->get();
+
+        $restored = 0;
+
+        foreach ($enrollments as $enrollment) {
+            if (! $enrollment->trashed()) {
+                continue;
+            }
+
+            $enrollment->restore();
+            $restored++;
+        }
+
+        return $restored;
+    }
+
+    protected function restoreDaysFromApiPayload(array $daysData): int
+    {
+        $dates = collect($daysData)
+            ->pluck('datum')
+            ->map(fn ($value) => DateParser::date($value))
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($dates->isEmpty()) {
+            return 0;
+        }
+
+        $days = $this->days()
+            ->withTrashed()
+            ->whereIn('date', $dates->all())
+            ->get();
+
+        $restored = 0;
+
+        foreach ($days as $day) {
+            if (! $day->trashed()) {
+                continue;
+            }
+
+            $day->restore();
+            $restored++;
+        }
+
+        return $restored;
     }
 
     /*
