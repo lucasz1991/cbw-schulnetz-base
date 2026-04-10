@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Course;
+use App\Models\CourseDay;
 use App\Models\Mail;
 use App\Models\Setting;
 use Illuminate\Console\Command;
@@ -67,13 +68,16 @@ class DispatchLecturerReminders extends Command
         $sent = 0;
 
         Course::query()
-            ->with(['tutor:id,user_id,email_priv,email_cbw', 'days:id,course_id,note_status'])
+            ->with(['tutor:id,user_id,email_priv,email_cbw', 'days:id,course_id,date,note_status'])
             ->whereNotNull('primary_tutor_person_id')
             ->whereDate('planned_start_date', '<=', $today->toDateString())
             ->whereDate('planned_end_date', '>=', $today->toDateString())
             ->chunkById(100, function ($courses) use ($today, $dryRun, &$sent) {
                 foreach ($courses as $course) {
-                    $missingDays = $course->days->filter(fn ($day) => (int) $day->note_status !== 2)->count();
+                    $missingDays = $course->days
+                        ->filter(fn ($day) => $day->date && Carbon::parse($day->date)->lt($today))
+                        ->filter(fn ($day) => (int) $day->note_status !== CourseDay::NOTE_STATUS_COMPLETED)
+                        ->count();
                     if ($missingDays <= 0) {
                         continue;
                     }
