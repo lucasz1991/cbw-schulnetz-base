@@ -12,10 +12,6 @@ use Livewire\Component;
 
 class ManageCourseResults extends Component
 {
-    private const SUPPORTED_STATUS_CODES = ['V', '+', 'XO', 'B', 'D', 'X', 'N', 'K', '-', 'I', 'E'];
-    private const STATUS_CODES_FORCE_ZERO_RESULT = ['V'];
-    private const STATUS_CODES_WITHOUT_RESULT = ['-', 'XO', 'B', 'D', 'X', 'I', 'E'];
-
     public Course $course;
 
     public bool $isExternalExam = false;
@@ -79,16 +75,19 @@ class ManageCourseResults extends Component
             "statuses.$personId" => ['nullable', 'string', 'max:100'],
         ]);
 
+        $syncService = $this->courseResultsSyncService();
         $value  = $this->results[$personId] ?? null;
-        $status = $this->normalizeStatusValue($this->statuses[$personId] ?? null, $value);
-        $this->statuses[$personId] = $status;
+        $status = $syncService->normalizeLocalStatus($this->statuses[$personId] ?? null, $value);
+        $value  = $syncService->normalizeLocalResult($value, $status);
 
-        if ($this->statusForcesZeroResult($status)) {
-            $value = 0;
-            $this->results[$personId] = 0;
-        } elseif ($this->statusHasNoResult($status)) {
+        $this->statuses[$personId] = $status;
+        $this->results[$personId]  = $value;
+
+        if ($this->courseResultsSyncService()->localStatusHasNoResult($status)) {
             $value = null;
             $this->results[$personId] = null;
+        } else {
+            // Status mit Ergebnis ist bereits oben normalisiert.
         }
 
         // Wenn Punkte gesetzt und kein Status → automatisch "An Prüfung teilgenommen"
@@ -98,7 +97,7 @@ class ManageCourseResults extends Component
         }
 
         // Lokale Speicherung + als "DIRTY" markieren
-        $courseResult = CourseResult::updateOrCreate(
+        CourseResult::updateOrCreate(
             [
                 'course_id' => $this->course->id,
                 'person_id' => $personId,
@@ -116,9 +115,6 @@ class ManageCourseResults extends Component
         $syncFailMessage = "Lokal gespeichert, aber UVS-Sync fuer Person #$personId fehlgeschlagen.";
 
         try {
-            /** @var CourseResultsSyncService $syncService */
-            $syncService = app(CourseResultsSyncService::class);
-
             // SYNC-Modus: nur DIRTY/unsynced Ergebnisse hochladen
             $syncOk = $syncService->syncToRemote($this->course);
 
@@ -159,7 +155,7 @@ class ManageCourseResults extends Component
 
     public function setStatus(string $personId, ?string $status): void
     {
-        $this->statuses[$personId] = $this->normalizeStatusValue(
+        $this->statuses[$personId] = $this->courseResultsSyncService()->normalizeLocalStatus(
             $status,
             $this->results[$personId] ?? null
         );
@@ -289,10 +285,7 @@ class ManageCourseResults extends Component
     public function syncResults(): void
     {
         try {
-            /** @var CourseResultsSyncService $syncService */
-            $syncService = app(CourseResultsSyncService::class);
-
-            $ok = $syncService->syncToRemote($this->course);
+            $ok = $this->courseResultsSyncService()->syncToRemote($this->course);
 
             if (! $ok) {
                 $this->dispatch(
@@ -507,10 +500,7 @@ class ManageCourseResults extends Component
     private function performLoadFromRemote(bool $silent = false): void
     {
         try {
-            /** @var CourseResultsSyncService $syncService */
-            $syncService = app(CourseResultsSyncService::class);
-
-            $ok = $syncService->loadFromRemote($this->course);
+            $ok = $this->courseResultsSyncService()->loadFromRemote($this->course);
 
             if (! $ok && ! $silent) {
                 $this->dispatch(
@@ -594,83 +584,54 @@ class ManageCourseResults extends Component
             ->get()
             ->keyBy(fn ($r) => (string) $r->person_id);
 
+        $syncService = $this->courseResultsSyncService();
+
         foreach ($this->rows as $pid => $_) {
-            $this->results[$pid]  = $existing[$pid]->result ?? null;
-            $this->statuses[$pid] = $existing[$pid]->status ?? null;
+            $storedResult = $existing[$pid]->result ?? null;
+            $storedStatus = $existing[$pid]->status ?? null;
+            $status       = $syncService->normalizeLocalStatus($storedStatus, $storedResult);
+
+            $this->results[$pid]  = $syncService->normalizeLocalResult($storedResult, $status);
+            $this->statuses[$pid] = $status;
         }
     }
 
     private function normalizeStatusesForInitialRender(): void
     {
+        $syncService = $this->courseResultsSyncService();
+
         foreach ($this->rows as $pid => $_) {
-            $this->statuses[$pid] = $this->normalizeStatusValue(
+            $status = $syncService->normalizeLocalStatus(
                 $this->statuses[$pid] ?? null,
                 $this->results[$pid] ?? null
+            );
+
+            $this->statuses[$pid] = $status;
+            $this->results[$pid] = $syncService->normalizeLocalResult(
+                $this->results[$pid] ?? null,
+                $status
             );
         }
     } 
 
     private function normalizeStatusValue(?string $status, mixed $result): ?string
     {
-        $raw = is_string($status) ? trim($status) : '';
-
-        if ($raw !== '') {
-            $upper = mb_strtoupper($raw);
-            if (in_array($upper, self::SUPPORTED_STATUS_CODES, true)) {
-                return $upper;
-            }
-        }
-
-        $lower = mb_strtolower($raw);
-        $normalized = str_replace([' ', '-'], '_', $lower);
-
-        if (in_array($normalized, ['v', 'betrug', 'betrugsversuch'], true)) {
-            return 'V';
-        }
-
-        if (in_array($normalized, ['nicht_teilgenommen', 'nt', 'not_participated', '3'], true)) {
-            return '-';
-        }
-
-        if (in_array($normalized, ['an_pruefung_teilgenommen', 'teilgenommen', 'bestanden', 'passed', '1'], true)) {
-            return '+';
-        }
-
-        if (in_array($normalized, ['ausstehend', 'pending'], true)) {
-            return 'XO';
-        }
-
-        if (in_array($normalized, ['durchgefallen', 'failed', 'nicht_bestanden', '2'], true)) {
-            return 'D';
-        }
-
-        if (in_array($normalized, ['nachklausur', 'retake'], true)) {
-            return 'N';
-        }
-
-        if (in_array($normalized, ['nachkorrektur', 'recheck'], true)) {
-            return 'K';
-        }
-
-        if (in_array($normalized, ['pruefung_ignorieren', 'ignorieren', 'ignore'], true)) {
-            return 'I';
-        }
-
-        if ($result !== null && $result !== '') {
-            return '+';
-        }
-
-        return null;
+        return $this->courseResultsSyncService()->normalizeLocalStatus($status, $result);
     }
 
     private function statusForcesZeroResult(?string $status): bool
     {
-        return in_array((string) $status, self::STATUS_CODES_FORCE_ZERO_RESULT, true);
+        return $this->courseResultsSyncService()->localStatusForcesZeroResult($status);
     }
 
     private function statusHasNoResult(?string $status): bool
     {
-        return in_array((string) $status, self::STATUS_CODES_WITHOUT_RESULT, true);
+        return $this->courseResultsSyncService()->localStatusHasNoResult($status);
+    }
+
+    private function courseResultsSyncService(): CourseResultsSyncService
+    {
+        return app(CourseResultsSyncService::class);
     }
 
     public function placeholder(): string

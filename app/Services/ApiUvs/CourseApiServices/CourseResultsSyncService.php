@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Log;
 class CourseResultsSyncService
 {
     private const SUPPORTED_PRUEF_KENNZ = ['V', '+', 'XO', 'B', 'D', 'X', 'N', 'K', '-', 'I', 'E'];
+    private const LOCAL_STATUS_CODES_FORCE_ZERO_RESULT = ['V', '-', 'X'];
+    private const LOCAL_STATUS_CODES_WITHOUT_RESULT = ['XO', 'B', 'D', 'I', 'E'];
 
     protected ApiUvsService $api;
 
@@ -29,7 +31,7 @@ class CourseResultsSyncService
      *
      * Wird z.B. nach dem Speichern des Dozentenformulars verwendet.
      */
-    public function syncToRemote(Course $course): bool
+    public function syncToRemote(Course $course, ?Collection $results = null): bool
     {
         if (! $course->termin_id || ! $course->klassen_id) {
             Log::warning('CourseResultsSyncService.syncToRemote: fehlende termin_id/klassen_id.', [
@@ -42,10 +44,12 @@ class CourseResultsSyncService
         }
 
         // 1) Lokale Ergebnisse, die überhaupt gesynct werden sollen
-        [$changes, $syncCandidates] = $this->mapResultsToUvsChanges($course);
+        [$changes, $syncCandidates] = $this->mapResultsToUvsChanges($course, $results);
 
         // 2) Relevante Teilnehmer-IDs für Pull
-        $teilnehmerIds = $this->collectTeilnehmerIds($course);
+        $teilnehmerIds = $results instanceof Collection
+            ? $this->collectTeilnehmerIdsFromSyncCandidates($syncCandidates)
+            : $this->collectTeilnehmerIds($course);
 
         if (empty($teilnehmerIds) && empty($changes)) {
             // Nichts zu tun
@@ -207,14 +211,21 @@ class CourseResultsSyncService
     /**
      * Für SYNC: nur dirty/unsynced CourseResults → UVS changes.
      */
-    protected function mapResultsToUvsChanges(Course $course): array
+    protected function mapResultsToUvsChanges(Course $course, ?Collection $results = null): array
     {
-        $results = CourseResult::where('course_id', $course->id)
-            ->where(function ($q) {
-                $q->whereNull('sync_state')
-                  ->orWhere('sync_state', CourseResult::SYNC_STATE_DIRTY);
-            })
-            ->get();
+        if ($results === null) {
+            $results = CourseResult::where('course_id', $course->id)
+                ->where(function ($q) {
+                    $q->whereNull('sync_state')
+                      ->orWhere('sync_state', CourseResult::SYNC_STATE_DIRTY);
+                })
+                ->get();
+        } else {
+            $results = $results
+                ->filter(fn ($result) => $result instanceof CourseResult)
+                ->filter(fn (CourseResult $result) => (int) $result->course_id === (int) $course->id)
+                ->values();
+        }
 
         if ($results->isEmpty()) {
             return [[], collect()];
@@ -249,9 +260,10 @@ class CourseResultsSyncService
             $institutId    = (int) ($person->institut_id ?? $course->institut_id ?? 0);
             $teilnehmerFnr = (string) ($person->teilnehmer_fnr ?? '00');
 
-            $remoteStatus      = $this->mapLocalStatusToRemoteStatus($result->status);
-            $remotePruefKennz  = $this->mapLocalStatusToPruefKennz($result->status);
-            $remotePruefPunkte = $this->mapLocalResultToPruefPunkte($result->result);
+            $localStatus       = $this->normalizeLocalStatus($result->status, $result->result);
+            $remoteStatus      = $this->mapLocalStatusToRemoteStatus($localStatus);
+            $remotePruefKennz  = $this->mapLocalStatusToPruefKennz($localStatus);
+            $remotePruefPunkte = $this->normalizeLocalResult($result->result, $localStatus);
 
             // Leere Datensaetze nicht nach UVS pushen.
             // UVS erwartet status=1 auch fuer "kein Ergebnis", daher entscheiden wir nur ueber Kennz/Punkte.
@@ -470,6 +482,111 @@ class CourseResultsSyncService
         return true;
     }
 
+    protected function collectTeilnehmerIdsFromSyncCandidates(Collection $syncCandidates): array
+    {
+        if ($syncCandidates->isEmpty()) {
+            return [];
+        }
+
+        return $syncCandidates
+            ->pluck('teilnehmer_id')
+            ->map(fn ($id) => (string) $id)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    public function normalizeLocalStatus(mixed $status, mixed $result = null): ?string
+    {
+        $raw = is_string($status) || is_numeric($status)
+            ? trim((string) $status)
+            : '';
+
+        if ($raw !== '') {
+            $upper = mb_strtoupper($raw);
+            if (in_array($upper, self::SUPPORTED_PRUEF_KENNZ, true)) {
+                return $upper;
+            }
+        }
+
+        $normalized = str_replace([' ', '-'], '_', mb_strtolower($raw));
+
+        if (in_array($normalized, ['v', 'betrug', 'betrugsversuch'], true)) {
+            return 'V';
+        }
+
+        if (in_array($normalized, ['nicht_teilgenommen', 'nt', 'not_participated', '3'], true)) {
+            return '-';
+        }
+
+        if (in_array($normalized, ['an_pruefung_teilgenommen', 'teilgenommen', 'bestanden', 'passed', '1'], true)) {
+            return '+';
+        }
+
+        if (in_array($normalized, ['ausstehend', 'pending'], true)) {
+            return 'XO';
+        }
+
+        if (in_array($normalized, ['durchgefallen', 'failed', 'nicht_bestanden', '2'], true)) {
+            return 'D';
+        }
+
+        if (in_array($normalized, ['nachklausur', 'retake'], true)) {
+            return 'N';
+        }
+
+        if (in_array($normalized, ['nachkorrektur', 'recheck'], true)) {
+            return 'K';
+        }
+
+        if (in_array($normalized, ['pruefung_ignorieren', 'ignorieren', 'ignore'], true)) {
+            return 'I';
+        }
+
+        if ($result !== null && $result !== '') {
+            return '+';
+        }
+
+        return null;
+    }
+
+    public function localStatusForcesZeroResult(?string $status): bool
+    {
+        $normalizedStatus = $this->normalizeLocalStatus($status);
+
+        return in_array((string) $normalizedStatus, self::LOCAL_STATUS_CODES_FORCE_ZERO_RESULT, true);
+    }
+
+    public function localStatusHasNoResult(?string $status): bool
+    {
+        $normalizedStatus = $this->normalizeLocalStatus($status);
+
+        return in_array((string) $normalizedStatus, self::LOCAL_STATUS_CODES_WITHOUT_RESULT, true);
+    }
+
+    public function isLocalStatusNotParticipated(?string $status): bool
+    {
+        $normalizedStatus = $this->normalizeLocalStatus($status);
+
+        return in_array((string) $normalizedStatus, ['-', 'X'], true);
+    }
+
+    public function normalizeLocalResult(mixed $result, ?string $status = null): ?int
+    {
+        $normalizedStatus = $this->normalizeLocalStatus($status, $result);
+
+        if ($this->localStatusForcesZeroResult($normalizedStatus)) {
+            return 0;
+        }
+
+        if ($this->localStatusHasNoResult($normalizedStatus)) {
+            return null;
+        }
+
+        return $this->mapLocalResultToPruefPunkte($result);
+    }
+
     /**
      * Mehrfachzeilen aus UVS auf einen Datensatz pro teilnehmer_id reduzieren.
      * Bei Duplikaten gewinnt die Zeile mit der höchsten uid.
@@ -551,7 +668,10 @@ class CourseResultsSyncService
             }
 
             $localStatus = $this->mapRemoteStatusToLocalStatus($remoteStatus, $remotePruefKennz);
-            $localResult = $this->mapRemotePunkteToLocalResult($remotePunkte);
+            $localResult = $this->normalizeLocalResult(
+                $this->mapRemotePunkteToLocalResult($remotePunkte),
+                $localStatus
+            );
 
             foreach ($persons[$teilnehmerId] as $person) {
                 /** @var Person $person */
@@ -712,7 +832,10 @@ class CourseResultsSyncService
             }
 
             $localStatus = $this->mapRemoteStatusToLocalStatus($remoteStatus, $remotePruefKennz);
-            $localResult = $this->mapRemotePunkteToLocalResult($remotePunkte);
+            $localResult = $this->normalizeLocalResult(
+                $this->mapRemotePunkteToLocalResult($remotePunkte),
+                $localStatus
+            );
 
             foreach ($persons[$teilnehmerId] as $person) {
                 /** @var Person $person */
