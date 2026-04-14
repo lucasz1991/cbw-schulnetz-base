@@ -97,7 +97,7 @@ class SendMissingReportBookReminderJob implements ShouldQueue
                 : "{$baseUrl}/user/reportbook";
 
             $messageBody = "Der Baustein \"{$courseTitle}\" endete am {$formattedCourseEndDate}.<br>"
-                . "Dein Berichtsheft ist noch nicht vollstaendig (offene Tage: {$openDays} von {$totalDays}).<br><br>"
+                . "Dein Berichtsheft hat noch fehlende oder nicht eingereichte Tage ({$openDays} von {$totalDays}).<br><br>"
                 . "<a href='{$reportBookUrl}' target='_blank'>Berichtsheft ansehen</a>";
 
             $message = Message::create([

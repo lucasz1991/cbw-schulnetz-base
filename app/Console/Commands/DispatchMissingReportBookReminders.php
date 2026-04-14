@@ -40,6 +40,8 @@ class DispatchMissingReportBookReminders extends Command
 
         $this->info("Suche offene Berichtshefte fuer Kurse mit Enddatum zwischen {$windowStart} und {$windowEnd}...");
 
+        $missingDaysSql = 'SUM(CASE WHEN rbe.id IS NULL OR rbe.status < 1 THEN 1 ELSE 0 END)';
+
         $rows = DB::table('report_books as rb')
             ->join('courses as c', function ($join) {
                 $join->on('c.id', '=', 'rb.course_id')
@@ -64,10 +66,11 @@ class DispatchMissingReportBookReminders extends Command
                 'c.title as course_title',
                 'c.planned_end_date as course_end_date',
                 DB::raw('COUNT(DISTINCT cd.id) as total_days'),
-                DB::raw('SUM(CASE WHEN rbe.id IS NULL OR rbe.status < 2 THEN 1 ELSE 0 END) as open_days'),
+                // Status 1 = vom Teilnehmer eingereicht und damit fuer Missing-Reminder nicht mehr offen.
+                DB::raw("{$missingDaysSql} as open_days"),
             ])
             ->havingRaw('COUNT(DISTINCT cd.id) > 0')
-            ->havingRaw('SUM(CASE WHEN rbe.id IS NULL OR rbe.status < 2 THEN 1 ELSE 0 END) > 0')
+            ->havingRaw("{$missingDaysSql} > 0")
             ->orderBy('rb.id')
             ->get();
 
