@@ -2,13 +2,13 @@
 
 namespace App\Notifications;
 
+use App\Models\Mail as MailModel;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Notifications\Notification;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Storage;
-use App\Models\Mail as MailModel;
 
 class MailNotification extends Notification implements ShouldQueue
 {
@@ -18,7 +18,7 @@ class MailNotification extends Notification implements ShouldQueue
 
     public function __construct(MailModel $mail)
     {
-        // dank SerializesModels wird hier nur die Model-ID in die Queue geschrieben
+        // Dank SerializesModels wird hier nur die Model-ID in die Queue geschrieben.
         $this->mail = $mail;
     }
 
@@ -29,53 +29,50 @@ class MailNotification extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        // Content aus dem Mail-Model holen (falls als Array/JSON gespeichert)
-        $content  = is_array($this->mail->content) ? $this->mail->content : [];
-        $subject  = $content['subject'] ?? 'Nachricht';
-        $greeting = $content['header']  ?? null;
-        $body     = $content['body']    ?? '';
-        $link     = $content['link']    ?? null;
+        // Content aus dem Mail-Model holen, falls als Array oder JSON gespeichert.
+        $content = is_array($this->mail->content) ? $this->mail->content : [];
+        $subject = $content['subject'] ?? 'Nachricht';
+        $greeting = $content['header'] ?? null;
+        $body = $content['body'] ?? '';
+        $link = $content['link'] ?? null;
 
-        // sicherstellen, dass die Relation vorhanden ist (falls lazy)
+        // Sicherstellen, dass die Relation vorhanden ist.
         $this->mail->loadMissing('files');
 
-        $m = (new MailMessage)
+        $message = (new MailMessage)
             ->from(config('mail.from.address'), config('mail.from.name'))
             ->subject($subject);
 
         if ($greeting) {
-            $m->greeting($greeting);
+            $message->greeting($greeting);
         }
 
-        $m->line($body);
+        $message->line($body);
 
-        if (!empty($link)) {
-            $m->action('Weiter', $link);
+        if (! empty($link)) {
+            $message->action('Weiter', $link);
         }
 
-        $m->salutation('Mit freundlichen Grüßen, dein CBW Schulnetz Team');
+        $message->salutation('Mit freundlichen Grüßen, dein CBW Schulnetz Team');
 
-        // Anhänge aus der Relation anhängen
         foreach ($this->mail->files as $file) {
-            // Falls du keine 'disk'-Spalte hast, Standard 'private'
             $disk = $file->disk ?? 'private';
             $path = $file->path;
 
-            // Prefer attachFromStorageDisk, fällt zurück auf attach bei Bedarf
-            if (method_exists($m, 'attachFromStorageDisk')) {
-                $m->attachFromStorageDisk($disk, $path, [
-                    'as'   => $file->name ?: basename($path),
+            if (method_exists($message, 'attachFromStorageDisk')) {
+                $message->attachFromStorageDisk($disk, $path, [
+                    'as' => $file->name ?: basename($path),
                     'mime' => $file->mime_type ?: null,
                 ]);
             } else {
-                $absolute = Storage::disk($disk)->path($path);
-                $m->attach($absolute, [
-                    'as'   => $file->name ?: basename($path),
+                $absolutePath = Storage::disk($disk)->path($path);
+                $message->attach($absolutePath, [
+                    'as' => $file->name ?: basename($path),
                     'mime' => $file->mime_type ?: null,
                 ]);
             }
         }
 
-        return $m;
+        return $message;
     }
 }

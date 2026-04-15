@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Mail;
+use App\Models\User;
 use App\Notifications\MailNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -10,7 +11,6 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use App\Models\User;
 use Illuminate\Support\Facades\Notification;
 
 class ProcessMailJob implements ShouldQueue
@@ -33,22 +33,29 @@ class ProcessMailJob implements ShouldQueue
     public function handle(): void
     {
         $recipients = is_array($this->mail->recipients) ? $this->mail->recipients : [];
-        $type = strtolower((string) $this->mail->type);
-        $sendMessageTo = $type !== 'mail';
-        $sendMailTo = $type !== 'message';
         $files = $this->mail->files ?? [];
+
+        $typeValue = $this->mail->type;
+        $type = is_bool($typeValue)
+            ? ($typeValue ? 'both' : 'message')
+            : strtolower((string) $typeValue);
+
+        $sendMessageTo = in_array($type, ['message', 'both'], true);
+        $sendMailTo = in_array($type, ['mail', 'both'], true);
 
         foreach ($recipients as &$recipient) {
             try {
                 $userId = (int) ($recipient['user_id'] ?? 0);
-                $email = (string) ($recipient['email'] ?? '');
+                $email = trim((string) ($recipient['email'] ?? ''));
                 $recipient['status'] = false;
 
-                // Bei User-Empfaengern je nach Typ interne Nachricht und/oder E-Mail senden.
                 if ($userId > 0) {
                     $user = User::find($userId);
+
                     if (! $user) {
-                        Log::warning("Benutzer mit ID {$userId} nicht gefunden.");
+                        Log::warning("Benutzer mit ID {$userId} nicht gefunden.", [
+                            'mail_id' => $this->mail->id,
+                        ]);
                         continue;
                     }
 
@@ -73,19 +80,18 @@ class ProcessMailJob implements ShouldQueue
                     continue;
                 }
 
-                // Externer Empfaenger ohne User: nur E-Mail
                 if ($sendMailTo && filter_var($email, FILTER_VALIDATE_EMAIL)) {
                     Notification::route('mail', $email)->notify(new MailNotification($this->mail));
                     $recipient['status'] = true;
                     continue;
                 }
 
-                Log::warning('Empfaenger konnte fuer den gewaehlten Mail-Typ nicht verarbeitet werden.', [
+                Log::warning('Empfänger konnte für den gewählten Mail-Typ nicht verarbeitet werden.', [
                     'recipient' => $recipient,
                     'mail_id' => $this->mail->id,
                     'type' => $this->mail->type,
                 ]);
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 Log::error('Fehler beim Senden der Mail.', [
                     'mail_id' => $this->mail->id,
                     'recipient' => $recipient,
@@ -94,10 +100,11 @@ class ProcessMailJob implements ShouldQueue
                 $recipient['status'] = false;
             }
         }
+        unset($recipient);
 
         $this->mail->update([
             'recipients' => $recipients,
-            'status' => collect($recipients)->every(fn ($r) => (bool) ($r['status'] ?? false)),
+            'status' => ! empty($recipients) && collect($recipients)->every(fn ($recipient) => (bool) ($recipient['status'] ?? false)),
         ]);
     }
 }
