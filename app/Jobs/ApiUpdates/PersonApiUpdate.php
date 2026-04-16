@@ -62,34 +62,20 @@ class PersonApiUpdate implements ShouldQueue, ShouldBeUnique
             $statusData = [];
         }
 
-        $role = ! empty($statusData['mitarbeiter_nr']) ? 'tutor' : 'guest';
+        $mitarbeiterVertragKy = strtoupper(trim((string) ($statusData['mitarbeiter_vertrag_ky'] ?? '')));
+        $isTutor = filter_var($statusData['is_tutor'] ?? false, FILTER_VALIDATE_BOOL) || $mitarbeiterVertragKy === 'IS';
+        $teilnehmerIdFromStatus = $statusData['teilnehmer_id'] ?? data_get($statusData, 'vertraege.0.teilnehmer_id');
+        $hasParticipantContext = ! empty($statusData['teilnehmer_nr']) || ! empty($teilnehmerIdFromStatus);
+
+        $role = $isTutor ? 'tutor' : 'guest';
 
         // 2) Programmdaten
-        if (($statusData['teilnehmer_nr'] ?? null) == null && ($statusData['mitarbeiter_nr'] ?? null) == null) {
+        if (! $isTutor && ! $hasParticipantContext) {
             if (config('api_sync.debug_logs', false)) {
-                Log::info("PersonApiUpdate: Keine Teilnehmer- oder Mitarbeiternummer fuer person_id={$person->person_id}");
+                Log::info("PersonApiUpdate: Kein Teilnehmer- oder Tutor-Kontext fuer person_id={$person->person_id}");
             }
         } else {
-            if ($role === 'guest') {
-                $apiResponse = $api->getParticipantAndQualiprogrambyId($person->person_id);
-                if (($apiResponse['ok'] ?? false) === true) {
-                    $data = $apiResponse['data'] ?? null;
-                    $qualiData = ! empty($data['quali_data']) ? $data['quali_data'] : null;
-                } else {
-                    $qualiData = null;
-                }
-
-                if ($qualiData) {
-                    $programData = $qualiData;
-                } else {
-                    if (config('api_sync.debug_logs', false)) {
-                        Log::info('PersonApiUpdate: No Qualiprogram data found.', [
-                            'person_id' => $person->person_id,
-                            'api_response' => $apiResponse ?? null,
-                        ]);
-                    }
-                }
-            } else {
+            if ($isTutor) {
                 $apiResponse = $api->getTutorProgramDataByPersonId($person->person_id);
                 if (($apiResponse['ok'] ?? false) === true) {
                     $data = $apiResponse['data'] ?? null;
@@ -108,6 +94,25 @@ class PersonApiUpdate implements ShouldQueue, ShouldBeUnique
                         ]);
                     }
                 }
+            } else {
+                $apiResponse = $api->getParticipantAndQualiprogrambyId($person->person_id);
+                if (($apiResponse['ok'] ?? false) === true) {
+                    $data = $apiResponse['data'] ?? null;
+                    $qualiData = ! empty($data['quali_data']) ? $data['quali_data'] : null;
+                } else {
+                    $qualiData = null;
+                }
+
+                if ($qualiData) {
+                    $programData = $qualiData;
+                } else {
+                    if (config('api_sync.debug_logs', false)) {
+                        Log::info('PersonApiUpdate: No Qualiprogram data found.', [
+                            'person_id' => $person->person_id,
+                            'api_response' => $apiResponse ?? null,
+                        ]);
+                    }
+                }
             }
         }
 
@@ -116,9 +121,10 @@ class PersonApiUpdate implements ShouldQueue, ShouldBeUnique
         $lastApiUpdate = $person->last_api_update;
 
         $teilnehmerNr = $statusData['teilnehmer_nr'] ?? ($programData['teilnehmer_nr'] ?? null);
-        $teilnehmerIdFallback = $teilnehmerNr
-            ? (($statusData['institut_id'] ?? null) ? $statusData['institut_id'] . '-' . $teilnehmerNr : null)
-            : data_get($statusData, 'vertraege.0.teilnehmer_id');
+        $teilnehmerIdFallback = $statusData['teilnehmer_id']
+            ?? ($teilnehmerNr
+                ? (($statusData['institut_id'] ?? null) ? $statusData['institut_id'] . '-' . $teilnehmerNr : null)
+                : data_get($statusData, 'vertraege.0.teilnehmer_id'));
 
         // 3) Persist
         $person->fill([
@@ -142,6 +148,8 @@ class PersonApiUpdate implements ShouldQueue, ShouldBeUnique
                 'person_id' => $person->id,
                 'uvs_person_id' => $person->person_id,
                 'role' => $role,
+                'is_tutor' => $isTutor,
+                'mitarbeiter_vertrag_ky' => $mitarbeiterVertragKy ?: null,
                 'programdata_changed' => $programDataChanged,
                 'user_linked' => $person->user_id != null,
                 'programdata_present' => $person->programdata != null,

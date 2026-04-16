@@ -120,14 +120,16 @@ class Register extends Component
         }
 
         $statusData = $this->personStatus['data']['data'];
-        if (!array_key_exists('mitarbeiter_nr', $statusData)) {
+        if (!is_array($statusData)) {
             throw ValidationException::withMessages([
                 'email' => 'Der Status der Person ist ungültig. Bitte versuchen Sie es später erneut oder kontaktieren Sie den Support.',
             ]);
         }
 
         // 5) Rolle bestimmen
-        $role = $statusData['mitarbeiter_nr'] !== null ? 'tutor' : 'guest';
+        $mitarbeiterVertragKy = strtoupper(trim((string) ($statusData['mitarbeiter_vertrag_ky'] ?? '')));
+        $isTutor = filter_var($statusData['is_tutor'] ?? false, FILTER_VALIDATE_BOOL) || $mitarbeiterVertragKy === 'IS';
+        $role = $isTutor ? 'tutor' : 'guest';
 
         // 6) Erstellen in Transaktion: User anlegen, Person(en) upserten + verknüpfen, Mail verschicken
         DB::transaction(function () use ($persons, $person, $role) {
