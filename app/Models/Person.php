@@ -20,6 +20,8 @@ class Person extends Model
 
     public const API_UPDATE_COOLDOWN_MINUTES = 30;
 
+    protected static bool $syncLinkedUserPortalRoleEnabled = true;
+
     protected $fillable = [
         'user_id',
         'person_id',
@@ -120,6 +122,10 @@ class Person extends Model
         });
 
         static::saved(function (Person $person) {
+            if (! static::$syncLinkedUserPortalRoleEnabled) {
+                return;
+            }
+
             $person->syncLinkedUserPortalRole();
 
             $originalUserId = $person->getOriginal('user_id');
@@ -129,12 +135,32 @@ class Person extends Model
         });
 
         static::deleted(function (Person $person) {
+            if (! static::$syncLinkedUserPortalRoleEnabled) {
+                return;
+            }
+
             $person->syncLinkedUserPortalRole();
         });
 
         static::restored(function (Person $person) {
+            if (! static::$syncLinkedUserPortalRoleEnabled) {
+                return;
+            }
+
             $person->syncLinkedUserPortalRole();
         });
+    }
+
+    public static function withoutUserPortalRoleSync(callable $callback): mixed
+    {
+        $previous = static::$syncLinkedUserPortalRoleEnabled;
+        static::$syncLinkedUserPortalRoleEnabled = false;
+
+        try {
+            return $callback();
+        } finally {
+            static::$syncLinkedUserPortalRoleEnabled = $previous;
+        }
     }
 
     /**

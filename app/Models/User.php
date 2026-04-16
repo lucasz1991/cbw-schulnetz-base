@@ -10,6 +10,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Jetstream\HasProfilePhoto;
 use Laravel\Jetstream\HasTeams;
 use Laravel\Sanctum\HasApiTokens;
+use App\Jobs\ApiUpdates\UserApiUpdate;
 use App\Models\Message;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -24,6 +25,7 @@ use App\Models\CourseRating;
 use App\Models\UserRequest;
 use App\Models\ReportBook;
 use App\Models\ReportBookEntry;
+use Illuminate\Support\Collection;
 
 
 
@@ -83,6 +85,54 @@ class User extends Authenticatable
     public function persons(): HasMany
     {
         return $this->hasMany(Person::class, 'user_id');
+    }
+
+    public function resolveUvsApiUpdatePersons(?int $personPk = null, bool $withTrashed = true): Collection
+    {
+        $personsRelation = $this->persons();
+        if ($withTrashed) {
+            $personsRelation = $personsRelation->withTrashed();
+        }
+
+        if ($personPk !== null) {
+            $personsRelation->whereKey($personPk);
+        }
+
+        $persons = $personsRelation->get();
+
+        if ($persons->isEmpty()) {
+            $personRelation = $this->person();
+            if ($withTrashed) {
+                $personRelation = $personRelation->withTrashed();
+            }
+
+            if ($personPk !== null) {
+                $personRelation->whereKey($personPk);
+            }
+
+            $fallbackPerson = $personRelation->first();
+            if ($fallbackPerson) {
+                $persons = collect([$fallbackPerson]);
+            }
+        }
+
+        return $persons
+            ->filter(fn (Person $person) => ! empty($person->person_id))
+            ->unique('id')
+            ->values();
+    }
+
+    public function uvsApiUpdate(?int $personPk = null): int
+    {
+        $persons = $this->resolveUvsApiUpdatePersons($personPk, true);
+
+        if ($persons->isEmpty()) {
+            return 0;
+        }
+
+        UserApiUpdate::dispatch($this->id, $personPk);
+
+        return $persons->count();
     }
 
     public function resolvePortalDrivingPerson(): ?Person

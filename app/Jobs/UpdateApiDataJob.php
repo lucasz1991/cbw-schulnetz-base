@@ -2,8 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Models\Person;
-use App\Jobs\ApiUpdates\PersonApiUpdate;
+use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -20,12 +19,15 @@ class UpdateApiDataJob implements ShouldQueue
 
     public function handle(): void
     {
-        Log::info('UpdateApiDataJob: Starte nächtlichen Personen-Sync.');
+        Log::info('UpdateApiDataJob: Starte nächtlichen User-Sync.');
 
-        Person::whereNotNull('person_id')
-            ->chunk(200, function ($persons) {
-                foreach ($persons as $person) {
-                    $person->apiupdate();
+        User::query()
+            ->whereHas('persons', function ($query) {
+                $query->whereNotNull('person_id');
+            })
+            ->chunkById(100, function ($users) {
+                foreach ($users as $user) {
+                    $user->uvsApiUpdate();
                 }
             });
 
