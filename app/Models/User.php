@@ -84,6 +84,68 @@ class User extends Authenticatable
     {
         return $this->hasMany(Person::class, 'user_id');
     }
+
+    public function resolvePortalDrivingPerson(): ?Person
+    {
+        $persons = $this->persons()->get();
+
+        if ($persons->isEmpty()) {
+            return null;
+        }
+
+        return $persons->sort(function (Person $left, Person $right) {
+            $priorityCompare = $right->portalRolePriority() <=> $left->portalRolePriority();
+            if ($priorityCompare !== 0) {
+                return $priorityCompare;
+            }
+
+            $contractCompare = $right->portalRoleSortTimestamp() <=> $left->portalRoleSortTimestamp();
+            if ($contractCompare !== 0) {
+                return $contractCompare;
+            }
+
+            $apiCompare = (($right->last_api_update?->timestamp) ?? 0) <=> (($left->last_api_update?->timestamp) ?? 0);
+            if ($apiCompare !== 0) {
+                return $apiCompare;
+            }
+
+            return ($right->id ?? 0) <=> ($left->id ?? 0);
+        })->first();
+    }
+
+    public function resolvePortalRoleFromPersons(): string
+    {
+        return $this->resolvePortalDrivingPerson()?->resolvePortalRoleCandidate() ?? 'guest';
+    }
+
+    public function syncPortalRoleFromPersons(): string
+    {
+        if ($this->role !== null && ! in_array($this->role, ['guest', 'tutor'], true)) {
+            return (string) $this->role;
+        }
+
+        $targetRole = $this->resolvePortalRoleFromPersons();
+
+        if ($this->role !== $targetRole) {
+            $oldRole = $this->role;
+            $drivingPerson = $this->resolvePortalDrivingPerson();
+
+            $this->forceFill([
+                'role' => $targetRole,
+            ])->saveQuietly();
+
+            Log::info('User role synchronized from linked persons.', [
+                'user_id' => $this->id,
+                'old_role' => $oldRole,
+                'new_role' => $targetRole,
+                'driving_person_id' => $drivingPerson?->id,
+                'driving_person_role' => $drivingPerson?->resolvePortalRoleCandidate(),
+                'linked_person_ids' => $this->persons()->pluck('id')->all(),
+            ]);
+        }
+
+        return $targetRole;
+    }
     
     public function receivedMessages()
     {

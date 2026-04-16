@@ -8,6 +8,7 @@ use App\Services\ApiUvs\ApiUvsService;
 use Illuminate\Support\Facades\Log;
 use App\Jobs\ApiUpdates\PersonApiUpdate;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -117,6 +118,23 @@ class Person extends Model
 
             static::dispatchApiUpdateIfNotThrottled($person, 'retrieved');
         });
+
+        static::saved(function (Person $person) {
+            $person->syncLinkedUserPortalRole();
+
+            $originalUserId = $person->getOriginal('user_id');
+            if (! empty($originalUserId) && (int) $originalUserId !== (int) $person->user_id) {
+                User::find($originalUserId)?->syncPortalRoleFromPersons();
+            }
+        });
+
+        static::deleted(function (Person $person) {
+            $person->syncLinkedUserPortalRole();
+        });
+
+        static::restored(function (Person $person) {
+            $person->syncLinkedUserPortalRole();
+        });
     }
 
     /**
@@ -158,6 +176,93 @@ class Person extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function resolvePortalRoleCandidate(): ?string
+    {
+        if ($this->hasValidTutorContract()) {
+            return 'tutor';
+        }
+
+        if ($this->hasValidParticipantContract()) {
+            return 'guest';
+        }
+
+        return null;
+    }
+
+    public function portalRolePriority(): int
+    {
+        return match ($this->resolvePortalRoleCandidate()) {
+            'tutor' => 2,
+            'guest' => 1,
+            default => 0,
+        };
+    }
+
+    public function portalRoleSortTimestamp(): int
+    {
+        $activeContracts = $this->activeParticipantContracts();
+
+        if ($activeContracts->isNotEmpty()) {
+            $maxContractTs = $activeContracts
+                ->map(fn (array $vertrag) => $this->parsePortalContractDate($vertrag['vertrag_ende'] ?? null)?->endOfDay()->timestamp ?? 0)
+                ->max();
+
+            if (is_numeric($maxContractTs) && (int) $maxContractTs > 0) {
+                return (int) $maxContractTs;
+            }
+        }
+
+        $programEnd = $this->parsePortalContractDate(data_get($this->programdata, 'vertrag_ende'));
+        if ($programEnd) {
+            return $programEnd->endOfDay()->timestamp;
+        }
+
+        return $this->last_api_update?->timestamp ?? 0;
+    }
+
+    public function hasValidTutorContract(): bool
+    {
+        $statusData = is_array($this->statusdata) ? $this->statusdata : [];
+        $vertragKy = strtoupper(trim((string) ($statusData['mitarbeiter_vertrag_ky'] ?? '')));
+
+        return filter_var($statusData['is_tutor'] ?? false, FILTER_VALIDATE_BOOL) || $vertragKy === 'IS';
+    }
+
+    public function hasValidParticipantContract(): bool
+    {
+        if ($this->activeParticipantContracts()->isNotEmpty()) {
+            return true;
+        }
+
+        $statusData = is_array($this->statusdata) ? $this->statusdata : [];
+        $status = strtolower(trim((string) ($statusData['status'] ?? '')));
+
+        if ($status !== 'teilnehmer') {
+            return false;
+        }
+
+        $teilnehmerId = $statusData['teilnehmer_id'] ?? $this->teilnehmer_id ?? data_get($this->programdata, 'teilnehmer_id');
+        $teilnehmerNr = $statusData['teilnehmer_nr'] ?? $this->teilnehmer_nr ?? data_get($this->programdata, 'teilnehmer_nr');
+
+        if (empty($teilnehmerId) && empty($teilnehmerNr)) {
+            return false;
+        }
+
+        $today = Carbon::today('Europe/Berlin');
+        $vertragEnde = $this->parsePortalContractDate(data_get($this->programdata, 'vertrag_ende'));
+        $kuendigZum = $this->parsePortalContractDate(data_get($this->programdata, 'kuendig_zum'));
+
+        if ($kuendigZum && $kuendigZum->endOfDay()->lt($today)) {
+            return false;
+        }
+
+        if ($vertragEnde && $vertragEnde->endOfDay()->lt($today)) {
+            return false;
+        }
+
+        return ! empty($this->programdata) || ! empty($statusData);
+    }
+
     public function enrollments()
     {
         return $this->hasMany(CourseParticipantEnrollment::class);
@@ -190,6 +295,68 @@ class Person extends Model
             : collect([$this->id]);
 
         return Course::whereIn('primary_tutor_person_id', $personIds);
+    }
+
+    protected function syncLinkedUserPortalRole(): void
+    {
+        if (empty($this->user_id)) {
+            return;
+        }
+
+        $user = $this->user()->first();
+        if (! $user) {
+            return;
+        }
+
+        $user->syncPortalRoleFromPersons();
+    }
+
+    protected function activeParticipantContracts(): Collection
+    {
+        $statusContracts = collect(data_get($this->statusdata, 'vertraege', []))
+            ->filter(fn ($vertrag) => is_array($vertrag));
+
+        if ($statusContracts->isEmpty()) {
+            return collect();
+        }
+
+        $today = Carbon::today('Europe/Berlin');
+
+        return $statusContracts->filter(function (array $vertrag) use ($today) {
+            if (! filter_var($vertrag['is_active'] ?? false, FILTER_VALIDATE_BOOL)) {
+                return false;
+            }
+
+            $vertragEnde = $this->parsePortalContractDate($vertrag['vertrag_ende'] ?? null);
+
+            return ! $vertragEnde || $vertragEnde->endOfDay()->gte($today);
+        })->values();
+    }
+
+    protected function parsePortalContractDate(mixed $value): ?Carbon
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $raw = trim($value);
+        if ($raw === '') {
+            return null;
+        }
+
+        foreach (['Y-m-d', 'Y/m/d', 'd.m.Y', 'd/m/Y', 'd-m-Y'] as $format) {
+            try {
+                return Carbon::createFromFormat($format, $raw, 'Europe/Berlin')->startOfDay();
+            } catch (\Throwable $e) {
+                // try next format
+            }
+        }
+
+        try {
+            return Carbon::parse(str_replace('/', '-', $raw), 'Europe/Berlin')->startOfDay();
+        } catch (\Throwable $e) {
+            return null;
+        }
     }
 
     /**
