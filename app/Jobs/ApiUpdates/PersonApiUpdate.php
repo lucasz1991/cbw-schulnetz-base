@@ -64,6 +64,7 @@ class PersonApiUpdate implements ShouldQueue, ShouldBeUnique
 
         $mitarbeiterVertragKy = strtoupper(trim((string) ($statusData['mitarbeiter_vertrag_ky'] ?? '')));
         $isTutor = filter_var($statusData['is_tutor'] ?? false, FILTER_VALIDATE_BOOL) || $mitarbeiterVertragKy === 'IS';
+        $mitarbeiterIdFromStatus = trim((string) ($statusData['mitarbeiter_id'] ?? '')) ?: null;
         $teilnehmerIdFromStatus = $statusData['teilnehmer_id'] ?? data_get($statusData, 'vertraege.0.teilnehmer_id');
         $hasParticipantContext = ! empty($statusData['teilnehmer_nr']) || ! empty($teilnehmerIdFromStatus);
 
@@ -71,6 +72,8 @@ class PersonApiUpdate implements ShouldQueue, ShouldBeUnique
 
         // 2) Programmdaten
         if (! $isTutor && ! $hasParticipantContext) {
+            $programData = null;
+
             if (config('api_sync.debug_logs', false)) {
                 Log::info("PersonApiUpdate: Kein Teilnehmer- oder Tutor-Kontext fuer person_id={$person->person_id}");
             }
@@ -125,11 +128,40 @@ class PersonApiUpdate implements ShouldQueue, ShouldBeUnique
             ?? ($teilnehmerNr
                 ? (($statusData['institut_id'] ?? null) ? $statusData['institut_id'] . '-' . $teilnehmerNr : null)
                 : data_get($statusData, 'vertraege.0.teilnehmer_id'));
+        $teilnehmerId = $hasParticipantContext ? ($programData['teilnehmer_id'] ?? $teilnehmerIdFallback) : null;
+        $mitarbeiterId = $isTutor ? ($mitarbeiterIdFromStatus ?: data_get($programData, 'tutor.mitarbeiter_id')) : null;
+        $hasPortalIdentity = ! empty($teilnehmerId) || ! empty($mitarbeiterId);
+
+        if (! $hasPortalIdentity) {
+            $person->fill([
+                'teilnehmer_nr' => null,
+                'teilnehmer_id' => null,
+                'role' => 'guest',
+                'statusdata' => $statusData,
+                'programdata' => null,
+                'last_api_update' => now(),
+            ]);
+
+            $person->saveQuietly();
+
+            if (! $person->trashed()) {
+                $person->delete();
+            }
+
+            if (config('api_sync.debug_logs', false)) {
+                Log::info('PersonApiUpdate: Person soft-deleted due to missing teilnehmer_id and mitarbeiter_id.', [
+                    'person_pk' => $this->personPk,
+                    'uvs_person_id' => $person->person_id,
+                ]);
+            }
+
+            return;
+        }
 
         // 3) Persist
         $person->fill([
             'teilnehmer_nr' => $teilnehmerNr,
-            'teilnehmer_id' => $programData['teilnehmer_id'] ?? $teilnehmerIdFallback,
+            'teilnehmer_id' => $teilnehmerId,
             'role' => $role,
             'statusdata' => $statusData,
             'programdata' => $programData ?? null,

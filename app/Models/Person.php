@@ -178,6 +178,10 @@ class Person extends Model
 
     public function resolvePortalRoleCandidate(): ?string
     {
+        if (! $this->hasPortalIdentity()) {
+            return null;
+        }
+
         if ($this->hasValidTutorContract()) {
             return 'tutor';
         }
@@ -187,6 +191,16 @@ class Person extends Model
         }
 
         return null;
+    }
+
+    public function hasPortalIdentity(): bool
+    {
+        $statusData = is_array($this->statusdata) ? $this->statusdata : [];
+
+        $teilnehmerId = $statusData['teilnehmer_id'] ?? $this->teilnehmer_id ?? data_get($this->programdata, 'teilnehmer_id');
+        $mitarbeiterId = $statusData['mitarbeiter_id'] ?? data_get($this->programdata, 'tutor.mitarbeiter_id');
+
+        return ! empty($teilnehmerId) || ! empty($mitarbeiterId);
     }
 
     public function portalRolePriority(): int

@@ -87,7 +87,9 @@ class User extends Authenticatable
 
     public function resolvePortalDrivingPerson(): ?Person
     {
-        $persons = $this->persons()->get();
+        $persons = $this->persons()->get()
+            ->filter(fn (Person $person) => $person->hasPortalIdentity())
+            ->values();
 
         if ($persons->isEmpty()) {
             return null;
