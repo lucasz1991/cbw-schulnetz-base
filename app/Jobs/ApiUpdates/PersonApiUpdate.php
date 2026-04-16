@@ -123,12 +123,12 @@ class PersonApiUpdate implements ShouldQueue, ShouldBeUnique
         $programDataChanged = $oldProgramHash !== $newProgramHash;
         $lastApiUpdate = $person->last_api_update;
 
-        $teilnehmerNr = $statusData['teilnehmer_nr'] ?? ($programData['teilnehmer_nr'] ?? null);
+        $teilnehmerNr = $statusData['teilnehmer_nr'] ?? data_get($programData, 'teilnehmer_nr');
         $teilnehmerIdFallback = $statusData['teilnehmer_id']
             ?? ($teilnehmerNr
                 ? (($statusData['institut_id'] ?? null) ? $statusData['institut_id'] . '-' . $teilnehmerNr : null)
                 : data_get($statusData, 'vertraege.0.teilnehmer_id'));
-        $teilnehmerId = $hasParticipantContext ? ($programData['teilnehmer_id'] ?? $teilnehmerIdFallback) : null;
+        $teilnehmerId = $hasParticipantContext ? (data_get($programData, 'teilnehmer_id') ?? $teilnehmerIdFallback) : null;
         $mitarbeiterId = $isTutor ? ($mitarbeiterIdFromStatus ?: data_get($programData, 'tutor.mitarbeiter_id')) : null;
         $hasPortalIdentity = ! empty($teilnehmerId) || ! empty($mitarbeiterId);
 
