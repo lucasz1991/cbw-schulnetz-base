@@ -500,7 +500,7 @@ class ManageCourseResults extends Component
     private function performLoadFromRemote(bool $silent = false): void
     {
         try {
-            $ok = $this->courseResultsSyncService()->loadFromRemote($this->course);
+            $ok = $this->course->loadResultsFromUvs();
 
             if (! $ok && ! $silent) {
                 $this->dispatch(

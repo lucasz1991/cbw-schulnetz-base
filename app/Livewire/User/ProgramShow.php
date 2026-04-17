@@ -49,7 +49,7 @@ class ProgramShow extends Component
     public $bausteinColors;
 
     public bool $apiProgramLoading = false;
-    protected int $apiCooldownSeconds = 300;
+    protected int $apiCooldownSeconds = 300; // 5 Minuten Cooldown für API-Updates
 
 
     /** Listener */
