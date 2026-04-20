@@ -32,6 +32,8 @@ class PersonUvsSyncService
         $mitarbeiterIdFromStatus = trim((string) ($statusData['mitarbeiter_id'] ?? '')) ?: null;
         $teilnehmerIdFromStatus = $statusData['teilnehmer_id'] ?? data_get($statusData, 'vertraege.0.teilnehmer_id');
         $hasParticipantContext = ! empty($statusData['teilnehmer_nr']) || ! empty($teilnehmerIdFromStatus);
+        $hasActiveParticipantContract = $this->hasActiveParticipantContract($statusData);
+        $keepParticipantIdentity = ! $isTutor || $hasActiveParticipantContract;
 
         $role = $isTutor ? 'tutor' : 'guest';
 
@@ -43,6 +45,10 @@ class PersonUvsSyncService
             }
         } else {
             if ($isTutor) {
+                if (! $this->looksLikeTutorProgramData($programData)) {
+                    $programData = null;
+                }
+
                 $apiResponse = $api->getTutorProgramDataByPersonId($person->person_id);
                 if (($apiResponse['ok'] ?? false) === true) {
                     $data = $apiResponse['data'] ?? null;
@@ -83,12 +89,16 @@ class PersonUvsSyncService
         $programDataChanged = $oldProgramHash !== $newProgramHash;
         $lastApiUpdate = $person->last_api_update;
 
-        $teilnehmerNr = $statusData['teilnehmer_nr'] ?? data_get($programData, 'teilnehmer_nr');
+        $teilnehmerNr = $keepParticipantIdentity
+            ? ($statusData['teilnehmer_nr'] ?? data_get($programData, 'teilnehmer_nr'))
+            : null;
         $teilnehmerIdFallback = $statusData['teilnehmer_id']
             ?? ($teilnehmerNr
                 ? (($statusData['institut_id'] ?? null) ? $statusData['institut_id'] . '-' . $teilnehmerNr : null)
                 : data_get($statusData, 'vertraege.0.teilnehmer_id'));
-        $teilnehmerId = $hasParticipantContext ? (data_get($programData, 'teilnehmer_id') ?? $teilnehmerIdFallback) : null;
+        $teilnehmerId = ($keepParticipantIdentity && $hasParticipantContext)
+            ? (data_get($programData, 'teilnehmer_id') ?? $teilnehmerIdFallback)
+            : null;
         $mitarbeiterId = $isTutor ? ($mitarbeiterIdFromStatus ?: data_get($programData, 'tutor.mitarbeiter_id')) : null;
         $hasPortalIdentity = ! empty($teilnehmerId) || ! empty($mitarbeiterId);
 
@@ -193,5 +203,41 @@ class PersonUvsSyncService
         }
 
         $person->restore();
+    }
+
+    protected function hasActiveParticipantContract(array $statusData): bool
+    {
+        $status = strtolower(trim((string) ($statusData['status'] ?? '')));
+        $statusShort = strtoupper(trim((string) ($statusData['status_short'] ?? '')));
+
+        if ($status === 'teilnehmer' || $statusShort === 'TN') {
+            return true;
+        }
+
+        $contracts = data_get($statusData, 'vertraege', []);
+        if (! is_array($contracts)) {
+            return false;
+        }
+
+        foreach ($contracts as $contract) {
+            if (! is_array($contract)) {
+                continue;
+            }
+
+            if (filter_var($contract['is_active'] ?? false, FILTER_VALIDATE_BOOL)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    protected function looksLikeTutorProgramData(?array $programData): bool
+    {
+        if (empty($programData)) {
+            return false;
+        }
+
+        return isset($programData['tutor']) || isset($programData['courses']) || isset($programData['themes']);
     }
 }
