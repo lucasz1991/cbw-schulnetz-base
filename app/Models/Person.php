@@ -18,7 +18,7 @@ class Person extends Model
 
     protected $table = 'persons';
 
-    public const API_UPDATE_COOLDOWN_MINUTES = 30;
+    public const API_UPDATE_COOLDOWN_MINUTES = 20;
 
     protected static bool $syncLinkedUserPortalRoleEnabled = true;
 
