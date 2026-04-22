@@ -255,7 +255,7 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
             'planned_start_date'      => DateParser::date($courseData['beginn'] ?? null),
             'planned_end_date'        => DateParser::date($courseData['ende']   ?? null),
             'type'                    => 'basic',
-            'settings'                => [],
+            'settings'                => $course->settings ?? [],
             'source_snapshot'         => $payload, // gesamte Payload speichern
             'source_last_upd'         => now(),
             'sync_status'             => 1, // 1 = erfolgreich synchronisiert (UVS-Daten aktuell)
