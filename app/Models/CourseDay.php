@@ -82,6 +82,34 @@ class CourseDay extends Model
 
     }
 
+    public function queueSyncIfNotThrottled(): void
+    {
+        static::dispatchSyncIfNotThrottled($this);
+    }
+
+    protected static function dispatchSyncIfNotThrottled(CourseDay $day): void
+    {
+        if (! $day->id) {
+            return;
+        }
+
+        $cacheKey = "courseday_sync_last_run_{$day->id}";
+        $now = now();
+
+        $lastRun = Cache::get($cacheKey);
+
+        if ($lastRun instanceof Carbon) {
+            $diffMinutes = $lastRun->diffInMinutes($now);
+
+            if ($diffMinutes < self::AUTO_SYNC_THRESHOLD_MINUTES) {
+                return;
+            }
+        }
+
+        Cache::put($cacheKey, $now, now()->diffInSeconds(now()->addMinutes(60)));
+        SyncCourseDayAttendanceJob::dispatch($day);
+    }
+
 
 
     public static function makeDefaultSessions(self $day): array
