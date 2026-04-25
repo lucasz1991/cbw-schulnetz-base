@@ -18,7 +18,7 @@ use App\Models\CourseResult;
 use App\Models\CourseRating;
 use App\Models\Person;
 use App\Jobs\ApiUpdates\CreateOrUpdateCourse;
-use App\Jobs\ApiUpdates\LoadCourseResultsFromUvsJob;
+use App\Services\ApiUvs\CourseApiServices\CourseResultsLoadService;
 use App\Services\ApiUvs\CourseApiServices\CourseResultsSyncService;
 
 class Course extends Model
@@ -148,7 +148,7 @@ class Course extends Model
      */
     public function queueLoadResultsFromUvs(): void
     {
-        LoadCourseResultsFromUvsJob::dispatch($this->id);
+        app(CourseResultsLoadService::class)->queue($this);
     }
 
     public function softDeleteForMissingApi(): array

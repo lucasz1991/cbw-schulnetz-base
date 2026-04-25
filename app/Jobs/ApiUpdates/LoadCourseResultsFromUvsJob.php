@@ -3,6 +3,7 @@
 namespace App\Jobs\ApiUpdates;
 
 use App\Models\Course;
+use App\Services\ApiUvs\CourseApiServices\CourseResultsLoadService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -23,6 +24,7 @@ class LoadCourseResultsFromUvsJob implements ShouldQueue, ShouldBeUnique
 
     public function __construct(public int $coursePk)
     {
+        app(CourseResultsLoadService::class)->markQueuedByCourseId($this->coursePk);
     }
 
     public function uniqueId(): string
@@ -30,7 +32,7 @@ class LoadCourseResultsFromUvsJob implements ShouldQueue, ShouldBeUnique
         return 'load-course-results-from-uvs:' . (string) $this->coursePk;
     }
 
-    public function handle(): void
+    public function handle(CourseResultsLoadService $service): void
     {
         $course = Course::find($this->coursePk);
 
@@ -39,11 +41,7 @@ class LoadCourseResultsFromUvsJob implements ShouldQueue, ShouldBeUnique
             return;
         }
 
-        $ok = $course->loadResultsFromUvs();
-
-        $course->setSetting('results_load_status', $ok ? 'done' : 'failed');
-        $course->setSetting('results_load_finished_at', now()->toDateTimeString());
-        $course->saveQuietly();
+        $ok = $service->handle($course);
 
         if (! $ok) {
             Log::warning('LoadCourseResultsFromUvsJob: Hard load from UVS returned false.', [
@@ -59,9 +57,7 @@ class LoadCourseResultsFromUvsJob implements ShouldQueue, ShouldBeUnique
         $course = Course::find($this->coursePk);
 
         if ($course) {
-            $course->setSetting('results_load_status', 'failed');
-            $course->setSetting('results_load_finished_at', now()->toDateTimeString());
-            $course->saveQuietly();
+            app(CourseResultsLoadService::class)->markFailed($course, $e->getMessage());
         }
 
         Log::error('LoadCourseResultsFromUvsJob failed.', [
