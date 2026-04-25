@@ -2,66 +2,74 @@
 
 namespace App\Livewire\Pages;
 
+use App\Services\Atera\AteraService;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
-use App\Models\Setting;
-use App\Notifications\ContactFormSubmitted;
-use Illuminate\Support\Facades\Notification;
 
 class Contact extends Component
 {
-    public $name;
-    public $email;
-    public $subject;
-    public $message;
+    public string $name = '';
+    public string $email = '';
+    public string $subject = '';
+    public string $priority = 'Medium';
+    public string $message = '';
 
-    public function send()
+    public function mount(): void
     {
+        $user = Auth::user();
+
+        $this->name = (string) ($user?->name ?? '');
+        $this->email = (string) ($user?->email ?? '');
+    }
+
+    public function send(AteraService $ateraService): void
+    {
+        $user = Auth::user();
+
+        if (! $user) {
+            session()->flash('error', 'Du musst angemeldet sein, um eine technische Anfrage zu senden.');
+
+            return;
+        }
+
+        $this->name = trim((string) ($user->name ?: $this->name));
+        $this->email = trim((string) ($user->email ?: $this->email));
+
         $this->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255'],
             'subject' => ['required', 'string', 'max:255'],
+            'priority' => ['required', 'in:Low,Medium,High,Critical'],
             'message' => ['required', 'string'],
         ], [
             'name.required' => 'Bitte gib deinen Namen ein.',
-            'name.string' => 'Der Name muss aus Zeichen bestehen.',
-            'name.max' => 'Der Name darf maximal 255 Zeichen lang sein.',
-            'name.regex' => 'Der Name darf nur Buchstaben und Leerzeichen enthalten.',
-
             'email.required' => 'Bitte gib deine E-Mail-Adresse ein.',
             'email.email' => 'Bitte gib eine gültige E-Mail-Adresse ein.',
             'email.max' => 'Die E-Mail-Adresse darf maximal 255 Zeichen lang sein.',
-            'email.regex' => 'Bitte gib eine gültige E-Mail-Adresse im Format "name@domain.com" ein.',
-
-            'subject.required' => 'Bitte gib einen Betreff ein.',
-            'subject.string' => 'Der Betreff muss aus Zeichen bestehen.',
-            'subject.max' => 'Der Betreff darf maximal 255 Zeichen lang sein.',
-
-            'message.required' => 'Bitte gib deine Nachricht ein.',
-            'message.string' => 'Die Nachricht muss aus Zeichen bestehen.',
+            'subject.required' => 'Bitte gib einen Ticket-Titel ein.',
+            'subject.max' => 'Der Ticket-Titel darf maximal 255 Zeichen lang sein.',
+            'priority.required' => 'Bitte wähle eine Priorität aus.',
+            'priority.in' => 'Bitte wähle eine gültige Priorität aus.',
+            'message.required' => 'Bitte gib eine Problembeschreibung ein.',
         ]);
-        $this->name = Auth()->check() ? Auth()->user()->name : $this->name;
-        $this->email = Auth()->check() ? Auth()->user()->email : $this->email;
-        try {
-            $adminEmailFromSettings = Setting::getValue('mails', 'admin_email');
-            $superAdminEmail = env('SUPER_ADMIN_MAIL');
 
-            $recipients = array_values(array_unique(array_filter([
-                $adminEmailFromSettings,
-                $superAdminEmail,
-            ], fn ($email) => is_string($email) && filter_var($email, FILTER_VALIDATE_EMAIL))));
+        $result = $ateraService->createPortalTicketForUser(
+            $user,
+            $this->subject,
+            $this->priority,
+            $this->message
+        );
 
-            foreach ($recipients as $recipient) {
-                Notification::route('mail', $recipient)
-                    ->notify(new ContactFormSubmitted($this->name, $this->email, $this->subject, $this->message));
-            }
+        if (! ($result['ok'] ?? false)) {
+            session()->flash('error', (string) ($result['message'] ?? 'Das Ticket konnte nicht erstellt werden. Bitte versuche es später erneut.'));
 
-            session()->flash('success', 'Vielen Dank für deine Nachricht! Wir haben sie erhalten und werden uns so schnell wie möglich bei dir melden.');
-        } catch (\Swift_TransportException $e) {
-            session()->flash('error', 'Die Bestätigungs-E-Mail konnte nicht gesendet werden. Bitte überprüfen Sie Ihre E-Mail-Adresse oder versuchen Sie es später erneut.');
-        } catch (\Exception $e) {
-            session()->flash('error', 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
+            return;
         }
 
-        session()->flash('status', 'Deine Nachricht wurde erfolgreich gesendet!');
-        $this->reset(['name', 'email', 'subject', 'message']);
+        session()->flash('success', 'Deine technische Anfrage wurde als Ticket an die IT-Abteilung übermittelt.');
+
+        $this->reset(['subject', 'message']);
+        $this->priority = 'Medium';
     }
 
     public function render()

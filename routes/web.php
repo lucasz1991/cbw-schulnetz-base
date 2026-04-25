@@ -82,13 +82,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         Route::get('/reportbook', ReportBook::class)->name('reportbook');
         Route::get('/user-requests', UserRequests::class)->name('requests');
         Route::get('/messages', MessageBox::class)->name('messages');
-        Route::get('/contact', Contact::class)->name('contact');
-        Route::get('/termsandconditions', TermsAndConditions::class)->name('terms');
-        Route::get('/imprint', Imprint::class)->name('imprint');
-        Route::get('/privacypolicy', PrivacyPolicy::class)->name('privacypolicy');
-        Route::get('/sitemap', Sitemap::class)->name('sitemap');
-        Route::get('/howto', HowTo::class)->name('howto');
-        Route::get('/faqs', Faqs::class)->name('faqs');
+        // Route::get('/contact', Contact::class)->name('contact');
         Route::get('/absences-create', Absences::class)->name('user.absences.create');
         Route::get('/makeup-exam-create', MakeupExamRegistration::class)->name('user.makeup-exam.create');
         Route::get('/onboarding', Onboarding::class)->name('user.onboarding');
