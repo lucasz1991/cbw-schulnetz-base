@@ -395,31 +395,19 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
             return;
         }
 
-        try {
-            $course->queueLoadResultsFromUvs();
-            $log['messages'][] = 'Pruefungsergebnisse-Load wurde in die Queue gestellt.';
-        } catch (\Throwable $e) {
-            Log::error("CreateOrUpdateCourse: Results-Load Dispatch fehlgeschlagen (course_id={$course->id}). " . $e->getMessage());
-            $log['messages'][] = 'Pruefungsergebnisse-Load konnte nicht in die Queue gestellt werden.';
-        }
-
-        $days = CourseDay::query()
-            ->where('course_id', $course->id)
-            ->get();
-
-        $attendanceQueued = 0;
-
-        foreach ($days as $day) {
+        $plannedEnd = $course->planned_end_date?->copy()->endOfDay();
+        if ($plannedEnd && now('Europe/Berlin')->gt($plannedEnd)) {
             try {
-                $day->queueSyncIfNotThrottled();
-                $attendanceQueued++;
+                $course->queueLoadResultsFromUvs();
+                $log['messages'][] = 'Pruefungsergebnisse-Load wurde fuer abgeschlossenen Kurs in die Queue gestellt.';
             } catch (\Throwable $e) {
-                Log::error("CreateOrUpdateCourse: Attendance-Sync Dispatch fehlgeschlagen (course_day_id={$day->id}, course_id={$course->id}). " . $e->getMessage());
+                Log::error("CreateOrUpdateCourse: Results-Load Dispatch fehlgeschlagen (course_id={$course->id}). " . $e->getMessage());
+                $log['messages'][] = 'Pruefungsergebnisse-Load konnte nicht in die Queue gestellt werden.';
             }
+            return;
         }
 
-        $log['attendance_sync_days'] = $attendanceQueued;
-        $log['messages'][] = "Attendance-Sync fuer {$attendanceQueued} Kurstage angestossen.";
+        $log['messages'][] = 'Pruefungsergebnisse-Load uebersprungen, da der Kurs noch nicht abgeschlossen ist.';
     }
 
     private function normalizeTime(?string $t): ?string
