@@ -48,7 +48,7 @@
       </x-alert>
 
     @endif
-  @if($invoice)
+  @if($invoice )
     <div class="md:flex items-center flex-wrap justify-between rounded border p-3 bg-white ">
         <div class="text-base max-md:mb-4 flex items-center gap-2">
             <div class="flex-shrink-0 w-12 h-12 flex items-center justify-center">
@@ -106,7 +106,7 @@
         </div>
 
     </div>
-  @else
+  @elseIf($canUploadInvoice)
     <div class="flex items-center justify-between">
         <p class="text-gray-600 text-sm">Es ist noch keine Rechnung hinterlegt.</p>
         <button  wire:click="openInvoiceDialog"
