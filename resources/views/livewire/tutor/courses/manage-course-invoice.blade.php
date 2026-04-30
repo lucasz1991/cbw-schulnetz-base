@@ -11,6 +11,7 @@
 
           <div class="space-y-2">
             @foreach($invoiceRequirements as $requirement)
+              @if(!$requirement['ok'])
               <div class="rounded-lg border border-amber-200 bg-amber-50/60 px-3 py-2">
                 <div class="flex items-start gap-2">
                   <span class="mt-0.5 text-sm {{ $requirement['ok'] ? 'text-emerald-700' : 'text-amber-700' }}">
@@ -24,6 +25,7 @@
                   </div>
                 </div>
               </div>
+              @endif
             @endforeach
           </div>
         </div>
