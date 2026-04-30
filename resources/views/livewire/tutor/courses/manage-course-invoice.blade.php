@@ -4,23 +4,48 @@
 >
     @if(!$invoice && !$canUploadInvoice)
       <x-alert type="warning">
-        <div class="space-y-3">
-          <p class="text-sm leading-snug">
-            Die Rechnung kann erst hochgeladen werden, wenn alle folgenden Voraussetzungen erfüllt sind:
-          </p>
+        <div class="space-y-4">
+          <div class="flex items-start gap-3 rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-4 py-3">
+            <div class="mt-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 9v4"/>
+                <path d="M12 17h.01"/>
+                <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              </svg>
+            </div>
 
-          <div class="space-y-2">
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-amber-900">
+                Rechnungsupload aktuell gesperrt
+              </p>
+              <p class="mt-1 text-sm leading-snug text-amber-900/80">
+                Die Rechnung kann erst hochgeladen werden, wenn die folgenden Punkte vollständig vorliegen.
+              </p>
+            </div>
+          </div>
+
+          <div class="space-y-2.5">
             @foreach($invoiceRequirements as $requirement)
               @if(!$requirement['ok'])
-              <div class="rounded-lg border border-amber-200 bg-amber-50/60 px-3 py-2">
-                <div class="flex items-start gap-2">
-                  <span class="mt-0.5 text-sm {{ $requirement['ok'] ? 'text-emerald-700' : 'text-amber-700' }}">
-                    {{ $requirement['ok'] ? 'Erfüllt:' : 'Fehlt:' }}
-                  </span>
-                  <div class="min-w-0">
-                    <p class="text-sm font-medium text-gray-900">{{ $requirement['label'] }}</p>
+              <div class="rounded-xl border border-amber-200/80 bg-white/80 px-4 py-3 shadow-sm ring-1 ring-amber-100/70">
+                <div class="flex items-start gap-3">
+                  <div class="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="m15 9-6 6"/>
+                      <path d="m9 9 6 6"/>
+                    </svg>
+                  </div>
+
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-2">
+                      <span class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-amber-800">
+                        Fehlt
+                      </span>
+                      <p class="text-sm font-semibold text-slate-900">{{ $requirement['label'] }}</p>
+                    </div>
+
                     @if(!empty($requirement['detail']))
-                      <p class="mt-1 text-xs leading-snug text-gray-700">{{ $requirement['detail'] }}</p>
+                      <p class="mt-1.5 text-xs leading-relaxed text-slate-600">{{ $requirement['detail'] }}</p>
                     @endif
                   </div>
                 </div>
