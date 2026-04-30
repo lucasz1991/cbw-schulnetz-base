@@ -72,6 +72,77 @@ class ManageCourseInvoice extends Component
             ->first();
     }
 
+    public function getInvoiceRequirementsProperty(): array
+    {
+        $this->course->refresh();
+
+        $participantIds = $this->course->participants()
+            ->pluck('persons.id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $days = $this->course->days()->get();
+        $totalDays = $days->count();
+        $completedDays = $days->where('note_status', \App\Models\CourseDay::NOTE_STATUS_COMPLETED)->count();
+
+        $attendanceIncompleteDays = $days
+            ->filter(function ($day) use ($participantIds) {
+                $recordedParticipantIds = collect($day->attendance_data['participants'] ?? [])
+                    ->keys()
+                    ->map(fn ($id) => (int) $id)
+                    ->all();
+
+                return ! empty(array_diff($participantIds, $recordedParticipantIds));
+            })
+            ->map(fn ($day) => $day->date?->format('d.m.Y') ?? 'unbekannter Termin')
+            ->values()
+            ->all();
+
+        $hasExternalExam = (bool) $this->course->getSetting('isExternalExam', false);
+
+        $participantsWithResults = empty($participantIds)
+            ? []
+            : $this->course->results()
+                ->whereIn('person_id', $participantIds)
+                ->where(function ($q) {
+                    $q->whereNotNull('result')
+                        ->orWhere(function ($qq) {
+                            $qq->whereNotNull('status')
+                                ->where('status', '<>', '');
+                        });
+                })
+                ->pluck('person_id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+
+        $missingResultsCount = $hasExternalExam
+            ? 0
+            : count(array_diff($participantIds, $participantsWithResults));
+
+        return [
+            [
+                'ok' => $this->course->hasRoterFaden(),
+                'label' => 'Roter Faden hochgeladen',
+                'detail' => $this->course->hasRoterFaden() ? null : 'Es fehlt eine Datei vom Typ "Roter Faden".',
+            ],
+            [
+                'ok' => $this->course->hasDocumentationWithParticipantSignature(),
+                'label' => 'Kursdokumentation vollständig und mit Teilnehmer-Unterschrift',
+                'detail' => $this->buildDocumentationRequirementDetail($totalDays, $completedDays),
+            ],
+            [
+                'ok' => $this->course->hasAttendanceForAllCourseDays(),
+                'label' => 'Teilnehmer-Anwesenheit für alle Kurstage vollständig erfasst',
+                'detail' => $this->buildAttendanceRequirementDetail($totalDays, $attendanceIncompleteDays),
+            ],
+            [
+                'ok' => $this->course->hasResultsForAllParticipantsOrExternalExam(),
+                'label' => 'Klausurergebnisse vollständig oder externe Prüfung gesetzt',
+                'detail' => $this->buildResultsRequirementDetail($hasExternalExam, count($participantIds), $missingResultsCount),
+            ],
+        ];
+    }
+
     public function openInvoiceDialog(): void
     {
         if (! $this->canUploadInvoice) {
@@ -154,6 +225,62 @@ class ManageCourseInvoice extends Component
         $file->delete();
     }
 
+    protected function buildDocumentationRequirementDetail(int $totalDays, int $completedDays): ?string
+    {
+        if ($this->course->hasDocumentationWithParticipantSignature()) {
+            return null;
+        }
+
+        $details = [];
+
+        if ($totalDays === 0) {
+            $details[] = 'Es sind noch keine Kurstage vorhanden.';
+        } elseif ($completedDays < $totalDays) {
+            $details[] = "{$completedDays} von {$totalDays} Kurstagen sind als \"Fertig & unterschrieben\" markiert.";
+        }
+
+        if (! $this->course->hasParticipantDocumentationSignature()) {
+            $details[] = 'Die Teilnehmer-Unterschrift zur Kursdokumentation fehlt.';
+        }
+
+        return implode(' ', $details);
+    }
+
+    protected function buildAttendanceRequirementDetail(int $totalDays, array $attendanceIncompleteDays): ?string
+    {
+        if ($this->course->hasAttendanceForAllCourseDays()) {
+            return null;
+        }
+
+        if ($totalDays === 0) {
+            return 'Es sind noch keine Kurstage vorhanden.';
+        }
+
+        $count = count($attendanceIncompleteDays);
+
+        if ($count === 0) {
+            return 'Für mindestens einen Kurstag fehlen Anwesenheitseinträge.';
+        }
+
+        $listedDays = implode(', ', array_slice($attendanceIncompleteDays, 0, 3));
+        $suffix = $count > 3 ? ' ...' : '';
+
+        return "Für {$count} Kurstag(e) fehlen Anwesenheitseinträge, z. B.: {$listedDays}{$suffix}.";
+    }
+
+    protected function buildResultsRequirementDetail(bool $hasExternalExam, int $participantCount, int $missingResultsCount): ?string
+    {
+        if ($this->course->hasResultsForAllParticipantsOrExternalExam()) {
+            return $hasExternalExam ? 'Der Kurs ist als externe Prüfung markiert.' : null;
+        }
+
+        if ($participantCount === 0) {
+            return 'Dem Kurs sind keine aktiven Teilnehmer zugeordnet.';
+        }
+
+        return "Für {$missingResultsCount} von {$participantCount} Teilnehmern fehlen Klausurergebnisse oder ein gesetzter Status.";
+    }
+
     public function placeholder()
     {
         return <<<'HTML'
@@ -173,6 +300,7 @@ class ManageCourseInvoice extends Component
         return view('livewire.tutor.courses.manage-course-invoice', [
             'invoice' => $this->invoiceFile,
             'canUploadInvoice' => $this->canUploadInvoice,
+            'invoiceRequirements' => $this->invoiceRequirements,
         ]);
     }
 }

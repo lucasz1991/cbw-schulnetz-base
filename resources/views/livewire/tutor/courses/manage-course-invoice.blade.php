@@ -4,13 +4,29 @@
 >
     @if(!$invoice && !$canUploadInvoice)
       <x-alert type="warning">
-        <p class="text-sm leading-snug">
-          Die Rechnung kann erst hochgeladen werden, wenn die Kursdokumentation vollständig ist:
-          <span class="font-medium">Roter Faden</span>,
-          <span class="font-medium">Dokumentation mit Teilnehmer-Unterschrift</span>,
-          <span class="font-medium">vollständige Teilnehmer-Anwesenheit</span> sowie
-          <span class="font-medium">Klausurergebnisse</span> (oder <span class="font-medium">externe Prüfung</span>).
-        </p>
+        <div class="space-y-3">
+          <p class="text-sm leading-snug">
+            Die Rechnung kann erst hochgeladen werden, wenn alle folgenden Voraussetzungen erfüllt sind:
+          </p>
+
+          <div class="space-y-2">
+            @foreach($invoiceRequirements as $requirement)
+              <div class="rounded-lg border border-amber-200 bg-amber-50/60 px-3 py-2">
+                <div class="flex items-start gap-2">
+                  <span class="mt-0.5 text-sm {{ $requirement['ok'] ? 'text-emerald-700' : 'text-amber-700' }}">
+                    {{ $requirement['ok'] ? 'Erfüllt:' : 'Fehlt:' }}
+                  </span>
+                  <div class="min-w-0">
+                    <p class="text-sm font-medium text-gray-900">{{ $requirement['label'] }}</p>
+                    @if(!empty($requirement['detail']))
+                      <p class="mt-1 text-xs leading-snug text-gray-700">{{ $requirement['detail'] }}</p>
+                    @endif
+                  </div>
+                </div>
+              </div>
+            @endforeach
+          </div>
+        </div>
       </x-alert>
 
     @endif
