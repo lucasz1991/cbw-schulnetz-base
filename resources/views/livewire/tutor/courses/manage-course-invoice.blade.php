@@ -5,14 +5,6 @@
     @if(!$invoice && !$canUploadInvoice)
       <x-alert type="warning">
         <div class="space-y-4">
-          <div class="flex items-start gap-3 rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-4 py-3">
-            <div class="mt-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M12 9v4"/>
-                <path d="M12 17h.01"/>
-                <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-              </svg>
-            </div>
 
             <div class="min-w-0">
               <p class="text-sm font-semibold text-amber-900">
@@ -22,7 +14,6 @@
                 Die Rechnung kann erst hochgeladen werden, wenn die folgenden Punkte vollständig vorliegen.
               </p>
             </div>
-          </div>
 
           <div class="space-y-2.5">
             @foreach($invoiceRequirements as $requirement)
