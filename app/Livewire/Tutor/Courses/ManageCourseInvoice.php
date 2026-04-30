@@ -134,8 +134,8 @@ class ManageCourseInvoice extends Component
                 'ok' => $this->course->hasParticipantDocumentationSignature(),
                 'label' => 'Teilnehmer-Unterschrift zur Kursdokumentation vorhanden',
                 'detail' => $this->course->hasParticipantDocumentationSignature()
-                    ? null
-                    : 'Es fehlt die Teilnehmer-Unterschrift zur Kursdokumentation.',
+                    ? null 
+                    : 'Die Teilnehmer-Unterschrift zur Kursdokumentation fehlt. Bitte lasse sie auf der Kursansicht von einem Teilnehmer erfassen.',
             ],
             [
                 'ok' => $this->course->hasAttendanceForAllCourseDays(),
