@@ -126,9 +126,16 @@ class ManageCourseInvoice extends Component
                 'detail' => $this->course->hasRoterFaden() ? null : 'Es fehlt eine Datei vom Typ "Roter Faden".',
             ],
             [
-                'ok' => $this->course->hasDocumentationWithParticipantSignature(),
-                'label' => 'Kursdokumentation vollständig und mit Teilnehmer-Unterschrift',
-                'detail' => $this->buildDocumentationRequirementDetail($totalDays, $completedDays),
+                'ok' => $this->course->areAllCourseDaysDocumentationCompleted(),
+                'label' => 'Kursdokumentation für alle Kurstage abgeschlossen',
+                'detail' => $this->buildDocumentationCompletionDetail($totalDays, $completedDays),
+            ],
+            [
+                'ok' => $this->course->hasParticipantDocumentationSignature(),
+                'label' => 'Teilnehmer-Unterschrift zur Kursdokumentation vorhanden',
+                'detail' => $this->course->hasParticipantDocumentationSignature()
+                    ? null
+                    : 'Es fehlt die Teilnehmer-Unterschrift zur Kursdokumentation.',
             ],
             [
                 'ok' => $this->course->hasAttendanceForAllCourseDays(),
@@ -225,25 +232,21 @@ class ManageCourseInvoice extends Component
         $file->delete();
     }
 
-    protected function buildDocumentationRequirementDetail(int $totalDays, int $completedDays): ?string
+    protected function buildDocumentationCompletionDetail(int $totalDays, int $completedDays): ?string
     {
-        if ($this->course->hasDocumentationWithParticipantSignature()) {
+        if ($this->course->areAllCourseDaysDocumentationCompleted()) {
             return null;
         }
 
-        $details = [];
-
         if ($totalDays === 0) {
-            $details[] = 'Es sind noch keine Kurstage vorhanden.';
-        } elseif ($completedDays < $totalDays) {
-            $details[] = "{$completedDays} von {$totalDays} Kurstagen sind als \"Fertig & unterschrieben\" markiert.";
+            return 'Es sind noch keine Kurstage vorhanden.';
         }
 
-        if (! $this->course->hasParticipantDocumentationSignature()) {
-            $details[] = 'Die Teilnehmer-Unterschrift zur Kursdokumentation fehlt.';
+        if ($completedDays < $totalDays) {
+            return "{$completedDays} von {$totalDays} Kurstagen sind als \"Fertig & unterschrieben\" markiert.";
         }
 
-        return implode(' ', $details);
+        return null;
     }
 
     protected function buildAttendanceRequirementDetail(int $totalDays, array $attendanceIncompleteDays): ?string
