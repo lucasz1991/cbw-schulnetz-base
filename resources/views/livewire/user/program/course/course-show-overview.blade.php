@@ -199,7 +199,7 @@
         <div class="flex items-start justify-between gap-3">
           <div>
             <p class="text-sm text-slate-500">Dein Ergebnis</p>
-            <p class="mt-1 text-xs text-slate-400">Durchschnitt deiner Punkte in diesem Baustein</p>
+            <p class="mt-1 text-xs text-slate-400">Deine Punkte in diesem Baustein</p>
           </div>
           <span class="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-800">
             {{ !is_null($participantScore) ? number_format($participantScore, 0) . ' / 100' : '-' }}
@@ -211,7 +211,7 @@
             <div class="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
               <div class="h-2.5 rounded-full bg-blue-600" style="width: {{ $participantPercent }}%"></div>
             </div>
-            <p class="mt-3 text-sm text-slate-600">Fortschritt: <span class="font-semibold text-slate-900">{{ $participantPercent }}%</span></p>
+            <p class="mt-3 text-sm text-slate-600">Ergebnis: <span class="font-semibold text-slate-900">{{ $participantPercent }} Punkte</span></p>
           @else
             <p class="text-sm text-slate-500">Noch kein Ergebnis erfasst.</p>
           @endif
@@ -234,7 +234,7 @@
             <div class="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
               <div class="h-2.5 rounded-full bg-slate-400" style="width: {{ $classPercent }}%"></div>
             </div>
-            <p class="mt-3 text-sm text-slate-600">Klassenlevel: <span class="font-semibold text-slate-900">{{ $classPercent }}%</span></p>
+            <p class="mt-3 text-sm text-slate-600">Klassenschnitt: <span class="font-semibold text-slate-900">{{ $classPercent }} Punkte</span></p>
           @else
             <p class="text-sm text-slate-500">Noch keine Klassenergebnisse vorhanden.</p>
           @endif
