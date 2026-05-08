@@ -49,6 +49,11 @@ class ProgramPdfModal extends Component
         $sVertragVtz   = session('curr_vtz');              // entspricht $_SESSION['curr_vtz']
         if (!$sVertragVtz) $sVertragVtz = $data['vtz'] ?? null; // Fallback: aus Daten ableiten
 
+        if ($this->shouldAnonymizeOutput()) {
+            $data = $this->anonymizeProgramPdfData($data);
+            $persInstOrt = $this->resolveAnonymizedProgramPdfAddress();
+        }
+
         // Dateiname wie bisher
         $name = $data['name'] ?? 'Teilnehmer';
         $name = str_replace(', ', '_', $name);
@@ -424,6 +429,23 @@ class ProgramPdfModal extends Component
         $this->switchToBold($pdf, $fontsize);
         $pdf->text($column4, $startY, @utf8_decode((string)($data['summen']['note_lang'] ?? '')));
         $this->switchToNormal($pdf, $fontsize);
+    }
+
+    protected function shouldAnonymizeOutput(): bool
+    {
+        return (bool) session('auth.test_user.anonymize_output', false);
+    }
+
+    protected function anonymizeProgramPdfData(array $data): array
+    {
+        $data['name'] = 'Max Mustermann';
+
+        return $data;
+    }
+
+    protected function resolveAnonymizedProgramPdfAddress(): string
+    {
+        return 'Max Mustermann, Musterstrasse 1';
     }
 
     public function render()

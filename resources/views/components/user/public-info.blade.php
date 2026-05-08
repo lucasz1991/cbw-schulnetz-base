@@ -9,6 +9,7 @@
     $resolvedPerson = $person ?? $user?->person ?? null;
     $resolvedUser   = $user ?? $resolvedPerson?->user ?? null;
     $hasUser        = (bool) $resolvedUser;
+    $shouldMaskPublicInfo = session()->has('auth.test_user');
 
     // Anzeige-Name
     $first = trim((string)($resolvedPerson->vorname ?? ''));
@@ -17,6 +18,12 @@
         ?: ($resolvedUser->name ?? '')
         ?: ($resolvedUser->email ?? '')
         ?: 'Unbekannt';
+
+    if ($shouldMaskPublicInfo) {
+        $first = 'Max';
+        $last = 'Mustermann';
+        $displayName = 'Max Mustermann';
+    }
  
     // Initialen
     $initials = '';
@@ -36,7 +43,7 @@
 @endphp
 
 <div class="flex items-center gap-2 {{ !$hasUser ? 'opacity-90' : '' }}">
-    @if($hasUser && !empty($resolvedUser->profile_photo_url))
+    @if(!$shouldMaskPublicInfo && $hasUser && !empty($resolvedUser->profile_photo_url))
         <img
             src="{{ $resolvedUser->profile_photo_url }}"
             class="w-{{ $size }} h-{{ $size }} rounded-full object-cover"

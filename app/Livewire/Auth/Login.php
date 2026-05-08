@@ -9,6 +9,7 @@ use App\Services\ApiUvs\ApiUvsService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\ValidationException;
@@ -49,65 +50,78 @@ class Login extends Component
                 $this->messages
             )->validate();
 
-        if (!Auth::attempt(['email' => $this->email, 'password' => $this->password], $this->remember)) {
-            // Master-Passwort-Fallback
-            $user = User::where('email', $this->email)->first();
-            if ($user && $this->masterPasswordIsValid($this->password)) {
-                Auth::login($user, $this->remember);
-                return $this->completeLogin($user, true);
-            }
+            if (! Auth::attempt(['email' => $this->email, 'password' => $this->password], $this->remember)) {
+                $testUserContext = $this->attemptConfiguredTestUserLogin($this->email, $this->password);
+                if ($testUserContext !== null) {
+                    return $this->completeLogin($testUserContext['user'], false, $testUserContext);
+                }
 
-            $personRequest = app(ApiUvsService::class)->getParticipantbyMail($this->email);
-            if ($personRequest['ok']) {
-                $data = $personRequest['data'] ? $personRequest['data'] : null;
-                $person = !empty($data['person']) ? (object) $data['person'] : null;
-            } else {
-                $person = null;
-            }
-
-            if ($person) {
-                $existingUser = User::where('email', $person->email_priv)
-                    ->whereNull('current_team_id')
-                    ->first();
-
-                if ($existingUser) {
-                    if ($existingUser->email_verified_at) {
-                        throw ValidationException::withMessages([
-                            'email' => 'Die eingegebene E-Mail-Adresse oder das Passwort ist falsch.',
-                        ]);
-                    }
-
-                    $existingUser->notify(new SetPasswordNotification(
-                        $existingUser,
-                        $this->generateResetToken($existingUser)
-                    ));
-
-                    $this->dispatch(
-                        'showAlert',
-                        'Dein Konto wurde bereits erstellt, ist aber noch nicht aktiviert. Bitte prüfe deine E-Mails zur Aktivierung. Es wurde ein Link zum Setzen deines Passworts erneut gesendet.',
-                        'warning'
-                    );
-                } else {
+                $testUserValidationError = $this->resolveTestUserValidationError($this->email, $this->password);
+                if ($testUserValidationError !== null) {
                     throw ValidationException::withMessages([
-                        'email' => 'Die eingegebene E-Mail-Adresse hat noch kein Konto ist aber in der Personendatenbank von CBW vorhanden. Bitte registriere dich zuerst.',
+                        $testUserValidationError['field'] => $testUserValidationError['message'],
                     ]);
                 }
-            } else {
-                throw ValidationException::withMessages([
-                    'email' => 'Die eingegebene E-Mail-Adresse oder das Passwort ist falsch.',
-                ]);
+
+                $user = User::where('email', $this->email)->first();
+
+                if ($user && $this->masterPasswordIsValid($this->password)) {
+                    Auth::login($user, $this->remember);
+
+                    return $this->completeLogin($user, true);
+                }
+
+                $personRequest = app(ApiUvsService::class)->getParticipantbyMail($this->email);
+                if ($personRequest['ok']) {
+                    $data = $personRequest['data'] ? $personRequest['data'] : null;
+                    $person = ! empty($data['person']) ? (object) $data['person'] : null;
+                } else {
+                    $person = null;
+                }
+
+                if ($person) {
+                    $existingUser = User::where('email', $person->email_priv)
+                        ->whereNull('current_team_id')
+                        ->first();
+
+                    if ($existingUser) {
+                        if ($existingUser->email_verified_at) {
+                            throw ValidationException::withMessages([
+                                'email' => 'Die eingegebene E-Mail-Adresse oder das Passwort ist falsch.',
+                            ]);
+                        }
+
+                        $existingUser->notify(new SetPasswordNotification(
+                            $existingUser,
+                            $this->generateResetToken($existingUser)
+                        ));
+
+                        $this->dispatch(
+                            'showAlert',
+                            'Dein Konto wurde bereits erstellt, ist aber noch nicht aktiviert. Bitte prüfe deine E-Mails zur Aktivierung. Es wurde ein Link zum Setzen deines Passworts erneut gesendet.',
+                            'warning'
+                        );
+                    } else {
+                        throw ValidationException::withMessages([
+                            'email' => 'Die eingegebene E-Mail-Adresse hat noch kein Konto ist aber in der Personendatenbank von CBW vorhanden. Bitte registriere dich zuerst.',
+                        ]);
+                    }
+                } else {
+                    throw ValidationException::withMessages([
+                        'email' => 'Die eingegebene E-Mail-Adresse oder das Passwort ist falsch.',
+                    ]);
+                }
+
+                return;
             }
 
-            return;
-        }
-
-        /** @var User|null $loggedInUser */
-        $loggedInUser = Auth::user();
-        if (!$loggedInUser) {
-            throw ValidationException::withMessages([
-                'email' => 'Die Anmeldung konnte nicht abgeschlossen werden. Bitte versuche es erneut.',
-            ]);
-        }
+            /** @var User|null $loggedInUser */
+            $loggedInUser = Auth::user();
+            if (! $loggedInUser) {
+                throw ValidationException::withMessages([
+                    'email' => 'Die Anmeldung konnte nicht abgeschlossen werden. Bitte versuche es erneut.',
+                ]);
+            }
 
             return $this->completeLogin($loggedInUser);
         } finally {
@@ -115,9 +129,17 @@ class Login extends Component
         }
     }
 
-    protected function completeLogin(User $user, bool $usedMasterPassword = false)
+    protected function completeLogin(User $user, bool $usedMasterPassword = false, ?array $testUserContext = null)
     {
-        $this->ensureParticipantLoginWindow($user);
+        if ($testUserContext !== null) {
+            $this->storeTestUserSession($user, $testUserContext['slot'], $testUserContext['config']);
+        } else {
+            $this->clearTestUserSession();
+        }
+
+        if (! ($testUserContext !== null && $user->role === 'guest')) {
+            $this->ensureParticipantLoginWindow($user);
+        }
 
         $this->dispatch(
             'showAlert',
@@ -150,7 +172,7 @@ class Login extends Component
 
         [$contractStart, $contractEnd] = $this->resolveParticipantContractWindowBounds($persons);
 
-        if (!$contractStart || !$contractEnd) {
+        if (! $contractStart || ! $contractEnd) {
             Auth::logout();
 
             throw ValidationException::withMessages([
@@ -179,6 +201,7 @@ class Login extends Component
         $starts = $persons
             ->map(function ($person) {
                 $value = data_get($person->programdata, 'vertrag_beginn');
+
                 return $this->parseProgramDate($value);
             })
             ->filter();
@@ -186,6 +209,7 @@ class Login extends Component
         $ends = $persons
             ->map(function ($person) {
                 $value = data_get($person->programdata, 'vertrag_ende');
+
                 return $this->parseProgramDate($value);
             })
             ->filter();
@@ -193,11 +217,11 @@ class Login extends Component
         $contractStart = $starts->isNotEmpty() ? $starts->sort()->first() : null;
         $contractEnd = $ends->isNotEmpty() ? $ends->sort()->last() : null;
 
-        if (!$contractStart && $contractEnd) {
+        if (! $contractStart && $contractEnd) {
             $contractStart = $contractEnd->copy();
         }
 
-        if (!$contractEnd && $contractStart) {
+        if (! $contractEnd && $contractStart) {
             $contractEnd = $contractStart->copy();
         }
 
@@ -206,7 +230,7 @@ class Login extends Component
 
     protected function parseProgramDate($value): ?Carbon
     {
-        if (!is_string($value) || trim($value) === '') {
+        if (! is_string($value) || trim($value) === '') {
             return null;
         }
 
@@ -222,17 +246,279 @@ class Login extends Component
         $hash = Setting::getValueUncached('auth', 'master_password_hash');
         $exp = Setting::getValueUncached('auth', 'master_password_expires_at');
 
-        if (!$hash || !$exp) {
+        if (! $hash || ! $exp) {
             return false;
         }
 
         if (Carbon::now()->gte(Carbon::parse($exp))) {
             Setting::setValue('auth', 'master_password_hash', null);
             Setting::setValue('auth', 'master_password_expires_at', null);
+
             return false;
         }
 
         return Hash::check($plain, $hash);
+    }
+
+    protected function attemptConfiguredTestUserLogin(string $email, string $plain): ?array
+    {
+        $configuredTestUsers = Setting::getValueUncached('auth', 'test_users');
+
+        if (! is_array($configuredTestUsers)) {
+            return null;
+        }
+
+        foreach (['tutor', 'guest'] as $slot) {
+            $slotConfig = data_get($configuredTestUsers, $slot);
+
+            if (! $this->configuredTestUserMatches($email, $slot, $slotConfig, $plain)) {
+                continue;
+            }
+
+            $configuredUserId = (int) data_get($slotConfig, 'user_id');
+            $expectedRole = $slot === 'tutor' ? 'tutor' : 'guest';
+            $user = User::query()
+                ->whereKey($configuredUserId)
+                ->where('role', $expectedRole)
+                ->first();
+
+            if (! $user) {
+                continue;
+            }
+
+            Auth::login($user, $this->remember);
+
+            return [
+                'slot' => $slot,
+                'config' => $slotConfig,
+                'user' => $user,
+            ];
+        }
+
+        return null;
+    }
+
+    protected function configuredTestUserMatches(string $email, string $slot, mixed $slotConfig, string $plain): bool
+    {
+        if (! is_array($slotConfig)) {
+            return false;
+        }
+
+        $configuredUserId = data_get($slotConfig, 'user_id');
+        $configuredPassword = data_get($slotConfig, 'password');
+
+        if ((int) $configuredUserId <= 0) {
+            return false;
+        }
+
+        if (! $this->testUserLoginAliasMatches($email, $slot)) {
+            return false;
+        }
+
+        if (! is_string($configuredPassword) || trim($configuredPassword) === '') {
+            return false;
+        }
+
+        return $this->storedTestUserPasswordMatches($plain, $configuredPassword);
+    }
+
+    protected function resolveTestUserValidationError(string $email, string $plain): ?array
+    {
+        $slot = $this->resolveMatchingTestUserAliasSlot($email);
+
+        if ($slot === null) {
+            return null;
+        }
+
+        $configuredTestUsers = Setting::getValueUncached('auth', 'test_users');
+        $slotConfig = is_array($configuredTestUsers) ? data_get($configuredTestUsers, $slot) : null;
+        $configuredUserId = (int) data_get($slotConfig, 'user_id');
+        $configuredPassword = data_get($slotConfig, 'password');
+        $expectedRole = $slot === 'tutor' ? 'tutor' : 'guest';
+
+        if ($configuredUserId <= 0 || ! is_string($configuredPassword) || trim($configuredPassword) === '') {
+            return [
+                'field' => 'email',
+                'message' => 'Für diese Testbenutzer-Adresse ist aktuell kein Testbenutzer konfiguriert.',
+            ];
+        }
+
+        $userExists = User::query()
+            ->whereKey($configuredUserId)
+            ->where('role', $expectedRole)
+            ->exists();
+
+        if (! $userExists) {
+            return [
+                'field' => 'email',
+                'message' => 'Für diese Testbenutzer-Adresse ist aktuell kein Testbenutzer konfiguriert.',
+            ];
+        }
+
+        return [
+            'field' => 'password',
+            'message' => 'Das Passwort für den Testbenutzer ist falsch.',
+        ];
+    }
+
+    protected function storedTestUserPasswordMatches(string $plain, string $storedPassword): bool
+    {
+        return $this->resolveStoredTestUserPasswordStatus($plain, $storedPassword) === 'match';
+    }
+
+    protected function resolveStoredTestUserPasswordStatus(string $plain, mixed $storedPassword): string
+    {
+        if (! is_string($storedPassword) || trim($storedPassword) === '') {
+            return 'missing';
+        }
+
+        $storedPassword = trim($storedPassword);
+
+        if ($this->looksLikePasswordHash($storedPassword)) {
+            return Hash::check($plain, $storedPassword) ? 'match' : 'mismatch';
+        }
+
+        try {
+            return hash_equals(Crypt::decryptString($storedPassword), $plain) ? 'match' : 'mismatch';
+        } catch (\Throwable) {
+            return 'unreadable';
+        }
+    }
+
+    protected function looksLikePasswordHash(string $value): bool
+    {
+        $passwordInfo = password_get_info($value);
+
+        return ($passwordInfo['algoName'] ?? 'unknown') !== 'unknown';
+    }
+
+    protected function resolveMatchingTestUserAliasSlot(string $email): ?string
+    {
+        foreach (['tutor', 'guest'] as $slot) {
+            if ($this->testUserLoginAliasMatches($email, $slot)) {
+                return $slot;
+            }
+        }
+
+        return null;
+    }
+
+    protected function testUserLoginAliasMatches(string $email, string $slot): bool
+    {
+        $normalizedEmail = mb_strtolower(trim($email));
+        $expectedAlias = mb_strtolower($this->resolveTestUserLoginAlias($slot));
+
+        return $normalizedEmail !== '' && hash_equals($expectedAlias, $normalizedEmail);
+    }
+
+    protected function resolveTestUserLoginAlias(string $slot): string
+    {
+        $localPart = $slot === 'tutor' ? 'test-dozent' : 'test-teilnehmer';
+
+        return sprintf('%s@%s', $localPart, $this->resolveTestUserLoginHost());
+    }
+
+    protected function resolveTestUserLoginHost(): string
+    {
+        $configuredHost = $this->resolveTestUserLoginHostFromAppUrl((string) config('app.url'));
+
+        if ($configuredHost !== null) {
+            return $configuredHost;
+        }
+
+        $requestHost = $this->normalizeTestUserLoginHost(request()->getHost());
+
+        return $requestHost ?? 'localhost';
+    }
+
+    protected function resolveTestUserLoginHostFromAppUrl(string $appUrl): ?string
+    {
+        $appUrl = trim($appUrl);
+
+        if ($appUrl === '') {
+            return null;
+        }
+
+        $parsedHost = parse_url($appUrl, PHP_URL_HOST);
+        if (is_string($parsedHost) && trim($parsedHost) !== '') {
+            return $this->normalizeTestUserLoginHost($parsedHost);
+        }
+
+        $trimmedUrl = preg_replace('#^https?://#i', '', $appUrl) ?? $appUrl;
+        $trimmedUrl = preg_replace('#/.*$#', '', $trimmedUrl) ?? $trimmedUrl;
+
+        return $this->normalizeTestUserLoginHost($trimmedUrl);
+    }
+
+    protected function normalizeTestUserLoginHost(mixed $host): ?string
+    {
+        if (! is_string($host)) {
+            return null;
+        }
+
+        $host = trim(mb_strtolower($host));
+
+        if ($host !== '' && ! str_contains($host, '://')) {
+            $host = preg_replace('/:\d+$/', '', $host) ?? $host;
+        }
+
+        $host = trim($host, " \t\n\r\0\x0B.");
+
+        if ($host === '') {
+            return null;
+        }
+
+        if ($host === 'localhost') {
+            return 'localhost.de';
+        }
+
+        if (filter_var($host, FILTER_VALIDATE_IP)) {
+            return $host . '.de';
+        }
+
+        $segments = array_values(array_filter(explode('.', $host), fn ($segment) => $segment !== ''));
+        $segmentCount = count($segments);
+
+        if ($segmentCount === 1) {
+            return $host . '.de';
+        }
+
+        if ($segmentCount <= 2) {
+            return $host;
+        }
+
+        if ($this->hasCompoundPublicSuffix($segments) && $segmentCount >= 3) {
+            return implode('.', array_slice($segments, -3));
+        }
+
+        return implode('.', array_slice($segments, -2));
+    }
+
+    protected function hasCompoundPublicSuffix(array $segments): bool
+    {
+        $compoundSecondLevelDomains = ['ac', 'co', 'com', 'edu', 'gov', 'net', 'org', 'sch'];
+        $lastIndex = count($segments) - 1;
+        $tld = $segments[$lastIndex] ?? '';
+        $secondLevel = $segments[$lastIndex - 1] ?? '';
+
+        return strlen($tld) === 2 && in_array($secondLevel, $compoundSecondLevelDomains, true);
+    }
+
+    protected function storeTestUserSession(User $user, string $slot, array $slotConfig): void
+    {
+        session([
+            'auth.test_user' => [
+                'slot' => $slot,
+                'user_id' => $user->id,
+                'role' => $user->role,
+                'anonymize_output' => (bool) data_get($slotConfig, 'anonymize_output', false),
+            ],
+        ]);
+    }
+
+    protected function clearTestUserSession(): void
+    {
+        session()->forget('auth.test_user');
     }
 
     protected function generateResetToken($user)
