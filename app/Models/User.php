@@ -126,7 +126,9 @@ class User extends Authenticatable
     {
         $persons = $this->resolveUvsApiUpdatePersons($personPk, true);
 
-        if ($persons->isEmpty()) {
+        $hasSyncableEmail = filter_var(trim((string) $this->email), FILTER_VALIDATE_EMAIL) !== false;
+
+        if ($persons->isEmpty() && ! ($personPk === null && $hasSyncableEmail)) {
             return 0;
         }
 
