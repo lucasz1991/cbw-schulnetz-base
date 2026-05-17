@@ -4,15 +4,18 @@ namespace App\Livewire\Tutor\Courses;
 
 use App\Models\Course;
 use App\Models\File;
+use App\Models\Setting;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use Illuminate\Validation\Rules\File as FileRule;
 
 class ManageCourseMedia extends Component
 {
     use WithFileUploads;
+
+    private const ROTER_FADEN_TEMPLATE_SETTINGS_TYPE = 'course_media';
+    private const ROTER_FADEN_TEMPLATE_SETTINGS_KEY = 'roter_faden_template';
 
     public Course $course;
 
@@ -66,19 +69,58 @@ class ManageCourseMedia extends Component
             ->first();
     }
 
-    // optional: wenn du die URL vorher berechnen/loggen willst
-public function openPreview(): void
-{
-    // nur öffnen, wenn es überhaupt einen Roten Faden gibt
-    if ($this->roterFadenFile) {
-        $this->openPreview = true;
+    /** Zentral hinterlegte Roter-Faden-Vorlage aus dem Adminbereich */
+    public function getRoterFadenTemplateProperty(): ?array
+    {
+        return $this->normalizeRoterFadenTemplate(
+            Setting::getValueUncached(
+                self::ROTER_FADEN_TEMPLATE_SETTINGS_TYPE,
+                self::ROTER_FADEN_TEMPLATE_SETTINGS_KEY
+            )
+        );
     }
-}
 
-public function closePreview(): void
-{
-    $this->openPreview = false;
-}
+    // optional: wenn du die URL vorher berechnen/loggen willst
+    public function openPreview(): void
+    {
+    // nur öffnen, wenn es überhaupt einen Roten Faden gibt
+        if ($this->roterFadenFile) {
+            $this->openPreview = true;
+        }
+    }
+
+    public function closePreview(): void
+    {
+        $this->openPreview = false;
+    }
+
+    /** Download der zentral gepflegten Roter-Faden-Vorlage */
+    public function downloadRoterFadenTemplate()
+    {
+        $template = $this->roterFadenTemplate;
+
+        if (! $template) {
+            $this->dispatch('toast', type:'error', message:'Es ist keine Roter-Faden-Vorlage hinterlegt.');
+            return null;
+        }
+
+        $disk = $template['disk'];
+        $path = $template['path'];
+
+        if (! Storage::disk($disk)->exists($path)) {
+            $this->dispatch('toast', type:'error', message:'Die Roter-Faden-Vorlage konnte nicht gefunden werden.');
+            return null;
+        }
+
+        $mime = $template['mime']
+            ?: (Storage::disk($disk)->mimeType($path) ?: 'application/octet-stream');
+
+        return Storage::disk($disk)->download(
+            $path,
+            $this->sanitizeDownloadName($template['name'] ?: basename($path)),
+            ['Content-Type' => $mime]
+        );
+    }
 
     /** Upload / Ersetzen des Roten Fadens */
     public function uploadRoterFaden(): void
@@ -140,6 +182,50 @@ public function closePreview(): void
         $file->delete();
     }
 
+    protected function normalizeRoterFadenTemplate(mixed $template): ?array
+    {
+        if (is_string($template) && trim($template) !== '') {
+            $template = [
+                'path' => trim($template),
+                'disk' => 'private',
+                'name' => basename(trim($template)),
+                'mime' => null,
+            ];
+        }
+
+        if (! is_array($template)) {
+            return null;
+        }
+
+        $path = trim((string) ($template['path'] ?? ''));
+
+        if ($path === '') {
+            return null;
+        }
+
+        $disk = (string) ($template['disk'] ?? 'private');
+
+        if (! in_array($disk, ['private', 'public'], true)) {
+            $disk = 'private';
+        }
+
+        return [
+            'path' => $path,
+            'disk' => $disk,
+            'name' => (string) ($template['name'] ?? basename($path)),
+            'mime' => $template['mime'] ?? null,
+            'size' => $template['size'] ?? null,
+        ];
+    }
+
+    protected function sanitizeDownloadName(string $name): string
+    {
+        $name = trim($name);
+        $name = str_replace(['\\', '/', "\0"], '-', $name);
+
+        return $name === '' ? 'roter-faden-vorlage' : $name;
+    }
+
     public function placeholder()
     {
         return <<<'HTML'
@@ -158,6 +244,7 @@ public function closePreview(): void
     {
         return view('livewire.tutor.courses.manage-course-media', [
             'roterFaden' => $this->roterFadenFile,
+            'roterFadenTemplate' => $this->roterFadenTemplate,
         ]);
     }
 }

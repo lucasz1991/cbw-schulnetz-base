@@ -71,6 +71,12 @@
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 aspect-square mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                             Öffnen
                         </x-buttons.btn-group.btn-group-item>
+                        @if($roterFadenTemplate)
+                        <x-buttons.btn-group.btn-group-item wire:click="downloadRoterFadenTemplate">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 aspect-square mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Vorlage
+                        </x-buttons.btn-group.btn-group-item>
+                        @endif
                         <x-buttons.btn-group.btn-group-item wire:click="removeRoterFaden" class="text-red-600 hover:text-red-700">
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 aspect-square mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
                             Entfernen
@@ -83,12 +89,20 @@
                 </div>
             </div>
             @else
-            <div class="flex items-center justify-between">
+            <div class="flex flex-wrap items-center justify-between gap-3">
                 <p class="text-gray-600 text-sm">Noch kein „Roter Faden“ hochgeladen.</p>
+                <div class="flex flex-wrap justify-end gap-2">
+                @if($roterFadenTemplate)
+                <button wire:click="downloadRoterFadenTemplate"
+                        class="px-3 py-1.5 rounded-lg border border-blue-200 text-blue-700 hover:bg-blue-50 text-sm">
+                Vorlage herunterladen
+                </button>
+                @endif
                 <button wire:click="$set('openRoterFadenForm', true)"
                         class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 text-sm">
                 PDF hochladen
                 </button>
+                </div>
             </div>
             @endif
         </div>
@@ -98,6 +112,8 @@
             <x-slot name="title">Roter Faden (PDF) hochladen</x-slot>
             <x-slot name="content">
             <x-ui.filepool.drop-zone :model="'roterFadenUpload'" mode="single" acceptedFiles=".pdf" :maxFilesize="30" />
+
+
 
             </x-slot>
             <x-slot name="footer">
