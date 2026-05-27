@@ -203,7 +203,7 @@ class AdminStorageController extends Controller
         }
 
         $validated = $request->validate([
-            'file' => 'required|max:409600',  // max 400MB
+            'file' => ['required', 'file', 'max:512000'], // max 500 MB
             'folder' => 'nullable|string',
             'visibility' => 'nullable|in:public,private',
         ]);
