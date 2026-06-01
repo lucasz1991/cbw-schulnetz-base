@@ -203,7 +203,7 @@ class AdminStorageController extends Controller
         }
 
         $validated = $request->validate([
-            'file' => ['required', 'file', 'max:512000'], // max 500 MB
+            'file' => ['required', 'file', 'max:5120000'], // max in KB (5120000 = 5 GB, großzügig bemessen für 500 MB Dateien mit etwas Overhead)
             'folder' => 'nullable|string',
             'visibility' => 'nullable|in:public,private',
         ]);
