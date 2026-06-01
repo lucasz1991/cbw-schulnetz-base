@@ -63,6 +63,7 @@ class Onboarding extends Component
 
         $seconds = max(0, $seconds);
         $duration = max(0, $duration);
+        $this->rememberDuration($videoId, $duration);
 
         $view = OnboardingVideoView::query()->firstOrCreate(
             ['user_id' => $userId, 'onboarding_video_id' => $videoId],
@@ -83,27 +84,44 @@ class Onboarding extends Component
 
     }
 
-public function markCompleted(int $videoId, int $duration = 0): void
-{
-    $userId = $this->resolveUserId();
-    if (!$userId) return;
+    public function markCompleted(int $videoId, int $duration = 0): void
+    {
+        $userId = $this->resolveUserId();
+        if (!$userId) return;
 
-    $duration = max(0, $duration);
+        $duration = max(0, $duration);
+        $this->rememberDuration($videoId, $duration);
 
-    $view = OnboardingVideoView::query()->firstOrCreate(
-        ['user_id' => $userId, 'onboarding_video_id' => $videoId],
-        ['progress_seconds' => 0, 'is_completed' => false]
-    );
+        $view = OnboardingVideoView::query()->firstOrCreate(
+            ['user_id' => $userId, 'onboarding_video_id' => $videoId],
+            ['progress_seconds' => 0, 'is_completed' => false]
+        );
 
-    // Progress auf "voll" setzen (damit UI 20/20 zeigt)
-    if ($duration > 0) {
-        $view->updateProgress($duration);
+        // Progress auf "voll" setzen (damit UI 20/20 zeigt)
+        if ($duration > 0) {
+            $view->updateProgress($duration);
+        }
+
+        if (!$view->is_completed) {
+            $view->markCompleted();
+        }
     }
 
-    if (!$view->is_completed) {
-        $view->markCompleted();
+
+    protected function rememberDuration(int $videoId, int $duration): void
+    {
+        if ($duration <= 0) {
+            return;
+        }
+
+        OnboardingVideo::query()
+            ->whereKey($videoId)
+            ->where(function ($query) {
+                $query->whereNull('duration_seconds')
+                    ->orWhere('duration_seconds', '<=', 0);
+            })
+            ->update(['duration_seconds' => $duration]);
     }
-}
 
 
     protected function resolveUserId(): ?int
@@ -155,8 +173,9 @@ public function markCompleted(int $videoId, int $duration = 0): void
 
             $duration = (int)($v->duration_seconds ?? 0);
             $watched  = (int)($view?->progress_seconds ?? 0);
+            $isCompleted = (bool)($view?->is_completed ?? false);
 
-            $percent = $duration > 0 ? min(100, (int)round(($watched / $duration) * 100)) : 0;
+            $percent = $isCompleted ? 100 : ($duration > 0 ? min(100, (int)round(($watched / $duration) * 100)) : 0);
 
             $isPdf = $this->isPdf($v);
 
@@ -170,7 +189,7 @@ public function markCompleted(int $videoId, int $duration = 0): void
                     'exists' => (bool)$view,
                     'watched_seconds' => $watched,
                     'percent' => $percent,
-                    'is_completed' => (bool)($view?->is_completed ?? false),
+                    'is_completed' => $isCompleted,
                 ],
             ];
         });
