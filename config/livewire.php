@@ -68,7 +68,7 @@ return [
         'disk' => null,
 
         // Erlaubt größere Videos/PDFs bis 100 MB und beschränkt die Mimes auf die genutzten Typen.
-        'rules' => ['required', 'file', 'max:1024000'], // max in KB (102400 = 100 MB)
+        'rules' => ['required', 'file', 'max:10240000'], // max in KB (10240000 = 10 GB, großzügig bemessen für 500 MB Dateien mit etwas Overhead)
 
         'directory' => null,   // Example: 'tmp'                      | Default: 'livewire-tmp'
         'middleware' => null,  // Example: 'throttle:5,1'             | Default: 'throttle:60,1'
@@ -77,7 +77,7 @@ return [
             'mov', 'avi', 'wmv', 'mp3', 'm4a',
             'jpg', 'jpeg', 'mpga', 'webp', 'wma',
         ],
-        'max_upload_time' => 500, // Max duration (in minutes) before an upload is invalidated...
+        'max_upload_time' => 5000, // Max duration (in minutes) before an upload is invalidated...
         'cleanup' => true, // Should cleanup temporary uploads older than 24 hrs...
     ],
 
