@@ -264,7 +264,29 @@ class User extends Authenticatable
     }
 
 
+    public function isVideoActive(): bool
+    {
+        $isEducation = $this->person?->isEducation();
 
+        return OnboardingVideo::query()
+            ->active()
+            ->currentlyValid()
+            ->whereHas('videoFile')
+            ->get(['id', 'settings'])
+            ->contains(function (OnboardingVideo $video) use ($isEducation) {
+                $type = $video->setting('type');
+
+                if ($type === null || $type === '') {
+                    return true;
+                }
+
+                return match ($type) {
+                    'umschulung' => $isEducation === false,
+                    'weiterbildung' => $isEducation === true,
+                    default => false,
+                };
+            });
+    }
 
 
  
