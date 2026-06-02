@@ -422,7 +422,7 @@ class Person extends Model
      * based on the number of tn_baust entries in programdata.
      *
      * Rule:
-     * - more than 20 tn_baust => education (true)
+     * - more than 20 tn_baust => education (true) 
      * - otherwise => retraining (false)
      */
     public function isEducation(): bool

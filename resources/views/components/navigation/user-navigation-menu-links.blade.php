@@ -16,7 +16,7 @@
             <i class="fad fa-file-invoice max-md:min-w-6 mr-2 max-md:mr-2 {{ request()->is('user/user-requests') ? 'text-primary-500' : '' }}" aria-hidden="true"></i>
             {{ __('Anträge') }}
         </x-nav-link> 
-        @if(Auth::user()?->isVideoActive())
+        @if(!Auth::user()?->isVideoActive())
             <x-nav-link href="{{ route('user.onboarding') }}" wire:navigate  :active="request()->is('user/onboarding')">
                 <i class="fad fa-book-open max-md:min-w-6 mr-2 max-md:mr-2 {{ request()->is('user/onboarding') ? 'text-primary-500' : '' }}" aria-hidden="true"></i>
                 {{ __('Videos') }} 

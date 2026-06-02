@@ -204,7 +204,7 @@ class Onboarding extends Component
 
     protected function filterVideos(Collection $items): Collection
     {
-        $isEducation = Auth::user()?->person?->isEducation();
+        $isEducation = !Auth::user()?->person?->isEducation();
 
         return $items->filter(function (OnboardingVideo $video) use ($isEducation) {
             $type = $video->setting('type');
