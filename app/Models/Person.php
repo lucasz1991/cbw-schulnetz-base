@@ -433,7 +433,7 @@ class Person extends Model
             return false;
         }
 
-        return count($programData['tn_baust']) <= 20;
+        return count($programData['tn_baust']) >= 20;
     }
 
 
