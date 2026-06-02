@@ -89,99 +89,97 @@
 
             {{-- PLAYER --}}
             <section class="lg:col-span-8" data-aos="fade-up" data-aos-delay="50">
-                <div class="rounded-3xl p-[1px] bg-gradient-to-br from-blue-400 via-emerald-300 to-blue-200 shadow-[0_18px_60px_-40px_rgba(15,23,42,0.35)]">
-                    <div class="rounded-3xl bg-white border border-white/60 overflow-hidden">
-                        <div class="" wire:key="onboarding-player-{{ $selected['id'] ?? 'none' }}">
-                            @if($selected && $selected['file_url'])
+                <div class="rounded-3xl bg-white border border-white/60 overflow-hidden ring-1 ring-blue-400/20 shadow-[0_18px_60px_-40px_rgba(15,23,42,0.35)]">
+                    <div class="" wire:key="onboarding-player-{{ $selected['id'] ?? 'none' }}">
+                        @if($selected && $selected['file_url'])
 
-                                {{-- PDF --}}
-                                @if($selected['is_pdf'])
-                                    <div
-                                        x-data="{ videoId: {{ (int)$selected['id'] }} }"
-                                        x-init="$wire.markCompleted(videoId)"
-                                        wire:key="onboarding-pdf-{{ (int)$selected['id'] }}"
-                                        class="space-y-4"
-                                    >
-                                        <div class="rounded-2xl border border-slate-200 overflow-hidden bg-white shadow-sm">
-                                            <iframe
-                                                class="w-full h-[75vh]"
-                                                src="{{ $selected['file_url'] }}"
-                                            ></iframe>
-                                        </div>
-
+                            {{-- PDF --}}
+                            @if($selected['is_pdf'])
+                                <div
+                                    x-data="{ videoId: {{ (int)$selected['id'] }} }"
+                                    x-init="$wire.markCompleted(videoId)"
+                                    wire:key="onboarding-pdf-{{ (int)$selected['id'] }}"
+                                    class="space-y-4"
+                                >
+                                    <div class="rounded-2xl border border-slate-200 overflow-hidden bg-white shadow-sm">
+                                        <iframe
+                                            class="w-full h-[75vh]"
+                                            src="{{ $selected['file_url'] }}"
+                                        ></iframe>
                                     </div>
 
-                                @else
-                                    <div
-                                        x-data="{
-                                            videoId: {{ (int)$selected['id'] }},
-                                            startAt: {{ (int)$startAtSeconds }},
-                                            lastSentAt: 0,
-                                            throttleMs: 1000,
-                                            completedSent: false,
-
-                                            init() {
-                                                const v = this.$refs.v;
-                                                if (!v) return;
-
-                                                v.addEventListener('loadedmetadata', () => {
-                                                    if (this.startAt > 0 && this.startAt < (v.duration - 1)) {
-                                                        v.currentTime = this.startAt;
-                                                    }
-                                                });
-
-                                                v.addEventListener('timeupdate', () => {
-                                                    const now = Date.now();
-                                                    if (now - this.lastSentAt < this.throttleMs) return;
-                                                    this.lastSentAt = now;
-
-                                                    const cur = Math.floor(v.currentTime || 0);
-                                                    const dur = Math.floor(v.duration || 0);
-
-                                                    this.$wire.saveProgress(this.videoId, cur, dur);
-
-                                                    if (!this.completedSent && dur > 0 && cur >= (dur - 1)) {
-                                                        this.completedSent = true;
-                                                        this.$wire.markCompleted(this.videoId, dur);
-                                                    }
-                                                });
-
-                                                v.addEventListener('ended', () => {
-                                                    this.completedSent = true;
-
-                                                    const dur = Math.floor(v.duration || 0);
-                                                    this.$wire.saveProgress(this.videoId, dur, dur);
-                                                    this.$wire.markCompleted(this.videoId, dur);
-                                                });
-                                            }
-                                        }"
-                                        wire:key="onboarding-video-{{ (int)$selected['id'] }}"
-                                        class="space-y-4"
-                                    >
-                                        <div class="rounded-2xl border border-slate-200 overflow-hidden bg-black shadow-sm">
-                                            <video
-                                                x-ref="v"
-                                                class="w-full"
-                                                controls
-                                                playsinline
-                                                preload="metadata"
-                                                src="{{ $selected['file_url'] }}"
-                                            ></video>
-                                        </div>
-
-                                    </div>
-                                @endif
-
-                            @elseif($selected)
-                                <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                                    Für dieses Element wurde keine abspielbare Datei/URL gefunden.
                                 </div>
+
                             @else
-                                <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                                    Leider wurde bisher noch kein Inhalt zur Verfügung gestellt.
+                                <div
+                                    x-data="{
+                                        videoId: {{ (int)$selected['id'] }},
+                                        startAt: {{ (int)$startAtSeconds }},
+                                        lastSentAt: 0,
+                                        throttleMs: 1000,
+                                        completedSent: false,
+
+                                        init() {
+                                            const v = this.$refs.v;
+                                            if (!v) return;
+
+                                            v.addEventListener('loadedmetadata', () => {
+                                                if (this.startAt > 0 && this.startAt < (v.duration - 1)) {
+                                                    v.currentTime = this.startAt;
+                                                }
+                                            });
+
+                                            v.addEventListener('timeupdate', () => {
+                                                const now = Date.now();
+                                                if (now - this.lastSentAt < this.throttleMs) return;
+                                                this.lastSentAt = now;
+
+                                                const cur = Math.floor(v.currentTime || 0);
+                                                const dur = Math.floor(v.duration || 0);
+
+                                                this.$wire.saveProgress(this.videoId, cur, dur);
+
+                                                if (!this.completedSent && dur > 0 && cur >= (dur - 1)) {
+                                                    this.completedSent = true;
+                                                    this.$wire.markCompleted(this.videoId, dur);
+                                                }
+                                            });
+
+                                            v.addEventListener('ended', () => {
+                                                this.completedSent = true;
+
+                                                const dur = Math.floor(v.duration || 0);
+                                                this.$wire.saveProgress(this.videoId, dur, dur);
+                                                this.$wire.markCompleted(this.videoId, dur);
+                                            });
+                                        }
+                                    }"
+                                    wire:key="onboarding-video-{{ (int)$selected['id'] }}"
+                                    class="space-y-4"
+                                >
+                                    <div class="rounded-2xl border border-slate-200 overflow-hidden bg-black shadow-sm">
+                                        <video
+                                            x-ref="v"
+                                            class="w-full"
+                                            controls
+                                            playsinline
+                                            preload="metadata"
+                                            src="{{ $selected['file_url'] }}"
+                                        ></video>
+                                    </div>
+
                                 </div>
                             @endif
-                        </div>
+
+                        @elseif($selected)
+                            <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                                Für dieses Element wurde keine abspielbare Datei/URL gefunden.
+                            </div>
+                        @else
+                            <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                                Leider wurde bisher noch kein Inhalt zur Verfügung gestellt.
+                            </div>
+                        @endif
                     </div>
                 </div>
             </section>
