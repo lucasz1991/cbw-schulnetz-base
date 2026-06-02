@@ -17,7 +17,7 @@
             {{ __('Anträge') }}
         </x-nav-link> 
         @if(true)
-            <x-nav-link href="{{ route('onboarding') }}" wire:navigate  :active="request()->is('user/onboarding')">
+            <x-nav-link href="{{ route('user.onboarding') }}" wire:navigate  :active="request()->is('user/onboarding')">
                 <i class="fad fa-book-open max-md:min-w-6 mr-2 max-md:mr-2 {{ request()->is('user/onboarding') ? 'text-primary-500' : '' }}" aria-hidden="true"></i>
                 {{ __('Videos') }} 
             </x-nav-link>
