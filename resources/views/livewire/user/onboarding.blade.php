@@ -89,7 +89,7 @@
 
             {{-- PLAYER --}}
             <section class="lg:col-span-8" data-aos="fade-up" data-aos-delay="50">
-                <div class="rounded-3xl bg-white border border-white/60 overflow-hidden ring-1 ring-blue-400 shadow-[0_18px_60px_-40px_rgba(15,23,42,0.35)]">
+                <div class="rounded-3xl bg-white  overflow-hidden ring-1 ring-blue-400 shadow-[0_18px_60px_-40px_rgba(15,23,42,0.35)]">
                     <div class="" wire:key="onboarding-player-{{ $selected['id'] ?? 'none' }}">
                         @if($selected && $selected['file_url'])
 
