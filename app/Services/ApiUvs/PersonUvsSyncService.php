@@ -143,7 +143,9 @@ class PersonUvsSyncService
             'statusdata' => $statusData,
             'programdata' => $programData ?? null,
             'last_api_update' => now(),
-        ])->save();
+        ])->saveQuietly();
+
+        $person->user?->syncPortalRoleFromPersons();
 
         $shouldDispatchCourseSync = $person->user_id != null
             && $person->programdata != null
