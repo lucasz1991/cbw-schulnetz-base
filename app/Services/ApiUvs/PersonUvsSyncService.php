@@ -3,6 +3,7 @@
 namespace App\Services\ApiUvs;
 
 use App\Models\Person;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 
 class PersonUvsSyncService
@@ -224,12 +225,44 @@ class PersonUvsSyncService
                 continue;
             }
 
-            if (filter_var($contract['is_active'] ?? false, FILTER_VALIDATE_BOOL)) {
-                return true;
+            if (! filter_var($contract['is_active'] ?? false, FILTER_VALIDATE_BOOL)) {
+                continue;
             }
+
+            $today = Carbon::today('Europe/Berlin');
+            $contractEnd = $this->parseUvsDate($contract['vertrag_ende'] ?? null);
+            $cancellationEnd = $this->parseUvsDate($contract['kuendig_zum'] ?? null);
+
+            if ($contractEnd && $contractEnd->endOfDay()->lt($today)) {
+                continue;
+            }
+
+            if ($cancellationEnd && $cancellationEnd->endOfDay()->lt($today)) {
+                continue;
+            }
+
+            return true;
         }
 
         return false;
+    }
+
+    protected function parseUvsDate(mixed $value): ?Carbon
+    {
+        $raw = trim((string) ($value ?? ''));
+        if ($raw === '') {
+            return null;
+        }
+
+        foreach (['Y/m/d', 'Y-m-d', 'd/m/Y', 'd-m-Y'] as $format) {
+            try {
+                return Carbon::createFromFormat($format, $raw)->startOfDay();
+            } catch (\Throwable) {
+                // Try the next known UVS format.
+            }
+        }
+
+        return null;
     }
 
     protected function looksLikeTutorProgramData(?array $programData): bool
