@@ -23,6 +23,22 @@ class PersonUvsSyncService
         $oldProgramHash = md5(json_encode($programData ?? []));
 
         $statusResp = $api->getPersonStatus($person->person_id) ?? null;
+        if (($statusResp['ok'] ?? false) !== true) {
+            Log::warning('PersonUvsSyncService: PersonStatus konnte nicht geladen werden.', [
+                'person_pk' => $person->id,
+                'uvs_person_id' => $person->person_id,
+                'status' => $statusResp['status'] ?? null,
+                'message' => $statusResp['message'] ?? null,
+            ]);
+
+            return [
+                'ok' => false,
+                'reason' => 'person_status_failed',
+                'person_pk' => $person->id,
+                'status' => $statusResp['status'] ?? null,
+            ];
+        }
+
         $statusData = $statusResp['data']['data'] ?? [];
         if (! is_array($statusData)) {
             $statusData = [];
@@ -34,8 +50,26 @@ class PersonUvsSyncService
         $teilnehmerIdFromStatus = $statusData['teilnehmer_id'] ?? data_get($statusData, 'vertraege.0.teilnehmer_id');
         $hasParticipantContext = ! empty($statusData['teilnehmer_nr']) || ! empty($teilnehmerIdFromStatus);
         $hasActiveParticipantContract = $this->hasActiveParticipantContract($statusData);
-        $keepParticipantIdentity = ! $isTutor || $hasActiveParticipantContract;
+        $tutorProgramData = null;
 
+        if ($isTutor || ! $hasActiveParticipantContract) {
+            $tutorProgramData = $this->loadTutorProgramData($api, $person);
+
+            if (! $isTutor && $this->looksLikeTutorProgramData($tutorProgramData)) {
+                $isTutor = true;
+                $mitarbeiterIdFromStatus = $mitarbeiterIdFromStatus ?: data_get($tutorProgramData, 'tutor.mitarbeiter_id');
+
+                Log::warning('PersonUvsSyncService: Tutorstatus ueber Tutorprogramm-Fallback erkannt.', [
+                    'person_pk' => $person->id,
+                    'uvs_person_id' => $person->person_id,
+                    'mitarbeiter_id' => $mitarbeiterIdFromStatus,
+                    'status_is_tutor' => $statusData['is_tutor'] ?? null,
+                    'mitarbeiter_vertrag_ky' => $mitarbeiterVertragKy ?: null,
+                ]);
+            }
+        }
+
+        $keepParticipantIdentity = ! $isTutor || $hasActiveParticipantContract;
         $role = $isTutor ? 'tutor' : 'guest';
 
         if (! $isTutor && ! $hasParticipantContext) {
@@ -50,20 +84,13 @@ class PersonUvsSyncService
                     $programData = null;
                 }
 
-                $apiResponse = $api->getTutorProgramDataByPersonId($person->person_id);
-                if (($apiResponse['ok'] ?? false) === true) {
-                    $data = $apiResponse['data'] ?? null;
-                    $programDataRaw = ! empty($data['data']) ? $data['data'] : null;
-                } else {
-                    $programDataRaw = null;
-                }
+                $programDataRaw = $tutorProgramData;
 
                 if ($programDataRaw) {
                     $programData = $programDataRaw;
                 } elseif (config('api_sync.debug_logs', false)) {
                     Log::info('PersonUvsSyncService: No Tutor program data found.', [
                         'person_id' => $person->person_id,
-                        'api_response' => $apiResponse ?? null,
                     ]);
                 }
             } else {
@@ -206,6 +233,41 @@ class PersonUvsSyncService
         }
 
         $person->restore();
+    }
+
+    protected function loadTutorProgramData(ApiUvsService $api, Person $person): ?array
+    {
+        try {
+            $apiResponse = $api->getTutorProgramDataByPersonId($person->person_id);
+        } catch (\Throwable $e) {
+            Log::warning('PersonUvsSyncService: Tutorprogramm konnte nicht geladen werden.', [
+                'person_pk' => $person->id,
+                'uvs_person_id' => $person->person_id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+
+        if (($apiResponse['ok'] ?? false) !== true) {
+            if (config('api_sync.debug_logs', false)) {
+                Log::info('PersonUvsSyncService: Tutorprogramm API lieferte keinen Erfolg.', [
+                    'person_pk' => $person->id,
+                    'uvs_person_id' => $person->person_id,
+                    'status' => $apiResponse['status'] ?? null,
+                    'message' => $apiResponse['message'] ?? null,
+                ]);
+            }
+
+            return null;
+        }
+
+        $data = $apiResponse['data'] ?? null;
+        $programData = is_array($data) && ! empty($data['data']) && is_array($data['data'])
+            ? $data['data']
+            : null;
+
+        return $this->looksLikeTutorProgramData($programData) ? $programData : null;
     }
 
     protected function hasActiveParticipantContract(array $statusData): bool
