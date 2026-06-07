@@ -49,6 +49,8 @@ class CheckPersonsCourses implements ShouldQueue, ShouldBeUniqueUntilProcessing
             'window_start' => $windowStart->toDateString(),
             'window_end'   => $windowEnd->toDateString(),
             'klassen_ids'  => [],
+            'klassen_ids_total' => 0,
+            'klassen_ids_limited' => false,
             'jobs_dispatched' => 0,
         ];
 
@@ -70,7 +72,7 @@ class CheckPersonsCourses implements ShouldQueue, ShouldBeUniqueUntilProcessing
         $role = $person->role ?? 'guest';
         $pd   = $person->programdata ?? null;
 
-        $log['person_id'] = $person->id;
+        $log['person_id'] = $person->person_id;
         $log['role']      = $role;
 
         if (empty($pd)) {
@@ -91,14 +93,32 @@ class CheckPersonsCourses implements ShouldQueue, ShouldBeUniqueUntilProcessing
             return;
         }
 
+        $maxJobs = max(1, (int) config('api_sync.max_course_jobs_per_person', 100));
+        $totalKlassenIds = $klassenIds->count();
+        $dispatchKlassenIds = $klassenIds->take($maxJobs)->values();
+
+        if ($totalKlassenIds > $maxJobs) {
+            $log['klassen_ids_limited'] = true;
+            $log['messages'][] = "Kursjob-Dispatch begrenzt: {$totalKlassenIds} klassen_id gefunden, {$maxJobs} werden verarbeitet.";
+
+            Log::warning('CheckPersonsCourses: Kursjob-Dispatch fuer Person begrenzt.', [
+                'person_pk' => $person->id,
+                'person_id' => $person->person_id,
+                'role' => $role,
+                'klassen_ids_total' => $totalKlassenIds,
+                'max_course_jobs_per_person' => $maxJobs,
+            ]);
+        }
+
         // Jobs dispatchen (ohne Einzel-Logs)
-        foreach ($klassenIds as $kid) {
+        foreach ($dispatchKlassenIds as $kid) {
             CreateOrUpdateCourse::dispatch($kid);
         }
 
         $log['status']          = 'ok';
-        $log['klassen_ids']     = $klassenIds->values()->all();
-        $log['jobs_dispatched'] = $klassenIds->count();
+        $log['klassen_ids']     = $dispatchKlassenIds->all();
+        $log['klassen_ids_total'] = $totalKlassenIds;
+        $log['jobs_dispatched'] = $dispatchKlassenIds->count();
         $log['messages'][]      = "CreateOrUpdateCourse Jobs dispatched.";
 
         $writeLog('info');
