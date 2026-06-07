@@ -21,6 +21,8 @@ class UserApiUpdate implements ShouldQueue, ShouldBeUnique
 
     public int $tries = 2;
 
+    public int $uniqueFor = 900;
+
     /** @var array<int,int> */
     public array $backoff = [10, 60];
 

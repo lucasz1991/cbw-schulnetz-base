@@ -18,6 +18,8 @@ class PersonApiUpdate implements ShouldQueue, ShouldBeUnique
 
     public int $tries = 3;
 
+    public int $uniqueFor = 900;
+
     /** @var array<int,int> */
     public array $backoff = [10, 60, 180];
 
