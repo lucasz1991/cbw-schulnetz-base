@@ -4,6 +4,7 @@ namespace App\Livewire\Auth;
 
 use App\Models\Setting;
 use App\Models\User;
+use App\Models\Person;
 use App\Notifications\SetPasswordNotification;
 use App\Services\ApiUvs\ApiUvsService;
 use Illuminate\Support\Carbon;
@@ -138,6 +139,7 @@ class Login extends Component
         }
 
         if (! ($testUserContext !== null && $user->role === 'guest')) {
+            $user = $this->refreshTutorRoleBeforeParticipantWindow($user);
             $this->ensureParticipantLoginWindow($user);
         }
 
@@ -148,6 +150,77 @@ class Login extends Component
         );
 
         return redirect()->route('dashboard');
+    }
+
+    protected function refreshTutorRoleBeforeParticipantWindow(User $user): User
+    {
+        if (! in_array($user->role, ['guest', 'tutor'], true)) {
+            return $user;
+        }
+
+        $persons = $user->persons()
+            ->withTrashed()
+            ->whereNotNull('person_id')
+            ->get();
+
+        if ($persons->isEmpty()) {
+            return $user;
+        }
+
+        $api = app(ApiUvsService::class);
+        $tutorDetected = false;
+
+        foreach ($persons as $person) {
+            try {
+                $response = $api->getPersonStatus($person->person_id);
+            } catch (\Throwable) {
+                continue;
+            }
+
+            if (($response['ok'] ?? false) !== true) {
+                continue;
+            }
+
+            $statusData = $response['data']['data'] ?? null;
+            if (! is_array($statusData) || ! $this->statusDataMarksTutor($statusData)) {
+                continue;
+            }
+
+            $this->applyTutorStatusToPerson($person, $statusData);
+            $tutorDetected = true;
+        }
+
+        if ($tutorDetected) {
+            $user->refresh()->syncPortalRoleFromPersons();
+        }
+
+        return $user->fresh() ?? $user;
+    }
+
+    protected function statusDataMarksTutor(array $statusData): bool
+    {
+        $vertragKy = strtoupper(trim((string) ($statusData['mitarbeiter_vertrag_ky'] ?? '')));
+
+        return filter_var($statusData['is_tutor'] ?? false, FILTER_VALIDATE_BOOL) || $vertragKy === 'IS';
+    }
+
+    protected function applyTutorStatusToPerson(Person $person, array $statusData): void
+    {
+        Person::withoutUserPortalRoleSync(function () use ($person, $statusData) {
+            if (method_exists($person, 'trashed') && $person->trashed()) {
+                if (method_exists($person, 'restoreQuietly')) {
+                    $person->restoreQuietly();
+                } else {
+                    $person->restore();
+                }
+            }
+
+            $person->forceFill([
+                'role' => 'tutor',
+                'statusdata' => $statusData,
+                'last_api_update' => now(),
+            ])->saveQuietly();
+        });
     }
 
     protected function ensureParticipantLoginWindow(User $user): void
