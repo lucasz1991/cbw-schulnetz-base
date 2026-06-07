@@ -116,17 +116,26 @@ class ApiUvsService
 
     protected function http(): PendingRequest
     {
-        return Http::timeout(20)
+        return Http::connectTimeout(5)
+            ->timeout(20)
             ->acceptJson()
             ->asJson()
             ->withHeaders([
                 'X-API-KEY'     => (string) $this->apiKey,
+                'Connection'    => 'close',
+            ])
+            ->withOptions([
+                'curl' => [
+                    CURLOPT_FRESH_CONNECT => true,
+                    CURLOPT_FORBID_REUSE => true,
+                ],
             ]);
     }
 
     public function request(string $method, string $path, array $payload = [], array $query = []): array
     {
         $url = rtrim($this->baseUrl, '/') . $path;
+        $res = null;
 
         try {
             $res = match (strtoupper($method)) {
@@ -164,6 +173,8 @@ class ApiUvsService
                 'error' => $e->getMessage(),
             ]);
             return ['ok' => false, 'status' => null, 'message' => $e->getMessage()];
+        } finally {
+            $res?->close();
         }
     }
 }

@@ -103,6 +103,10 @@ class Person extends Model
         });
 
         static::updated(function (Person $person) {
+            if (app()->runningInConsole()) {
+                return;
+            }
+
             // nur wenn mit User verknüpft
             if (empty($person->user_id)) {
                 return;
@@ -113,6 +117,10 @@ class Person extends Model
         });
 
         static::retrieved(function (Person $person) {
+            if (app()->runningInConsole()) {
+                return;
+            }
+
             // nur sinnvoll, wenn mit User verknüpft
             if (empty($person->user_id) || !empty($person->programdata)) {
                 return;
