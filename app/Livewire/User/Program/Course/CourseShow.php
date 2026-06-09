@@ -5,9 +5,13 @@ namespace App\Livewire\User\Program\Course;
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Carbon;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use App\Models\Course;
 use App\Models\CourseDay;
 use App\Models\CourseParticipantEnrollment;
+use App\Models\Person;
+use App\Models\User;
+use App\Support\CurrentParticipantCourseScope;
 
 class CourseShow extends Component
 {
@@ -31,8 +35,8 @@ class CourseShow extends Component
     {
         $this->klassenId = $klassenId;
 
-        $user   = Auth::user();
-        $person = $user?->person;
+        $user = Auth::user();
+        $person = $this->resolveCurrentPerson($user);
 
         if (! $person) {
             abort(404);
@@ -52,7 +56,11 @@ class CourseShow extends Component
         // 2) Einschreibung prüfen (existiert eine Enrollment-Zeile?)
         $enrolled = CourseParticipantEnrollment::query()
             ->where('course_id', $this->course->id)
-            ->where('person_id', $person->id)
+            ->whereNull('deleted_at')
+            ->where('is_active', true)
+            ->where(function ($query) use ($person) {
+                CurrentParticipantCourseScope::applyForPerson($query, $person, 'course_participant_enrollments', null);
+            })
             ->exists();
 
         if (! $enrolled) {
@@ -66,7 +74,11 @@ class CourseShow extends Component
         // 4) Prev/Nächster Kurs innerhalb der eigenen Einschreibungen
         $enrolledCourses = Course::query()
             ->join('course_participant_enrollments as cpe', 'cpe.course_id', '=', 'courses.id')
-            ->where('cpe.person_id', $person->id)
+            ->whereNull('cpe.deleted_at')
+            ->where('cpe.is_active', true)
+            ->where(function ($query) use ($person) {
+                CurrentParticipantCourseScope::applyForPerson($query, $person, 'cpe', 'courses');
+            })
             ->orderBy('courses.planned_start_date')
             ->get([
                 'courses.id as course_id',              // eindeutiger Alias
@@ -89,6 +101,15 @@ class CourseShow extends Component
 
         $this->prev = ($this->index > 0) ? $enrolledCourses[$this->index - 1] : null;
         $this->next = ($this->index !== false && $this->index + 1 < $this->total) ? $enrolledCourses[$this->index + 1] : null;
+    }
+
+    protected function resolveCurrentPerson(?User $user): ?Person
+    {
+        if ($user && method_exists($user, 'resolvePortalDrivingPerson')) {
+            return $user->resolvePortalDrivingPerson() ?? $user->person;
+        }
+
+        return $user?->person;
     }
 
     private function mapCourse(Course $c): array

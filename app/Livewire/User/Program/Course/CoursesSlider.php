@@ -8,6 +8,7 @@ use App\Models\Course;
 use App\Models\CourseMaterialAcknowledgement;
 use App\Models\CourseRating;
 use App\Models\Person;
+use App\Support\CurrentParticipantCourseScope;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 class CoursesSlider extends Component
@@ -29,7 +30,7 @@ class CoursesSlider extends Component
     {
         $this->klassenId = $klassenId;
 
-        $this->person = Auth::user()?->person;
+        $this->person = $this->resolveCurrentPerson();
         if (! $this->person) {
             abort(404);
         }
@@ -37,24 +38,18 @@ class CoursesSlider extends Component
         // Aktuellen Kurs über klassen_id holen (für courseId + Index)
         $currentCourse = Course::query()
             ->select('courses.*')
-            ->where('klassen_id', $klassenId)
+            ->join('course_participant_enrollments as cpe', function ($join) {
+                $join->on('cpe.course_id', '=', 'courses.id')
+                    ->whereNull('cpe.deleted_at')
+                    ->where('cpe.is_active', true);
+            })
+            ->where('courses.klassen_id', $klassenId)
+            ->where(function ($query) {
+                CurrentParticipantCourseScope::applyForPerson($query, $this->person, 'cpe', 'courses');
+            })
             ->firstOrFail();
 
         $this->courseId = (int) $currentCourse->id;
-
-        $programBlocks = collect(data_get($this->person->programdata, 'tn_baust', []));
-        $programKlassenIds = $programBlocks
-            ->pluck('klassen_id')
-            ->filter(fn ($id) => is_string($id) && trim($id) !== '')
-            ->map(fn ($id) => trim($id))
-            ->unique()
-            ->values();
-        $programBausteinIds = $programBlocks
-            ->pluck('baustein_id')
-            ->filter(fn ($id) => is_string($id) && trim($id) !== '')
-            ->map(fn ($id) => trim($id))
-            ->unique()
-            ->values();
 
         // Alle eingeschriebenen Kurse laden (für Slider)
         $this->enrolledCourses = Course::query()
@@ -62,25 +57,11 @@ class CoursesSlider extends Component
             ->with(['days'])
             ->withCount('days')
             ->join('course_participant_enrollments as cpe', 'cpe.course_id', '=', 'courses.id')
-            ->where('cpe.person_id', $this->person->id)
-            ->when(
-                $programKlassenIds->isNotEmpty() || $programBausteinIds->isNotEmpty(),
-                function ($query) use ($programKlassenIds, $programBausteinIds) {
-                    $query->where(function ($scope) use ($programKlassenIds, $programBausteinIds) {
-                        if ($programKlassenIds->isNotEmpty()) {
-                            $scope->whereIn('courses.klassen_id', $programKlassenIds->all());
-                        }
-
-                        if ($programBausteinIds->isNotEmpty()) {
-                            if ($programKlassenIds->isNotEmpty()) {
-                                $scope->orWhereIn('cpe.baustein_id', $programBausteinIds->all());
-                            } else {
-                                $scope->whereIn('cpe.baustein_id', $programBausteinIds->all());
-                            }
-                        }
-                    });
-                }
-            )
+            ->whereNull('cpe.deleted_at')
+            ->where('cpe.is_active', true)
+            ->where(function ($query) {
+                CurrentParticipantCourseScope::applyForPerson($query, $this->person, 'cpe', 'courses');
+            })
             ->orderBy('courses.planned_start_date')
             ->get();
 
@@ -159,5 +140,16 @@ class CoursesSlider extends Component
     public function render()
     {
         return view('livewire.user.program.course.courses-slider');
+    }
+
+    protected function resolveCurrentPerson(): ?Person
+    {
+        $user = Auth::user();
+
+        if ($user && method_exists($user, 'resolvePortalDrivingPerson')) {
+            return $user->resolvePortalDrivingPerson() ?? $user->person;
+        }
+
+        return $user?->person;
     }
 }

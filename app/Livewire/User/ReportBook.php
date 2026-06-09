@@ -14,6 +14,7 @@ use App\Models\Course;
 use App\Models\CourseDay;
 use App\Models\User;
 use App\Models\Person;
+use App\Support\CurrentParticipantCourseScope;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Livewire\Attributes\Url;
@@ -103,8 +104,9 @@ public function mount(): void
 
     protected function fetchUserCourses(): array
     {
-        $personId = Auth::user()?->person?->id;
-        if (!$personId) return [];
+        $person = $this->currentPerson();
+        if (!$person) return [];
+
         $userId = Auth::id();
         $massnahmeId = $this->massnahmeId;
         $applicationStartDate = config('application.app_start_date');
@@ -124,9 +126,8 @@ public function mount(): void
         }
 
         $q = DB::table('courses')
-            ->join('course_participant_enrollments as cpe', function ($join) use ($personId) {
+            ->join('course_participant_enrollments as cpe', function ($join) {
                 $join->on('courses.id', '=', 'cpe.course_id')
-                    ->where('cpe.person_id', '=', $personId)
                     ->whereNull('cpe.deleted_at')
                     ->where('cpe.is_active', '=', 1);
             })
@@ -143,6 +144,9 @@ public function mount(): void
                     ->on('rbe.course_day_id', '=', 'cd.id');
             })
             ->whereNull('courses.deleted_at')
+            ->where(function ($query) use ($person) {
+                CurrentParticipantCourseScope::applyForPerson($query, $person, 'cpe', 'courses');
+            })
             ->when($visibilityStartDate, function ($query) use ($visibilityStartDate, $userId, $massnahmeId) {
                 $query->where(function ($visibility) use ($visibilityStartDate, $userId, $massnahmeId) {
                     // Sperre nur Kurse, die vor der Sichtbarkeitsgrenze liegen.
@@ -250,6 +254,7 @@ public function mount(): void
     {
         $this->courseDays = [];
         if (!$this->selectedCourseId) return;
+        if (!$this->canAccessCourse((int) $this->selectedCourseId)) return;
 
         $days = DB::table('course_days as cd')
             ->leftJoin('report_books as rb', function ($join) {
@@ -313,6 +318,11 @@ public function mount(): void
 public function selectCourse(int $courseId): void
 {
     if ($this->selectedCourseId === $courseId) return;
+
+    if (!$this->canAccessCourse($courseId)) {
+        $this->dispatch('toast', type: 'warning', message: 'Kurs ist fuer den aktuellen Vertrag nicht freigegeben.');
+        return;
+    }
 
     $this->selectedCourseId = $courseId;
 
@@ -399,7 +409,16 @@ public function reloadForCurrentCourse(): void
 
     public function save(): void
     {
+        if (!$this->selectedCourseId || !$this->canAccessCourse((int) $this->selectedCourseId)) {
+            $this->dispatch('toast', type: 'warning', message: 'Kurs ist fuer den aktuellen Vertrag nicht freigegeben.');
+            return;
+        }
+
         $this->ensureReportBookId(); // legt ReportBook on-demand an
+        if (!$this->reportBookId) {
+            $this->dispatch('toast', type: 'warning', message: 'Kurs ist fuer den aktuellen Vertrag nicht freigegeben.');
+            return;
+        }
 
         if (!$this->selectedCourseDayId) {
             $this->dispatch('toast', type: 'warning', message: 'Kein Kurstag ausgewählt.');
@@ -409,6 +428,10 @@ public function reloadForCurrentCourse(): void
         $day = CourseDay::find($this->selectedCourseDayId);
         if (!$day) {
             $this->dispatch('toast', type: 'warning', message: 'Kurstag nicht gefunden.');
+            return;
+        }
+        if ((int) $day->course_id !== (int) $this->selectedCourseId) {
+            $this->dispatch('toast', type: 'warning', message: 'Kurstag gehoert nicht zum ausgewaehlten Kurs.');
             return;
         }
 
@@ -469,7 +492,17 @@ public function reloadForCurrentCourse(): void
 
     public function submit(): void
     {
+        if (!$this->selectedCourseId || !$this->canAccessCourse((int) $this->selectedCourseId)) {
+            $this->dispatch('toast', type: 'warning', message: 'Kurs ist fuer den aktuellen Vertrag nicht freigegeben.');
+            return;
+        }
+
         $this->ensureReportBookId();
+        if (!$this->reportBookId) {
+            $this->dispatch('toast', type: 'warning', message: 'Kurs ist fuer den aktuellen Vertrag nicht freigegeben.');
+            return;
+        }
+
         $this->pendingSignatureAction = null;
 
         if (!$this->selectedCourseDayId) {
@@ -480,6 +513,10 @@ public function reloadForCurrentCourse(): void
         $day = CourseDay::find($this->selectedCourseDayId);
         if (!$day) {
             $this->dispatch('toast', type: 'warning', message: 'Kurstag nicht gefunden.');
+            return;
+        }
+        if ((int) $day->course_id !== (int) $this->selectedCourseId) {
+            $this->dispatch('toast', type: 'warning', message: 'Kurstag gehoert nicht zum ausgewaehlten Kurs.');
             return;
         }
 
@@ -519,6 +556,7 @@ public function reloadForCurrentCourse(): void
     {
         if ($this->reportBookId) return;
         if (!$this->selectedCourseId) return;
+        if (!$this->canAccessCourse((int) $this->selectedCourseId)) return;
 
         $book = ReportBookModel::firstOrCreate(
             [
@@ -754,6 +792,58 @@ public function reloadForCurrentCourse(): void
         $this->loadCurrentEntry();
     }
     /* ======================= Loader / Helper ======================= */
+
+    protected function currentPerson(): ?Person
+    {
+        $user = Auth::user();
+
+        if ($user && method_exists($user, 'resolvePortalDrivingPerson')) {
+            return $user->resolvePortalDrivingPerson() ?? $user->person;
+        }
+
+        return $user?->person;
+    }
+
+    protected function currentContractCourseIds(): array
+    {
+        $person = $this->currentPerson();
+        if (!$person) {
+            return [];
+        }
+
+        return DB::table('courses')
+            ->join('course_participant_enrollments as cpe', function ($join) {
+                $join->on('courses.id', '=', 'cpe.course_id')
+                    ->whereNull('cpe.deleted_at')
+                    ->where('cpe.is_active', '=', 1);
+            })
+            ->whereNull('courses.deleted_at')
+            ->where(function ($query) use ($person) {
+                CurrentParticipantCourseScope::applyForPerson($query, $person, 'cpe', 'courses');
+            })
+            ->distinct()
+            ->pluck('courses.id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+    }
+
+    protected function canAccessCourse(int $courseId): bool
+    {
+        if ($courseId <= 0) {
+            return false;
+        }
+
+        $listedCourseIds = collect($this->courses)
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        if (in_array($courseId, $listedCourseIds, true)) {
+            return true;
+        }
+
+        return in_array($courseId, $this->currentContractCourseIds(), true);
+    }
    
     public function loadCurrentEntry(): void
     {
@@ -881,14 +971,23 @@ public function reloadForCurrentCourse(): void
 
     public function importTutorDocToDraft(): void
     {
+        if (!$this->selectedCourseId || !$this->canAccessCourse((int) $this->selectedCourseId)) {
+            $this->dispatch('toast', type: 'warning', message: 'Kurs ist fuer den aktuellen Vertrag nicht freigegeben.');
+            return;
+        }
+
         if (!$this->selectedCourseDayId) {
             $this->dispatch('toast', type: 'warning', message: 'Kein Kurstag ausgewählt.');
             return;
         }
 
-        $day = CourseDay::find($this->selectedCourseDayId, ['id', 'date', 'notes']);
+        $day = CourseDay::find($this->selectedCourseDayId, ['id', 'course_id', 'date', 'notes']);
         if (!$day) {
             $this->dispatch('toast', type: 'warning', message: 'Kurstag nicht gefunden.');
+            return;
+        }
+        if ((int) $day->course_id !== (int) $this->selectedCourseId) {
+            $this->dispatch('toast', type: 'warning', message: 'Kurstag gehoert nicht zum ausgewaehlten Kurs.');
             return;
         }
 
@@ -905,6 +1004,10 @@ public function reloadForCurrentCourse(): void
         }
 
         $this->ensureReportBookId();
+        if (!$this->reportBookId) {
+            $this->dispatch('toast', type: 'warning', message: 'Kurs ist fuer den aktuellen Vertrag nicht freigegeben.');
+            return;
+        }
 
         $entry = ReportBookEntry::firstOrNew([
             'report_book_id' => $this->reportBookId,
@@ -935,6 +1038,11 @@ public function exportReportEntry(): ?StreamedResponse
 {
     if (!$this->selectedCourseId || !$this->selectedCourseDayId) {
         $this->dispatch('toast', type: 'warning', message: 'Kurs und Kurstag auswählen.');
+        return null;
+    }
+
+    if (!$this->canAccessCourse((int) $this->selectedCourseId)) {
+        $this->dispatch('toast', type: 'warning', message: 'Kurs ist fuer den aktuellen Vertrag nicht freigegeben.');
         return null;
     }
 
@@ -998,6 +1106,11 @@ public function exportReportEntry(): ?StreamedResponse
 
 public function exportReportModule(): ?StreamedResponse
 {
+    if (!$this->canAccessCourse((int) $this->selectedCourseId)) {
+        $this->dispatch('toast', type: 'warning', message: 'Kurs ist fuer den aktuellen Vertrag nicht freigegeben.');
+        return null;
+    }
+
     $book = ReportBookModel::with([
             'course',
             'entries' => fn ($q) => $q->orderBy('entry_date'),
@@ -1052,6 +1165,12 @@ public function exportReportModule(): ?StreamedResponse
 
 public function exportReportAll(): ?StreamedResponse
 {
+    $courseIds = $this->currentContractCourseIds();
+    if (empty($courseIds)) {
+        $this->dispatch('toast', type: 'warning', message: 'Keine Kurse fuer den aktuellen Vertrag vorhanden.');
+        return null;
+    }
+
     $books = ReportBookModel::with([
             'course',
             'entries' => fn ($q) => $q->orderBy('entry_date'),
@@ -1061,6 +1180,7 @@ public function exportReportAll(): ?StreamedResponse
             ])->orderByDesc('id'),
         ])
         ->where('user_id', Auth::id())
+        ->whereIn('course_id', $courseIds)
         ->when($this->massnahmeId, fn ($q) => $q->where('massnahme_id', $this->massnahmeId))
         ->whereHas('entries')
         ->get();
