@@ -15,6 +15,7 @@ use App\Models\CourseDay;
 use App\Models\User;
 use App\Models\Person;
 use App\Support\CurrentParticipantCourseScope;
+use App\Services\ReportBook\ReportWeekTimeline;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Livewire\Attributes\Url;
@@ -49,6 +50,13 @@ public ?int $selectedCourseDayId = null; // aktueller Kurs-Tag
 
     /** Seitenleiste „Letzte Einträge“ */
     public array $recent = [];
+
+    /** Kalenderwoche + fortlaufende Nachweis-Nr. des gewählten Kurstags */
+    public ?string $currentWeekLabel = null;   // z. B. "KW 12 / 2026"
+    public ?string $currentNachweisNr = null;  // z. B. "05"
+
+    /** Request-Cache der Wochen-Map (nicht Livewire-persistiert) */
+    protected ?array $reportWeekMap = null;
 
     /** UI-Flags */
     public bool $isDirty = false;
@@ -856,6 +864,7 @@ public function reloadForCurrentCourse(): void
         if (!$this->selectedCourseId || !$this->selectedCourseDayId) {
             $this->initialHash = $this->curHash();
             $this->recomputeFlags();
+            $this->updateWeekContext();
             return;
         }
 
@@ -869,6 +878,7 @@ public function reloadForCurrentCourse(): void
         if (!$book) {
             $this->initialHash = $this->curHash();
             $this->recomputeFlags();
+            $this->updateWeekContext();
             return;
         }
 
@@ -885,6 +895,52 @@ public function reloadForCurrentCourse(): void
 
         $this->initialHash = $this->curHash();
         $this->recomputeFlags();
+        $this->updateWeekContext();
+    }
+
+    /**
+     * KW-Label + fortlaufende Nachweis-Nr. (Kurs- UND Ferienwochen,
+     * siehe ReportWeekTimeline) fuer den gewaehlten Kurstag berechnen.
+     */
+    protected function updateWeekContext(): void
+    {
+        $this->currentWeekLabel = null;
+        $this->currentNachweisNr = null;
+
+        $day = collect($this->courseDays)->firstWhere('id', $this->selectedCourseDayId);
+        $dateStr = $day['date'] ?? null;
+        if (! $dateStr) {
+            return;
+        }
+
+        try {
+            $date = Carbon::parse($dateStr);
+        } catch (\Throwable) {
+            return;
+        }
+
+        $this->currentWeekLabel = 'KW ' . $date->isoWeek() . ' / ' . $date->isoWeekYear();
+
+        $nr = ReportWeekTimeline::numberForDate($date, $this->reportWeekMap());
+        if ($nr !== null) {
+            $this->currentNachweisNr = str_pad((string) $nr, 2, '0', STR_PAD_LEFT);
+        }
+    }
+
+    protected function reportWeekMap(): array
+    {
+        if ($this->reportWeekMap === null) {
+            // Person mit programdata bevorzugen (wie ProgramShow::resolveProgramPerson) —
+            // die Portal-Person kann bei mehreren verknuepften Personen leer ausgehen.
+            $user = Auth::user();
+            $person = collect($user?->persons ?? [])->first(fn ($p) => ! empty($p->programdata))
+                ?? $this->currentPerson();
+
+            $pd = $person?->programdata;
+            $this->reportWeekMap = ReportWeekTimeline::weekMap(is_array($pd) ? $pd : []);
+        }
+
+        return $this->reportWeekMap;
     }
 
     protected function loadRecent(): void

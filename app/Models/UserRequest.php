@@ -30,6 +30,25 @@ class UserRequest extends Model
     public const TYPE_EXTERNAL_MAKEUP = 'external_makeup';
     public const TYPE_GENERAL         = 'general';
 
+    public const EXAM_MODALITY_RETAKE      = 'retake';
+    public const EXAM_MODALITY_IMPROVEMENT = 'improvement';
+
+    public const MAKEUP_EXAM_MODALITY_LABELS = [
+        self::EXAM_MODALITY_RETAKE      => 'Interne Wiederholungsprüfung',
+        self::EXAM_MODALITY_IMPROVEMENT => 'Interne Nachprüfung',
+    ];
+
+    private const MAKEUP_EXAM_OPTIONS = [
+        'wiederholung_1' => [
+            'exam_modality' => self::EXAM_MODALITY_RETAKE,
+            'fee_cents' => 5000,
+        ],
+        'wiederholung_2' => [
+            'exam_modality' => self::EXAM_MODALITY_IMPROVEMENT,
+            'fee_cents' => 3000,
+        ],
+    ];
+
 
 
     public const STATUS_PENDING   = 'pending';
@@ -143,12 +162,67 @@ class UserRequest extends Model
         return $this->user?->person?->institut_id ? $this->user?->person?->institut_id : 0;
     }
 
-    /** Formatierte Gebühr (z. B. 20,00 €) */
+    /** Aktuelle Auswahlmöglichkeiten für neue interne Nachprüfungsanträge. */
+    public static function makeupExamOptions(): array
+    {
+        $options = self::MAKEUP_EXAM_OPTIONS;
+
+        foreach ($options as &$option) {
+            $option['label'] = self::makeupExamDisplayLabel(
+                $option['exam_modality'],
+                $option['fee_cents'],
+            );
+        }
+        unset($option);
+
+        return $options;
+    }
+
+    public static function makeupExamOption(?string $selection): ?array
+    {
+        if ($selection === null) {
+            return null;
+        }
+
+        return self::makeupExamOptions()[$selection] ?? null;
+    }
+
+    public static function formatFeeCents(?int $feeCents): ?string
+    {
+        return $feeCents === null
+            ? null
+            : number_format($feeCents / 100, 2, ',', '.') . ' €';
+    }
+
+    public static function makeupExamDisplayLabel(?string $examModality, ?int $feeCents): ?string
+    {
+        $modalityLabel = self::MAKEUP_EXAM_MODALITY_LABELS[$examModality] ?? null;
+
+        if ($modalityLabel === null) {
+            return null;
+        }
+
+        $fee = self::formatFeeCents($feeCents);
+
+        return $fee === null ? $modalityLabel : $modalityLabel . ' – ' . $fee;
+    }
+
+    /** Formatierte persistierte Gebühr (z. B. 50,00 €). */
     public function getFeeFormattedAttribute(): ?string
     {
-        return is_null($this->fee_cents)
-            ? null
-            : number_format($this->fee_cents / 100, 2, ',', '.') . ' €';
+        return self::formatFeeCents($this->fee_cents);
+    }
+
+    /** Anzeige der internen Prüfungsart inklusive der bei Antragstellung gespeicherten Gebühr. */
+    public function getMakeupExamOptionLabelAttribute(): ?string
+    {
+        return self::makeupExamDisplayLabel($this->exam_modality, $this->fee_cents);
+    }
+
+    /** Bezeichnung der internen Prüfungsart ohne Gebühr. */
+    public function getMakeupExamModalityLabelAttribute(): ?string
+    {
+        return self::MAKEUP_EXAM_MODALITY_LABELS[$this->exam_modality] ?? null;
     }
 
     /** Anzeige für „mit/ohne Attest“ */

@@ -82,6 +82,14 @@ class CheckPersonsCourses implements ShouldQueue, ShouldBeUniqueUntilProcessing
             return;
         }
 
+        // FERI-Bloecke haben keine klassen_id und laufen daher am regulaeren
+        // Kurs-Sync vorbei — eigener Job synthetisiert lokale Ferien-Kurse
+        // (Berichtsheft fuer Ferienwochen, siehe MODEL_COORDINATION.md).
+        if ($role !== 'tutor') {
+            SyncPersonFerienCourses::dispatch($person->id);
+            $log['messages'][] = 'SyncPersonFerienCourses dispatched.';
+        }
+
         $klassenIds = $role === 'tutor'
             ? $this->extractTutorKlassenIds($pd)
             : $this->extractGuestKlassenIds($pd);

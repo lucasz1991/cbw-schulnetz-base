@@ -75,6 +75,15 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
             return;
         }
 
+        // Synthetische Ferien-Kurse (SyncPersonFerienCourses) existieren nicht in
+        // UVS — der 404-Pfad wuerde sie sonst soft-deleten.
+        if (str_starts_with($this->klassenId, SyncPersonFerienCourses::KLASSEN_ID_PREFIX)) {
+            $log['status'] = 'synthetic_ferien_course';
+            $log['messages'][] = 'Synthetische Ferien-klassen_id, kein UVS-Sync.';
+            $writeLog('info');
+            return;
+        }
+
         // COOLDOWN über Cache
         $cacheKey = "course-sync-cooldown:{$this->klassenId}";
 

@@ -574,16 +574,24 @@
                   Verarbeite …
               </span>
           </div>
-            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border
-                {{ $status === 3
-                    ? 'bg-red-50 text-red-700 border-red-200'
-                    : ($status === 2
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        : ($status === 1
-                            ? 'bg-green-50 text-green-700 border-green-200'
-                            : 'bg-slate-50 text-slate-700 border-slate-200')) }}">
-                Status: {{ $status === 3 ? 'Abgelehnt' : ($status === 2 ? 'Freigegeben' : ($status === 1 ? 'Fertig' : ($status === 0 ? 'Entwurf' : 'Fehlend'))) }}
-            </span>
+            <div class="flex items-center gap-2">
+                @if($currentWeekLabel)
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border bg-sky-50 text-sky-700 border-sky-200"
+                          title="Fortlaufende Nachweis-Nummer über alle Berichtszeiträume (Kurs- und Ferienwochen)">
+                        {{ $currentWeekLabel }}@if($currentNachweisNr) · Nachweis-Nr. {{ $currentNachweisNr }}@endif
+                    </span>
+                @endif
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border
+                    {{ $status === 3
+                        ? 'bg-red-50 text-red-700 border-red-200'
+                        : ($status === 2
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : ($status === 1
+                                ? 'bg-green-50 text-green-700 border-green-200'
+                                : 'bg-slate-50 text-slate-700 border-slate-200')) }}">
+                    Status: {{ $status === 3 ? 'Abgelehnt' : ($status === 2 ? 'Freigegeben' : ($status === 1 ? 'Fertig' : ($status === 0 ? 'Entwurf' : 'Fehlend'))) }}
+                </span>
+            </div>
         </div>
         <div>
           <div wire:key="{{ $editorKey }}" class="relative z-20 ">

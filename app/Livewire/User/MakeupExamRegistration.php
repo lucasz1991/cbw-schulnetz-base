@@ -40,7 +40,7 @@ class MakeupExamRegistration extends Component
     {
         return [
             'klasse'        => ['nullable','string','max:12'],
-            'wiederholung'  => ['required', Rule::in(['wiederholung_1','wiederholung_2'])],
+            'wiederholung'  => ['required', Rule::in(array_keys(UserRequest::makeupExamOptions()))],
             'nachKlTermin'  => ['required','numeric'], // Unix TS
             'nKlBaust'      => ['required','string','max:10'],
             'nKlDozent'     => ['required','string','max:120'],
@@ -107,12 +107,7 @@ class MakeupExamRegistration extends Component
     {
         $this->validate();
 
-        // Gebühren-Logik
-        $feeCents = match ($this->wiederholung) {
-            'wiederholung_1' => 2000, // 20,00 €
-            'wiederholung_2' => 4000, // 40,00 €
-            default => null,
-        };
+        $examOption = UserRequest::makeupExamOption($this->wiederholung);
 
         // Attest-Flag aus Grund
         $withAttest = $this->grund === 'krankMitAtest';
@@ -125,12 +120,6 @@ class MakeupExamRegistration extends Component
 
         // Titel für Übersicht
         $title = 'Nachprüfung ' . ($this->nKlBaust ?: '');
-
-        $exam_modality =  match ($this->wiederholung) {
-            'wiederholung_1' => 'retake',
-            'wiederholung_2' => 'improvement', 
-            default => null,
-        };
 
         // Create UserRequest
         $request = UserRequest::create([
@@ -150,10 +139,10 @@ class MakeupExamRegistration extends Component
             'scheduled_at'       => $scheduledAt,
 
             // Gründe / Gebühren
-            'exam_modality'      => $exam_modality,
+            'exam_modality'      => $examOption['exam_modality'],
             'reason'             => $this->grund,      // unter51 | krankMitAtest | krankOhneAtest
             'with_attest'        => $withAttest,
-            'fee_cents'          => $feeCents,
+            'fee_cents'          => $examOption['fee_cents'],
 
             // Flex: Rohwerte zusätzlich sichern
             'data'               => [
@@ -244,6 +233,7 @@ class MakeupExamRegistration extends Component
 
         return view('livewire.user.makeup-exam-registration', [
             'examSlots' => $examSlots,
+            'makeupExamOptions' => UserRequest::makeupExamOptions(),
         ])->layout('layouts.app');
     }
 }

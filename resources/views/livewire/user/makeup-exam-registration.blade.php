@@ -34,22 +34,16 @@
         <div class="mb-2 font-semibold">Ich beantrage gemäß Qualifizierungsordnung:</div>
 
 <x-ui.forms.radio-btn-group aria-label="Art der Nachprüfung">
-  <x-ui.forms.radio-btn-group-item
-    name="wiederholung"
-    label="Nach-/Wiederholungsprüfung (20,00 €)"
-    value="wiederholung_1"
-    wire:model="wiederholung"
-    icon="fa-redo"
-    iconStyle="fas"
-  />
-  <x-ui.forms.radio-btn-group-item
-    name="wiederholung"
-    label="Ergebnisverbesserung (40,00 €)"
-    value="wiederholung_2"
-    wire:model="wiederholung"
-    icon="fa-chart-line"
-    iconStyle="fas"
-  />
+  @foreach($makeupExamOptions as $selection => $option)
+    <x-ui.forms.radio-btn-group-item
+      name="wiederholung"
+      :label="$option['label']"
+      :value="$selection"
+      wire:model="wiederholung"
+      :icon="$option['exam_modality'] === \App\Models\UserRequest::EXAM_MODALITY_RETAKE ? 'fa-redo' : 'fa-chart-line'"
+      iconStyle="fas"
+    />
+  @endforeach
 </x-ui.forms.radio-btn-group>
 
 

@@ -24,6 +24,9 @@ class CourseShowOverview extends Component
     public ?float $participantScore = null;
     public ?float $classAverage = null;
 
+    /** Normalisierter Status, wenn UVS statt Punkten ein Kennwort liefert: passed|failed|not_attended|open */
+    public ?string $participantResultStatus = null;
+
     public bool $hasCurrentCourseRating = false;
     public bool $hasCurrentCourseMaterialsAck = false;
     public bool $hasCourseMaterials = false;
@@ -111,6 +114,31 @@ class CourseShowOverview extends Component
 
         $this->participantScore = $this->safeAvg($blocks, 'tn_punkte');
         $this->classAverage = $this->safeAvg($blocks, 'klassenschnitt');
+        $this->participantResultStatus = $this->resultStatusFromBlocks($blocks);
+    }
+
+    /**
+     * UVS liefert tn_punkte in Sonderfaellen als Kennwort statt Zahl
+     * (passed/failed/pending/not att, siehe uvs-api ParticipantApiController).
+     * Ohne Normalisierung erschiene z. B. ein 'failed' als "Noch kein Ergebnis erfasst.".
+     */
+    private function resultStatusFromBlocks(Collection $blocks): ?string
+    {
+        foreach ($blocks as $block) {
+            $value = is_array($block) ? ($block['tn_punkte'] ?? null) : null;
+            if (! is_string($value)) {
+                continue;
+            }
+
+            switch (trim($value)) {
+                case 'passed':  return 'passed';
+                case 'failed':  return 'failed';
+                case 'not att': return 'not_attended';
+                case 'pending': return 'open';
+            }
+        }
+
+        return null;
     }
 
     private function status(?Carbon $start, ?Carbon $end): string

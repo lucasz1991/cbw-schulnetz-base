@@ -189,8 +189,16 @@
         return null;
     };
 
-    $umschulungStartFromProgramm = function ($user) use ($parseYmdSlash): ?Carbon {
-        $pd = data_get($user, 'person.programmdata', []);
+    // Programm-Person aufloesen: bei mehreren verknuepften Personen die mit programdata
+    // (wie ProgramShow::resolveProgramPerson; user->person allein kann leer ausgehen).
+    // Hinweis: das Attribut heisst 'programdata' — der fruehere Tippfehler 'programmdata'
+    // liess den Umschulungsstart immer auf null fallen, wodurch jede Seite Nachweis-Nr. 01 bekam.
+    $programPerson = collect($user?->persons ?? [])->first(fn ($p) => !empty($p->programdata))
+        ?? $user?->person;
+    $programdata = is_array($programPerson?->programdata) ? $programPerson->programdata : [];
+
+    $umschulungStartFromProgramm = function ($user) use ($parseYmdSlash, $programdata): ?Carbon {
+        $pd = $programdata;
         $baust = collect(data_get($pd, 'tn_baust', []));
 
         $min = $baust
@@ -216,6 +224,15 @@
     };
 
     $padNachweis = fn (int $n): string => str_pad((string)$n, 2, '0', STR_PAD_LEFT);
+
+    // Fortlaufende Nummerierung ueber alle Berichtszeitraeume (Kurs- UND Ferienwochen).
+    // Fallback auf Kalenderwochen-Abstand, falls eine Woche nicht im Qualiprogramm liegt.
+    $reportWeekMap = \App\Services\ReportBook\ReportWeekTimeline::weekMap($programdata);
+
+    $nachweisNrFuer = function (Carbon $d, Carbon $startEffective) use ($reportWeekMap, $trainingWeekNo): int {
+        return \App\Services\ReportBook\ReportWeekTimeline::numberForDate($d, $reportWeekMap)
+            ?? $trainingWeekNo($d, $startEffective);
+    };
 @endphp
 
 @if(($mode ?? null) === 'single')
@@ -225,7 +242,7 @@
 
     $start = $umschulungStartFromProgramm($user) ?? $d;
 
-    $ausbildungsnachweisNr = $padNachweis($trainingWeekNo($d, $start));
+    $ausbildungsnachweisNr = $padNachweis($nachweisNrFuer($d, $start));
     $ausbildungsjahr       = $trainingYearNo($d, $start);
 
     $abteilung = $course->title ?? ($course->klassen_id ?? 'Kurs');
@@ -350,7 +367,7 @@
 
     $startEffective = $start ?? $firstDay;
 
-    $ausbildungsnachweisNr = $padNachweis($trainingWeekNo($firstDay, $startEffective));
+    $ausbildungsnachweisNr = $padNachweis($nachweisNrFuer($firstDay, $startEffective));
     $ausbildungsjahr       = $trainingYearNo($firstDay, $startEffective);
 
     $pImg = $resolveImg($participantSignatureUrl ?? null);
@@ -493,7 +510,7 @@
 
     $startEffective = $start ?? $firstDay;
 
-    $ausbildungsnachweisNr = $padNachweis($trainingWeekNo($firstDay, $startEffective));
+    $ausbildungsnachweisNr = $padNachweis($nachweisNrFuer($firstDay, $startEffective));
     $ausbildungsjahr       = $trainingYearNo($firstDay, $startEffective);
 @endphp
 

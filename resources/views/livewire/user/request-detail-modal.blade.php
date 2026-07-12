@@ -70,7 +70,12 @@
 
                     {{-- Extern --}}
                     <x-ui.detail-item label="Zertifizierung" :value="$request->certification_label ?: ($request->certification_key ?: '—')"/>
-                    <x-ui.detail-item label="Durchführung" :value="$request->exam_modality ?: '—'"/>
+                    <x-ui.detail-item
+                        label="Durchführung"
+                        :value="$request->type === \App\Models\UserRequest::TYPE_MAKEUP
+                            ? ($request->makeup_exam_modality_label ?: ($request->exam_modality ?: '—'))
+                            : ($request->exam_modality ?: '—')"
+                    />
                 @endif
 
                 <x-ui.detail-item label="Eingereicht am" :value="$request->submitted_at?->timezone(config('app.timezone'))->format('d.m.Y H:i') ?: $request->created_at->timezone(config('app.timezone'))->format('d.m.Y H:i')"/>

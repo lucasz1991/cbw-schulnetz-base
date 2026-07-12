@@ -24,6 +24,7 @@
 
     $module = $request->module_code ?? '—';
     $instructor = $request->instructor_name ?? '—';
+    $makeupExamOptions = \App\Models\UserRequest::makeupExamOptions();
 @endphp
 
 <!DOCTYPE html>
@@ -139,19 +140,20 @@
 {{-- Auswahlfelder (wie Vorlage: mit „X“ gesetzt, sonst leer) --}}
 <div class="block">
     <table class="checkbox-table">
+        @foreach($makeupExamOptions as $option)
+        @php
+            $isSelected = $request->exam_modality === $option['exam_modality'];
+            $optionLabel = $isSelected
+                ? \App\Models\UserRequest::makeupExamDisplayLabel($option['exam_modality'], $request->fee_cents)
+                : $option['label'];
+        @endphp
         <tr>
             <td>
-                <span class="checkbox">@if($request->exam_modality === 'retake') X @endif</span>
-                eine Nach- / Wiederholungsprüfung – 20,00 € (*)(**)
+                <span class="checkbox">@if($isSelected) X @endif</span>
+                {{ $optionLabel }} @if($option['exam_modality'] === \App\Models\UserRequest::EXAM_MODALITY_RETAKE)(*)(**)@else(**)@endif
             </td>
         </tr>
-
-        <tr>
-            <td>
-                <span class="checkbox">@if($request->exam_modality === 'improvement') X @endif</span>
-                eine Nachprüfung zwecks Ergebnisverbesserung – 40,00 € (**)
-            </td>
-        </tr>
+        @endforeach
     </table>
 </div>
 

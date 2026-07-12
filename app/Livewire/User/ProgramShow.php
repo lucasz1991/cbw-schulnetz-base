@@ -12,6 +12,7 @@ use App\Models\Person;
 use App\Models\Course;
 use App\Models\CourseMaterialAcknowledgement;
 use App\Models\CourseRating;
+use App\Support\PassedModuleChartData;
 
 
 
@@ -47,6 +48,7 @@ class ProgramShow extends Component
     public $bausteinSerie;
     public $bausteinLabels;
     public $bausteinColors;
+    public $bausteinTooltips;
 
     public bool $apiProgramLoading = false;
     protected int $apiCooldownSeconds = 300; // 5 Minuten Cooldown für API-Updates
@@ -131,6 +133,35 @@ class ProgramShow extends Component
         return null;
     }
 
+    /**
+     * Normalisierter Ergebnisstatus eines Kurs-Bausteins: passed | failed | not_attended | open.
+     * UVS liefert tn_punkte entweder numerisch oder als Kennwort
+     * (passed/failed/pending/not att/---, siehe uvs-api ParticipantApiController,
+     * Vertrag in MODEL_COORDINATION.md).
+     */
+    private function ergebnisStatus(mixed $tnPunkte, mixed $klassenschnitt): string
+    {
+        if (is_string($tnPunkte)) {
+            $v = trim($tnPunkte);
+            if ($v === 'passed')  return 'passed';
+            if ($v === 'failed')  return 'failed';
+            if ($v === 'not att') return 'not_attended';
+            if ($v === 'pending') return 'open';
+        }
+
+        $punkte  = $this->num($tnPunkte);
+        $schnitt = $this->num($klassenschnitt);
+
+        if ($punkte === null) {
+            return 'open'; // '---', '-' oder kein Wert vorhanden
+        }
+        if ($punkte === 0.0 && ($schnitt === null || $schnitt === 0.0)) {
+            return 'open'; // Ergebnis noch nicht erfasst (0/0-Regel)
+        }
+
+        return $punkte >= 50 ? 'passed' : 'failed';
+    }
+
     private function toCarbon(null|string $v): ?Carbon
     {
         if (!$v) return null;
@@ -167,6 +198,13 @@ class ProgramShow extends Component
             'punkte'             => $this->num($b['tn_punkte'] ?? null),
             'fehltage'           => $this->num($b['fehltage'] ?? null),
             'klassenschnitt'     => $this->num($b['klassenschnitt'] ?? null),
+
+            // Rohwerte + normalisierter Ergebnisstatus (Vertrag: MODEL_COORDINATION.md)
+            'punkte_raw'         => $b['tn_punkte'] ?? null,
+            'klassenschnitt_raw' => $b['klassenschnitt'] ?? null,
+            'ergebnis_status'    => $typ === 'kurs'
+                ? $this->ergebnisStatus($b['tn_punkte'] ?? null, $b['klassenschnitt'] ?? null)
+                : null,
 
             // Typisierung
             'typ'                => $typ,                // 'kurs' | 'ferien' | 'praktikum' | 'pruefung'
@@ -320,45 +358,15 @@ class ProgramShow extends Component
         'praktikum'  => $praktikum,
     ];
 
-    // --- Chart-Serien bauen: nur KURSE, nur ABGESCHLOSSEN, Werte als INT ---
-    $heute = Carbon::now('Europe/Berlin')->startOfDay();
+    // Der Chart wird direkt aus den UVS-Rohdaten gebaut. Damit bleibt die
+    // Chart-Auswahl unabhängig von der Statusdarstellung und externe
+    // "passed"-Ergebnisse behalten im Tooltip ihre korrekte Bedeutung.
+    $chartData = app(PassedModuleChartData::class)->build($raw);
 
-    $chartBausteine = collect($this->bausteine)
-        ->filter(fn ($b) => ($b['typ'] ?? null) === 'kurs')                 // nur echte Kurse
-        ->map(function ($b) {                                               // Start/Ende als Carbon
-            $b['_start'] = $this->toCarbon($b['beginn'] ?? null);
-            $b['_end']   = $this->toCarbon($b['ende']   ?? null);
-            return $b;
-        })
-        ->filter(fn ($b) => $b['_start'] && $b['_end'])                     // nur mit Datum
-        ->filter(fn ($b) => $b['_end']->lt($heute))                         // nur abgeschlossen (Ende < heute)
-        ->map(function ($b) {                                               // Wert bestimmen + runden
-            // Priorität: 'punkte' -> 'schnitt'
-            $rawVal = null;
-            if (isset($b['punkte']) && is_numeric($b['punkte'])) {
-                $rawVal = (float) $b['punkte'];
-            } elseif (isset($b['schnitt']) && is_numeric($b['schnitt'])) {
-                $rawVal = (float) $b['schnitt'];
-            }
-            $value = $this->toInt($rawVal);                                 // -> INT oder null
-
-            return [
-                'label' => $b['kurzbez'] ?? ($b['baustein'] ?? 'Baustein'),
-                'end'   => $b['_end'],
-                'value' => $value,
-            ];
-        })
-        ->filter(fn ($x) => !is_null($x['value']))                          // nur mit Wert
-        ->sortBy('end')                                                     // chronologisch nach Ende
-        ->values()
-        ->take(-9);                                                         // z.B. letzte 9
-
-    // Öffentliche Props für Alpine/Apex
-    $this->bausteinSerie  = $chartBausteine->pluck('value')->all();        // [78,64,55,...] (ints)
-    $this->bausteinLabels = $chartBausteine->map(
-        fn ($x) => $x['label'].' · '.$x['end']->format('d.m.')
-    )->all();                                                               // ["Modul · 03.10.", ...]
-    $this->bausteinColors = array_fill(0, count($this->bausteinSerie), '#2b5c9e'); // optional: einfarbig
+    $this->bausteinSerie    = $chartData['series'];
+    $this->bausteinLabels   = $chartData['labels'];
+    $this->bausteinColors   = $chartData['colors'];
+    $this->bausteinTooltips = $chartData['tooltips'];
 
         // ----------  Wichtig: heute letzter Kurstag? ----------
         if ($this->aktuellesModul) {
@@ -576,6 +584,7 @@ private function calcCurrentProgress(?array $modul): int
             'bausteinSerie'            => $this->bausteinSerie,
             'bausteinLabels'            => $this->bausteinLabels,
             'bausteinColors'            => $this->bausteinColors,
+            'bausteinTooltips'          => $this->bausteinTooltips,
             'hasCurrentCourseRating' => $this->hasCurrentCourseRating,
             'hasCurrentCourseMaterialsAck' => $this->hasCurrentCourseMaterialsAck,
             'currentCourseId' => $this->currentCourseId,

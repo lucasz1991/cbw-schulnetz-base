@@ -13,6 +13,16 @@
 
     $participantPercent = is_null($participantScore) ? null : max(0, min(100, (int) round($participantScore)));
     $classPercent = is_null($classAverage) ? null : max(0, min(100, (int) round($classAverage)));
+
+    // Kennwort-Ergebnisse aus UVS (passed/failed/not att/pending) haben keine Punktzahl,
+    // muessen aber als Status angezeigt werden statt "Noch kein Ergebnis erfasst."
+    $resultBadge = match ($participantResultStatus ?? null) {
+      'passed' => ['label' => 'Bestanden', 'class' => 'bg-green-100 text-green-800', 'text' => 'Extern bestanden – keine Punktzahl vorhanden.'],
+      'failed' => ['label' => 'Nicht bestanden', 'class' => 'bg-red-100 text-red-800', 'text' => 'Prüfung nicht bestanden.'],
+      'not_attended' => ['label' => 'Nicht teilgenommen', 'class' => 'bg-slate-100 text-slate-700', 'text' => 'An der Prüfung nicht teilgenommen.'],
+      'open' => ['label' => 'Ergebnis offen', 'class' => 'bg-slate-100 text-slate-700', 'text' => 'Das Ergebnis ist noch offen.'],
+      default => null,
+    };
     $reminderBaseDelay = 320;
     $ratingReminderDelay = $reminderBaseDelay;
     $materialsReminderDelay = $showRatingReminder ? ($reminderBaseDelay * 2) : $reminderBaseDelay;
@@ -201,8 +211,8 @@
             <p class="text-sm text-slate-500">Dein Ergebnis</p>
             <p class="mt-1 text-xs text-slate-400">Deine Punkte in diesem Baustein</p>
           </div>
-          <span class="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-800">
-            {{ !is_null($participantScore) ? number_format($participantScore, 0) . ' / 100' : '-' }}
+          <span class="inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold {{ is_null($participantScore) && $resultBadge ? $resultBadge['class'] : 'bg-blue-100 text-blue-800' }}">
+            {{ !is_null($participantScore) ? number_format($participantScore, 0) . ' / 100' : ($resultBadge['label'] ?? '-') }}
           </span>
         </div>
 
@@ -212,6 +222,8 @@
               <div class="h-2.5 rounded-full bg-blue-600" style="width: {{ $participantPercent }}%"></div>
             </div>
             <p class="mt-3 text-sm text-slate-600">Ergebnis: <span class="font-semibold text-slate-900">{{ $participantPercent }} Punkte</span></p>
+          @elseif($resultBadge)
+            <p class="text-sm text-slate-500">{{ $resultBadge['text'] }}</p>
           @else
             <p class="text-sm text-slate-500">Noch kein Ergebnis erfasst.</p>
           @endif

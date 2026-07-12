@@ -51,9 +51,11 @@
                           <div
                             x-data="{
                               chart: null,
+                              tooltipHideTimer: null,
                               series: @js($bausteinSerie),
                               labels: @js($bausteinLabels),
                               colors: @js($bausteinColors),
+                              tooltips: @js($bausteinTooltips),
 
                               pickColor(val){
                                 if(!val) return null;
@@ -61,6 +63,25 @@
                                 return v.startsWith('--')
                                   ? (getComputedStyle(document.documentElement).getPropertyValue(v).trim() || v)
                                   : v;
+                              },
+
+                              hideTooltip(delay = 0){
+                                clearTimeout(this.tooltipHideTimer);
+                                this.tooltipHideTimer = setTimeout(() => {
+                                  const tooltip = this.$el.querySelector('.apexcharts-tooltip');
+                                  if (tooltip) tooltip.classList.remove('apexcharts-active');
+                                }, delay);
+                              },
+
+                              hideTooltipUnlessOnBar(event){
+                                const bar = event.target.matches?.('.apexcharts-bar-area')
+                                  ? event.target
+                                  : event.target.closest?.('.apexcharts-bar-area');
+                                if (bar && this.$el.contains(bar)) {
+                                  clearTimeout(this.tooltipHideTimer);
+                                  return;
+                                }
+                                this.hideTooltip(150);
                               },
 
                               buildOptions(){
@@ -73,8 +94,8 @@
                                   stroke: { width: 2 },
                                   tooltip: {
                                     y: {
-                                      title: { formatter: () => 'Punkte' },
-                                      formatter: (val) => (val ?? 0) + ' Pkt.'
+                                      title: { formatter: () => '' },
+                                      formatter: (val, { dataPointIndex }) => this.tooltips?.[dataPointIndex] ?? ((val ?? 0) + ' Pkt.')
                                     },
                                     x: { formatter: (val, { dataPointIndex }) => this.labels?.[dataPointIndex] ?? 'Baustein' }
                                   }
@@ -88,14 +109,18 @@
                                 if (this.chart) { this.chart.destroy(); this.chart = null; }
                                 this.chart = new ApexCharts(this.$el, this.buildOptions());
                                 this.chart.render();
+                                this.$el.addEventListener('mouseleave', () => this.hideTooltip());
 
                                 // Reaktiv bei Livewire-Updates (falls Props dynamisch neu kommen)
                                 this.$watch('series', (v) => { if (this.chart) this.chart.updateSeries([{ data: v }], true); });
                                 this.$watch('labels', () =>  { if (this.chart) this.chart.updateOptions({ tooltip: this.buildOptions().tooltip }, true, true); });
+                                this.$watch('tooltips', () =>  { if (this.chart) this.chart.updateOptions({ tooltip: this.buildOptions().tooltip }, true, true); });
                                 this.$watch('colors', (v) => { if (this.chart) this.chart.updateOptions({ colors: v.map(c => this.pickColor(c)) }, true, true); });
                               }
                             }"
                             x-init="init()"
+                            x-on:mousemove.window="hideTooltipUnlessOnBar($event)"
+                            x-on:pointerdown.window="hideTooltipUnlessOnBar($event)"
                             wire:ignore
                             class="apex-charts flex justify-end items-center"
                           ></div>
@@ -417,13 +442,28 @@
                       $status = 'Laufend';
                       $statusClass = 'text-blue-700 bg-blue-100';
                   } else {
-                      // *** NEU: Wenn Punkte = 0 UND Klassenschnitt = 0 => Ergebnis offen
-                      if ($punkte === 0 && $klassenschnitt === 0) {
+                      // Normalisierter Ergebnisstatus aus ProgramShow::ergebnisStatus()
+                      // (UVS-Kennwoerter wie 'failed' duerfen nicht als "Ergebnis offen" enden)
+                      $ergebnisStatus = $b['ergebnis_status'] ?? null;
+
+                      if ($ergebnisStatus === 'passed') {
+                          $status = 'Bestanden';
+                          $statusClass = 'text-green-700 bg-green-100';
+                      } elseif ($ergebnisStatus === 'failed') {
+                          $status = 'Nicht bestanden';
+                          $statusClass = 'text-red-700 bg-red-100';
+                      } elseif ($ergebnisStatus === 'not_attended') {
+                          $status = 'Nicht teilgenommen';
+                          $statusClass = 'text-gray-700 bg-gray-100';
+                      } elseif ($ergebnisStatus === 'open') {
                           $status = 'Ergebnis offen';
                           $statusClass = 'text-gray-700 bg-gray-100';
                       }
-                      // Falls nicht offen durch 0/0, dann nach schnitt bewerten (falls vorhanden)
-                      elseif ($schnitt !== null) {
+                      // Fallback fuer ViewModels, die noch ohne ergebnis_status aufgebaut wurden
+                      elseif ($punkte === 0 && $klassenschnitt === 0) {
+                          $status = 'Ergebnis offen';
+                          $statusClass = 'text-gray-700 bg-gray-100';
+                      } elseif ($schnitt !== null) {
                           if ($schnitt >= 50) {
                               $status = 'Bestanden';
                               $statusClass = 'text-green-700 bg-green-100';
@@ -432,7 +472,6 @@
                               $statusClass = 'text-red-700 bg-red-100';
                           }
                       } else {
-                          // Fallback
                           $status = 'offen';
                           $statusClass = 'text-gray-600 bg-gray-100';
                       }
