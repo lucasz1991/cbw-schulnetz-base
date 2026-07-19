@@ -18,6 +18,10 @@ class AttendanceDisplayViewTest extends TestCase
         $this->assertStringContainsString('w-64 flex-col', $source);
         $this->assertStringContainsString('border-t border-slate-300', $source);
         $this->assertStringContainsString('divide-x divide-slate-200', $source);
+        $this->assertStringContainsString('gap-1.5 border-r border-slate-300 px-1.5 py-1', $source);
+        $this->assertStringContainsString('attendance-time-input', $source);
+        $this->assertStringContainsString('attendance-time-select', $source);
+        $this->assertStringContainsString('fad fa-spinner-third fa-spin', $source);
         $this->assertStringContainsString('Gekommen um', $source);
         $this->assertStringContainsString('Gegangen um', $source);
         $this->assertStringNotContainsString('Keine Zusatzangabe', $source);

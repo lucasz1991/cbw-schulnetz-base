@@ -12,6 +12,46 @@
   'plannedEnd',
 ])
 
+@once
+    <style>
+        .attendance-time-input,
+        .attendance-time-select {
+            height: 2.5rem;
+            border: 1px solid #d1d5db;
+            background-color: #f9fafb;
+            font-size: .875rem;
+            line-height: 1.25rem;
+            transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
+        }
+        .attendance-time-input {
+            width: 100%;
+            border-right: 0;
+            border-radius: .5rem 0 0 .5rem;
+            padding: .625rem 2.5rem .625rem .625rem;
+            color: #111827;
+            font-variant-numeric: tabular-nums;
+        }
+        .attendance-time-select {
+            width: 2.5rem;
+            cursor: pointer;
+            border-radius: 0 .5rem .5rem 0;
+            padding: .5rem;
+            color: transparent;
+        }
+        .attendance-time-input:hover,
+        .attendance-time-select:hover { background-color: #fff; }
+        .attendance-time-input:focus,
+        .attendance-time-select:focus {
+            z-index: 1;
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, .18);
+        }
+        .attendance-time-input:disabled,
+        .attendance-time-select:disabled { cursor: not-allowed; opacity: .55; }
+    </style>
+@endonce
+
 <div class="space-y-4 transition-opacity duration-300">
     <div class="flex max-md:flex-wrap items-center space-x-3 justify-between mb-4">
         <div class="flex justify-between items-center space-x-3 w-full">
@@ -305,31 +345,31 @@
                             <div class="flex items-center gap-2 flex-wrap">
                               <div class="inline-flex w-64 flex-col overflow-hidden rounded-xl border border-slate-300 bg-white text-[11px] font-semibold shadow-sm" title="Morgens: {{ $startLabel }} · Ende: {{ $endLabel }}">
                                   <div class="flex w-full">
-                                      <span class="inline-flex w-1/2 items-center justify-center gap-2 border-r border-slate-300 px-2 py-1.5 {{ $startClasses }}">
+                                      <span class="inline-flex w-1/2 items-center justify-center gap-1.5 border-r border-slate-300 px-1.5 py-1 {{ $startClasses }}">
                                           <i class="fad fa-play-circle w-4 text-center text-sm" aria-hidden="true"></i>
                                           <span>{{ $startLabel }}</span>
                                       </span>
-                                      <span class="inline-flex w-1/2 items-center justify-center gap-2 px-2 py-1.5 {{ $endClasses }}">
+                                      <span class="inline-flex w-1/2 items-center justify-center gap-1.5 px-1.5 py-1 {{ $endClasses }}">
                                           <i class="fad fa-flag-checkered w-4 text-center text-sm" aria-hidden="true"></i>
                                           <span>{{ $endLabel }}</span>
                                       </span>
                                   </div>
                                   @if(($d['excused'] ?? false) === true || $late > 0 || $early > 0)
-                                  <div class="flex w-full items-center divide-x divide-slate-200 border-t border-slate-300 bg-slate-50/70 px-0.5 py-0.5 text-[9px] font-medium tabular-nums">
+                                  <div class="flex w-full items-center divide-x divide-slate-200 border-t border-slate-300 bg-slate-50/70 px-px py-px text-[9px] font-medium tabular-nums">
                                       @if(($d['excused'] ?? false) === true)
-                                          <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-blue-700" title="Entschuldigt">
+                                          <span class="inline-flex items-center gap-1 px-1 py-px text-blue-700" title="Entschuldigt">
                                               <i class="fad fa-file-medical" aria-hidden="true"></i>
                                               Entsch.
                                           </span>
                                       @endif
                                       @if($late > 0)
-                                          <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-amber-700" title="Gekommen um {{ $arrivalTime ?? '–' }} Uhr">
+                                          <span class="inline-flex items-center gap-1 px-1 py-px text-amber-700" title="Gekommen um {{ $arrivalTime ?? '–' }} Uhr">
                                               <i class="fad fa-user-clock" aria-hidden="true"></i>
                                               {{ $arrivalTime ?? '–' }}
                                           </span>
                                       @endif
                                       @if($early > 0)
-                                          <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-orange-700" title="Gegangen um {{ $leaveTime ?? '–' }} Uhr">
+                                          <span class="inline-flex items-center gap-1 px-1 py-px text-orange-700" title="Gegangen um {{ $leaveTime ?? '–' }} Uhr">
                                               <i class="fad fa-door-open" aria-hidden="true"></i>
                                               {{ $leaveTime ?? '–' }}
                                           </span>
@@ -344,23 +384,23 @@
                                 {{-- ✅ Loader links neben Buttons (1 Target pro Loader) --}}
                                 <div class="w-8 flex items-center justify-center">
                                     <div wire:loading wire:target="markPresent({{ $r['id'] }})" class="flex items-center">
-                                        <span class="loader2 w-4 h-4"></span>
+                                        <i class="fad fa-spinner-third fa-spin text-base text-blue-500"></i>
                                     </div>
                                     <div wire:loading wire:target="markAbsent({{ $r['id'] }})" class="flex items-center">
-                                        <span class="loader2 w-4 h-4"></span>
+                                        <i class="fad fa-spinner-third fa-spin text-base text-blue-500"></i>
                                     </div>
                                     {{-- Wrapper: 1 Target für Time/Note --}}
                                     <div wire:loading wire:target="saveArrival({{ $r['id'] }})" class="flex items-center">
-                                        <span class="loader2 w-4 h-4"></span>
+                                        <i class="fad fa-spinner-third fa-spin text-base text-blue-500"></i>
                                     </div>
                                     <div wire:loading wire:target="saveLeave({{ $r['id'] }})" class="flex items-center">
-                                        <span class="loader2 w-4 h-4"></span>
+                                        <i class="fad fa-spinner-third fa-spin text-base text-blue-500"></i>
                                     </div>
                                     <div wire:loading wire:target="saveNote({{ $r['id'] }})" class="flex items-center">
-                                        <span class="loader2 w-4 h-4"></span>
+                                        <i class="fad fa-spinner-third fa-spin text-base text-blue-500"></i>
                                     </div>                                    
                                     <div wire:loading wire:target="clearTimes({{ $r['id'] }})" class="flex items-center">
-                                        <span class="loader2 w-4 h-4"></span>
+                                        <i class="fad fa-spinner-third fa-spin text-base text-blue-500"></i>
                                     </div>
                                 </div>
                                 {{-- Present/Absent (Buttons NICHT verändert) --}}
@@ -428,7 +468,7 @@
                                                             x-model="arrive"
                                                             type="time"
                                                             id="arrive-{{ $r['id'] }}"
-                                                            class="bg-gray-50 border border-r-0 leading-none border-gray-300 text-gray-900 text-sm rounded-l-lg focus:ring-blue-500 focus:border-blue-500 block cursor-pointer w-full h-[40px] p-2.5"
+                                                            class="attendance-time-input block"
                                                             min="{{ $plannedStart }}"
                                                             max="{{ $plannedEnd }}"
                                                             step="60"
@@ -448,7 +488,7 @@
                                                                 $wire.set('arriveInput.{{ $r['id'] }}', arrive);
                                                                 $wire.saveArrival({{ $r['id'] }});
                                                             "
-                                                            class="bg-gray-50 border border-gray-300 text-white/0 text-sm rounded-r-lg focus:ring-blue-500 focus:border-blue-500 block p-2 cursor-pointer h-[40px] w-10 "
+                                                            class="attendance-time-select block"
                                                             wire:loading.attr="disabled"
                                                             wire:target="saveArrival({{ $r['id'] }})"
                                                             @disabled(!$canEditTime)
@@ -475,7 +515,7 @@
                                                             x-model="leave"
                                                             type="time"
                                                             id="leave-{{ $r['id'] }}"
-                                                            class="bg-gray-50 border border-r-0 leading-none border-gray-300 text-gray-900 text-sm rounded-l-lg focus:ring-blue-500 focus:border-blue-500 block cursor-pointer w-full h-[40px] p-2.5"
+                                                            class="attendance-time-input block"
                                                             min="{{ $plannedStart }}"
                                                             max="{{ $plannedEnd }}"
                                                             step="60"
@@ -495,7 +535,7 @@
                                                                 $wire.set('leaveInput.{{ $r['id'] }}', leave);
                                                                 $wire.saveLeave({{ $r['id'] }});
                                                             "
-                                                            class="bg-gray-50 border border-gray-300 text-white/0 text-sm rounded-r-lg focus:ring-blue-500 focus:border-blue-500 block p-2 cursor-pointer h-[40px] w-10 "
+                                                            class="attendance-time-select block"
                                                             wire:loading.attr="disabled"
                                                             wire:target="saveLeave({{ $r['id'] }})"
                                                             @disabled(!$canEditTime)
