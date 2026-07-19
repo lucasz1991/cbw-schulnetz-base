@@ -224,40 +224,54 @@
                         $statusKey = 'unknown';
                     }
 
-                      // -----------------------------
-                      // Mapping: Label + Icon + Pill
-                      // -----------------------------
-                      $statusMap = [
-                          'present' => [
-                              'label' => 'Anwesend',
-                              'icon'  => 'fas fa-check',
-                              'pill'  => 'bg-green-100/60 text-green-800 ring-1 ring-green-400 gap-1.5',
-                          ],
-                          'partial' => [
-                              'label' => 'Teilweise',
-                              'icon'  => 'fas fa-clock',
-                              'pill'  => 'bg-yellow-100/60 text-yellow-900 ring-1 ring-yellow-400 gap-1.5',
-                          ],
-                          'excused' => [
-                              'label' => 'Entschuldigt',
-                              'icon'  => 'fas fa-file-medical',
-                              'pill'  => 'bg-blue-100/60 text-blue-800 ring-1 ring-blue-400 gap-1.5',
-                          ],
-                          'absent' => [
-                              'label' => 'Fehlend',
-                              'icon'  => 'fas fa-times',
-                              'pill'  => 'bg-red-100/60 text-red-800 ring-1 ring-red-400 gap-1.5',
-                          ],
-                          'unknown' => [
-                              'label' => '',
-                              'icon'  => 'fas fa-question',
-                              'pill'  => 'bg-gray-100/60 text-gray-700 ring-1 ring-gray-400',
-                          ],
-                      ]; 
+                      $isRecorded = $hasEntry;
+                      $isActuallyPresent = $isRecorded && (bool) ($d['present'] ?? false);
+                      $startPresent = $isActuallyPresent && $late === 0;
+                      $endPresent = $isActuallyPresent && $early === 0;
 
-                      $statusLabel = $statusMap[$statusKey]['label'];
-                      $statusIcon  = $statusMap[$statusKey]['icon'];
-                      $statusPill  = $statusMap[$statusKey]['pill'];
+                      $startLabel = $isRecorded ? ($startPresent ? 'Anwesend' : 'Fehlend') : 'Offen';
+                      $endLabel = $isRecorded ? ($endPresent ? 'Anwesend' : 'Fehlend') : 'Offen';
+                      $startClasses = ! $isRecorded
+                          ? 'bg-slate-100 text-slate-600'
+                          : ($startPresent ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800');
+                      $endClasses = ! $isRecorded
+                          ? 'bg-slate-100 text-slate-600'
+                          : ($endPresent ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800');
+
+                      $normalizeClock = static function ($value): ?string {
+                          $value = trim((string) ($value ?? ''));
+                          if ($value === '' || in_array($value, ['00:00', '00:00:00', '0:00'], true)) {
+                              return null;
+                          }
+
+                          try {
+                              return \Illuminate\Support\Carbon::parse($value)->format('H:i');
+                          } catch (\Throwable) {
+                              return null;
+                          }
+                      };
+
+                      $arrivalTime = $late > 0 ? $normalizeClock($d['arrived_at'] ?? null) : null;
+                      if ($late > 0 && ! $arrivalTime && $plannedStart) {
+                          try {
+                              $arrivalTime = \Illuminate\Support\Carbon::createFromFormat('H:i', $plannedStart)
+                                  ->addMinutes($late)
+                                  ->format('H:i');
+                          } catch (\Throwable) {
+                              $arrivalTime = null;
+                          }
+                      }
+
+                      $leaveTime = $early > 0 ? $normalizeClock($d['left_at'] ?? null) : null;
+                      if ($early > 0 && ! $leaveTime && $plannedEnd) {
+                          try {
+                              $leaveTime = \Illuminate\Support\Carbon::createFromFormat('H:i', $plannedEnd)
+                                  ->subMinutes($early)
+                                  ->format('H:i');
+                          } catch (\Throwable) {
+                              $leaveTime = null;
+                          }
+                      }
 
                       // Für deinen Button-Switch (Abwesend -> "Anwesend"-Button anzeigen)
                       $isAbsent = ($statusKey === 'absent');
@@ -289,25 +303,30 @@
                         </td>
                         <td class="px-1 md:px-4 py-2">
                             <div class="flex items-center gap-2 flex-wrap">
-                              <span
-                                  class="inline-flex items-center rounded-full px-1 md:px-2 py-1 text-[11px] font-semibold shadow-sm {{ $statusPill }}"
-                                  title="{{ $statusLabel }}"
-                              >
-                                  <i class="{{ $statusIcon }} text-[12px]"></i>
-
-                                  {{-- Desktop/Tablet: Text zeigen --}}
-                                  <span class="hidden md:inline leading-none">
-                                      {{ $statusLabel }}
+                              <span class="inline-flex overflow-hidden rounded-lg border border-slate-200 text-[11px] font-semibold shadow-sm" title="Start: {{ $startLabel }} · Ende: {{ $endLabel }}">
+                                  <span class="inline-flex items-center gap-1 px-2 py-1 {{ $startClasses }}">
+                                      <span class="hidden lg:inline text-[9px] font-medium uppercase tracking-wide opacity-70">Start</span>
+                                      <span>{{ $startLabel }}</span>
+                                  </span>
+                                  <span class="inline-flex items-center gap-1 border-l border-white/70 px-2 py-1 {{ $endClasses }}">
+                                      <span class="hidden lg:inline text-[9px] font-medium uppercase tracking-wide opacity-70">Ende</span>
+                                      <span>{{ $endLabel }}</span>
                                   </span>
                               </span>
+                                @if(($d['excused'] ?? false) === true)
+                                    <span class="inline-flex items-center gap-1 rounded-full bg-blue-100/60 px-2 py-0.5 text-xs text-blue-800 ring-1 ring-blue-400">
+                                        <i class="fas fa-file-medical text-[11px]"></i>
+                                        Entschuldigt
+                                    </span>
+                                @endif
                                 @if($late > 0)
-                                    <span class="hidden md:inline-flex rounded-full px-2 py-0.5 text-xs bg-yellow-100/60 text-yellow-800 ring-1 ring-yellow-400">
-                                        + {{ $late }} min spät
+                                    <span class="inline-flex rounded-full px-2 py-0.5 text-xs bg-yellow-100/60 text-yellow-800 ring-1 ring-yellow-400">
+                                        Verspätet: {{ $arrivalTime ?? '–' }}
                                     </span>
                                 @endif
                                 @if($early > 0)
-                                    <span class="hidden md:inline-flex rounded-full px-2 py-0.5 text-xs bg-orange-100/60 text-orange-800 ring-1 ring-orange-400">
-                                       - {{ $early }} min früher
+                                    <span class="inline-flex rounded-full px-2 py-0.5 text-xs bg-orange-100/60 text-orange-800 ring-1 ring-orange-400">
+                                        Gegangen: {{ $leaveTime ?? '–' }}
                                     </span>
                                 @endif
                             </div>
