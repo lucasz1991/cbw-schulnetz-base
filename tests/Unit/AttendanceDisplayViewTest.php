@@ -13,12 +13,13 @@ class AttendanceDisplayViewTest extends TestCase
         $compiled = app('blade.compiler')->compileString($source);
 
         $this->assertNotSame('', trim($compiled));
-        $this->assertStringContainsString('fad fa-sunrise', $source);
-        $this->assertStringContainsString('fad fa-sunset', $source);
-        $this->assertStringContainsString('w-28 shrink-0', $source);
-        $this->assertStringContainsString('w-44 shrink-0', $source);
+        $this->assertStringContainsString('fad fa-play-circle', $source);
+        $this->assertStringContainsString('fad fa-flag-checkered', $source);
+        $this->assertStringContainsString('w-64 flex-col', $source);
+        $this->assertStringContainsString('border-t border-slate-300', $source);
         $this->assertStringContainsString('Gekommen um', $source);
         $this->assertStringContainsString('Gegangen um', $source);
+        $this->assertStringNotContainsString('Keine Zusatzangabe', $source);
         $this->assertStringNotContainsString('>Start</span>', $source);
         $this->assertStringNotContainsString('>Ende</span>', $source);
         $this->assertStringNotContainsString('min spät', $source);
