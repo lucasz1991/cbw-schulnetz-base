@@ -243,9 +243,13 @@ class Login extends Component
             ]);
         }
 
-        [$contractStart, $contractEnd] = $this->resolveParticipantContractWindowBounds($persons);
+        $accessWindows = $this->resolveParticipantContractAccessWindows(
+            $persons,
+            $openBeforeDays,
+            $closeAfterDays
+        );
 
-        if (! $contractStart || ! $contractEnd) {
+        if ($accessWindows->isEmpty()) {
             Auth::logout();
 
             throw ValidationException::withMessages([
@@ -253,52 +257,136 @@ class Login extends Component
             ]);
         }
 
-        $accessFrom = $contractStart->copy()->subDays($openBeforeDays)->startOfDay();
-        $accessUntil = $contractEnd->copy()->addDays($closeAfterDays)->endOfDay();
+        $matchingWindow = $accessWindows->first(function (array $window) use ($today) {
+            return $today->gte($window['access_from']) && $today->lte($window['access_until']);
+        });
 
-        if ($today->lt($accessFrom) || $today->gt($accessUntil)) {
+        if (! $matchingWindow) {
+            $displayWindow = $accessWindows
+                ->first(fn (array $window) => $window['access_from']->gt($today))
+                ?? $accessWindows->last();
+
             Auth::logout();
 
             throw ValidationException::withMessages([
                 'email' => sprintf(
                     'Dein Zugang ist nur vom %s bis %s möglich.',
-                    $accessFrom->format('d.m.Y'),
-                    $accessUntil->format('d.m.Y')
+                    $displayWindow['access_from']->format('d.m.Y'),
+                    $displayWindow['access_until']->format('d.m.Y')
                 ),
             ]);
         }
     }
 
-    protected function resolveParticipantContractWindowBounds(Collection $persons): array
+    /**
+     * Build one access window per participant contract and merge overlapping
+     * windows. The previous contract's grace period and the following
+     * contract's pre-opening period therefore form one seamless login window.
+     */
+    protected function resolveParticipantContractAccessWindows(
+        Collection $persons,
+        int $openBeforeDays,
+        int $closeAfterDays
+    ): Collection {
+        $windows = $persons
+            ->flatMap(fn ($person) => $this->participantContractWindowsForPerson($person))
+            ->map(function (array $window) use ($openBeforeDays, $closeAfterDays) {
+                return [
+                    'access_from' => $window['start']->copy()->subDays($openBeforeDays)->startOfDay(),
+                    'access_until' => $window['end']->copy()->addDays($closeAfterDays)->endOfDay(),
+                ];
+            })
+            ->sortBy(fn (array $window) => $window['access_from']->timestamp)
+            ->values();
+
+        return $windows->reduce(function (Collection $merged, array $window) {
+            if ($merged->isEmpty()) {
+                return $merged->push($window);
+            }
+
+            $lastIndex = $merged->count() - 1;
+            $last = $merged->get($lastIndex);
+
+            if ($window['access_from']->lte($last['access_until']->copy()->addDay())) {
+                if ($window['access_until']->gt($last['access_until'])) {
+                    $last['access_until'] = $window['access_until'];
+                    $merged->put($lastIndex, $last);
+                }
+
+                return $merged;
+            }
+
+            return $merged->push($window);
+        }, collect());
+    }
+
+    protected function participantContractWindowsForPerson($person): Collection
     {
-        $starts = $persons
-            ->map(function ($person) {
-                $value = data_get($person->programdata, 'vertrag_beginn');
+        $programData = is_array($person->programdata ?? null) ? $person->programdata : [];
+        $statusData = is_array($person->statusdata ?? null) ? $person->statusdata : [];
+        $programTeilnehmerId = trim((string) data_get($programData, 'teilnehmer_id', ''));
 
-                return $this->parseProgramDate($value);
-            })
-            ->filter();
+        $contracts = collect(data_get($statusData, 'vertraege', []))
+            ->filter(fn ($contract) => is_array($contract))
+            ->values();
 
-        $ends = $persons
-            ->map(function ($person) {
-                $value = data_get($person->programdata, 'vertrag_ende');
-
-                return $this->parseProgramDate($value);
-            })
-            ->filter();
-
-        $contractStart = $starts->isNotEmpty() ? $starts->sort()->first() : null;
-        $contractEnd = $ends->isNotEmpty() ? $ends->sort()->last() : null;
-
-        if (! $contractStart && $contractEnd) {
-            $contractStart = $contractEnd->copy();
+        if (! empty($programData)) {
+            $contracts->push([
+                'teilnehmer_id' => data_get($programData, 'teilnehmer_id'),
+                'vertrag_beginn' => data_get($programData, 'vertrag_beginn'),
+                'vertrag_ende' => data_get($programData, 'vertrag_ende'),
+                'letzter_tag' => data_get($programData, 'letzter_tag'),
+                'kuendig_zum' => data_get($programData, 'kuendig_zum'),
+            ]);
         }
 
-        if (! $contractEnd && $contractStart) {
-            $contractEnd = $contractStart->copy();
-        }
+        return $contracts
+            ->map(function (array $contract) use ($programData, $programTeilnehmerId) {
+                $teilnehmerId = trim((string) ($contract['teilnehmer_id'] ?? ''));
+                $matchesProgram = $programTeilnehmerId !== '' && $teilnehmerId === $programTeilnehmerId;
 
-        return [$contractStart, $contractEnd];
+                $start = $this->parseProgramDate($contract['vertrag_beginn'] ?? null);
+                if (! $start && $matchesProgram) {
+                    $start = $this->parseProgramDate(data_get($programData, 'vertrag_beginn'));
+                }
+
+                $contractEnd = $this->parseProgramDate($contract['vertrag_ende'] ?? null)
+                    ?? $this->parseProgramDate($contract['letzter_tag'] ?? null);
+                if (! $contractEnd && $matchesProgram) {
+                    $contractEnd = $this->parseProgramDate(data_get($programData, 'vertrag_ende'));
+                }
+
+                $cancelledAt = $this->parseProgramDate($contract['kuendig_zum'] ?? null);
+                if (! $cancelledAt && $matchesProgram) {
+                    $cancelledAt = $this->parseProgramDate(data_get($programData, 'kuendig_zum'));
+                }
+
+                $end = collect([$contractEnd, $cancelledAt])
+                    ->filter()
+                    ->sortBy(fn (Carbon $date) => $date->timestamp)
+                    ->first();
+
+                if (! $start && $end) {
+                    $start = $end->copy();
+                }
+
+                if (! $end && $start) {
+                    $end = $start->copy();
+                }
+
+                return ($start && $end)
+                    ? ['start' => $start, 'end' => $end, 'teilnehmer_id' => $teilnehmerId]
+                    : null;
+            })
+            ->filter()
+            ->unique(function (array $window) {
+                return implode('|', [
+                    $window['teilnehmer_id'],
+                    $window['start']->toDateString(),
+                    $window['end']->toDateString(),
+                ]);
+            })
+            ->values();
     }
 
     protected function parseProgramDate($value): ?Carbon

@@ -230,9 +230,10 @@ class Person extends Model
     public function hasPortalIdentity(): bool
     {
         $statusData = is_array($this->statusdata) ? $this->statusdata : [];
+        $currentContract = $this->currentParticipantContract();
 
-        $teilnehmerId = $statusData['teilnehmer_id']
-            ?? data_get($statusData, 'vertraege.0.teilnehmer_id')
+        $teilnehmerId = data_get($currentContract, 'teilnehmer_id')
+            ?? $statusData['teilnehmer_id']
             ?? $this->teilnehmer_id
             ?? data_get($this->programdata, 'teilnehmer_id');
         $mitarbeiterId = $statusData['mitarbeiter_id'] ?? data_get($this->programdata, 'tutor.mitarbeiter_id');
@@ -251,16 +252,10 @@ class Person extends Model
 
     public function portalRoleSortTimestamp(): int
     {
-        $activeContracts = $this->activeParticipantContracts();
+        $currentContractEnd = $this->effectiveParticipantContractEnd($this->currentParticipantContract());
 
-        if ($activeContracts->isNotEmpty()) {
-            $maxContractTs = $activeContracts
-                ->map(fn (array $vertrag) => $this->parsePortalContractDate($vertrag['vertrag_ende'] ?? null)?->endOfDay()->timestamp ?? 0)
-                ->max();
-
-            if (is_numeric($maxContractTs) && (int) $maxContractTs > 0) {
-                return (int) $maxContractTs;
-            }
+        if ($currentContractEnd) {
+            return $currentContractEnd->endOfDay()->timestamp;
         }
 
         $programEnd = $this->parsePortalContractDate(data_get($this->programdata, 'vertrag_ende'));
@@ -292,8 +287,8 @@ class Person extends Model
             return false;
         }
 
-        $teilnehmerId = $statusData['teilnehmer_id']
-            ?? data_get($statusData, 'vertraege.0.teilnehmer_id')
+        $teilnehmerId = data_get($this->currentParticipantContract(), 'teilnehmer_id')
+            ?? $statusData['teilnehmer_id']
             ?? $this->teilnehmer_id
             ?? data_get($this->programdata, 'teilnehmer_id');
         $teilnehmerNr = $statusData['teilnehmer_nr'] ?? $this->teilnehmer_nr ?? data_get($this->programdata, 'teilnehmer_nr');
@@ -365,6 +360,18 @@ class Person extends Model
         $user->syncPortalRoleFromPersons();
     }
 
+    /**
+     * Der Vertrag, dessen Kontext das Portal aktuell verwenden soll.
+     *
+     * Anschlussvertraege duerfen bereits vor ihrem Beginn offen sein. So wird
+     * nach Ablauf des vorherigen Vertrags ohne kuenstliche Zugangsluecke auf
+     * den naechsten Vertrag gewechselt.
+     */
+    public function currentParticipantContract(): ?array
+    {
+        return $this->activeParticipantContracts()->first();
+    }
+
     protected function activeParticipantContracts(): Collection
     {
         $statusContracts = collect(data_get($this->statusdata, 'vertraege', []))
@@ -376,15 +383,88 @@ class Person extends Model
 
         $today = Carbon::today('Europe/Berlin');
 
-        return $statusContracts->filter(function (array $vertrag) use ($today) {
-            if (! filter_var($vertrag['is_active'] ?? false, FILTER_VALIDATE_BOOL)) {
-                return false;
-            }
+        return $statusContracts
+            ->filter(function (array $vertrag) use ($today) {
+                $isExplicitlyCurrent = $this->participantContractSelectionPriority($vertrag) > 0;
+                $isActive = filter_var($vertrag['is_active'] ?? false, FILTER_VALIDATE_BOOL);
 
-            $vertragEnde = $this->parsePortalContractDate($vertrag['vertrag_ende'] ?? null);
+                if (! $isActive && ! $isExplicitlyCurrent) {
+                    return false;
+                }
 
-            return ! $vertragEnde || $vertragEnde->endOfDay()->gte($today);
-        })->values();
+                $effectiveEnd = $this->effectiveParticipantContractEnd($vertrag);
+
+                return ! $effectiveEnd || $effectiveEnd->endOfDay()->gte($today);
+            })
+            ->sort(function (array $left, array $right): int {
+                $priorityCompare = $this->participantContractSelectionPriority($right)
+                    <=> $this->participantContractSelectionPriority($left);
+
+                if ($priorityCompare !== 0) {
+                    return $priorityCompare;
+                }
+
+                $leftSequence = $this->participantContractSequenceTimestamp($left);
+                $rightSequence = $this->participantContractSequenceTimestamp($right);
+
+                if ($leftSequence !== $rightSequence) {
+                    return $leftSequence <=> $rightSequence;
+                }
+
+                $leftEnd = $this->effectiveParticipantContractEnd($left)?->timestamp ?? PHP_INT_MAX;
+                $rightEnd = $this->effectiveParticipantContractEnd($right)?->timestamp ?? PHP_INT_MAX;
+
+                if ($leftEnd !== $rightEnd) {
+                    return $leftEnd <=> $rightEnd;
+                }
+
+                return strnatcasecmp(
+                    $this->participantContractIdentifier($left),
+                    $this->participantContractIdentifier($right)
+                );
+            })
+            ->values();
+    }
+
+    protected function participantContractSelectionPriority(array $vertrag): int
+    {
+        if (filter_var($vertrag['is_current'] ?? false, FILTER_VALIDATE_BOOL)) {
+            return 2;
+        }
+
+        return filter_var($vertrag['is_selected'] ?? false, FILTER_VALIDATE_BOOL) ? 1 : 0;
+    }
+
+    protected function participantContractSequenceTimestamp(array $vertrag): int
+    {
+        $vertragBeginn = $this->parsePortalContractDate($vertrag['vertrag_beginn'] ?? null)
+            ?? $this->parsePortalContractDate($vertrag['beginn'] ?? null);
+
+        return $vertragBeginn?->timestamp
+            ?? $this->effectiveParticipantContractEnd($vertrag)?->timestamp
+            ?? PHP_INT_MAX;
+    }
+
+    protected function participantContractIdentifier(array $vertrag): string
+    {
+        return trim((string) ($vertrag['teilnehmer_id'] ?? $vertrag['teilnehmer_nr'] ?? ''));
+    }
+
+    protected function effectiveParticipantContractEnd(?array $vertrag): ?Carbon
+    {
+        if (! $vertrag) {
+            return null;
+        }
+
+        $contractEnd = $this->parsePortalContractDate($vertrag['vertrag_ende'] ?? null)
+            ?? $this->parsePortalContractDate($vertrag['letzter_tag'] ?? null);
+        $cancelledAt = $this->parsePortalContractDate($vertrag['kuendig_zum'] ?? null);
+
+        if ($contractEnd && $cancelledAt) {
+            return $contractEnd->lte($cancelledAt) ? $contractEnd : $cancelledAt;
+        }
+
+        return $contractEnd ?? $cancelledAt;
     }
 
     protected function parsePortalContractDate(mixed $value): ?Carbon

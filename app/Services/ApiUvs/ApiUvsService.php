@@ -35,9 +35,15 @@ class ApiUvsService
     }
 
     /** Teilnehmer-Daten mit Qualiprogram-Daten holen */
-    public function getParticipantAndQualiprogrambyId($id): array
+    public function getParticipantAndQualiprogrambyId($id, ?string $beratungId = null): array
     {
-        return $this->request('GET', "/api/participants/{$id}/qualiprogram");
+        $query = [];
+
+        if ($beratungId !== null && trim($beratungId) !== '') {
+            $query['beratung_id'] = trim($beratungId);
+        }
+
+        return $this->request('GET', "/api/participants/{$id}/qualiprogram", [], $query);
     }
 
     /** Person-Status holen (person_id = "{institut_id}-{person_nr}") */

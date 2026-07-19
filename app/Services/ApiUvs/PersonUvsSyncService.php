@@ -94,7 +94,15 @@ class PersonUvsSyncService
                     ]);
                 }
             } else {
-                $apiResponse = $api->getParticipantAndQualiprogrambyId($person->person_id);
+                // Bind the program request to the exact contract selected by the
+                // status endpoint. This prevents a second "newest contract wins"
+                // decision from replacing the current sequential contract.
+                $selectedBeratungId = trim((string) ($statusData['beratung_id'] ?? '')) ?: null;
+                $selectedTeilnehmerId = trim((string) ($statusData['teilnehmer_id'] ?? '')) ?: null;
+                $apiResponse = $api->getParticipantAndQualiprogrambyId(
+                    $person->person_id,
+                    $selectedBeratungId
+                );
                 if (($apiResponse['ok'] ?? false) === true) {
                     $data = $apiResponse['data'] ?? null;
                     $qualiData = ! empty($data['quali_data']) ? $data['quali_data'] : null;
@@ -102,9 +110,30 @@ class PersonUvsSyncService
                     $qualiData = null;
                 }
 
+                $programTeilnehmerId = trim((string) data_get($qualiData, 'teilnehmer_id', '')) ?: null;
+                $hasContractMismatch = $selectedTeilnehmerId !== null
+                    && $programTeilnehmerId !== null
+                    && $selectedTeilnehmerId !== $programTeilnehmerId;
+
+                if ($hasContractMismatch) {
+                    Log::warning('PersonUvsSyncService: Vertragsauswahl von Status und Qualiprogramm weicht ab.', [
+                        'person_pk' => $person->id,
+                        'uvs_person_id' => $person->person_id,
+                        'status_teilnehmer_id' => $selectedTeilnehmerId,
+                        'program_teilnehmer_id' => $programTeilnehmerId,
+                        'beratung_id' => $selectedBeratungId,
+                    ]);
+
+                    $qualiData = null;
+
+                    if (trim((string) data_get($programData, 'teilnehmer_id', '')) !== $selectedTeilnehmerId) {
+                        $programData = null;
+                    }
+                }
+
                 if ($qualiData) {
                     $programData = $qualiData;
-                } elseif (config('api_sync.debug_logs', false)) {
+                } elseif (! $hasContractMismatch && config('api_sync.debug_logs', false)) {
                     Log::info('PersonUvsSyncService: No Qualiprogram data found.', [
                         'person_id' => $person->person_id,
                         'api_response' => $apiResponse ?? null,
@@ -125,7 +154,7 @@ class PersonUvsSyncService
                 ? (($statusData['institut_id'] ?? null) ? $statusData['institut_id'] . '-' . $teilnehmerNr : null)
                 : data_get($statusData, 'vertraege.0.teilnehmer_id'));
         $teilnehmerId = ($keepParticipantIdentity && $hasParticipantContext)
-            ? (data_get($programData, 'teilnehmer_id') ?? $teilnehmerIdFallback)
+            ? ($teilnehmerIdFallback ?? data_get($programData, 'teilnehmer_id'))
             : null;
         $mitarbeiterId = $isTutor ? ($mitarbeiterIdFromStatus ?: data_get($programData, 'tutor.mitarbeiter_id')) : null;
         $hasPortalIdentity = ! empty($teilnehmerId) || ! empty($mitarbeiterId);

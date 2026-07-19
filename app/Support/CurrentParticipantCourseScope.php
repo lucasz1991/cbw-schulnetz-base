@@ -3,7 +3,6 @@
 namespace App\Support;
 
 use App\Models\Person;
-use Illuminate\Support\Carbon;
 
 class CurrentParticipantCourseScope
 {
@@ -20,7 +19,8 @@ class CurrentParticipantCourseScope
 
         $programData = is_array($person->programdata) ? $person->programdata : [];
         $statusData = is_array($person->statusdata) ? $person->statusdata : [];
-        $activeContract = self::activeContracts($statusData)->first();
+        $activeContract = $person->currentParticipantContract();
+        $programData = self::programDataForContract($programData, $activeContract);
 
         $teilnehmerId = self::firstFilled([
             data_get($activeContract, 'teilnehmer_id'),
@@ -108,31 +108,26 @@ class CurrentParticipantCourseScope
         });
     }
 
-    protected static function activeContracts(array $statusData)
+    protected static function programDataForContract(array $programData, ?array $contract): array
     {
-        $today = Carbon::today('Europe/Berlin');
+        if (empty($programData) || ! $contract) {
+            return $programData;
+        }
 
-        return collect(data_get($statusData, 'vertraege', []))
-            ->filter(fn ($contract) => is_array($contract))
-            ->filter(function (array $contract) use ($today) {
-                if (! filter_var($contract['is_active'] ?? false, FILTER_VALIDATE_BOOL)) {
-                    return false;
-                }
+        foreach (['teilnehmer_id', 'teilnehmer_nr'] as $identifier) {
+            $contractIdentifier = self::firstFilled([$contract[$identifier] ?? null]);
+            $programIdentifier = self::firstFilled([$programData[$identifier] ?? null]);
 
-                $contractEnd = self::parseDate($contract['vertrag_ende'] ?? null);
-                $cancelledAt = self::parseDate($contract['kuendig_zum'] ?? null);
+            if (
+                $contractIdentifier !== null
+                && $programIdentifier !== null
+                && $contractIdentifier !== $programIdentifier
+            ) {
+                return [];
+            }
+        }
 
-                if ($contractEnd && $contractEnd->endOfDay()->lt($today)) {
-                    return false;
-                }
-
-                if ($cancelledAt && $cancelledAt->endOfDay()->lt($today)) {
-                    return false;
-                }
-
-                return true;
-            })
-            ->values();
+        return $programData;
     }
 
     protected static function firstFilled(array $values): ?string
@@ -155,27 +150,5 @@ class CurrentParticipantCourseScope
             ->unique()
             ->values()
             ->all();
-    }
-
-    protected static function parseDate(mixed $value): ?Carbon
-    {
-        $raw = trim((string) ($value ?? ''));
-        if ($raw === '') {
-            return null;
-        }
-
-        foreach (['Y/m/d', 'Y-m-d', 'd.m.Y', 'd/m/Y', 'd-m-Y'] as $format) {
-            try {
-                return Carbon::createFromFormat($format, $raw, 'Europe/Berlin')->startOfDay();
-            } catch (\Throwable) {
-                // try next known format
-            }
-        }
-
-        try {
-            return Carbon::parse(str_replace('/', '-', $raw), 'Europe/Berlin')->startOfDay();
-        } catch (\Throwable) {
-            return null;
-        }
     }
 }
