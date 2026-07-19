@@ -315,21 +315,21 @@
                                       </span>
                                   </div>
                                   @if(($d['excused'] ?? false) === true || $late > 0 || $early > 0)
-                                  <div class="flex w-full items-center gap-1.5 border-t border-slate-300 bg-slate-50 px-2 py-1.5 text-[10px] font-medium text-slate-600">
+                                  <div class="flex w-full items-center divide-x divide-slate-200 border-t border-slate-300 bg-slate-50/70 px-0.5 py-0.5 text-[9px] font-medium tabular-nums">
                                       @if(($d['excused'] ?? false) === true)
-                                          <span class="inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-blue-700" title="Entschuldigt">
+                                          <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-blue-700" title="Entschuldigt">
                                               <i class="fad fa-file-medical" aria-hidden="true"></i>
                                               Entsch.
                                           </span>
                                       @endif
                                       @if($late > 0)
-                                          <span class="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-amber-700" title="Gekommen um {{ $arrivalTime ?? '–' }} Uhr">
+                                          <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-amber-700" title="Gekommen um {{ $arrivalTime ?? '–' }} Uhr">
                                               <i class="fad fa-user-clock" aria-hidden="true"></i>
                                               {{ $arrivalTime ?? '–' }}
                                           </span>
                                       @endif
                                       @if($early > 0)
-                                          <span class="inline-flex items-center gap-1 rounded-md border border-orange-200 bg-orange-50 px-1.5 py-0.5 text-orange-700" title="Gegangen um {{ $leaveTime ?? '–' }} Uhr">
+                                          <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-orange-700" title="Gegangen um {{ $leaveTime ?? '–' }} Uhr">
                                               <i class="fad fa-door-open" aria-hidden="true"></i>
                                               {{ $leaveTime ?? '–' }}
                                           </span>

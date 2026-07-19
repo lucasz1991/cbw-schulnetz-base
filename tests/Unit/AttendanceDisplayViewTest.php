@@ -17,9 +17,11 @@ class AttendanceDisplayViewTest extends TestCase
         $this->assertStringContainsString('fad fa-flag-checkered', $source);
         $this->assertStringContainsString('w-64 flex-col', $source);
         $this->assertStringContainsString('border-t border-slate-300', $source);
+        $this->assertStringContainsString('divide-x divide-slate-200', $source);
         $this->assertStringContainsString('Gekommen um', $source);
         $this->assertStringContainsString('Gegangen um', $source);
         $this->assertStringNotContainsString('Keine Zusatzangabe', $source);
+        $this->assertStringNotContainsString('rounded-md border border-blue-200', $source);
         $this->assertStringNotContainsString('>Start</span>', $source);
         $this->assertStringNotContainsString('>Ende</span>', $source);
         $this->assertStringNotContainsString('min spät', $source);
