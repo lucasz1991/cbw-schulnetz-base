@@ -303,32 +303,42 @@
                         </td>
                         <td class="px-1 md:px-4 py-2">
                             <div class="flex items-center gap-2 flex-wrap">
-                              <span class="inline-flex overflow-hidden rounded-lg border border-slate-200 text-[11px] font-semibold shadow-sm" title="Start: {{ $startLabel }} · Ende: {{ $endLabel }}">
-                                  <span class="inline-flex items-center gap-1 px-2 py-1 {{ $startClasses }}">
-                                      <span class="hidden lg:inline text-[9px] font-medium uppercase tracking-wide opacity-70">Start</span>
+                              <span class="inline-flex overflow-hidden rounded-xl border border-slate-300 bg-white text-[11px] font-semibold shadow-sm" title="Morgens: {{ $startLabel }} · Ende: {{ $endLabel }}">
+                                  <span class="inline-flex w-28 shrink-0 items-center justify-center gap-2 border-r border-slate-300 px-2 py-1.5 {{ $startClasses }}">
+                                      <i class="fad fa-sunrise w-4 text-center text-sm" aria-hidden="true"></i>
                                       <span>{{ $startLabel }}</span>
                                   </span>
-                                  <span class="inline-flex items-center gap-1 border-l border-white/70 px-2 py-1 {{ $endClasses }}">
-                                      <span class="hidden lg:inline text-[9px] font-medium uppercase tracking-wide opacity-70">Ende</span>
+                                  <span class="inline-flex w-28 shrink-0 items-center justify-center gap-2 px-2 py-1.5 {{ $endClasses }}">
+                                      <i class="fad fa-sunset w-4 text-center text-sm" aria-hidden="true"></i>
                                       <span>{{ $endLabel }}</span>
                                   </span>
+                                  <span class="inline-flex w-44 shrink-0 items-center gap-1.5 border-l border-slate-300 bg-slate-50 px-2 py-1 text-[10px] font-medium text-slate-600">
+                                      @if(($d['excused'] ?? false) === true)
+                                          <span class="inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-blue-700" title="Entschuldigt">
+                                              <i class="fad fa-file-medical" aria-hidden="true"></i>
+                                              Entsch.
+                                          </span>
+                                      @endif
+                                      @if($late > 0)
+                                          <span class="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-amber-700" title="Gekommen um {{ $arrivalTime ?? '–' }} Uhr">
+                                              <i class="fad fa-sign-in-alt" aria-hidden="true"></i>
+                                              {{ $arrivalTime ?? '–' }}
+                                          </span>
+                                      @endif
+                                      @if($early > 0)
+                                          <span class="inline-flex items-center gap-1 rounded-md border border-orange-200 bg-orange-50 px-1.5 py-0.5 text-orange-700" title="Gegangen um {{ $leaveTime ?? '–' }} Uhr">
+                                              <i class="fad fa-sign-out-alt" aria-hidden="true"></i>
+                                              {{ $leaveTime ?? '–' }}
+                                          </span>
+                                      @endif
+                                      @if(($d['excused'] ?? false) !== true && $late === 0 && $early === 0)
+                                          <span class="inline-flex items-center gap-1 text-slate-400">
+                                              <i class="fad fa-minus-circle" aria-hidden="true"></i>
+                                              Keine Zusatzangabe
+                                          </span>
+                                      @endif
+                                  </span>
                               </span>
-                                @if(($d['excused'] ?? false) === true)
-                                    <span class="inline-flex items-center gap-1 rounded-full bg-blue-100/60 px-2 py-0.5 text-xs text-blue-800 ring-1 ring-blue-400">
-                                        <i class="fas fa-file-medical text-[11px]"></i>
-                                        Entschuldigt
-                                    </span>
-                                @endif
-                                @if($late > 0)
-                                    <span class="inline-flex rounded-full px-2 py-0.5 text-xs bg-yellow-100/60 text-yellow-800 ring-1 ring-yellow-400">
-                                        Verspätet: {{ $arrivalTime ?? '–' }}
-                                    </span>
-                                @endif
-                                @if($early > 0)
-                                    <span class="inline-flex rounded-full px-2 py-0.5 text-xs bg-orange-100/60 text-orange-800 ring-1 ring-orange-400">
-                                        Gegangen: {{ $leaveTime ?? '–' }}
-                                    </span>
-                                @endif
                             </div>
                         </td>
                         <td class="px-1 pr-2 md:px-4 py-2">
