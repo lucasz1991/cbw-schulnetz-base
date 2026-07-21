@@ -2,11 +2,13 @@
 
 namespace App\Livewire\Auth;
 
+use App\Models\Person;
 use App\Models\Setting;
 use App\Models\User;
-use App\Models\Person;
 use App\Notifications\SetPasswordNotification;
 use App\Services\ApiUvs\ApiUvsService;
+use App\Services\ApiUvs\PersonUvsSyncService;
+use App\Support\ParticipantContractAccess;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -19,9 +21,13 @@ use Livewire\Component;
 class Login extends Component
 {
     public $message;
+
     public $messageType;
+
     public $email = '';
+
     private string $password = '';
+
     public $remember = false;
 
     protected $messages = [
@@ -182,12 +188,22 @@ class Login extends Component
             }
 
             $statusData = $response['data']['data'] ?? null;
-            if (! is_array($statusData) || ! $this->statusDataMarksTutor($statusData)) {
+            if (! is_array($statusData)) {
                 continue;
             }
 
-            $this->applyTutorStatusToPerson($person, $statusData);
-            $tutorDetected = true;
+            if ($this->statusDataMarksTutor($statusData)) {
+                $this->applyTutorStatusToPerson($person, $statusData);
+                $tutorDetected = true;
+
+                continue;
+            }
+
+            try {
+                app(PersonUvsSyncService::class)->sync($person, $statusData);
+            } catch (\Throwable) {
+                // The login-window check below still uses the last valid local data.
+            }
         }
 
         if ($tutorDetected) {
@@ -229,8 +245,9 @@ class Login extends Component
             return;
         }
 
-        $openBeforeDays = max(0, (int) (Setting::getValue('course_registration', 'open_before_start_days') ?? 14));
-        $closeAfterDays = max(0, (int) (Setting::getValue('course_registration', 'close_after_end_days') ?? 7));
+        $configuredDays = ParticipantContractAccess::configuredDays();
+        $openBeforeDays = $configuredDays['open_before_days'];
+        $closeAfterDays = $configuredDays['close_after_days'];
         $today = Carbon::today('Europe/Berlin');
 
         $persons = $user->persons()->get();
@@ -634,14 +651,14 @@ class Login extends Component
         }
 
         if (filter_var($host, FILTER_VALIDATE_IP)) {
-            return $host . '.de';
+            return $host.'.de';
         }
 
         $segments = array_values(array_filter(explode('.', $host), fn ($segment) => $segment !== ''));
         $segmentCount = count($segments);
 
         if ($segmentCount === 1) {
-            return $host . '.de';
+            return $host.'.de';
         }
 
         if ($segmentCount <= 2) {

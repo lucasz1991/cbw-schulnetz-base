@@ -3,12 +3,13 @@
 namespace App\Services\ApiUvs;
 
 use App\Models\Person;
+use App\Support\ParticipantContractAccess;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 
 class PersonUvsSyncService
 {
-    public function sync(Person $person): array
+    public function sync(Person $person, ?array $providedStatusData = null): array
     {
         if (empty($person->person_id)) {
             return [
@@ -22,34 +23,53 @@ class PersonUvsSyncService
         $programData = is_array($person->programdata) ? $person->programdata : null;
         $oldProgramHash = md5(json_encode($programData ?? []));
 
-        $statusResp = $api->getPersonStatus($person->person_id) ?? null;
-        if (($statusResp['ok'] ?? false) !== true) {
-            Log::warning('PersonUvsSyncService: PersonStatus konnte nicht geladen werden.', [
-                'person_pk' => $person->id,
-                'uvs_person_id' => $person->person_id,
-                'status' => $statusResp['status'] ?? null,
-                'message' => $statusResp['message'] ?? null,
-            ]);
+        if ($providedStatusData !== null) {
+            $statusData = $providedStatusData;
+        } else {
+            $statusResp = $api->getPersonStatus($person->person_id) ?? null;
+            if (($statusResp['ok'] ?? false) !== true) {
+                Log::warning('PersonUvsSyncService: PersonStatus konnte nicht geladen werden.', [
+                    'person_pk' => $person->id,
+                    'uvs_person_id' => $person->person_id,
+                    'status' => $statusResp['status'] ?? null,
+                    'message' => $statusResp['message'] ?? null,
+                ]);
 
-            return [
-                'ok' => false,
-                'reason' => 'person_status_failed',
-                'person_pk' => $person->id,
-                'status' => $statusResp['status'] ?? null,
-            ];
-        }
+                return [
+                    'ok' => false,
+                    'reason' => 'person_status_failed',
+                    'person_pk' => $person->id,
+                    'status' => $statusResp['status'] ?? null,
+                ];
+            }
 
-        $statusData = $statusResp['data']['data'] ?? [];
-        if (! is_array($statusData)) {
-            $statusData = [];
+            $statusData = $statusResp['data']['data'] ?? [];
+            if (! is_array($statusData)) {
+                $statusData = [];
+            }
         }
 
         $mitarbeiterVertragKy = strtoupper(trim((string) ($statusData['mitarbeiter_vertrag_ky'] ?? '')));
         $isTutor = filter_var($statusData['is_tutor'] ?? false, FILTER_VALIDATE_BOOL) || $mitarbeiterVertragKy === 'IS';
         $mitarbeiterIdFromStatus = trim((string) ($statusData['mitarbeiter_id'] ?? '')) ?: null;
-        $teilnehmerIdFromStatus = $statusData['teilnehmer_id'] ?? data_get($statusData, 'vertraege.0.teilnehmer_id');
+        $configuredDays = ParticipantContractAccess::configuredDays();
+        $participantContracts = data_get($statusData, 'vertraege', []);
+        $hasKnownParticipantContracts = is_array($participantContracts)
+            && collect($participantContracts)->contains(fn ($contract) => is_array($contract));
+        $selectedParticipantContract = ParticipantContractAccess::currentContract(
+            $participantContracts,
+            $configuredDays['open_before_days'],
+            $configuredDays['close_after_days']
+        );
+        $teilnehmerIdFromStatus = data_get($selectedParticipantContract, 'teilnehmer_id')
+            ?? ($hasKnownParticipantContracts ? null : ($statusData['teilnehmer_id']
+                ?? data_get($statusData, 'vertraege.0.teilnehmer_id')));
         $hasParticipantContext = ! empty($statusData['teilnehmer_nr']) || ! empty($teilnehmerIdFromStatus);
-        $hasActiveParticipantContract = $this->hasActiveParticipantContract($statusData);
+        $hasActiveParticipantContract = $this->hasActiveParticipantContract(
+            $statusData,
+            $configuredDays['open_before_days'],
+            $configuredDays['close_after_days']
+        );
         $tutorProgramData = null;
 
         if ($isTutor || ! $hasActiveParticipantContract) {
@@ -72,7 +92,7 @@ class PersonUvsSyncService
         $keepParticipantIdentity = ! $isTutor || $hasActiveParticipantContract;
         $role = $isTutor ? 'tutor' : 'guest';
 
-        if (! $isTutor && ! $hasParticipantContext) {
+        if (! $isTutor && ! $hasActiveParticipantContract) {
             $programData = null;
 
             if (config('api_sync.debug_logs', false)) {
@@ -97,8 +117,26 @@ class PersonUvsSyncService
                 // Bind the program request to the exact contract selected by the
                 // status endpoint. This prevents a second "newest contract wins"
                 // decision from replacing the current sequential contract.
-                $selectedBeratungId = trim((string) ($statusData['beratung_id'] ?? '')) ?: null;
-                $selectedTeilnehmerId = trim((string) ($statusData['teilnehmer_id'] ?? '')) ?: null;
+                $selectedBeratungId = trim((string) (
+                    data_get($selectedParticipantContract, 'beratung_id')
+                    ?? ($hasKnownParticipantContracts ? null : ($statusData['beratung_id'] ?? null))
+                    ?? ''
+                )) ?: null;
+                $selectedTeilnehmerId = trim((string) (
+                    data_get($selectedParticipantContract, 'teilnehmer_id')
+                    ?? ($hasKnownParticipantContracts ? null : ($statusData['teilnehmer_id'] ?? null))
+                    ?? ''
+                )) ?: null;
+                $storedProgramTeilnehmerId = trim((string) data_get($programData, 'teilnehmer_id', '')) ?: null;
+
+                if (
+                    $selectedTeilnehmerId !== null
+                    && $storedProgramTeilnehmerId !== null
+                    && $selectedTeilnehmerId !== $storedProgramTeilnehmerId
+                ) {
+                    $programData = null;
+                }
+
                 $apiResponse = $api->getParticipantAndQualiprogrambyId(
                     $person->person_id,
                     $selectedBeratungId
@@ -147,11 +185,14 @@ class PersonUvsSyncService
         $lastApiUpdate = $person->last_api_update;
 
         $teilnehmerNr = $keepParticipantIdentity
-            ? ($statusData['teilnehmer_nr'] ?? data_get($programData, 'teilnehmer_nr'))
+            ? (data_get($selectedParticipantContract, 'teilnehmer_nr')
+                ?? $statusData['teilnehmer_nr']
+                ?? data_get($programData, 'teilnehmer_nr'))
             : null;
-        $teilnehmerIdFallback = $statusData['teilnehmer_id']
+        $teilnehmerIdFallback = data_get($selectedParticipantContract, 'teilnehmer_id')
+            ?? $statusData['teilnehmer_id']
             ?? ($teilnehmerNr
-                ? (($statusData['institut_id'] ?? null) ? $statusData['institut_id'] . '-' . $teilnehmerNr : null)
+                ? (($statusData['institut_id'] ?? null) ? $statusData['institut_id'].'-'.$teilnehmerNr : null)
                 : data_get($statusData, 'vertraege.0.teilnehmer_id'));
         $teilnehmerId = ($keepParticipantIdentity && $hasParticipantContext)
             ? ($teilnehmerIdFallback ?? data_get($programData, 'teilnehmer_id'))
@@ -258,6 +299,7 @@ class PersonUvsSyncService
 
         if (method_exists($person, 'restoreQuietly')) {
             $person->restoreQuietly();
+
             return;
         }
 
@@ -299,45 +341,30 @@ class PersonUvsSyncService
         return $this->looksLikeTutorProgramData($programData) ? $programData : null;
     }
 
-    protected function hasActiveParticipantContract(array $statusData): bool
-    {
+    protected function hasActiveParticipantContract(
+        array $statusData,
+        ?int $openBeforeDays = null,
+        ?int $closeAfterDays = null
+    ): bool {
+        $contracts = data_get($statusData, 'vertraege', []);
+        if (is_array($contracts) && collect($contracts)->contains(fn ($contract) => is_array($contract))) {
+            if ($openBeforeDays === null || $closeAfterDays === null) {
+                $configuredDays = ParticipantContractAccess::configuredDays();
+                $openBeforeDays ??= $configuredDays['open_before_days'];
+                $closeAfterDays ??= $configuredDays['close_after_days'];
+            }
+
+            return ParticipantContractAccess::currentContract(
+                $contracts,
+                $openBeforeDays,
+                $closeAfterDays
+            ) !== null;
+        }
+
         $status = strtolower(trim((string) ($statusData['status'] ?? '')));
         $statusShort = strtoupper(trim((string) ($statusData['status_short'] ?? '')));
 
-        if ($status === 'teilnehmer' || $statusShort === 'TN') {
-            return true;
-        }
-
-        $contracts = data_get($statusData, 'vertraege', []);
-        if (! is_array($contracts)) {
-            return false;
-        }
-
-        foreach ($contracts as $contract) {
-            if (! is_array($contract)) {
-                continue;
-            }
-
-            if (! filter_var($contract['is_active'] ?? false, FILTER_VALIDATE_BOOL)) {
-                continue;
-            }
-
-            $today = Carbon::today('Europe/Berlin');
-            $contractEnd = $this->parseUvsDate($contract['vertrag_ende'] ?? null);
-            $cancellationEnd = $this->parseUvsDate($contract['kuendig_zum'] ?? null);
-
-            if ($contractEnd && $contractEnd->endOfDay()->lt($today)) {
-                continue;
-            }
-
-            if ($cancellationEnd && $cancellationEnd->endOfDay()->lt($today)) {
-                continue;
-            }
-
-            return true;
-        }
-
-        return false;
+        return $status === 'teilnehmer' || $statusShort === 'TN';
     }
 
     protected function parseUvsDate(mixed $value): ?Carbon

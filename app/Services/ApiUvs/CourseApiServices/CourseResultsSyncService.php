@@ -13,7 +13,9 @@ use Illuminate\Support\Facades\Log;
 class CourseResultsSyncService
 {
     private const SUPPORTED_PRUEF_KENNZ = ['V', '+', 'XO', 'B', 'D', 'X', 'N', 'K', '-', 'I', 'E'];
+
     private const LOCAL_STATUS_CODES_FORCE_ZERO_RESULT = ['V', '-', 'X'];
+
     private const LOCAL_STATUS_CODES_WITHOUT_RESULT = ['XO', 'B', 'D', 'I', 'E'];
 
     protected ApiUvsService $api;
@@ -35,8 +37,8 @@ class CourseResultsSyncService
     {
         if (! $course->termin_id || ! $course->klassen_id) {
             Log::warning('CourseResultsSyncService.syncToRemote: fehlende termin_id/klassen_id.', [
-                'course_id'  => $course->id,
-                'termin_id'  => $course->termin_id,
+                'course_id' => $course->id,
+                'termin_id' => $course->termin_id,
                 'klassen_id' => $course->klassen_id,
             ]);
 
@@ -57,10 +59,10 @@ class CourseResultsSyncService
         }
 
         $payload = [
-            'termin_id'      => (string) $course->termin_id,
-            'klassen_id'     => (string) $course->klassen_id,
+            'termin_id' => (string) $course->termin_id,
+            'klassen_id' => (string) $course->klassen_id,
             'teilnehmer_ids' => $teilnehmerIds,
-            'changes'        => $changes,
+            'changes' => $changes,
         ];
 
         $response = $this->api->request(
@@ -74,7 +76,7 @@ class CourseResultsSyncService
             if ($this->isResponseBodyExplicitlyNotOk($response)) {
                 Log::error('CourseResultsSyncService.syncToRemote: API body ok=false.', [
                     'course_id' => $course->id,
-                    'response'  => $response,
+                    'response' => $response,
                 ]);
 
                 return false;
@@ -105,10 +107,10 @@ class CourseResultsSyncService
                 $failedIds = array_values(array_diff($requested, $successfulTeilnehmerIds));
 
                 Log::warning('CourseResultsSyncService.syncToRemote: Partial sync detected.', [
-                    'course_id'                 => $course->id,
-                    'requested_teilnehmer_ids'  => $requested,
+                    'course_id' => $course->id,
+                    'requested_teilnehmer_ids' => $requested,
                     'successful_teilnehmer_ids' => $successfulTeilnehmerIds,
-                    'failed_teilnehmer_ids'     => $failedIds,
+                    'failed_teilnehmer_ids' => $failedIds,
                 ]);
 
                 return false;
@@ -116,7 +118,7 @@ class CourseResultsSyncService
 
             Log::info('CourseResultsSyncService.syncToRemote: Sync OK.', [
                 'course_id' => $course->id,
-                'changes'   => count($changes),
+                'changes' => count($changes),
             ]);
 
             return true;
@@ -124,7 +126,7 @@ class CourseResultsSyncService
 
         Log::error('CourseResultsSyncService.syncToRemote: UVS-Response nicht ok.', [
             'course_id' => $course->id,
-            'response'  => $response,
+            'response' => $response,
         ]);
 
         return false;
@@ -142,8 +144,8 @@ class CourseResultsSyncService
     {
         if (! $course->termin_id || ! $course->klassen_id) {
             Log::warning('CourseResultsSyncService.loadFromRemote: fehlende termin_id/klassen_id.', [
-                'course_id'  => $course->id,
-                'termin_id'  => $course->termin_id,
+                'course_id' => $course->id,
+                'termin_id' => $course->termin_id,
                 'klassen_id' => $course->klassen_id,
             ]);
 
@@ -158,8 +160,8 @@ class CourseResultsSyncService
         }
 
         $payload = [
-            'termin_id'      => (string) $course->termin_id,
-            'klassen_id'     => (string) $course->klassen_id,
+            'termin_id' => (string) $course->termin_id,
+            'klassen_id' => (string) $course->klassen_id,
             'teilnehmer_ids' => $teilnehmerIds,
         ];
 
@@ -183,7 +185,7 @@ class CourseResultsSyncService
 
         Log::error('CourseResultsSyncService.loadFromRemote: UVS-Response nicht ok.', [
             'course_id' => $course->id,
-            'response'  => $response,
+            'response' => $response,
         ]);
 
         return false;
@@ -217,7 +219,7 @@ class CourseResultsSyncService
             $results = CourseResult::where('course_id', $course->id)
                 ->where(function ($q) {
                     $q->whereNull('sync_state')
-                      ->orWhere('sync_state', CourseResult::SYNC_STATE_DIRTY);
+                        ->orWhere('sync_state', CourseResult::SYNC_STATE_DIRTY);
                 })
                 ->get();
         } else {
@@ -243,8 +245,8 @@ class CourseResultsSyncService
 
         $persons = Person::whereIn('id', $personIds)->get()->keyBy('id');
 
-        $now           = Carbon::now();
-        $changes       = [];
+        $now = Carbon::now();
+        $changes = [];
         $syncCandidates = collect();
 
         foreach ($results as $result) {
@@ -255,15 +257,24 @@ class CourseResultsSyncService
                 continue;
             }
 
-            $teilnehmerId  = (string) $person->teilnehmer_id;
-            $personIdUvs   = (string) ($person->person_id ?? '');
-            $institutId    = (int) ($person->institut_id ?? $course->institut_id ?? 0);
+            $teilnehmerId = (string) $person->teilnehmer_id;
+            $personIdUvs = (string) ($person->person_id ?? '');
+            $institutId = (int) ($person->institut_id ?? $course->institut_id ?? 0);
             $teilnehmerFnr = (string) ($person->teilnehmer_fnr ?? '00');
 
-            $localStatus       = $this->normalizeLocalStatus($result->status, $result->result);
-            $remoteStatus      = $this->mapLocalStatusToRemoteStatus($localStatus);
-            $remotePruefKennz  = $this->mapLocalStatusToPruefKennz($localStatus);
+            $localStatus = $this->normalizeLocalStatus($result->status, $result->result);
+            $remoteStatus = $this->mapLocalStatusToRemoteStatus($localStatus);
+            $remotePruefKennz = $this->mapLocalStatusToPruefKennz($localStatus);
             $remotePruefPunkte = $this->normalizeLocalResult($result->result, $localStatus);
+
+            if ($this->localStatusRequiresResult($localStatus) && $remotePruefPunkte === null) {
+                Log::warning('CourseResultsSyncService: Teilnahme-Status ohne Punkte wird nicht synchronisiert.', [
+                    'course_id' => $course->id,
+                    'person_id' => $result->person_id,
+                ]);
+
+                continue;
+            }
 
             // Leere Datensaetze nicht nach UVS pushen.
             // UVS erwartet status=1 auch fuer "kein Ergebnis", daher entscheiden wir nur ueber Kennz/Punkte.
@@ -272,22 +283,22 @@ class CourseResultsSyncService
             }
 
             $changes[] = [
-                'teilnehmer_id'  => $teilnehmerId,
-                'person_id'      => $personIdUvs,
-                'institut_id'    => $institutId,
+                'teilnehmer_id' => $teilnehmerId,
+                'person_id' => $personIdUvs,
+                'institut_id' => $institutId,
                 'teilnehmer_fnr' => $teilnehmerFnr,
 
-                'status'         => $remoteStatus,
-                'pruef_punkte'   => $remotePruefPunkte,
-                'pruef_kennz'    => $remotePruefKennz,
+                'status' => $remoteStatus,
+                'pruef_punkte' => $remotePruefPunkte,
+                'pruef_kennz' => $remotePruefKennz,
 
-                'action'         => 'update',
-                'updated_at'     => ($result->updated_at ?? $now)->toIso8601String(),
+                'action' => 'update',
+                'updated_at' => ($result->updated_at ?? $now)->toIso8601String(),
             ];
 
             $syncCandidates->push([
                 'teilnehmer_id' => $teilnehmerId,
-                'result'        => $result,
+                'result' => $result,
             ]);
         }
 
@@ -313,9 +324,9 @@ class CourseResultsSyncService
         }
 
         return match ((int) $raw) {
-            1       => '+',
-            2       => 'D',
-            3       => '-',
+            1 => '+',
+            2 => 'D',
+            3 => '-',
             default => '',
         };
     }
@@ -400,7 +411,7 @@ class CourseResultsSyncService
             }
 
             $result->remote_upd_date = $now;
-            $result->sync_state      = CourseResult::SYNC_STATE_SYNCED;
+            $result->sync_state = CourseResult::SYNC_STATE_SYNCED;
             $result->saveQuietly();
         }
     }
@@ -447,6 +458,7 @@ class CourseResultsSyncService
             ->filter(fn ($row) => is_array($row))
             ->filter(function (array $row) use ($successActions) {
                 $action = strtolower(trim((string) ($row['action'] ?? '')));
+
                 return in_array($action, $successActions, true);
             })
             ->pluck('teilnehmer_id')
@@ -565,6 +577,11 @@ class CourseResultsSyncService
         return in_array((string) $normalizedStatus, self::LOCAL_STATUS_CODES_WITHOUT_RESULT, true);
     }
 
+    public function localStatusRequiresResult(?string $status): bool
+    {
+        return $this->normalizeLocalStatus($status) === '+';
+    }
+
     public function isLocalStatusNotParticipated(?string $status): bool
     {
         $normalizedStatus = $this->normalizeLocalStatus($status);
@@ -615,9 +632,9 @@ class CourseResultsSyncService
         $outerData = $response['data'] ?? [];
         $innerData = $outerData['data'] ?? $outerData;
 
-        $pulled  = $innerData['pulled'] ?? null;
-        $items   = (is_array($pulled) && ! empty($pulled['items'])) ? $pulled['items'] : [];
-        $items   = $this->deduplicatePulledItemsByParticipant($items);
+        $pulled = $innerData['pulled'] ?? null;
+        $items = (is_array($pulled) && ! empty($pulled['items'])) ? $pulled['items'] : [];
+        $items = $this->deduplicatePulledItemsByParticipant($items);
 
         if (empty($items)) {
             return;
@@ -648,11 +665,11 @@ class CourseResultsSyncService
                 continue;
             }
 
-            $remoteStatus     = $this->parseNullableInt($item['status'] ?? null);
-            $remotePunkte     = $this->parseNullableInt($item['pruef_punkte'] ?? null);
+            $remoteStatus = $this->parseNullableInt($item['status'] ?? null);
+            $remotePunkte = $this->parseNullableInt($item['pruef_punkte'] ?? null);
             $remotePruefKennz = $item['pruef_kennz'] ?? null;
-            $remoteUid        = isset($item['uid']) ? (int) $item['uid'] : null;
-            $remoteUpdRaw     = $item['upd_date'] ?? null; // Y/m/d
+            $remoteUid = isset($item['uid']) ? (int) $item['uid'] : null;
+            $remoteUpdRaw = $item['upd_date'] ?? null; // Y/m/d
 
             $remoteUpdDate = null;
             if (is_string($remoteUpdRaw) && preg_match('#^\d{4}/\d{2}/\d{2}$#', $remoteUpdRaw)) {
@@ -675,7 +692,6 @@ class CourseResultsSyncService
 
             foreach ($persons[$teilnehmerId] as $person) {
                 /** @var Person $person */
-
                 $courseResult = CourseResult::firstOrNew([
                     'course_id' => $course->id,
                     'person_id' => $person->id,
@@ -683,11 +699,11 @@ class CourseResultsSyncService
 
                 // Neu → direkt übernehmen
                 if (! $courseResult->exists) {
-                    $courseResult->result          = $localResult;
-                    $courseResult->status          = $localStatus;
-                    $courseResult->remote_uid      = $remoteUid;
+                    $courseResult->result = $localResult;
+                    $courseResult->status = $localStatus;
+                    $courseResult->remote_uid = $remoteUid;
                     $courseResult->remote_upd_date = $remoteUpdDate;
-                    $courseResult->sync_state      = CourseResult::SYNC_STATE_REMOTE;
+                    $courseResult->sync_state = CourseResult::SYNC_STATE_REMOTE;
 
                     $courseResult->saveQuietly();
                     $createdCount++;
@@ -698,6 +714,7 @@ class CourseResultsSyncService
                 // Dirty bleibt unangetastet
                 if ($courseResult->sync_state === CourseResult::SYNC_STATE_DIRTY) {
                     $skippedDirty++;
+
                     continue;
                 }
 
@@ -716,11 +733,11 @@ class CourseResultsSyncService
                     continue;
                 }
 
-                $courseResult->result          = $localResult;
-                $courseResult->status          = $localStatus;
-                $courseResult->remote_uid      = $remoteUid;
+                $courseResult->result = $localResult;
+                $courseResult->status = $localStatus;
+                $courseResult->remote_uid = $remoteUid;
                 $courseResult->remote_upd_date = $remoteUpdDate;
-                $courseResult->sync_state      = CourseResult::SYNC_STATE_SYNCED;
+                $courseResult->sync_state = CourseResult::SYNC_STATE_SYNCED;
 
                 $courseResult->saveQuietly();
                 $updatedCount++;
@@ -728,11 +745,11 @@ class CourseResultsSyncService
         }
 
         Log::info('CourseResultsSyncService.applySyncResponse: CourseResults aus UVS übernommen.', [
-            'course_id'    => $course->id,
-            'created'      => $createdCount,
-            'updated'      => $updatedCount,
+            'course_id' => $course->id,
+            'created' => $createdCount,
+            'updated' => $updatedCount,
             'skippedDirty' => $skippedDirty,
-            'items_total'  => count($items),
+            'items_total' => count($items),
         ]);
     }
 
@@ -746,9 +763,9 @@ class CourseResultsSyncService
     protected function applyLoadResponse(Course $course, array $response): void
     {
         $innerData = $this->extractInnerData($response);
-        $pulled    = $innerData['pulled'] ?? null;
-        $rawItems  = (is_array($pulled) && ! empty($pulled['items'])) ? $pulled['items'] : [];
-        $items     = $this->deduplicatePulledItemsByParticipant($rawItems);
+        $pulled = $innerData['pulled'] ?? null;
+        $rawItems = (is_array($pulled) && ! empty($pulled['items'])) ? $pulled['items'] : [];
+        $items = $this->deduplicatePulledItemsByParticipant($rawItems);
 
         // Zielmenge für "hartes" Ersetzen: zuerst explizit vom Request, sonst aus gelieferten Items.
         $targetTeilnehmerIds = collect($innerData['teilnehmer_ids'] ?? [])
@@ -806,14 +823,15 @@ class CourseResultsSyncService
             $teilnehmerId = $item['teilnehmer_id'] ?? null;
             if (! $teilnehmerId || empty($persons[$teilnehmerId])) {
                 $missingPersonMapping++;
+
                 continue;
             }
 
-            $remoteStatus     = $this->parseNullableInt($item['status'] ?? null);
-            $remotePunkte     = $this->parseNullableInt($item['pruef_punkte'] ?? null);
+            $remoteStatus = $this->parseNullableInt($item['status'] ?? null);
+            $remotePunkte = $this->parseNullableInt($item['pruef_punkte'] ?? null);
             $remotePruefKennz = $item['pruef_kennz'] ?? null;
-            $remoteUid        = isset($item['uid']) ? (int) $item['uid'] : null;
-            $remoteUpdRaw     = $item['upd_date'] ?? null; // Y/m/d
+            $remoteUid = isset($item['uid']) ? (int) $item['uid'] : null;
+            $remoteUpdRaw = $item['upd_date'] ?? null; // Y/m/d
 
             $remoteUpdDate = null;
             if (is_string($remoteUpdRaw) && preg_match('#^\d{4}/\d{2}/\d{2}$#', $remoteUpdRaw)) {
@@ -828,6 +846,7 @@ class CourseResultsSyncService
             if (! $hasRemoteData) {
                 // Kein Ergebnis in UVS => lokal bewusst kein Datensatz.
                 $noRemoteDataCount++;
+
                 continue;
             }
 
@@ -845,11 +864,11 @@ class CourseResultsSyncService
                         'person_id' => $person->id,
                     ],
                     [
-                        'result'          => $localResult,
-                        'status'          => $localStatus,
-                        'remote_uid'      => $remoteUid,
+                        'result' => $localResult,
+                        'status' => $localStatus,
+                        'remote_uid' => $remoteUid,
                         'remote_upd_date' => $remoteUpdDate,
-                        'sync_state'      => CourseResult::SYNC_STATE_REMOTE,
+                        'sync_state' => CourseResult::SYNC_STATE_REMOTE,
                     ]
                 );
 
@@ -858,11 +877,11 @@ class CourseResultsSyncService
         }
 
         Log::info('CourseResultsSyncService.applyLoadResponse: CourseResults aus UVS (hart) übernommen.', [
-            'course_id'      => $course->id,
-            'deleted_local'  => $deletedCount,
-            'created_local'  => $createdCount,
-            'items_total'    => count($items),
-            'targets_total'  => count($targetTeilnehmerIds),
+            'course_id' => $course->id,
+            'deleted_local' => $deletedCount,
+            'created_local' => $createdCount,
+            'items_total' => count($items),
+            'targets_total' => count($targetTeilnehmerIds),
             'no_remote_data' => $noRemoteDataCount,
             'missing_person_mapping' => $missingPersonMapping,
         ]);
@@ -909,9 +928,9 @@ class CourseResultsSyncService
         }
 
         return match ($status) {
-            1       => '+',
-            2       => 'D',
-            3       => '-',
+            1 => '+',
+            2 => 'D',
+            3 => '-',
             default => (string) $status,
         };
     }
@@ -925,5 +944,3 @@ class CourseResultsSyncService
         return $punkte;
     }
 }
-
-

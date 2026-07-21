@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\Tutor\Courses; 
+namespace App\Livewire\Tutor\Courses;
 
 use App\Models\Course;
 use App\Models\CourseResult;
@@ -27,7 +27,9 @@ class ManageCourseResults extends Component
 
     /** UI */
     public string $search = '';
+
     public string $sortBy = 'name';
+
     public string $sortDir = 'asc';
 
     /*
@@ -38,7 +40,7 @@ class ManageCourseResults extends Component
 
     public function mount(Course $course): void
     {
-        $this->course         = $course;
+        $this->course = $course;
         $this->isExternalExam = (bool) $this->course->getSetting('isExternalExam', false);
 
         // Beim Öffnen, wenn interne Prüfung: UVS ist Master → hart laden
@@ -71,17 +73,33 @@ class ManageCourseResults extends Component
     public function saveOne(string $personId, bool $silent = false): void
     {
         $this->validate([
-            "results.$personId"  => ['nullable', 'numeric', 'min:0', 'max:100'],
+            "results.$personId" => ['nullable', 'numeric', 'min:0', 'max:100'],
             "statuses.$personId" => ['nullable', 'string', 'max:100'],
         ]);
 
         $syncService = $this->courseResultsSyncService();
-        $value  = $this->results[$personId] ?? null;
+        $value = $this->results[$personId] ?? null;
         $status = $syncService->normalizeLocalStatus($this->statuses[$personId] ?? null, $value);
-        $value  = $syncService->normalizeLocalResult($value, $status);
+        $value = $syncService->normalizeLocalResult($value, $status);
 
         $this->statuses[$personId] = $status;
-        $this->results[$personId]  = $value;
+        $this->results[$personId] = $value;
+
+        if ($syncService->localStatusRequiresResult($status) && $value === null) {
+            $this->addError(
+                "results.$personId",
+                'Für den Status „An Prüfung teilgenommen“ müssen Punkte eingetragen werden.'
+            );
+            $this->dispatch(
+                'notify',
+                type: 'error',
+                message: 'Bitte zuerst die erreichten Punkte eintragen.'
+            );
+
+            return;
+        }
+
+        $this->resetErrorBag("results.$personId");
 
         if ($this->courseResultsSyncService()->localStatusHasNoResult($status)) {
             $value = null;
@@ -103,10 +121,10 @@ class ManageCourseResults extends Component
                 'person_id' => $personId,
             ],
             [
-                'result'          => $value,
-                'status'          => $status,
-                'updated_by'      => auth()->id(),
-                'sync_state'      => CourseResult::SYNC_STATE_DIRTY,
+                'result' => $value,
+                'status' => $status,
+                'updated_by' => auth()->id(),
+                'sync_state' => CourseResult::SYNC_STATE_DIRTY,
                 'remote_upd_date' => null,
             ]
         );
@@ -124,9 +142,9 @@ class ManageCourseResults extends Component
             }
         } catch (\Throwable $e) {
             Log::error('CourseResultsSyncService Fehler im saveOne', [
-                'course_id'   => $this->course->id,
-                'person_id'   => $personId,
-                'error'       => $e->getMessage(),
+                'course_id' => $this->course->id,
+                'person_id' => $personId,
+                'error' => $e->getMessage(),
                 'trace_short' => substr($e->getTraceAsString(), 0, 1000),
             ]);
 
@@ -155,10 +173,30 @@ class ManageCourseResults extends Component
 
     public function setStatus(string $personId, ?string $status): void
     {
-        $this->statuses[$personId] = $this->courseResultsSyncService()->normalizeLocalStatus(
+        $syncService = $this->courseResultsSyncService();
+        $normalizedStatus = $syncService->normalizeLocalStatus(
             $status,
             $this->results[$personId] ?? null
         );
+
+        if (
+            $syncService->localStatusRequiresResult($normalizedStatus)
+            && $syncService->normalizeLocalResult($this->results[$personId] ?? null, $normalizedStatus) === null
+        ) {
+            $this->addError(
+                "results.$personId",
+                'Für den Status „An Prüfung teilgenommen“ müssen Punkte eingetragen werden.'
+            );
+            $this->dispatch(
+                'notify',
+                type: 'error',
+                message: 'Bitte zuerst die erreichten Punkte eintragen.'
+            );
+
+            return;
+        }
+
+        $this->statuses[$personId] = $normalizedStatus;
         $this->saveOne($personId, silent: true);
     }
 
@@ -170,6 +208,7 @@ class ManageCourseResults extends Component
                 type: 'error',
                 message: 'Fehlende termin_id/klassen_id. Zuruecksetzen in UVS nicht moeglich.'
             );
+
             return;
         }
 
@@ -183,23 +222,24 @@ class ManageCourseResults extends Component
                 type: 'error',
                 message: "Teilnehmer #{$personId} konnte nicht fuer UVS-Zuruecksetzen aufgeloest werden."
             );
+
             return;
         }
 
         $payload = [
-            'termin_id'      => (string) $this->course->termin_id,
-            'klassen_id'     => (string) $this->course->klassen_id,
+            'termin_id' => (string) $this->course->termin_id,
+            'klassen_id' => (string) $this->course->klassen_id,
             'teilnehmer_ids' => [(string) $person->teilnehmer_id],
-            'changes'        => [[
-                'teilnehmer_id'  => (string) $person->teilnehmer_id,
-                'person_id'      => (string) ($person->person_id ?? ''),
-                'institut_id'    => (int) ($person->institut_id ?? $this->course->institut_id ?? 0),
+            'changes' => [[
+                'teilnehmer_id' => (string) $person->teilnehmer_id,
+                'person_id' => (string) ($person->person_id ?? ''),
+                'institut_id' => (int) ($person->institut_id ?? $this->course->institut_id ?? 0),
                 'teilnehmer_fnr' => (string) ($person->teilnehmer_fnr ?? '00'),
-                'action'         => 'update',
-                'status'         => 1,
-                'pruef_punkte'   => null,
-                'pruef_kennz'    => '',
-                'aktiv'          => '',
+                'action' => 'update',
+                'status' => 1,
+                'pruef_punkte' => null,
+                'pruef_kennz' => '',
+                'aktiv' => '',
             ]],
         ];
 
@@ -245,6 +285,7 @@ class ManageCourseResults extends Component
                     type: 'error',
                     message: "UVS-Zuruecksetzen fuer Person #{$personId} fehlgeschlagen."
                 );
+
                 return;
             }
         } catch (\Throwable $e) {
@@ -260,6 +301,7 @@ class ManageCourseResults extends Component
                 type: 'error',
                 message: "Fehler beim UVS-Zuruecksetzen fuer Person #{$personId}."
             );
+
             return;
         }
 
@@ -277,6 +319,7 @@ class ManageCourseResults extends Component
             message: "Ergebnis fuer Person #{$personId} wurde geloescht."
         );
     }
+
     /**
      * Manueller SYNC-Button:
      * - Lädt nur DIRTY/unsynced Einträge hoch (syncToRemote)
@@ -304,8 +347,8 @@ class ManageCourseResults extends Component
             }
         } catch (\Throwable $e) {
             Log::error('CourseResultsSyncService Fehler im syncResults', [
-                'course_id'   => $this->course->id,
-                'error'       => $e->getMessage(),
+                'course_id' => $this->course->id,
+                'error' => $e->getMessage(),
                 'trace_short' => substr($e->getTraceAsString(), 0, 1000),
             ]);
 
@@ -370,6 +413,7 @@ class ManageCourseResults extends Component
                 type: 'error',
                 message: 'Fehlende termin_id/klassen_id. Remote-Loeschen nicht moeglich.'
             );
+
             return;
         }
 
@@ -382,11 +426,11 @@ class ManageCourseResults extends Component
             }
 
             $changes[] = [
-                'teilnehmer_id'  => (string) $person->teilnehmer_id,
-                'person_id'      => (string) ($person->person_id ?? ''),
-                'institut_id'    => (int) ($person->institut_id ?? $this->course->institut_id ?? 0),
+                'teilnehmer_id' => (string) $person->teilnehmer_id,
+                'person_id' => (string) ($person->person_id ?? ''),
+                'institut_id' => (int) ($person->institut_id ?? $this->course->institut_id ?? 0),
                 'teilnehmer_fnr' => (string) ($person->teilnehmer_fnr ?? '00'),
-                'action'         => 'delete',
+                'action' => 'delete',
             ];
         }
 
@@ -396,14 +440,15 @@ class ManageCourseResults extends Component
                 type: 'error',
                 message: 'Keine gueltigen Teilnehmer fuer Remote-Loeschen gefunden.'
             );
+
             return;
         }
 
         $payload = [
-            'termin_id'      => (string) $this->course->termin_id,
-            'klassen_id'     => (string) $this->course->klassen_id,
+            'termin_id' => (string) $this->course->termin_id,
+            'klassen_id' => (string) $this->course->klassen_id,
             'teilnehmer_ids' => collect($changes)->pluck('teilnehmer_id')->unique()->values()->all(),
-            'changes'        => $changes,
+            'changes' => $changes,
         ];
 
         try {
@@ -414,8 +459,8 @@ class ManageCourseResults extends Component
             if (empty($response['ok'])) {
                 Log::warning('ManageCourseResults.deleteRemoteAndLocalResults: Remote delete failed', [
                     'course_id' => $this->course->id,
-                    'response'  => $response,
-                    'payload'   => $payload,
+                    'response' => $response,
+                    'payload' => $payload,
                 ]);
 
                 $this->dispatch(
@@ -423,6 +468,7 @@ class ManageCourseResults extends Component
                     type: 'error',
                     message: 'Remote-Loeschen fehlgeschlagen. Details im Log.'
                 );
+
                 return;
             }
 
@@ -435,12 +481,12 @@ class ManageCourseResults extends Component
             $this->dispatch(
                 'notify',
                 type: 'success',
-                message: "Remote geloescht (".count($changes)." Teilnehmer), lokal geloescht: {$deletedLocal}."
+                message: 'Remote geloescht ('.count($changes)." Teilnehmer), lokal geloescht: {$deletedLocal}."
             );
         } catch (\Throwable $e) {
             Log::error('ManageCourseResults.deleteRemoteAndLocalResults exception', [
-                'course_id'   => $this->course->id,
-                'error'       => $e->getMessage(),
+                'course_id' => $this->course->id,
+                'error' => $e->getMessage(),
                 'trace_short' => substr($e->getTraceAsString(), 0, 1000),
             ]);
 
@@ -517,8 +563,8 @@ class ManageCourseResults extends Component
             }
         } catch (\Throwable $e) {
             Log::error('CourseResultsSyncService Fehler im performLoadFromRemote', [
-                'course_id'   => $this->course->id,
-                'error'       => $e->getMessage(),
+                'course_id' => $this->course->id,
+                'error' => $e->getMessage(),
                 'trace_short' => substr($e->getTraceAsString(), 0, 1000),
             ]);
 
@@ -536,12 +582,10 @@ class ManageCourseResults extends Component
     {
         $participants = method_exists($this->course, 'participants')
             ? $this->course->participants()
-                ->when($this->search, fn ($q) =>
-                    $q->where(fn ($qq) =>
-                        $qq->where('vorname', 'like', '%' . $this->search . '%')
-                           ->orWhere('nachname', 'like', '%' . $this->search . '%')
-                           ->orWhere('person_id', 'like', '%' . $this->search . '%')
-                    )
+                ->when($this->search, fn ($q) => $q->where(fn ($qq) => $qq->where('vorname', 'like', '%'.$this->search.'%')
+                    ->orWhere('nachname', 'like', '%'.$this->search.'%')
+                    ->orWhere('person_id', 'like', '%'.$this->search.'%')
+                )
                 )
                 ->get()
             : collect();
@@ -550,7 +594,7 @@ class ManageCourseResults extends Component
 
         foreach ($participants as $p) {
             $rows[(string) $p->id] = [
-                'name' => trim(($p->vorname ?? '') . ' ' . ($p->nachname ?? '')) ?: ('Person #' . $p->id),
+                'name' => trim(($p->vorname ?? '').' '.($p->nachname ?? '')) ?: ('Person #'.$p->id),
                 'user' => $p,
             ];
         }
@@ -570,7 +614,7 @@ class ManageCourseResults extends Component
     private function prefillResults(): void
     {
         if (empty($this->rows)) {
-            $this->results  = [];
+            $this->results = [];
             $this->statuses = [];
 
             return;
@@ -589,9 +633,9 @@ class ManageCourseResults extends Component
         foreach ($this->rows as $pid => $_) {
             $storedResult = $existing[$pid]->result ?? null;
             $storedStatus = $existing[$pid]->status ?? null;
-            $status       = $syncService->normalizeLocalStatus($storedStatus, $storedResult);
+            $status = $syncService->normalizeLocalStatus($storedStatus, $storedResult);
 
-            $this->results[$pid]  = $syncService->normalizeLocalResult($storedResult, $status);
+            $this->results[$pid] = $syncService->normalizeLocalResult($storedResult, $status);
             $this->statuses[$pid] = $status;
         }
     }
@@ -612,7 +656,7 @@ class ManageCourseResults extends Component
                 $status
             );
         }
-    } 
+    }
 
     private function normalizeStatusValue(?string $status, mixed $result): ?string
     {
@@ -647,4 +691,3 @@ class ManageCourseResults extends Component
         HTML;
     }
 }
-

@@ -118,6 +118,8 @@
                               $currentStatus = array_key_exists($currentStatusRaw, $statusOptions) ? $currentStatusRaw : '';
                               $currentStatusLabel = $statusOptions[$currentStatus] ?? 'Status waehlen';
                               $statusBadgeClass = $statusBadgeClassMap[$currentStatus] ?? 'bg-gray-50 text-gray-700 border-gray-200';
+                              $currentResult = $results[$personId] ?? null;
+                              $hasResultPoints = $currentResult !== null && trim((string) $currentResult) !== '';
                           @endphp
                           <x-ui.dropdown.anchor-dropdown
                               align="left"
@@ -145,6 +147,7 @@
                                   <div class="py-1 text-sm" wire:loading.class="pointer-events-none opacity-70" wire:target="setStatus">
                                       @foreach($statusOptionsForSelect as $statusValue => $statusLabel)
                                           @php
+                                              $statusNeedsPoints = $statusValue === '+' && ! $hasResultPoints;
                                               $dotClass = match ($statusValue) {
                                                   'V' => 'bg-red-500',
                                                   '+' => 'bg-emerald-500',
@@ -156,7 +159,9 @@
                                               type="button"
                                               wire:click="setStatus('{{ $personId }}', '{{ $statusValue }}')"
                                               wire:loading.attr="disabled"
-                                              class="flex w-full items-center gap-2 px-3 py-2 text-left disabled:cursor-wait {{ (string) $currentStatus === (string) $statusValue ? 'bg-gray-100' : 'hover:bg-gray-50' }}"
+                                              @disabled($statusNeedsPoints)
+                                              title="{{ $statusNeedsPoints ? 'Bitte zuerst Punkte eintragen' : $statusLabel }}"
+                                              class="flex w-full items-center gap-2 px-3 py-2 text-left disabled:cursor-not-allowed disabled:opacity-45 {{ (string) $currentStatus === (string) $statusValue ? 'bg-gray-100' : 'hover:bg-gray-50' }}"
                                           >
                                               <span class="inline-block h-2 w-2 rounded-full aspect-square {{ $dotClass }}"></span>
                                               <span>{{ $statusLabel }}</span>
@@ -168,25 +173,30 @@
                           {{-- Ergebnis-Input --}}
                           @php($disableResultInput = in_array(($statuses[$personId] ?? null), ['-', 'V', 'XO', 'B', 'D', 'X', 'I', 'E'], true))
                           @php($hasEntryToDelete = !empty($statuses[$personId]) || ($results[$personId] ?? null) !== null && (string) ($results[$personId] ?? '') !== '')
-                          <input
-                              type="text"
-                              x-data
-                              x-mask="999"
-                                  x-on:input="
-                                  let v = $event.target.value.replace(/[^0-9]/g, '');
-                                  if (v === '') { $event.target.value = ''; return; }
-                                  let n = parseInt(v);
-                                  if (n > 100) n = 100;
-                                  $event.target.value = n;
-                              "
-                              wire:model.live.defer.200ms="results.{{ $personId }}"
-                              placeholder="0-100"
-                              wire:change="saveOne('{{ $personId }}')"
-                              class="flex-1 rounded-md border border-gray-300 px-2 max-w-20 text-center disabled:opacity-50 disabled:cursor-not-allowed"
-                              @disabled($disableResultInput)
-                              wire:loading.attr="disabled"
-                              wire:target="saveOne('{{ $personId }}')"
-                          />
+                          <div class="w-24 shrink-0">
+                              <input
+                                  type="text"
+                                  x-data
+                                  x-mask="999"
+                                      x-on:input="
+                                      let v = $event.target.value.replace(/[^0-9]/g, '');
+                                      if (v === '') { $event.target.value = ''; return; }
+                                      let n = parseInt(v);
+                                      if (n > 100) n = 100;
+                                      $event.target.value = n;
+                                  "
+                                  wire:model.live.defer.200ms="results.{{ $personId }}"
+                                  placeholder="0-100"
+                                  wire:change="saveOne('{{ $personId }}')"
+                                  class="w-full rounded-md border border-gray-300 px-2 text-center disabled:opacity-50 disabled:cursor-not-allowed"
+                                  @disabled($disableResultInput)
+                                  wire:loading.attr="disabled"
+                                  wire:target="saveOne('{{ $personId }}')"
+                              />
+                              @error("results.$personId")
+                                  <p class="mt-1 text-left text-[10px] leading-tight text-red-600">{{ $message }}</p>
+                              @enderror
+                          </div>
                           <div x-show="isHovered('{{ $personId }}') && @js($hasEntryToDelete)" x-transition class="absolute -top-2 -right-2 ">
                             <button
                                 type="button"

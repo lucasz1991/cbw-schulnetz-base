@@ -2,15 +2,14 @@
 
 namespace App\Models;
 
+use App\Jobs\ApiUpdates\PersonApiUpdate;
+use App\Support\ParticipantContractAccess;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Services\ApiUvs\ApiUvsService;
-use Illuminate\Support\Facades\Log;
-use App\Jobs\ApiUpdates\PersonApiUpdate;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Person extends Model
 {
@@ -80,12 +79,12 @@ class Person extends Model
     ];
 
     protected $casts = [
-        'upd_date'        => 'datetime',
-        'geburt_datum'    => 'date',
-        'angestellt_von'  => 'datetime',
-        'angestellt_bis'  => 'datetime',
-        'programdata'     => 'array',
-        'statusdata'      => 'array',
+        'upd_date' => 'datetime',
+        'geburt_datum' => 'date',
+        'angestellt_von' => 'datetime',
+        'angestellt_bis' => 'datetime',
+        'programdata' => 'array',
+        'statusdata' => 'array',
         'last_api_update' => 'datetime',
     ];
 
@@ -122,7 +121,7 @@ class Person extends Model
             }
 
             // nur sinnvoll, wenn mit User verknüpft
-            if (empty($person->user_id) || !empty($person->programdata)) {
+            if (empty($person->user_id) || ! empty($person->programdata)) {
                 return;
             }
 
@@ -179,7 +178,7 @@ class Person extends Model
      */
     protected static function dispatchApiUpdateIfNotThrottled(Person $person, string $source): void
     {
-        if (empty($person->user_id) || empty($person->id) || !empty($person->programdata)) {
+        if (empty($person->user_id) || empty($person->id) || ! empty($person->programdata)) {
             return;
         }
 
@@ -187,7 +186,7 @@ class Person extends Model
 
         // add() legt den Key nur an, wenn er noch nicht existiert
         $payload = [
-            'last'   => now()->toDateTimeString(),
+            'last' => now()->toDateTimeString(),
             'source' => $source,
         ];
 
@@ -250,9 +249,14 @@ class Person extends Model
         };
     }
 
-    public function portalRoleSortTimestamp(): int
-    {
-        $currentContractEnd = $this->effectiveParticipantContractEnd($this->currentParticipantContract());
+    public function portalRoleSortTimestamp(
+        ?int $openBeforeDays = null,
+        ?int $closeAfterDays = null,
+        ?Carbon $today = null
+    ): int {
+        $currentContractEnd = $this->effectiveParticipantContractEnd(
+            $this->currentParticipantContract($openBeforeDays, $closeAfterDays, $today)
+        );
 
         if ($currentContractEnd) {
             return $currentContractEnd->endOfDay()->timestamp;
@@ -326,10 +330,10 @@ class Person extends Model
     {
         return $this->belongsToMany(Course::class, 'course_participant_enrollments', 'person_id', 'course_id')
             ->withPivot([
-                'id','teilnehmer_id','tn_baustein_id','baustein_id',
-                'klassen_id','termin_id','vtz','kurzbez_ba',
-                'status','is_active','results','notes',
-                'source_snapshot','source_last_upd','last_synced_at','deleted_at'
+                'id', 'teilnehmer_id', 'tn_baustein_id', 'baustein_id',
+                'klassen_id', 'termin_id', 'vtz', 'kurzbez_ba',
+                'status', 'is_active', 'results', 'notes',
+                'source_snapshot', 'source_last_upd', 'last_synced_at', 'deleted_at',
             ])
             ->as('enrollment')
             ->wherePivotNull('deleted_at')
@@ -367,13 +371,19 @@ class Person extends Model
      * nach Ablauf des vorherigen Vertrags ohne kuenstliche Zugangsluecke auf
      * den naechsten Vertrag gewechselt.
      */
-    public function currentParticipantContract(): ?array
-    {
-        return $this->activeParticipantContracts()->first();
+    public function currentParticipantContract(
+        ?int $openBeforeDays = null,
+        ?int $closeAfterDays = null,
+        ?Carbon $today = null
+    ): ?array {
+        return $this->activeParticipantContracts($openBeforeDays, $closeAfterDays, $today)->first();
     }
 
-    protected function activeParticipantContracts(): Collection
-    {
+    protected function activeParticipantContracts(
+        ?int $openBeforeDays = null,
+        ?int $closeAfterDays = null,
+        ?Carbon $today = null
+    ): Collection {
         $statusContracts = collect(data_get($this->statusdata, 'vertraege', []))
             ->filter(fn ($vertrag) => is_array($vertrag));
 
@@ -381,49 +391,20 @@ class Person extends Model
             return collect();
         }
 
-        $today = Carbon::today('Europe/Berlin');
+        if ($openBeforeDays === null || $closeAfterDays === null) {
+            $configuredDays = ParticipantContractAccess::configuredDays();
+            $openBeforeDays ??= $configuredDays['open_before_days'];
+            $closeAfterDays ??= $configuredDays['close_after_days'];
+        }
 
-        return $statusContracts
-            ->filter(function (array $vertrag) use ($today) {
-                $isExplicitlyCurrent = $this->participantContractSelectionPriority($vertrag) > 0;
-                $isActive = filter_var($vertrag['is_active'] ?? false, FILTER_VALIDATE_BOOL);
+        $currentContract = ParticipantContractAccess::currentContract(
+            $statusContracts,
+            $openBeforeDays,
+            $closeAfterDays,
+            $today
+        );
 
-                if (! $isActive && ! $isExplicitlyCurrent) {
-                    return false;
-                }
-
-                $effectiveEnd = $this->effectiveParticipantContractEnd($vertrag);
-
-                return ! $effectiveEnd || $effectiveEnd->endOfDay()->gte($today);
-            })
-            ->sort(function (array $left, array $right): int {
-                $priorityCompare = $this->participantContractSelectionPriority($right)
-                    <=> $this->participantContractSelectionPriority($left);
-
-                if ($priorityCompare !== 0) {
-                    return $priorityCompare;
-                }
-
-                $leftSequence = $this->participantContractSequenceTimestamp($left);
-                $rightSequence = $this->participantContractSequenceTimestamp($right);
-
-                if ($leftSequence !== $rightSequence) {
-                    return $leftSequence <=> $rightSequence;
-                }
-
-                $leftEnd = $this->effectiveParticipantContractEnd($left)?->timestamp ?? PHP_INT_MAX;
-                $rightEnd = $this->effectiveParticipantContractEnd($right)?->timestamp ?? PHP_INT_MAX;
-
-                if ($leftEnd !== $rightEnd) {
-                    return $leftEnd <=> $rightEnd;
-                }
-
-                return strnatcasecmp(
-                    $this->participantContractIdentifier($left),
-                    $this->participantContractIdentifier($right)
-                );
-            })
-            ->values();
+        return $currentContract ? collect([$currentContract]) : collect();
     }
 
     protected function participantContractSelectionPriority(array $vertrag): int
@@ -510,29 +491,28 @@ class Person extends Model
      * based on the number of tn_baust entries in programdata.
      *
      * Rule:
-     * - more than 20 tn_baust => education (true) 
+     * - more than 20 tn_baust => education (true)
      * - otherwise => retraining (false)
      */
     public function isEducation(): bool
     {
         $programData = $this->programdata ?? [];
 
-        if (!isset($programData['tn_baust']) || !is_array($programData['tn_baust'])) {
+        if (! isset($programData['tn_baust']) || ! is_array($programData['tn_baust'])) {
             return false;
         }
 
         return count($programData['tn_baust']) >= 20;
     }
 
-
-    /** 
+    /**
      * Instanzbasierte Mapping-Funktion.
      */
     public function mapFromUvsPayloadWithCheck(object $p, string $role): array
     {
         $mapped = static::mapFromUvsPayload($p, $role);
 
-        if (!$this->exists) {
+        if (! $this->exists) {
             return $mapped;
         }
 
@@ -550,75 +530,76 @@ class Person extends Model
             }
         }
 
-        if (!empty($changes)) {
+        if (! empty($changes)) {
             \Log::warning('Person: Kritische Identitätsdaten haben sich geändert (UVS Sync).', [
                 'person_pk' => $this->id,
                 'person_id' => $this->person_id,
-                'changes'   => $changes,
+                'changes' => $changes,
             ]);
         }
+
         return $mapped;
     }
 
     public static function mapFromUvsPayload(object $p, string $role): array
     {
         return [
-            'person_id'        => $p->person_id,
-            'institut_id'      => $p->institut_id ?? null,
-            'person_nr'        => $p->person_nr ?? null,
-            'role'             => $role,
-            'status'           => $p->status ?? null,
-            'upd_date'         => static::safeDate($p->upd_date ?? null, 'datetime'),
-            'nachname'         => $p->nachname ?? null,
-            'vorname'          => $p->vorname ?? null,
-            'geschlecht'       => $p->geschlecht ?? null,
-            'titel_kennz'      => $p->titel_kennz ?? null,
-            'nationalitaet'    => $p->nationalitaet ?? null,
-            'familien_stand'   => $p->familien_stand ?? null,
-            'geburt_datum'     => static::safeDate($p->geburt_datum ?? null, 'date'),
-            'geburt_name'      => $p->geburt_name ?? null,
-            'geburt_land'      => $p->geburt_land ?? null,
-            'geburt_ort'       => $p->geburt_ort ?? null,
-            'lkz'              => $p->lkz ?? null,
-            'plz'              => $p->plz ?? null,
-            'ort'              => $p->ort ?? null,
-            'strasse'          => $p->strasse ?? null,
-            'adresszusatz1'    => $p->adresszusatz1 ?? null,
-            'adresszusatz2'    => $p->adresszusatz2 ?? null,
-            'plz_pf'           => $p->plz_pf ?? null,
-            'postfach'         => $p->postfach ?? null,
-            'plz_gk'           => $p->plz_gk ?? null,
-            'telefon1'         => $p->telefon1 ?? null,
-            'telefon2'         => $p->telefon2 ?? null,
-            'person_kz'        => $p->person_kz ?? null,
-            'plz_alt'          => $p->plz_alt ?? null,
-            'ort_alt'          => $p->ort_alt ?? null,
-            'strasse_alt'      => $p->strasse_alt ?? null,
-            'telefax'          => $p->telefax ?? null,
-            'kunden_nr'        => $p->kunden_nr ?? null,
-            'stamm_nr_aa'      => $p->stamm_nr_aa ?? null,
-            'stamm_nr_bfd'     => $p->stamm_nr_bfd ?? null,
-            'stamm_nr_sons'    => $p->stamm_nr_sons ?? null,
-            'stamm_nr_kst'     => $p->stamm_nr_kst ?? null,
-            'kostentraeger'    => $p->kostentraeger ?? null,
-            'bkz'              => $p->bkz ?? null,
-            'email_priv'       => $p->email_priv ?? null,
-            'email_cbw'        => $p->email_cbw ?? null,
-            'geb_mmtt'         => $p->geb_mmtt ?? null,
-            'org_zeichen'      => $p->org_zeichen ?? null,
-            'personal_nr'      => $p->personal_nr ?? null,
-            'kred_nr'          => $p->kred_nr ?? null,
-            'angestellt_von'   => static::safeDate($p->angestellt_von ?? null, 'datetime'),
-            'angestellt_bis'   => static::safeDate($p->angestellt_bis ?? null, 'datetime'),
-            'leer'             => $p->leer ?? null,
-            'last_api_update'  => now(),
+            'person_id' => $p->person_id,
+            'institut_id' => $p->institut_id ?? null,
+            'person_nr' => $p->person_nr ?? null,
+            'role' => $role,
+            'status' => $p->status ?? null,
+            'upd_date' => static::safeDate($p->upd_date ?? null, 'datetime'),
+            'nachname' => $p->nachname ?? null,
+            'vorname' => $p->vorname ?? null,
+            'geschlecht' => $p->geschlecht ?? null,
+            'titel_kennz' => $p->titel_kennz ?? null,
+            'nationalitaet' => $p->nationalitaet ?? null,
+            'familien_stand' => $p->familien_stand ?? null,
+            'geburt_datum' => static::safeDate($p->geburt_datum ?? null, 'date'),
+            'geburt_name' => $p->geburt_name ?? null,
+            'geburt_land' => $p->geburt_land ?? null,
+            'geburt_ort' => $p->geburt_ort ?? null,
+            'lkz' => $p->lkz ?? null,
+            'plz' => $p->plz ?? null,
+            'ort' => $p->ort ?? null,
+            'strasse' => $p->strasse ?? null,
+            'adresszusatz1' => $p->adresszusatz1 ?? null,
+            'adresszusatz2' => $p->adresszusatz2 ?? null,
+            'plz_pf' => $p->plz_pf ?? null,
+            'postfach' => $p->postfach ?? null,
+            'plz_gk' => $p->plz_gk ?? null,
+            'telefon1' => $p->telefon1 ?? null,
+            'telefon2' => $p->telefon2 ?? null,
+            'person_kz' => $p->person_kz ?? null,
+            'plz_alt' => $p->plz_alt ?? null,
+            'ort_alt' => $p->ort_alt ?? null,
+            'strasse_alt' => $p->strasse_alt ?? null,
+            'telefax' => $p->telefax ?? null,
+            'kunden_nr' => $p->kunden_nr ?? null,
+            'stamm_nr_aa' => $p->stamm_nr_aa ?? null,
+            'stamm_nr_bfd' => $p->stamm_nr_bfd ?? null,
+            'stamm_nr_sons' => $p->stamm_nr_sons ?? null,
+            'stamm_nr_kst' => $p->stamm_nr_kst ?? null,
+            'kostentraeger' => $p->kostentraeger ?? null,
+            'bkz' => $p->bkz ?? null,
+            'email_priv' => $p->email_priv ?? null,
+            'email_cbw' => $p->email_cbw ?? null,
+            'geb_mmtt' => $p->geb_mmtt ?? null,
+            'org_zeichen' => $p->org_zeichen ?? null,
+            'personal_nr' => $p->personal_nr ?? null,
+            'kred_nr' => $p->kred_nr ?? null,
+            'angestellt_von' => static::safeDate($p->angestellt_von ?? null, 'datetime'),
+            'angestellt_bis' => static::safeDate($p->angestellt_bis ?? null, 'datetime'),
+            'leer' => $p->leer ?? null,
+            'last_api_update' => now(),
         ];
     }
 
     protected static function safeDate(?string $value, string $mode = 'date'): ?string
     {
         try {
-            if (!$value) {
+            if (! $value) {
                 return null;
             }
 

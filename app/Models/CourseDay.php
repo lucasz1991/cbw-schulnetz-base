@@ -31,6 +31,10 @@ class CourseDay extends Model
         'attendance_last_synced_at',
         'topic',
         'notes',
+        'documentation_addendum',
+        'documentation_addendum_status',
+        'documentation_addendum_saved_by_user_id',
+        'documentation_addendum_saved_at',
         'note_status',
         'settings',
         'type',
@@ -46,6 +50,8 @@ class CourseDay extends Model
         'attendance_updated_at' => 'datetime',
         'attendance_last_synced_at' => 'datetime',
         'note_status'     => 'integer',
+        'documentation_addendum_status' => 'integer',
+        'documentation_addendum_saved_at' => 'datetime',
         'settings'       => 'array',
     ];
 
@@ -53,6 +59,9 @@ class CourseDay extends Model
     public const NOTE_STATUS_MISSING   = 0;
     public const NOTE_STATUS_DRAFT     = 1;
     public const NOTE_STATUS_COMPLETED = 2;
+
+    public const DOCUMENTATION_ADDENDUM_STATUS_DRAFT = 0;
+    public const DOCUMENTATION_ADDENDUM_STATUS_PUBLISHED = 1;
 
 
     public const AUTO_SYNC_THRESHOLD_MINUTES = 15;
@@ -263,6 +272,24 @@ public function setAttendance(int $participantId, array $data): void
     public function files()
     {
         return $this->morphMany(File::class, 'fileable');
+    }
+
+    public function documentationAddendumSavedBy()
+    {
+        return $this->belongsTo(User::class, 'documentation_addendum_saved_by_user_id');
+    }
+
+    public function hasPublishedDocumentationAddendum(): bool
+    {
+        return (int) $this->documentation_addendum_status === self::DOCUMENTATION_ADDENDUM_STATUS_PUBLISHED
+            && trim(strip_tags((string) $this->documentation_addendum)) !== '';
+    }
+
+    public function publishedDocumentationAddendumHtml(): ?string
+    {
+        return $this->hasPublishedDocumentationAddendum()
+            ? (string) $this->documentation_addendum
+            : null;
     }
 
     /** Tutor-Signaturen für diesen Tag (Typ z. B. sign_courseday_tutor) */
