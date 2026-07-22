@@ -281,8 +281,15 @@ public function setAttendance(int $participantId, array $data): void
 
     public function hasPublishedDocumentationAddendum(): bool
     {
+        $plainText = html_entity_decode(
+            strip_tags((string) $this->documentation_addendum),
+            ENT_QUOTES | ENT_HTML5,
+            'UTF-8'
+        );
+        $plainText = str_replace("\u{00A0}", ' ', $plainText);
+
         return (int) $this->documentation_addendum_status === self::DOCUMENTATION_ADDENDUM_STATUS_PUBLISHED
-            && trim(strip_tags((string) $this->documentation_addendum)) !== '';
+            && trim($plainText) !== '';
     }
 
     public function publishedDocumentationAddendumHtml(): ?string
@@ -290,6 +297,25 @@ public function setAttendance(int $participantId, array $data): void
         return $this->hasPublishedDocumentationAddendum()
             ? (string) $this->documentation_addendum
             : null;
+    }
+
+    public function documentationForReportBookHtml(): string
+    {
+        $parts = [];
+        $originalDocumentation = trim((string) ($this->notes ?? ''));
+
+        if ($originalDocumentation !== '') {
+            $parts[] = $originalDocumentation;
+        }
+
+        if ($publishedAddendum = $this->publishedDocumentationAddendumHtml()) {
+            $parts[] = '<div class="documentation-addendum">'
+                .'<p><strong>Ergänzung zur Dokumentation</strong></p>'
+                .$publishedAddendum
+                .'</div>';
+        }
+
+        return implode('<hr>', $parts);
     }
 
     /** Tutor-Signaturen für diesen Tag (Typ z. B. sign_courseday_tutor) */

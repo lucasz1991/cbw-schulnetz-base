@@ -95,12 +95,31 @@
             <!-- Panel -->
             <div id="panel-{{ $day->id }}"
                  x-show="openId === {{ $day->id }}"
-                 x-collapse
+                x-collapse
                  x-cloak>
                 <div class="px-4 py-4 text-sm text-gray-700 leading-relaxed">
-                    @if($day->notes)
+                    @php
+                        $hasOriginalDocumentation = trim(strip_tags((string) $day->notes)) !== '';
+                        $publishedAddendumHtml = $day->publishedDocumentationAddendumHtml();
+                    @endphp
+
+                    @if($hasOriginalDocumentation)
                         {!! $day->notes !!}
-                    @else
+                    @endif
+
+                    @if($publishedAddendumHtml)
+                        <div class="mt-4 rounded-lg border border-blue-200 bg-blue-50/60 p-4">
+                            <div class="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-blue-700">
+                                <i class="fal fa-file-plus"></i>
+                                <span>Ergänzung zur Dokumentation</span>
+                            </div>
+                            <div class="prose prose-sm max-w-none text-gray-700">
+                                {!! $publishedAddendumHtml !!}
+                            </div>
+                        </div>
+                    @endif
+
+                    @if(!$hasOriginalDocumentation && !$publishedAddendumHtml)
                         <p class="text-gray-500 italic">Keine Dokumentation vorhanden.</p>
                     @endif
                 </div>

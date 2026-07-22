@@ -458,12 +458,12 @@
                   </x-buttons.button-basic>
               @endif
 
-              {{-- Dozenten-Doku übernehmen --}}
+              {{-- Baustein-Dokumentation übernehmen --}}
               @php
                   $currentDay = collect($courseDays)->firstWhere('id', $selectedCourseDayId);
               @endphp
 
-              @if($currentDay && $currentDay['hasTutorDoc'])
+              @if($currentDay && $currentDay['hasDocumentation'])
                   <x-ui.dropdown.anchor-dropdown
                       align="left"
                       width="48"
@@ -480,7 +480,7 @@
                               type="button"
                               :size="'sm'"
                               class="px-2  text-gray-500"
-                              title="Dozenten-Dokumentation übernehmen"
+                              title="Baustein-Dokumentation übernehmen"
                           >
                               <i class="fad fa-file-signature text-[16px]"></i>
                               <span class="hidden md:inline-block ml-2">Doku</span>
@@ -498,7 +498,7 @@
                                   class="flex w-full items-center gap-2 px-3 py-2 hover:bg-gray-50  "
                               >
                                   <i class="fal fa-file-import text-[14px] "></i>
-                                  <span>Dozenten-Doku einfügen</span>
+                                  <span>Baustein-Dokumentation einfügen</span>
                               </button>
                           </div>
                       </x-slot>
@@ -508,7 +508,7 @@
                   <x-buttons.button-basic
                       :size="'sm'"
                       class="px-2 opacity-40 cursor-not-allowed !text-gray-500"
-                      title="Dozenten-Dokumentation noch nicht vorhanden"
+                      title="Baustein-Dokumentation noch nicht vorhanden"
                   >
                       <i class="fad fa-file-signature text-[16px] "></i>
                       <span class="hidden md:inline-block ml-2 ">Doku</span>

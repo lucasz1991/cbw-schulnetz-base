@@ -285,6 +285,8 @@ public function mount(): void
                 'cd.start_time',
                 'cd.end_time',
                 'cd.notes',
+                'cd.documentation_addendum',
+                'cd.documentation_addendum_status',
                 'rbe.status',
             ]);
 
@@ -300,13 +302,17 @@ public function mount(): void
                 $status >= 1     => ['color' => 'green', 'title' => 'Fertig/Freigegeben'],
             };
 
+            $hasPublishedAddendum = (int) ($d->documentation_addendum_status ?? 0)
+                === CourseDay::DOCUMENTATION_ADDENDUM_STATUS_PUBLISHED
+                && trim(strip_tags(html_entity_decode((string) ($d->documentation_addendum ?? '')))) !== '';
+
             return [
                 'id'          => $d->id,
                 'date'        => $date,
                 'label'       => $label,
                 'status'      => $status,
                 'dot'         => $dot,
-                'hasTutorDoc' => !empty($d->notes),
+                'hasDocumentation' => !empty($d->notes) || $hasPublishedAddendum,
             ];
         })->values()->all();
     }
@@ -1037,7 +1043,14 @@ public function reloadForCurrentCourse(): void
             return;
         }
 
-        $day = CourseDay::find($this->selectedCourseDayId, ['id', 'course_id', 'date', 'notes']);
+        $day = CourseDay::find($this->selectedCourseDayId, [
+            'id',
+            'course_id',
+            'date',
+            'notes',
+            'documentation_addendum',
+            'documentation_addendum_status',
+        ]);
         if (!$day) {
             $this->dispatch('toast', type: 'warning', message: 'Kurstag nicht gefunden.');
             return;
@@ -1047,9 +1060,9 @@ public function reloadForCurrentCourse(): void
             return;
         }
 
-        $doc = trim((string) ($day->notes ?? ''));
+        $doc = $day->documentationForReportBookHtml();
         if ($doc === '') {
-            $this->dispatch('toast', type: 'info', message: 'Keine Dozenten-Dokumentation vorhanden.');
+            $this->dispatch('toast', type: 'info', message: 'Keine Baustein-Dokumentation vorhanden.');
             return;
         }
 
@@ -1085,7 +1098,7 @@ public function reloadForCurrentCourse(): void
         $this->reloadForCurrentCourse();
         $this->editorVersion++;
 
-        $this->dispatch('toast', type: 'success', message: 'Dozenten-Dokumentation übernommen und als Entwurf gespeichert.');
+        $this->dispatch('toast', type: 'success', message: 'Baustein-Dokumentation übernommen und als Entwurf gespeichert.');
     }
 
     /* ======================= Exporte ======================= */
