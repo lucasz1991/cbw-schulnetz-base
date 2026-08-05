@@ -367,9 +367,9 @@ class Person extends Model
     /**
      * Der Vertrag, dessen Kontext das Portal aktuell verwenden soll.
      *
-     * Anschlussvertraege duerfen bereits vor ihrem Beginn offen sein. So wird
-     * nach Ablauf des vorherigen Vertrags ohne kuenstliche Zugangsluecke auf
-     * den naechsten Vertrag gewechselt.
+     * Anschlussvertraege duerfen bereits vor ihrem Beginn zugaenglich sein.
+     * Sobald ein neuerer Vertrag real begonnen hat, bestimmt jedoch er den
+     * sichtbaren Portal-Kontext und nicht die Nachlaufzeit des Altvertrags.
      */
     public function currentParticipantContract(
         ?int $openBeforeDays = null,

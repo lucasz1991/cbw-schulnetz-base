@@ -114,9 +114,9 @@ class PersonUvsSyncService
                     ]);
                 }
             } else {
-                // Bind the program request to the exact contract selected by the
-                // status endpoint. This prevents a second "newest contract wins"
-                // decision from replacing the current sequential contract.
+                // Bind the program request to the locally selected contract.
+                // Access grace periods stay valid, but a newer contract that
+                // has actually begun replaces the older program context.
                 $selectedBeratungId = trim((string) (
                     data_get($selectedParticipantContract, 'beratung_id')
                     ?? ($hasKnownParticipantContracts ? null : ($statusData['beratung_id'] ?? null))

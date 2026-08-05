@@ -36,9 +36,10 @@ class ParticipantContractAccess
      * Select the contract whose data should currently be visible in the
      * participant portal.
      *
-     * Every configured access window is considered. If sequential windows
-     * overlap, the older contract remains selected through its complete grace
-     * period; only then does the following contract take over.
+     * Access windows only decide which contracts are eligible. Contracts that
+     * have really begun take precedence over pre-opened future contracts; of
+     * those, the contract with the latest start wins. This prevents an older
+     * grace period from hiding a newer contract that has already begun.
      */
     public static function currentContract(
         array|Collection $contracts,
@@ -61,8 +62,20 @@ class ParticipantContractAccess
         $accessible = $candidates
             ->filter(fn (array $candidate) => $today->gte($candidate['access_from'])
                 && $today->lte($candidate['access_until']))
-            ->sort(function (array $left, array $right) {
-                $start = $left['start']->timestamp <=> $right['start']->timestamp;
+            ->values();
+
+        $selectedAccessible = $accessible
+            ->sort(function (array $left, array $right) use ($today) {
+                $leftHasStarted = $today->gte($left['start']);
+                $rightHasStarted = $today->gte($right['start']);
+
+                if ($leftHasStarted !== $rightHasStarted) {
+                    return $leftHasStarted ? -1 : 1;
+                }
+
+                $start = $leftHasStarted
+                    ? $right['start']->timestamp <=> $left['start']->timestamp
+                    : $left['start']->timestamp <=> $right['start']->timestamp;
 
                 if ($start !== 0) {
                     return $start;
@@ -79,8 +92,8 @@ class ParticipantContractAccess
             })
             ->first();
 
-        if ($accessible) {
-            return $accessible['contract'];
+        if ($selectedAccessible) {
+            return $selectedAccessible['contract'];
         }
 
         $incompletePeriod = collect($contracts)

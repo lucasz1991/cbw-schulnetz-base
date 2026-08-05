@@ -27,7 +27,7 @@ class ParticipantContractSelectionTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_it_selects_the_first_open_contract_by_begin_date_instead_of_array_order_or_latest_end(): void
+    public function test_it_selects_the_newest_contract_when_real_contract_periods_overlap(): void
     {
         $person = $this->personWithContracts([
             [
@@ -44,9 +44,9 @@ class ParticipantContractSelectionTest extends TestCase
             ],
         ]);
 
-        $this->assertSame('5-004570200', $this->currentContract($person)['teilnehmer_id']);
+        $this->assertSame('5-004570201', $this->currentContract($person)['teilnehmer_id']);
         $this->assertSame(
-            '5-004570200',
+            '5-004570201',
             CurrentParticipantCourseScope::identifiersFor(
                 $person,
                 self::OPEN_BEFORE_DAYS,
@@ -83,6 +83,33 @@ class ParticipantContractSelectionTest extends TestCase
 
         Carbon::setTestNow(Carbon::create(2026, 7, 25, 12, 0, 0, 'Europe/Berlin'));
         $this->assertSame('5-004570201', $this->currentContract($person)['teilnehmer_id']);
+    }
+
+    public function test_a_long_post_closing_window_cannot_hide_a_new_contract_that_has_started(): void
+    {
+        $person = $this->personWithContracts([
+            [
+                'teilnehmer_id' => 'OLD',
+                'vertrag_beginn' => '2024/07/18',
+                'vertrag_ende' => '2026/07/17',
+                'is_active' => false,
+                'is_current' => true,
+            ],
+            [
+                'teilnehmer_id' => 'NEW',
+                'vertrag_beginn' => '2026/08/03',
+                'vertrag_ende' => '2028/07/19',
+                'is_active' => true,
+                'is_current' => false,
+            ],
+        ]);
+
+        Carbon::setTestNow(Carbon::create(2026, 8, 3, 12, 0, 0, 'Europe/Berlin'));
+
+        $this->assertSame(
+            'NEW',
+            $person->currentParticipantContract(self::OPEN_BEFORE_DAYS, 20 * 356)['teilnehmer_id']
+        );
     }
 
     public function test_api_current_flag_cannot_open_a_future_contract_before_the_configured_window(): void
