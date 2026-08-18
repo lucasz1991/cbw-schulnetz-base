@@ -26,8 +26,8 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
     /** @var string UVS-Klassen-ID */
     public string $klassenId;
 
-    public int $tries = 3;
-    public $backoff = [10, 60, 180];
+    public int $tries = 6;
+    public $backoff = [60, 300, 900];
 
     /** Cooldown: innerhalb dieses Fensters nicht erneut syncen */
     private const COOLDOWN_MINUTES = 20;
@@ -104,30 +104,17 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
         // ---------------------------------------------------------------------
         $res = $api->getCourseByKlassenId($this->klassenId);
 
-        if (($res['status'] ?? null) === 404) {
-            $existingCourse = Course::withTrashed()
-                ->where('klassen_id', $this->klassenId)
-                ->first();
-
-            if ($existingCourse) {
-                $log['course_id'] = $existingCourse->id;
-
-                if (! $existingCourse->trashed()) {
-                    $deleteSummary = $existingCourse->softDeleteForMissingApi();
-                    $log['status'] = 'deleted_missing_remote';
-                    $log['messages'][] = 'Kurs in UVS nicht gefunden (404) und lokal softdeleted.';
-                    $log['messages'][] = "Softdeleted relations: days={$deleteSummary['days_soft_deleted']}, enrollments={$deleteSummary['enrollments_soft_deleted']}.";
-                } else {
-                    $log['status'] = 'already_softdeleted_missing_remote';
-                    $log['messages'][] = 'Kurs in UVS nicht gefunden (404) und lokal bereits softdeleted.';
-                }
-            } else {
-                $log['status'] = 'missing_remote_missing_local';
-                $log['messages'][] = 'Kurs in UVS nicht gefunden (404); lokal kein Course vorhanden.';
-            }
-
+        if (($res['ok'] ?? false) !== true) {
+            $httpStatus = $res['status'] ?? null;
+            $log['status'] = 'api_error_kept_local';
+            $log['http_status'] = $httpStatus;
+            $log['messages'][] = 'UVS-Kursabfrage fehlgeschlagen; lokale Kursdaten bleiben unverändert.';
+            Cache::forget($cacheKey);
             $writeLog('warning');
-            return;
+
+            throw new \RuntimeException(
+                'UVS-Kursabfrage fehlgeschlagen (HTTP '.($httpStatus ?? 'unbekannt').').'
+            );
         }
 
         // Erwartete Strukturen abdecken:
@@ -140,7 +127,8 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
             // Cooldown wieder freigeben, damit beim nächsten Versuch direkt neu geholt werden kann
             Cache::forget($cacheKey);
             $writeLog('warning');
-            return;
+
+            throw new \RuntimeException('UVS-Kursabfrage lieferte keine gueltigen Daten.');
         }
 
         $courseData       = $payload['course']       ?? null;
@@ -154,7 +142,8 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
             $log['messages'][] = "API-Response ohne 'course'-Daten.";
             Cache::forget($cacheKey);
             $writeLog('warning');
-            return;
+
+            throw new \RuntimeException("UVS-Kursabfrage lieferte keine 'course'-Daten.");
         }
 
         // ---------------------------------------------------------------------
