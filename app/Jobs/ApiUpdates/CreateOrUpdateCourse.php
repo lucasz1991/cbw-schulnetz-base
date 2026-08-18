@@ -32,15 +32,19 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
     /** Cooldown: innerhalb dieses Fensters nicht erneut syncen */
     private const COOLDOWN_MINUTES = 20;
 
-    public function __construct(string $klassenId)
+    public bool $withoutCooldown = false;
+
+    public function __construct(string $klassenId, bool $withoutCooldown = false)
     {
         $this->klassenId = $klassenId;
+        $this->withoutCooldown = $withoutCooldown;
         // $this->onQueue('api'); // optional
     }
 
     public function uniqueId(): string
     {
-        return 'course-update:' . $this->klassenId;
+        return 'course-update:' . $this->klassenId
+            . ($this->withoutCooldown ? ':without-cooldown' : '');
     }
 
     public function handle(): void
@@ -58,6 +62,7 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
             'participants_count' => 0,
             'days_total'         => 0,
             'days_changed'       => 0,
+            'without_cooldown'   => $this->withoutCooldown,
         ];
 
         // Helper zum finalen Loggen
@@ -87,17 +92,21 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
         // COOLDOWN über Cache
         $cacheKey = "course-sync-cooldown:{$this->klassenId}";
 
-        // add() legt den Key nur an, wenn er noch nicht existiert.
-        // Rückgabe false => Cooldown aktiv -> Job überspringen.
-        if (!Cache::add($cacheKey, now()->toDateTimeString(), now()->addMinutes(self::COOLDOWN_MINUTES))) {
-            $log['status'] = 'cooldown_active';
-            $log['messages'][] = 'Abbruch: Cooldown aktiv, Kurs zuletzt vor kurzem synchronisiert.';
-            $log['last_run_at'] = Cache::get($cacheKey);
-            $writeLog('info');
-            return;
-        }
+        if ($this->withoutCooldown) {
+            $log['messages'][] = 'Cooldown fuer manuellen Admin-Aufruf uebersprungen.';
+        } else {
+            // add() legt den Key nur an, wenn er noch nicht existiert.
+            // Rückgabe false => Cooldown aktiv -> Job überspringen.
+            if (!Cache::add($cacheKey, now()->toDateTimeString(), now()->addMinutes(self::COOLDOWN_MINUTES))) {
+                $log['status'] = 'cooldown_active';
+                $log['messages'][] = 'Abbruch: Cooldown aktiv, Kurs zuletzt vor kurzem synchronisiert.';
+                $log['last_run_at'] = Cache::get($cacheKey);
+                $writeLog('info');
+                return;
+            }
 
-        $log['messages'][] = 'Cooldown gesetzt, Kurs wird synchronisiert.';
+            $log['messages'][] = 'Cooldown gesetzt, Kurs wird synchronisiert.';
+        }
 
         // ---------------------------------------------------------------------
         // 1) Daten holen (robust gegen unterschiedliche Response-Wrapper)
@@ -109,7 +118,9 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
             $log['status'] = 'api_error_kept_local';
             $log['http_status'] = $httpStatus;
             $log['messages'][] = 'UVS-Kursabfrage fehlgeschlagen; lokale Kursdaten bleiben unverändert.';
-            Cache::forget($cacheKey);
+            if (! $this->withoutCooldown) {
+                Cache::forget($cacheKey);
+            }
             $writeLog('warning');
 
             throw new \RuntimeException(
@@ -125,7 +136,9 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
             $log['status'] = 'invalid_payload';
             $log['messages'][] = 'Keine/ungültige Daten vom UVS-API.';
             // Cooldown wieder freigeben, damit beim nächsten Versuch direkt neu geholt werden kann
-            Cache::forget($cacheKey);
+            if (! $this->withoutCooldown) {
+                Cache::forget($cacheKey);
+            }
             $writeLog('warning');
 
             throw new \RuntimeException('UVS-Kursabfrage lieferte keine gueltigen Daten.');
@@ -140,7 +153,9 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
         if (!$courseData) {
             $log['status'] = 'missing_course_data';
             $log['messages'][] = "API-Response ohne 'course'-Daten.";
-            Cache::forget($cacheKey);
+            if (! $this->withoutCooldown) {
+                Cache::forget($cacheKey);
+            }
             $writeLog('warning');
 
             throw new \RuntimeException("UVS-Kursabfrage lieferte keine 'course'-Daten.");

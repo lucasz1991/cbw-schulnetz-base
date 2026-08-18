@@ -26,11 +26,17 @@ class CheckPersonsCourses implements ShouldQueue, ShouldBeUniqueUntilProcessing
     private const PAST_YEARS   = 2; // ab jetzt -2 Jahre
     private const FUTURE_YEARS = 1; // bis jetzt +1 Jahr
 
-    public function __construct(public int $personPk) {}
+    public bool $withoutCooldown = false;
+
+    public function __construct(public int $personPk, bool $withoutCooldown = false)
+    {
+        $this->withoutCooldown = $withoutCooldown;
+    }
 
     public function uniqueId(): string
     {
-        return 'check-persons-courses:' . $this->personPk;
+        return 'check-persons-courses:' . $this->personPk
+            . ($this->withoutCooldown ? ':without-cooldown' : '');
     }
 
     public function handle(): void
@@ -52,6 +58,7 @@ class CheckPersonsCourses implements ShouldQueue, ShouldBeUniqueUntilProcessing
             'klassen_ids_total' => 0,
             'klassen_ids_limited' => false,
             'jobs_dispatched' => 0,
+            'without_cooldown' => $this->withoutCooldown,
         ];
 
         $writeLog = function (string $level = 'info') use (&$log) {
@@ -120,7 +127,7 @@ class CheckPersonsCourses implements ShouldQueue, ShouldBeUniqueUntilProcessing
 
         // Jobs dispatchen (ohne Einzel-Logs)
         foreach ($dispatchKlassenIds as $kid) {
-            CreateOrUpdateCourse::dispatch($kid);
+            CreateOrUpdateCourse::dispatch($kid, $this->withoutCooldown);
         }
 
         $log['status']          = 'ok';
@@ -206,4 +213,3 @@ class CheckPersonsCourses implements ShouldQueue, ShouldBeUniqueUntilProcessing
             ->values();
     }
 }
-

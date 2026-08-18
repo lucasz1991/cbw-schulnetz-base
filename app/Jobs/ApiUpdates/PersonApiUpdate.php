@@ -11,6 +11,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class PersonApiUpdate implements ShouldQueue, ShouldBeUnique
 {
@@ -23,14 +24,24 @@ class PersonApiUpdate implements ShouldQueue, ShouldBeUnique
     /** @var array<int,int> */
     public array $backoff = [10, 60, 180];
 
-    public function __construct(public int $personPk)
+    public bool $withoutCooldown = false;
+
+    public ?string $manualRequestId = null;
+
+    public function __construct(public int $personPk, bool $withoutCooldown = false)
     {
         $this->personPk = $personPk;
+        $this->withoutCooldown = $withoutCooldown;
+        $this->manualRequestId = $withoutCooldown ? (string) Str::uuid() : null;
     }
 
     public function uniqueId(): string
     {
-        return 'person-api-update:' . (string) $this->personPk;
+        $manualSuffix = $this->withoutCooldown
+            ? ':manual:' . ($this->manualRequestId ?? 'legacy')
+            : '';
+
+        return 'person-api-update:' . (string) $this->personPk . $manualSuffix;
     }
 
     public function handle(): void
@@ -51,6 +62,9 @@ class PersonApiUpdate implements ShouldQueue, ShouldBeUnique
             return;
         }
 
-        app(PersonUvsSyncService::class)->sync($person);
+        app(PersonUvsSyncService::class)->sync(
+            $person,
+            withoutCooldown: $this->withoutCooldown,
+        );
     }
 }

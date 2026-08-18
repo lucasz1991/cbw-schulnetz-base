@@ -48,3 +48,7 @@ Append-only communication log. Source and runtime evidence override stale entrie
 - Removed: UVS API changes, scheduler, reconciler command, config changes, unique nightly job changes, support classes, PHPUnit config changes, documentation, and added test files.
 - Verified: UVS API repository clean; PHP lint passed; isolated 404 smoke check confirmed no delete path and released cooldown; `git diff --check` passed.
 - Data safety: No database row changed, no real queue job dispatched, no commit or push performed.
+
+## 2026-08-18T18:41:54Z | Codex -> all | status
+
+- Message: Started: Admin-ausgeloesten Person API Update in Base sofort ausfuehren

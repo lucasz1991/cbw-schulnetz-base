@@ -9,7 +9,11 @@ use Illuminate\Support\Facades\Log;
 
 class PersonUvsSyncService
 {
-    public function sync(Person $person, ?array $providedStatusData = null): array
+    public function sync(
+        Person $person,
+        ?array $providedStatusData = null,
+        bool $withoutCooldown = false,
+    ): array
     {
         if (empty($person->person_id)) {
             return [
@@ -244,14 +248,16 @@ class PersonUvsSyncService
 
         $person->user?->syncPortalRoleFromPersons();
 
-        $shouldDispatchCourseSync = $person->user_id != null
-            && $person->programdata != null
-            && ($programDataChanged || $lastApiUpdate == null || $lastApiUpdate->lt(now()->subDays(2)));
+        $shouldDispatchCourseSync = $person->programdata != null
+            && ($withoutCooldown || (
+                $person->user_id != null
+                && ($programDataChanged || $lastApiUpdate == null || $lastApiUpdate->lt(now()->subDays(2)))
+            ));
 
         if ($shouldDispatchCourseSync) {
             $checkPersonsCoursesClass = 'App\\Jobs\\ApiUpdates\\CheckPersonsCourses';
             if (class_exists($checkPersonsCoursesClass)) {
-                $checkPersonsCoursesClass::dispatch($person->id);
+                $checkPersonsCoursesClass::dispatch($person->id, $withoutCooldown);
             }
         }
 
@@ -266,6 +272,7 @@ class PersonUvsSyncService
                 'user_linked' => $person->user_id != null,
                 'programdata_present' => $person->programdata != null,
                 'dispatch_check_persons_courses' => $shouldDispatchCourseSync,
+                'without_cooldown' => $withoutCooldown,
             ]);
         }
 
