@@ -248,11 +248,9 @@ class PersonUvsSyncService
 
         $person->user?->syncPortalRoleFromPersons();
 
-        $shouldDispatchCourseSync = $person->programdata != null
-            && ($withoutCooldown || (
-                $person->user_id != null
-                && ($programDataChanged || $lastApiUpdate == null || $lastApiUpdate->lt(now()->subDays(2)))
-            ));
+        $shouldDispatchCourseSync = $person->user_id != null
+            && $person->programdata != null
+            && ($withoutCooldown || $programDataChanged || $lastApiUpdate == null || $lastApiUpdate->lt(now()->subDays(2)));
 
         if ($shouldDispatchCourseSync) {
             $checkPersonsCoursesClass = 'App\\Jobs\\ApiUpdates\\CheckPersonsCourses';

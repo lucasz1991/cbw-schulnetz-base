@@ -52,3 +52,12 @@ Append-only communication log. Source and runtime evidence override stale entrie
 ## 2026-08-18T18:41:54Z | Codex -> all | status
 
 - Message: Started: Admin-ausgeloesten Person API Update in Base sofort ausfuehren
+
+## 2026-08-18T19:02:57Z | Codex -> all | handoff
+
+- Task: Das manuelle Admin-Person-API-Update ohne Zwei-Tage-Gate und Kurs-Cooldown durch die bestehenden Base-Jobs fuehren.
+- Status: completed.
+- Changed: `app/Jobs/ApiUpdates/PersonApiUpdate.php`, `app/Services/ApiUvs/PersonUvsSyncService.php`, `app/Jobs/ApiUpdates/CheckPersonsCourses.php`, `app/Jobs/ApiUpdates/CreateOrUpdateCourse.php`.
+- Behavior: Nur `withoutCooldown=true` erzwingt fuer eine weiterhin user-verknuepfte Person den Kurs-Folgejob und ueberspringt dessen 20-Minuten-Cache; normale Aufrufe bleiben unveraendert. Alte Queue-Payloads bleiben durch Property-Defaults kompatibel.
+- Verified: PHP-Lint, Cross-App-Serialisierung, SQLite-Force-Dispatch, Array-Cache-Cooldown-Bypass, Unit 3/3 und `git diff --check`; keine echte Queue/API/MariaDB.
+- Note: Die Aenderung erschien waehrend der Pruefung unerwartet als Commit `fcb5105` auf `origin/main`; Codex hat keinen Commit-/Push-Befehl ausgefuehrt.
