@@ -9,6 +9,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class CheckReportBooks implements ShouldQueue
@@ -38,92 +39,141 @@ class CheckReportBooks implements ShouldQueue
         }
 
         foreach ($books as $book) {
-
-            // Nur wenn vollständig eingereicht
-            $allSubmitted = $book->entries->count() > 0
-                && $book->entries->every(fn ($e) => (int) $e->status >= 1);
-
-            if (! $allSubmitted) {
+            if (! $this->isReadyForReview($book)) {
                 continue;
             }
 
-            // Nur wenn mindestens ein Eintrag noch "Eingereicht" (Status 1) ist.
-            $hasStatusOne = $book->entries->contains(fn ($e) => (int) $e->status === 1);
-
-            if (! $hasStatusOne) {
-                continue;
-            }
-
-            // expected (aus days() Relation)
-            $expectedDays = $book->days()
-                ->pluck('date')
-                ->map(fn ($d) => \Illuminate\Support\Carbon::parse($d)->toDateString()) // Y-m-d
-                ->unique()
-                ->values()
-                ->all();
-
-            // existing (aus entries, Feld ggf. anpassen!)
-            $existingDays = $book->entries
-                ->map(function ($e) {
-                    $d = $e->date ?? $e->day ?? $e->entry_date ?? null;
-                    return $d ? \Illuminate\Support\Carbon::parse($d)->toDateString() : null;
-                })
-                ->filter()
-                ->unique()
-                ->values()
-                ->all();
-
-            $missingDays = array_values(array_diff($expectedDays, $existingDays));
-
-            if (!empty($missingDays)) {
-                continue;
-            }
-
-            // Ein Task pro ReportBook (stabil über context_* + task_type)
-            $task = AdminTask::query()
-                ->where('task_type', 'reportbook_review')
-                ->where('context_type', ReportBook::class)
-                ->where('context_id', $book->id)
-                ->first();
-
-            // Fallback für Altlasten (falls früher nur description genutzt wurde)
-            if (! $task) {
-                $task = AdminTask::query()
-                    ->where('task_type', 'reportbook_review')
-                    ->where('description', 'LIKE', "%Berichtsheft {$book->id}%")
+            DB::transaction(function () use ($book): void {
+                // Der gemeinsame Parent-Lock serialisiert auch den Fall, dass noch
+                // keine Task-Zeile existiert und zwei Queue-Jobs parallel starten.
+                $currentBook = ReportBook::query()
+                    ->whereKey($book->id)
+                    ->lockForUpdate()
                     ->first();
-            }
 
-            if ($task) {
-                // Wenn gerade in Bearbeitung: nichts ändern
-                if ((int) $task->status === (int) AdminTask::STATUS_IN_PROGRESS) {
-                    Log::info("CheckReportBooks: Task {$task->id} für Berichtsheft {$book->id} ist in Bearbeitung – unverändert.");
-                    continue;
+                if (! $currentBook) {
+                    return;
                 }
 
-                // Sonst: reaktivieren (OPEN + Zuordnung löschen)
-                $task->status = AdminTask::STATUS_OPEN;
-                $task->assigned_to = null;
-                $task->completed_at = null; // falls er mal abgeschlossen war
-                $task->save();
+                $task = AdminTask::query()
+                    ->where('task_type', AdminTask::TYPE_REPORTBOOK_REVIEW)
+                    ->where('context_type', ReportBook::class)
+                    ->where('context_id', $currentBook->id)
+                    ->lockForUpdate()
+                    ->first();
 
-                Log::info("CheckReportBooks: Task {$task->id} für Berichtsheft {$book->id} reaktiviert (OPEN, assigned_to null).");
-                continue;
-            }
+                // Fallback für Altlasten (falls früher nur description genutzt wurde).
+                // Das Leerzeichen hinter der ID bildet eine feste Grenze, damit
+                // z. B. Berichtsheft 12 nicht den Eintrag für 123 trifft.
+                $legacyTask = false;
+                if (! $task) {
+                    $task = AdminTask::query()
+                        ->where('task_type', AdminTask::TYPE_REPORTBOOK_REVIEW)
+                        ->where(function ($query): void {
+                            $query->whereNull('context_type')
+                                ->orWhereNull('context_id');
+                        })
+                        ->where(function ($query) use ($currentBook): void {
+                            $query->where(
+                                'description',
+                                'LIKE',
+                                "Baustein Berichtsheft {$currentBook->id} %"
+                            )->orWhere(
+                                'description',
+                                'LIKE',
+                                "ReportBook {$currentBook->id} %"
+                            );
+                        })
+                        ->lockForUpdate()
+                        ->first();
 
-            // Noch kein Task -> neu erstellen
-            AdminTask::create([
-                'created_by'   => $book->user_id,
-                'context_type' => ReportBook::class,
-                'context_id'   => $book->id,
-                'task_type'    => 'reportbook_review',
-                'description'  => "Baustein Berichtsheft {$book->id} vollständig eingereicht – Prüfung & Freigabe erforderlich.",
-                'status'       => AdminTask::STATUS_OPEN,
-                'assigned_to'  => null,
-                'completed_at' => null,
-            ]);
+                    $legacyTask = $task !== null;
+                }
 
-            Log::info("CheckReportBooks: AdminTask für Berichtsheft {$book->id} erstellt.");
+                // Ein gleichzeitig abgeschlossener Review kann die Entry-Status
+                // geändert haben, während dieser Job auf die Task-Zeile wartete.
+                $currentBook->load('entries');
+
+                if (! $this->isReadyForReview($currentBook)) {
+                    return;
+                }
+
+                if ($task) {
+                    if ($legacyTask) {
+                        $task->context_type = ReportBook::class;
+                        $task->context_id = $currentBook->id;
+                    }
+
+                    // Wenn gerade in Bearbeitung: nichts ändern
+                    if ((int) $task->status === (int) AdminTask::STATUS_IN_PROGRESS) {
+                        if ($task->isDirty()) {
+                            $task->save();
+                        }
+
+                        Log::info("CheckReportBooks: Task {$task->id} für Berichtsheft {$currentBook->id} ist in Bearbeitung – unverändert.");
+                        return;
+                    }
+
+                    // Sonst: reaktivieren (OPEN + Zuordnung löschen)
+                    $task->status = AdminTask::STATUS_OPEN;
+                    $task->assigned_to = null;
+                    $task->completed_at = null; // falls er mal abgeschlossen war
+                    $task->save();
+
+                    Log::info("CheckReportBooks: Task {$task->id} für Berichtsheft {$currentBook->id} reaktiviert (OPEN, assigned_to null).");
+                    return;
+                }
+
+                // Noch kein Task -> neu erstellen
+                AdminTask::create([
+                    'created_by'   => $currentBook->user_id,
+                    'context_type' => ReportBook::class,
+                    'context_id'   => $currentBook->id,
+                    'task_type'    => AdminTask::TYPE_REPORTBOOK_REVIEW,
+                    'description'  => "Baustein Berichtsheft {$currentBook->id} vollständig eingereicht – Prüfung & Freigabe erforderlich.",
+                    'status'       => AdminTask::STATUS_OPEN,
+                    'assigned_to'  => null,
+                    'completed_at' => null,
+                ]);
+
+                Log::info("CheckReportBooks: AdminTask für Berichtsheft {$currentBook->id} erstellt.");
+            }, 3);
         }
+    }
+
+    private function isReadyForReview(ReportBook $book): bool
+    {
+        $allSubmitted = $book->entries->count() > 0
+            && $book->entries->every(fn ($entry) => (int) $entry->status >= 1);
+
+        if (! $allSubmitted) {
+            return false;
+        }
+
+        if (! $book->entries->contains(fn ($entry) => (int) $entry->status === 1)) {
+            return false;
+        }
+
+        $expectedDays = $book->days()
+            ->pluck('date')
+            ->map(fn ($date) => \Illuminate\Support\Carbon::parse($date)->toDateString())
+            ->unique()
+            ->values()
+            ->all();
+
+        $existingDays = $book->entries
+            ->map(function ($entry) {
+                $date = $entry->date ?? $entry->day ?? $entry->entry_date ?? null;
+
+                return $date
+                    ? \Illuminate\Support\Carbon::parse($date)->toDateString()
+                    : null;
+            })
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        return empty(array_diff($expectedDays, $existingDays));
     }
 }

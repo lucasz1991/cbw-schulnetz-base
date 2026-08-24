@@ -5,6 +5,13 @@
     $user   = $user   ?? ($request->user   ?? null);
     $course = $course ?? ($request->course ?? null);
     $person = $user?->person;
+    $classLabel = $request->class_label
+        ?: $request->class_code
+        ?: $course?->courseClassName
+        ?: $course?->klassen_id;
+    $externalInstitution = $request->external_exam_institution;
+    $externalExamName = $request->external_exam_name;
+    $externalExamDate = $request->external_exam_date;
 @endphp
 <!DOCTYPE html>
 <html lang="de">
@@ -115,8 +122,8 @@
         </td>
         <td class="header-right">
             Datum: {{ now()->format('d.m.Y') }}<br>
-            @if($course?->klassen_id)
-                Klasse: {{ $course->klassen_id }}
+            @if($classLabel)
+                Klasse: {{ $classLabel }}
             @endif
         </td>
     </tr>
@@ -154,29 +161,35 @@
     <tr>
         <td class="meta-label">Klasse</td>
         <td class="meta-value">
-            {{ $course?->courseClassName ?: $course?->klassen_id ?: '—' }}
+            {{ $classLabel ?: '—' }}
         </td>
     </tr>
     <tr>
         <td class="meta-label">Prüfungsinstitution</td>
         <td class="meta-value">
-            {{ $request->external_institution ?? '—' }}
+            {{ $externalInstitution ?: '—' }}
         </td>
     </tr>
     <tr>
         <td class="meta-label">Externe Prüfungsbezeichnung</td>
         <td class="meta-value">
-            {{ $request->external_exam_name ?? '—' }}
+            {{ $externalExamName ?: '—' }}
         </td>
     </tr>
     <tr>
         <td class="meta-label">Prüfungstermin extern</td>
         <td class="meta-value">
-            @if(!empty($request->external_exam_date))
-                {{ \Carbon\Carbon::parse($request->external_exam_date)->format('d.m.Y') }}
+            @if($externalExamDate)
+                {{ \Carbon\Carbon::parse($externalExamDate)->format('d.m.Y H:i') }} Uhr
             @else
                 —
             @endif
+        </td>
+    </tr>
+    <tr>
+        <td class="meta-label">Prüfungsgebühr</td>
+        <td class="meta-value">
+            {{ $request->external_exam_fee_formatted ?: 'Nicht hinterlegt' }}
         </td>
     </tr>
 </table>
@@ -199,7 +212,7 @@
     </div>
 
     <div class="text-block">
-        {!! nl2br(e($request->reason)) !!}
+        {{ $request->reason_label }}
     </div>
 @endif
 

@@ -7,6 +7,7 @@ use App\Models\UserRequest;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -20,6 +21,7 @@ class ExternalMakeupRegistration extends Component
 
     // Formularfelder
     public ?string $klasse = null;
+    public ?string $external_institution = null;
     public ?string $certification_key = null;
     public ?string $certification_label = null;
     public ?string $scheduled_at = null; // Unix-Timestamp (string)
@@ -62,6 +64,7 @@ class ExternalMakeupRegistration extends Component
     {
         $this->reset([
             'klasse',
+            'external_institution',
             'certification_key',
             'certification_label',
             'scheduled_at',
@@ -115,11 +118,25 @@ class ExternalMakeupRegistration extends Component
     public function rules(): array
     {
         return [
-            'klasse' => ['nullable', 'string', 'max:12'],
-            'certification_key' => ['required', 'exists:exam_appointments,id'],
+            'klasse' => ['required', 'string', 'max:12'],
+            'external_institution' => ['required', 'string', 'max:64'],
+            'certification_key' => [
+                'required',
+                Rule::exists('exam_appointments', 'id')
+                    ->where(fn ($query) => $query
+                        ->where('type', 'extern')
+                        ->whereNull('deleted_at')),
+            ],
             'scheduled_at' => ['required', 'numeric'],
             'exam_modality' => ['required', 'in:online'],
-            'reason' => ['required', 'in:zert_faild,krankMitAtest,krankOhneAtest'],
+            'reason' => [
+                'required',
+                Rule::in([
+                    UserRequest::REASON_CERTIFICATION_FAILED,
+                    'krankMitAtest',
+                    'krankOhneAtest',
+                ]),
+            ],
             'email_priv' => ['nullable', 'email'],
             'exam_registration_attachments.*' => ['file', 'mimes:jpg,jpeg,png,gif,pdf', 'max:8192'],
         ];
@@ -152,12 +169,20 @@ class ExternalMakeupRegistration extends Component
 
         $scheduledAt = Carbon::createFromTimestamp((int) $this->scheduled_at);
 
-        $feeCents = $appointment->preis !== null
-            ? (int) round(((float) $appointment->preis) * 100)
-            : null;
+        if ($appointment->preis === null) {
+            $this->addError(
+                'certification_key',
+                'Für diese Zertifizierung ist noch keine Prüfungsgebühr hinterlegt.'
+            );
+
+            return;
+        }
+
+        // Der Preis wird bei Antragstellung als historischer Cent-Betrag eingefroren.
+        $feeCents = (int) round(((float) $appointment->preis) * 100);
 
         $withAttest = $this->reason === 'krankMitAtest';
-        $title = 'Externe Prüfung '.($this->certification_label ?? $appointment->name ?? '');
+        $title = 'Externe Prüfung '.$appointment->name;
 
         $request = UserRequest::create([
             'user_id' => Auth::id(),
@@ -166,7 +191,8 @@ class ExternalMakeupRegistration extends Component
             'status' => 'pending',
             'submitted_at' => now(),
 
-            'class_label' => $this->klasse,
+            'class_label' => trim((string) $this->klasse),
+            'institute' => trim((string) $this->external_institution),
 
             'certification_key' => (string) $appointment->id,
             'certification_label' => $appointment->name,

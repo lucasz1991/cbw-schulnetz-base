@@ -33,9 +33,23 @@ class UserRequest extends Model
     public const EXAM_MODALITY_RETAKE      = 'retake';
     public const EXAM_MODALITY_IMPROVEMENT = 'improvement';
 
+    public const REASON_CERTIFICATION_FAILED = 'certification_failed';
+    public const LEGACY_REASON_CERTIFICATION_FAILED = 'zert_faild';
+
     public const MAKEUP_EXAM_MODALITY_LABELS = [
         self::EXAM_MODALITY_RETAKE      => 'Interne Wiederholungsprüfung',
         self::EXAM_MODALITY_IMPROVEMENT => 'Interne Nachprüfung',
+    ];
+
+    /**
+     * `zert_faild` bleibt nur für bereits gespeicherte Anträge lesbar.
+     */
+    public const REASON_LABELS = [
+        self::REASON_CERTIFICATION_FAILED => 'Ursprüngliche Prüfung nicht bestanden',
+        self::LEGACY_REASON_CERTIFICATION_FAILED => 'Ursprüngliche Prüfung nicht bestanden',
+        'krankMitAtest' => 'Krankheit am Prüfungstag, mit Attest',
+        'krankOhneAtest' => 'Krankheit am Prüfungstag, ohne Attest',
+        'unter51' => 'Ursprüngliche Prüfung unter 51 Punkte',
     ];
 
     private const MAKEUP_EXAM_OPTIONS = [
@@ -192,6 +206,75 @@ class UserRequest extends Model
         return $feeCents === null
             ? null
             : number_format($feeCents / 100, 2, ',', '.') . ' €';
+    }
+
+    public static function reasonLabel(?string $reason): ?string
+    {
+        if ($reason === null || trim($reason) === '') {
+            return null;
+        }
+
+        return self::REASON_LABELS[$reason] ?? str_replace('_', ' ', $reason);
+    }
+
+    public function getReasonLabelAttribute(): ?string
+    {
+        return self::reasonLabel($this->reason);
+    }
+
+    /**
+     * Rückwärtskompatible PDF-/Anzeigequelle für externe Prüfungsdaten.
+     * Explizite Legacy-/JSON-Werte haben Vorrang vor den aktuellen Feldern.
+     */
+    public function getExternalExamInstitutionAttribute(): ?string
+    {
+        return $this->firstFilledString([
+            $this->attributes['external_institution'] ?? null,
+            data_get($this->data, 'external_institution'),
+            $this->institute,
+        ]);
+    }
+
+    public function getExternalExamNameAttribute(): ?string
+    {
+        return $this->firstFilledString([
+            $this->attributes['external_exam_name'] ?? null,
+            data_get($this->data, 'external_exam_name'),
+            $this->certification_label,
+        ]);
+    }
+
+    public function getExternalExamDateAttribute(): mixed
+    {
+        return $this->attributes['external_exam_date']
+            ?? data_get($this->data, 'external_exam_date')
+            ?? $this->scheduled_at;
+    }
+
+    public function getExternalExamFeeCentsAttribute(): ?int
+    {
+        $feeCents = $this->attributes['external_exam_fee_cents']
+            ?? data_get($this->data, 'external_exam_fee_cents')
+            ?? data_get($this->data, 'fee_cents')
+            ?? $this->fee_cents;
+
+        return $feeCents === null ? null : (int) $feeCents;
+    }
+
+    public function getExternalExamFeeFormattedAttribute(): ?string
+    {
+        return self::formatFeeCents($this->external_exam_fee_cents);
+    }
+
+    private function firstFilledString(array $values): ?string
+    {
+        foreach ($values as $value) {
+            if (is_string($value) && trim($value) !== '') {
+                return trim($value);
+            }
+        }
+
+        return null;
     }
 
     public static function makeupExamDisplayLabel(?string $examModality, ?int $feeCents): ?string

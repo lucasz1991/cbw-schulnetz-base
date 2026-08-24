@@ -1,10 +1,163 @@
 <div
   class="transition"
+  x-data="{
+    courseNavigationVisible: false,
+    courseNavigationDelayed: false,
+    courseNavigationTimedOut: false,
+    courseNavigationTarget: '',
+    courseNavigationPrevious: window.location.href,
+    courseNavigationTimers: [],
+    clearCourseNavigationTimers() {
+      this.courseNavigationTimers.forEach((timer) => clearTimeout(timer));
+      this.courseNavigationTimers = [];
+    },
+    beginCourseNavigation(url) {
+      this.clearCourseNavigationTimers();
+
+      const startedAt = Date.now();
+      const target = new URL(url, window.location.href);
+      target.searchParams.set('loading_started_at', String(startedAt));
+
+      this.courseNavigationTarget = target.toString();
+      this.courseNavigationPrevious = window.location.href;
+      this.courseNavigationVisible = true;
+      this.courseNavigationDelayed = false;
+      this.courseNavigationTimedOut = false;
+      this.$nextTick(() => this.$refs.courseNavigationDialog?.focus());
+
+      this.courseNavigationTimers.push(setTimeout(() => {
+        this.courseNavigationDelayed = true;
+      }, 3000));
+
+      this.courseNavigationTimers.push(setTimeout(() => {
+        this.courseNavigationTimedOut = true;
+        this.$nextTick(() => this.$refs.courseNavigationRetry?.focus());
+      }, 10000));
+
+      return this.courseNavigationTarget;
+    },
+    startCourseNavigation(link) {
+      link.href = this.beginCourseNavigation(link.href);
+    },
+    retryCourseNavigation() {
+      window.location.assign(this.beginCourseNavigation(this.courseNavigationTarget));
+    },
+    cancelCourseNavigation() {
+      this.clearCourseNavigationTimers();
+      window.stop();
+      window.location.assign(this.courseNavigationPrevious);
+    },
+    trapCourseNavigationFocus(event) {
+      if (!this.courseNavigationTimedOut) return;
+
+      const controls = [
+        this.$refs.courseNavigationCancel,
+        this.$refs.courseNavigationRetry
+      ].filter(Boolean);
+      if (!controls.length) return;
+
+      const currentIndex = controls.indexOf(document.activeElement);
+      const direction = event.shiftKey ? -1 : 1;
+      const nextIndex = currentIndex === -1
+        ? 0
+        : (currentIndex + direction + controls.length) % controls.length;
+
+      controls[nextIndex].focus();
+    },
+    destroy() {
+      this.clearCourseNavigationTimers();
+    }
+  }"
+  x-on:click.capture="
+    const link = $event.target.closest('[data-course-navigation]');
+    if (
+      link
+      && $event.button === 0
+      && ! $event.ctrlKey
+      && ! $event.metaKey
+      && ! $event.shiftKey
+      && ! $event.altKey
+    ) {
+      startCourseNavigation(link);
+    }
+  "
+  x-on:keydown.escape.window="if (courseNavigationTimedOut) cancelCourseNavigation()"
+  x-bind:aria-busy="courseNavigationVisible ? 'true' : 'false'"
   @if($apiProgramLoading)
     wire:poll.visible.2000="pollProgram"
   @endif
   wire:loading.class="cursor-wait opacity-50 animate-pulse"
->    {{-- Loader wenn Programm noch nicht geladen --}}
+>
+    <div
+      x-cloak
+      x-show="courseNavigationVisible"
+      x-ref="courseNavigationDialog"
+      tabindex="-1"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 px-4 backdrop-blur-[2px]"
+      role="dialog"
+      aria-modal="true"
+      x-bind:aria-label="courseNavigationTimedOut ? 'Baustein noch nicht verfügbar' : 'Baustein wird geladen'"
+      aria-describedby="course-navigation-description"
+      x-on:keydown.tab.prevent="trapCourseNavigationFocus($event)"
+    >
+      <div class="w-full max-w-md rounded-3xl border border-slate-200 bg-white px-5 py-8 text-center shadow-xl sm:px-8 sm:py-10">
+        <template x-if="!courseNavigationTimedOut">
+          <div role="status" aria-live="polite" aria-atomic="true">
+            <svg
+              class="mx-auto h-12 w-12 animate-spin text-blue-600 motion-reduce:animate-none"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+            >
+              <circle class="opacity-20" cx="12" cy="12" r="9" stroke="currentColor" stroke-width="3"></circle>
+              <path class="opacity-90" d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" stroke-width="3" stroke-linecap="round"></path>
+            </svg>
+            <span class="sr-only">Baustein wird geladen.</span>
+            <p
+              id="course-navigation-title"
+              x-cloak
+              x-show="courseNavigationDelayed"
+              class="mt-5 text-base font-semibold text-slate-800"
+            >
+              Seite wird geladen...
+            </p>
+            <p id="course-navigation-description" class="sr-only">Bitte warte, während der Baustein geöffnet wird.</p>
+          </div>
+        </template>
+
+        <template x-if="courseNavigationTimedOut">
+          <div role="alert">
+            <span class="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-amber-700" aria-hidden="true">
+              <i class="fal fa-clock"></i>
+            </span>
+            <h2 id="course-navigation-title" class="mt-5 text-xl font-semibold text-slate-900">Baustein noch nicht verfügbar</h2>
+            <p id="course-navigation-description" class="mt-3 text-sm leading-6 text-slate-600">
+              Die Synchronisierung dauert etwas länger. Bitte versuche es erneut oder brich den Vorgang ab.
+            </p>
+            <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-center">
+              <button
+                type="button"
+                x-ref="courseNavigationCancel"
+                x-on:click="cancelCourseNavigation()"
+                class="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+              >
+                Abbrechen
+              </button>
+              <button
+                type="button"
+                x-ref="courseNavigationRetry"
+                x-on:click="retryCourseNavigation()"
+                class="inline-flex min-h-11 items-center justify-center rounded-xl border border-blue-700 bg-blue-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+              >
+                Erneut laden
+              </button>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    {{-- Loader wenn Programm noch nicht geladen --}}
     @if($apiProgramLoading)
         <div role="status" class="h-32 w-full relative animate-pulse" wire:ignore>
             <div class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-white/70 transition-opacity">
@@ -443,7 +596,7 @@
                       $statusClass = 'text-blue-700 bg-blue-100';
                   } else {
                       // Normalisierter Ergebnisstatus aus ProgramShow::ergebnisStatus()
-                      // (UVS-Kennwoerter wie 'failed' duerfen nicht als "Ergebnis offen" enden)
+                      // (UVS-Kennwoerter wie 'failed' duerfen nicht als "Ergebnis ausstehend" enden)
                       $ergebnisStatus = $b['ergebnis_status'] ?? null;
 
                       if ($ergebnisStatus === 'passed') {
@@ -456,12 +609,12 @@
                           $status = 'Nicht teilgenommen';
                           $statusClass = 'text-gray-700 bg-gray-100';
                       } elseif ($ergebnisStatus === 'open') {
-                          $status = 'Ergebnis offen';
+                          $status = 'Ergebnis ausstehend';
                           $statusClass = 'text-gray-700 bg-gray-100';
                       }
                       // Fallback fuer ViewModels, die noch ohne ergebnis_status aufgebaut wurden
                       elseif ($punkte === 0 && $klassenschnitt === 0) {
-                          $status = 'Ergebnis offen';
+                          $status = 'Ergebnis ausstehend';
                           $statusClass = 'text-gray-700 bg-gray-100';
                       } elseif ($schnitt !== null) {
                           if ($schnitt >= 50) {
@@ -491,7 +644,13 @@
 
             <li class="{{ $rowBase }} {{ $rowBgs }} {{ $rowHover }}"   @if($isCurrent) x-ref="currentItem" @endif>
               @if($hasLink)
-                <a href="{{ route('user.program.course.show', $b['klassen_id']) }}" wire:navigate aria-label="Baustein öffnen">
+                <a
+                  href="{{ route('user.program.course.show', $b['klassen_id']) }}"
+                  wire:navigate
+                  data-course-navigation="true"
+                  class="block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-600"
+                  aria-label="Baustein {{ $b['baustein'] }} öffnen"
+                >
               @else 
                 <div>
               @endif
@@ -528,14 +687,14 @@
               @if($hasLink)
                 <div class="absolute h-[70px] right-2 top-0 flex items-center opacity-0 translate-x-5 
                             group-hover:opacity-100 group-hover:translate-x-0 transition-all delay-50 duration-500 text-gray-500">
-                  <a href="{{ route('user.program.course.show', $b['klassen_id']) }}" wire:navigate aria-label="Baustein öffnen">
+                  <span aria-hidden="true">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 mr-1 max-md:mr-2" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
                       <polyline points="10 17 15 12 10 7"/>
                       <line x1="15" y1="12" x2="3" y2="12"/>
                     </svg>
-                  </a>
+                  </span>
                 </div>
                 </a>
               @else 
@@ -693,6 +852,7 @@
                     :size="'sm'"
                     href="{{ route('user.program.course.show', $aktuellesModul['klassen_id']) }}"
                     wire:navigate
+                    data-course-navigation="true"
                     class="!rounded-xl !w-full md:!w-auto !bg-amber-50 !text-amber-800 !border-amber-200"
                     x-on:click="localStorage.setItem('selectedTabcourse-{{ $currentCourseId }}', JSON.stringify('material')); localStorage.setItem('acc-course-{{ $currentCourseId }}', JSON.stringify('resources'));"
                   >
@@ -705,6 +865,8 @@
               <x-buttons.button-basic
                 :size="'sm'"
                 href="{{ route('user.program.course.show', $aktuellesModul['klassen_id']) }}"
+                wire:navigate
+                data-course-navigation="true"
                 class="!rounded-xl !w-full md:!w-auto md:ml-auto"
               >
                 Details

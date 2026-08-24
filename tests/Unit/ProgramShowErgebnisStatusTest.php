@@ -21,10 +21,10 @@ class ProgramShowErgebnisStatusTest extends TestCase
         $method = new ReflectionMethod(ProgramShow::class, 'ergebnisStatus');
         $method->setAccessible(true);
 
-        return $method->invoke(new ProgramShow(), $tnPunkte, $klassenschnitt);
+        return $method->invoke(new ProgramShow, $tnPunkte, $klassenschnitt);
     }
 
-    public function test_failed_wird_nicht_bestanden_statt_ergebnis_offen(): void
+    public function test_failed_wird_nicht_bestanden_statt_ergebnis_ausstehend(): void
     {
         // Ticket-Fall: externe Java-Zertifizierung failed (pruef_kennz D)
         $this->assertSame('failed', $this->normalize('failed', 'extern'));
@@ -38,6 +38,18 @@ class ProgramShowErgebnisStatusTest extends TestCase
     public function test_extern_ausstehend_bleibt_offen(): void
     {
         $this->assertSame('open', $this->normalize('pending', 'extern'));
+    }
+
+    public function test_open_wird_fachlich_als_ergebnis_ausstehend_angezeigt(): void
+    {
+        $overview = file_get_contents(__DIR__.'/../../resources/views/livewire/user/program-show.blade.php');
+        $courseOverview = file_get_contents(__DIR__.'/../../resources/views/livewire/user/program/course/course-show-overview.blade.php');
+
+        $this->assertIsString($overview);
+        $this->assertIsString($courseOverview);
+        $this->assertStringContainsString("\$status = 'Ergebnis ausstehend';", $overview);
+        $this->assertStringNotContainsString("\$status = 'Ergebnis offen';", $overview);
+        $this->assertStringContainsString("'open' => ['label' => 'Ergebnis ausstehend'", $courseOverview);
     }
 
     public function test_nicht_teilgenommen(): void

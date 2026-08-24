@@ -9,6 +9,8 @@ class AdminTask extends Model
 {
     use HasFactory;
 
+    public const TYPE_REPORTBOOK_REVIEW = 'reportbook_review';
+
     // Status-Konstanten
     public const STATUS_OPEN        = 0;
     public const STATUS_IN_PROGRESS = 1;
@@ -154,16 +156,40 @@ class AdminTask extends Model
      |--------------------------------------------------------------------------
      */
 
-    /** Aufgabe einem Admin zuweisen (und auf "In Bearbeitung" setzen) */
-    public function assignTo(int $userId): void
+    /** Eine offene, unzugewiesene Aufgabe übernehmen. */
+    public function assignTo(int $userId): bool
     {
-        if ($this->assigned_to && $this->assigned_to !== $userId) {
-            return;
+        if ((int) $this->status === self::STATUS_COMPLETED) {
+            return false;
+        }
+
+        if ($this->assigned_to !== null && (int) $this->assigned_to !== $userId) {
+            return false;
         }
 
         $this->assigned_to = $userId;
         $this->status      = self::STATUS_IN_PROGRESS;
-        $this->save();
+        $this->completed_at = null;
+
+        return $this->save();
+    }
+
+    /** Eine aktive Berichtsheft-Prüfung an einen anderen berechtigten Bearbeiter übertragen. */
+    public function takeOverBy(int $userId): bool
+    {
+        if (
+            $this->task_type !== self::TYPE_REPORTBOOK_REVIEW
+            || (int) $this->status !== self::STATUS_IN_PROGRESS
+            || $this->assigned_to === null
+            || (int) $this->assigned_to === $userId
+        ) {
+            return false;
+        }
+
+        $this->assigned_to = $userId;
+        $this->completed_at = null;
+
+        return $this->save();
     }
 
     /** Aufgabe als erledigt markieren */

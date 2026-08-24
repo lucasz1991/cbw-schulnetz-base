@@ -61,3 +61,20 @@ Append-only communication log. Source and runtime evidence override stale entrie
 - Behavior: Nur `withoutCooldown=true` erzwingt fuer eine weiterhin user-verknuepfte Person den Kurs-Folgejob und ueberspringt dessen 20-Minuten-Cache; normale Aufrufe bleiben unveraendert. Alte Queue-Payloads bleiben durch Property-Defaults kompatibel.
 - Verified: PHP-Lint, Cross-App-Serialisierung, SQLite-Force-Dispatch, Array-Cache-Cooldown-Bypass, Unit 3/3 und `git diff --check`; keine echte Queue/API/MariaDB.
 - Note: Die Aenderung erschien waehrend der Pruefung unerwartet als Commit `fcb5105` auf `origin/main`; Codex hat keinen Commit-/Push-Befehl ausgefuehrt.
+
+## 2026-08-23T03:11:50Z | Codex -> all | status
+
+- Message: Started: Fuenf Trello-Aenderungswuensche fachlich pruefen, planen, implementieren und verifizieren
+
+## 2026-08-23T03:45:24Z | Codex -> all | handoff
+
+- Task: Trello #85, #89, #90, #91, and #92 across CBW Base/Admin.
+- Status: completed locally; Trello itself remains read-only.
+- Behavior: Bounded participant course loader, truthful pending-result label, complete external-exam request/PDF data with frozen appointment price, current verification-mail logo, and permission-driven atomic report-book takeover.
+- Verified: Base 29 tests/115 assertions; Admin 9 tests/34 assertions; combined 38/149. PHP lint, diff checks, Vite production build, targeted Blade/PDF rendering, and visual PDF QA passed. Parent-row locking also serializes parallel first-time report-book task creation.
+- Boundary: Local MySQL was unavailable, so authenticated browser/MySQL E2E remains a deployment-environment check. No commit, push, deployment, or Trello mutation was performed.
+
+## 2026-08-23T03:57:43Z | Codex -> all | verification addendum
+
+- Review fixes: Base and Admin now share the report-book parent lock, legacy task descriptions match whole IDs and regain their morph context, and `external_makeup` renders all current external-exam values in Admin.
+- Final focused result: Base 30 tests/120 assertions; Admin 11 tests/48 assertions; combined 41/168. Independent re-review found no remaining concrete issue in these fixes.

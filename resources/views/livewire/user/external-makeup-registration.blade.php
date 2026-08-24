@@ -14,7 +14,11 @@
           <label for="klasse" class="block text-sm font-medium">Klasse</label>
           <input id="klasse" type="text" maxlength="12" placeholder="z. B. INF23A"
                  class="mt-1 block w-full border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                 wire:model.defer="klasse">
+                 wire:model.defer="klasse"
+                 required>
+          @error('klasse')
+            <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+          @enderror
         </div>
       </div>
 
@@ -34,6 +38,23 @@
         @if($certification_label)
           <p class="text-xs text-gray-500 mt-1">Ausgewählt: {{ $certification_label }}</p>
         @endif
+        @error('certification_key')
+          <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+        @enderror
+      </div>
+
+      <div>
+        <label for="external_institution" class="block text-sm font-medium">Prüfungsinstitution</label>
+        <input id="external_institution"
+               type="text"
+               maxlength="64"
+               placeholder="z. B. Microsoft, SAP oder IHK"
+               class="mt-1 block w-full border-gray-300 rounded shadow-sm focus:ring-blue-500 focus:border-blue-500"
+               wire:model.defer="external_institution"
+               required>
+        @error('external_institution')
+          <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+        @enderror
       </div>
 
       {{-- Termin + Begründung --}}
@@ -62,9 +83,9 @@
           <p class="font-semibold mb-2">Begründung der Nachprüfung</p>
           <div class="space-y-2">
             <label class="flex items-center">
-              <input type="radio" class="mr-2" value="zert_faild"
-                     :checked="$wire.reason==='zert_faild'"
-                     @click="$wire.reason='zert_faild'">
+              <input type="radio" class="mr-2" value="{{ \App\Models\UserRequest::REASON_CERTIFICATION_FAILED }}"
+                     :checked="$wire.reason==='{{ \App\Models\UserRequest::REASON_CERTIFICATION_FAILED }}'"
+                     @click="$wire.reason='{{ \App\Models\UserRequest::REASON_CERTIFICATION_FAILED }}'">
               ursprüngliche Prüfung nicht bestanden
             </label>
             <label class="flex items-center">
@@ -80,6 +101,9 @@
               Krankheit am Prüfungstag, <b>ohne Attest</b>
             </label>
           </div>
+          @error('reason')
+            <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+          @enderror
         </div>
       </div>
 

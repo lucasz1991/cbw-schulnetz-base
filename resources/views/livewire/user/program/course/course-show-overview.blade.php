@@ -20,7 +20,7 @@
       'passed' => ['label' => 'Bestanden', 'class' => 'bg-green-100 text-green-800', 'text' => 'Extern bestanden – keine Punktzahl vorhanden.'],
       'failed' => ['label' => 'Nicht bestanden', 'class' => 'bg-red-100 text-red-800', 'text' => 'Prüfung nicht bestanden.'],
       'not_attended' => ['label' => 'Nicht teilgenommen', 'class' => 'bg-slate-100 text-slate-700', 'text' => 'An der Prüfung nicht teilgenommen.'],
-      'open' => ['label' => 'Ergebnis offen', 'class' => 'bg-slate-100 text-slate-700', 'text' => 'Das Ergebnis ist noch offen.'],
+      'open' => ['label' => 'Ergebnis ausstehend', 'class' => 'bg-slate-100 text-slate-700', 'text' => 'Das Ergebnis ist noch ausstehend.'],
       default => null,
     };
     $reminderBaseDelay = 320;

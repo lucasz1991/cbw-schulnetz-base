@@ -64,11 +64,14 @@
                 @else
                     <x-ui.detail-item label="Geplanter Termin" :value="$request->scheduled_at ? $request->scheduled_at->timezone(config('app.timezone'))->format('d.m.Y H:i') : '—'"/>
                     <x-ui.detail-item label="Ursprüngliche Prüfung" :value="$request->original_exam_date?->format('d.m.Y') ?: '—'"/>
-                    <x-ui.detail-item label="Begründung" :value="$request->reason ? str_replace('_',' ', $request->reason) : '—'"/>
+                    <x-ui.detail-item label="Begründung" :value="$request->reason_label ?: '—'"/>
                     <x-ui.detail-item label="Attest" :value="is_null($request->with_attest) ? '—' : ($request->with_attest ? 'Ja' : 'Nein')"/>
                     <x-ui.detail-item label="Gebühr" :value="$request->fee_formatted ?: '—'"/>
 
                     {{-- Extern --}}
+                    @if($request->type === \App\Models\UserRequest::TYPE_EXTERNAL_MAKEUP)
+                        <x-ui.detail-item label="Prüfungsinstitution" :value="$request->external_exam_institution ?: '—'"/>
+                    @endif
                     <x-ui.detail-item label="Zertifizierung" :value="$request->certification_label ?: ($request->certification_key ?: '—')"/>
                     <x-ui.detail-item
                         label="Durchführung"
