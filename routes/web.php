@@ -76,6 +76,9 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         return redirect(RouteServiceProvider::home());
     })->name('welcome');
 
+    Route::get('/coaching', \App\Livewire\Coaching\Planning::class)->name('coaching.planning');
+    Route::get('/coaching/{contract}/calendar', \App\Http\Controllers\CoachingCalendarController::class)->whereNumber('contract')->name('coaching.calendar');
+
     // Teilnehmer Routes
     Route::middleware(['role:guest'])->prefix('user')->group(function () {
         Route::get('/dashboard', Dashboard::class)->name('dashboard');

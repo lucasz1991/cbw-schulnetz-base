@@ -61,6 +61,9 @@
                              </a>
                          </div>
                          <div class="flex items-center space-x-4 max-md:order-3 md:order-2  flex-none" @click="$dispatch('navhide')">
+                        @if(\App\Services\Coaching\Access::available())
+                            <a href="{{ route('coaching.planning') }}" wire:navigate class="text-sm text-gray-700 hover:text-blue-600">Einzelcoaching</a>
+                        @endif
                         {{-- Inbox Buttons --}}
                         <div class="flex items-center space-x-6 mr-2">
                         @if (Auth::check() && $currentUrl !== url('/user/messages'))

@@ -68,6 +68,11 @@ class CourseDay extends Model
 
     protected static function booted(): void
     {
+        static::saving(function (CourseDay $day) {
+            if ($day->isDirty(['notes', 'note_status', 'attendance_data', 'documentation_addendum', 'date', 'start_time', 'end_time', 'day_sessions', 'std'])) {
+                \App\Services\Coaching\Access::guardDayWrite($day);
+            }
+        });
         static::creating(function (CourseDay $day) {
             if (empty($day->day_sessions)) {
                 $day->day_sessions = self::makeDefaultSessions($day);
@@ -98,7 +103,7 @@ class CourseDay extends Model
 
     protected static function dispatchSyncIfNotThrottled(CourseDay $day): void
     {
-        if (! $day->id) {
+        if ($day->course?->type === 'coaching' || ! $day->id) {
             return;
         }
 

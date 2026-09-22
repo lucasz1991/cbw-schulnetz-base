@@ -35,6 +35,7 @@ class CourseResultsSyncService
      */
     public function syncToRemote(Course $course, ?Collection $results = null): bool
     {
+        if ($course->type === 'coaching') return true;
         if (! $course->termin_id || ! $course->klassen_id) {
             Log::warning('CourseResultsSyncService.syncToRemote: fehlende termin_id/klassen_id.', [
                 'course_id' => $course->id,
@@ -142,6 +143,7 @@ class CourseResultsSyncService
      */
     public function loadFromRemote(Course $course): bool
     {
+        if ($course->type === 'coaching') return true;
         if (! $course->termin_id || ! $course->klassen_id) {
             Log::warning('CourseResultsSyncService.loadFromRemote: fehlende termin_id/klassen_id.', [
                 'course_id' => $course->id,

@@ -228,6 +228,7 @@ class Person extends Model
 
     public function hasPortalIdentity(): bool
     {
+        if (\App\Services\Coaching\Access::hasActiveStatus((array)$this->statusdata)) return true;
         $statusData = is_array($this->statusdata) ? $this->statusdata : [];
         $currentContract = $this->currentParticipantContract();
 
@@ -280,6 +281,7 @@ class Person extends Model
 
     public function hasValidParticipantContract(): bool
     {
+        if (\App\Services\Coaching\Access::hasActiveStatus((array)$this->statusdata)) return true;
         if ($this->activeParticipantContracts()->isNotEmpty()) {
             return true;
         }

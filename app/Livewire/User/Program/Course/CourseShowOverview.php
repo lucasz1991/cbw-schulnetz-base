@@ -47,7 +47,7 @@ class CourseShowOverview extends Component
     {
         $this->klassenId = $klassenId;
 
-        $person = Auth::user()?->person;
+        $person = str_starts_with($klassenId, 'ec-') ? \App\Services\Coaching\Access::participantForCourse(Auth::user(), null, $klassenId) : Auth::user()?->person;
         if (! $person) {
             abort(404);
         }

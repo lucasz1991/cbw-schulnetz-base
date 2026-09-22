@@ -13,6 +13,8 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
+        $schedule->command('coaching:sync')->everyFiveMinutes()->withoutOverlapping()->when(fn () => config('coaching.enabled'));
+
         $schedule->command('activity:clean-old')
             ->dailyAt('02:00');
 

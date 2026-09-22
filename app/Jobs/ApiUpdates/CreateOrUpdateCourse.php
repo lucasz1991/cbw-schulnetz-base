@@ -73,7 +73,7 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
             }
         };
 
-        if (empty($this->klassenId)) {
+        if (str_starts_with($this->klassenId, 'ec-') || empty($this->klassenId)) {
             $log['status'] = 'no_klassen_id';
             $log['messages'][] = 'Keine klassen_id übergeben.';
             $writeLog('warning');

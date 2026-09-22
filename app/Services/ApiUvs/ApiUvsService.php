@@ -165,9 +165,9 @@ class ApiUvsService
                 'method' => $method,
                 'url'    => $url,
                 'status' => $status,
-                'resp'   => $json,
+                'resp'   => str_starts_with($path, '/api/coaching/') ? ['redacted' => true] : $json,
                 'message' => $msg,
-                'payload' => $payload,
+                'payload' => str_starts_with($path, '/api/coaching/') ? ['redacted' => true] : $payload,
                 'query'   => $query,
 
             ]);

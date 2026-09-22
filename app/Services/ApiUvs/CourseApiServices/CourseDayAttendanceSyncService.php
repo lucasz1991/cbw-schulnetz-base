@@ -42,6 +42,7 @@ class CourseDayAttendanceSyncService
      */
     public function syncToRemote(CourseDay $day, ?array $onlyLocalPersonIds = null): bool
     {
+        if ($day->course?->type === 'coaching') return true;
         if (! $this->isSyncable($day)) {
             Log::warning('CourseDayAttendanceSyncService.syncToRemote: day nicht syncbar.', [
                 'day_id'    => $day->id,
@@ -89,6 +90,7 @@ class CourseDayAttendanceSyncService
      */
     public function loadFromRemote(CourseDay $day, ?array $onlyLocalPersonIds = null): bool
     {
+        if ($day->course?->type === 'coaching') return true;
         if (! $this->isSyncable($day)) {
             Log::warning('CourseDayAttendanceSyncService.loadFromRemote: day nicht loadbar.', [
                 'day_id'    => $day->id,

@@ -67,6 +67,16 @@ class CurrentParticipantCourseScope
 
     public static function applyForPerson($query, Person $person, string $pivotAlias = 'cpe', ?string $courseTable = 'courses'): void
     {
+        $ids = \App\Services\Coaching\Access::courseIdsForPerson($person->id);
+        if (!$ids) { self::applyLegacyForPerson($query, $person, $pivotAlias, $courseTable); return; }
+        $query->where($pivotAlias.'.person_id', $person->id)->where(function ($q) use ($ids, $person, $pivotAlias, $courseTable) {
+            $q->where(fn ($legacy) => self::applyLegacyForPerson($legacy, $person, $pivotAlias, $courseTable))
+                ->orWhereIn($pivotAlias.'.course_id', $ids);
+        });
+    }
+
+    private static function applyLegacyForPerson($query, Person $person, string $pivotAlias = 'cpe', ?string $courseTable = 'courses'): void
+    {
         $query->where($pivotAlias.'.person_id', $person->id);
 
         $identifiers = self::identifiersFor($person);

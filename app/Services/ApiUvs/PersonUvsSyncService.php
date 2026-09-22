@@ -202,7 +202,7 @@ class PersonUvsSyncService
             ? ($teilnehmerIdFallback ?? data_get($programData, 'teilnehmer_id'))
             : null;
         $mitarbeiterId = $isTutor ? ($mitarbeiterIdFromStatus ?: data_get($programData, 'tutor.mitarbeiter_id')) : null;
-        $hasPortalIdentity = ! empty($teilnehmerId) || ! empty($mitarbeiterId);
+        $hasPortalIdentity = ! empty($teilnehmerId) || ! empty($mitarbeiterId) || \App\Services\Coaching\Access::hasActiveStatus($statusData);
 
         if (! $hasPortalIdentity) {
             $person->fill([

@@ -10,6 +10,9 @@
   'scrollOnTrigger'   => false,  
   'headerOffset'      => 0,
   'matchTriggerWidth' => false,
+  'teleportTo'        => null,
+  'selectionModel'    => null,
+  'selectionValue'    => null,
 ])
 
 @php
@@ -18,9 +21,14 @@
 @endphp
 
 <div
-  class="relative"
+  {{ $attributes->merge(['class' => 'relative']) }}
   x-data="{
-    open: false,
+    localOpen: false,
+    selection: @if($selectionModel) @entangle($selectionModel) @else null @endif,
+    selectionValue: @js($selectionValue),
+    controlled: @js((bool)$selectionModel),
+    get open() { return this.controlled ? this.selection === this.selectionValue : this.localOpen },
+    set open(value) { if (this.controlled) this.selection = value ? this.selectionValue : null; else this.localOpen = value },
     scrollOnOpen: @js((bool)$scrollOnOpen),
     scrollOnTrigger: @js((bool)$scrollOnTrigger),
     headerOffset: @js((int)$headerOffset),
@@ -68,6 +76,7 @@
           }
           // Panel-Scroll (Inhalt) nach oben
           if ($refs.panelScroll) { $refs.panelScroll.scrollTo({ top: 0, behavior: 'auto' }); }
+          @if($teleportTo) $refs.panel.querySelector('input:not([type=hidden]), select, textarea')?.focus({ preventScroll: true }); @endif
         });
       }
     });
@@ -101,7 +110,9 @@
   @endif
 
   {{-- Panel --}}
+  @if($teleportTo)<template x-teleport="{{ $teleportTo }}">@endif
   <div
+    data-anchor-panel
     x-show="open"
     x-transition:enter="transition ease-out duration-200"
     x-transition:enter-start="transform opacity-0 scale-95"
@@ -113,11 +124,14 @@
     class="z-40 {{ $widthClass }} rounded-md shadow-lg {{ $dropdownClasses }}"
     style="display:none; max-width:calc(100vw - 16px); max-height:calc(100vh - 16px);"
     @click.outside="open=false"
+    @if($teleportTo) @keydown.escape.stop.prevent="open=false; $refs.trigger.querySelector('button')?.focus()" @endif
     @if($trap) x-trap.inert.noscroll="open" @endif
     x-ref="panel"
   >
     <div x-ref="panelScroll" class="rounded-md ring-1 ring-black ring-opacity-5 overflow-hidden {{ $contentClasses }}">
       {{ $content }}
     </div>
+    <div data-date-picker-portal wire:ignore></div>
   </div>
+  @if($teleportTo)</template>@endif
 </div>

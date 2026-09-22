@@ -98,7 +98,7 @@ class Course extends Model
                 return;
             }
 
-            if (! $course->id || empty($course->klassen_id)) {
+            if ($course->type === 'coaching' || ! $course->id || empty($course->klassen_id)) {
                 return;
             }
 
@@ -127,7 +127,7 @@ class Course extends Model
      */
     protected static function dispatchApiUpdateIfNotThrottled(Course $course, string $source): void
     {
-        if (! $course->id || empty($course->klassen_id)) {
+        if ($course->type === 'coaching' || ! $course->id || empty($course->klassen_id)) {
             return;
         }
 
@@ -140,6 +140,7 @@ class Course extends Model
      */
     public function loadResultsFromUvs(): bool
     {
+        if ($this->type === 'coaching') return true;
         return app(CourseResultsSyncService::class)->loadFromRemote($this);
     }
 
@@ -148,6 +149,7 @@ class Course extends Model
      */
     public function queueLoadResultsFromUvs(): void
     {
+        if ($this->type === 'coaching') return;
         app(CourseResultsLoadService::class)->queue($this);
     }
 

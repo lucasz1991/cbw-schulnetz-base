@@ -13,11 +13,8 @@
 
         <link rel="stylesheet" href="/adminresources/css/swiper-bundle.min.css">
         <script src="/adminresources/js/swiper-bundle.min.js"></script>
-        <link href="{{ URL::asset('adminresources/flatpickr/flatpickr.min.css') }}" rel="stylesheet" type="text/css" />
         <link href="{{ URL::asset('adminresources/choices.js/public/assets/styles/choices.min.css') }}" rel="stylesheet" type="text/css" />
         <script src="{{ URL::asset('adminresources/choices.js/public/assets/scripts/choices.min.js') }}"></script>
-        <script src="{{ URL::asset('adminresources/flatpickr/flatpickr.min.js') }}"></script>
-        <script src="{{ URL::asset('adminresources/flatpickr/l10n/de.js') }}"></script>
         <link rel="stylesheet" href="https://uicdn.toast.com/editor/latest/toastui-editor.min.css">
         <script src="https://uicdn.toast.com/editor/latest/toastui-editor-all.min.js" defer></script>
         <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
@@ -27,6 +24,7 @@
         <link rel="stylesheet" href="{{ asset('adminresources/fontawesome6/css/all.min.css') }}">
         @vite(['resources/css/app.css'])
         @livewireStyles
+        <x-ui.forms.date-picker-assets />
     </head>
     <body class="antialiased">
         <div id="main" class="snap-y">

@@ -809,6 +809,10 @@ public function reloadForCurrentCourse(): void
 
     protected function currentPerson(): ?Person
     {
+        if ($this->selectedCourseId && Auth::user()) {
+            $coachingPerson = \App\Services\Coaching\Access::participantForCourse(Auth::user(), (int)$this->selectedCourseId);
+            if ($coachingPerson) return $coachingPerson;
+        }
         $user = Auth::user();
 
         if ($user && method_exists($user, 'resolvePortalDrivingPerson')) {
@@ -935,6 +939,11 @@ public function reloadForCurrentCourse(): void
 
     protected function reportWeekMap(): array
     {
+        if ($this->selectedCourseId && \App\Models\Course::whereKey($this->selectedCourseId)->where('type', 'coaching')->exists()) {
+            $keys = \App\Models\CourseDay::where('course_id', $this->selectedCourseId)->orderBy('date')->get(['date'])
+                ->map(fn ($day) => ReportWeekTimeline::weekKey($day->date))->unique()->values();
+            return $keys->mapWithKeys(fn ($key, $index) => [$key => $index + 1])->all();
+        }
         if ($this->reportWeekMap === null) {
             // Person mit programdata bevorzugen (wie ProgramShow::resolveProgramPerson) —
             // die Portal-Person kann bei mehreren verknuepften Personen leer ausgehen.

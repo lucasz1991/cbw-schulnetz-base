@@ -88,6 +88,7 @@
   @endif
   wire:loading.class="cursor-wait opacity-50 animate-pulse"
 >
+    <x-ui.coaching-modules />
     <div
       x-cloak
       x-show="courseNavigationVisible"

@@ -227,6 +227,7 @@ class CourseShow extends Component
 
     protected function resolveCurrentPerson(?User $user): ?Person
     {
+        if ($user && str_starts_with($this->klassenId, 'ec-')) return \App\Services\Coaching\Access::participantForCourse($user, null, $this->klassenId);
         if ($user && method_exists($user, 'resolvePortalDrivingPerson')) {
             return $user->resolvePortalDrivingPerson() ?? $user->person;
         }

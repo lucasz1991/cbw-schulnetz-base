@@ -260,6 +260,8 @@ class Login extends Component
             ]);
         }
 
+        if ($persons->contains(fn ($person) => \App\Services\Coaching\Access::hasActiveStatus((array)$person->statusdata))) return;
+
         $accessWindows = $this->resolveParticipantContractAccessWindows(
             $persons,
             $openBeforeDays,

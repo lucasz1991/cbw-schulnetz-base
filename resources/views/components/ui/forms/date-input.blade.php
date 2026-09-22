@@ -1,99 +1,38 @@
 @props([
-    'id' => null,
-    'model' => null,  
-    'label' => null,
-    'placeholder' => 'Datum wählen …',
-    'required' => false,
-    'min' => null,
-    'max' => null,
-    'enableTime' => false,
-    'inline' => false, 
-    'dateFormat' => 'Y-m-d',
-    'altFormat' => 'Y-m-d',
-    'altInput' => true,
-    'mode' => 'single',
-    'disableWeekends' => false,
+    'id' => null, 'model' => null, 'timeModel' => null, 'label' => null,
+    'placeholder' => 'Datum wählen …', 'required' => false,
+    'min' => null, 'max' => null, 'enableTime' => false, 'timeOnly' => false,
+    'inline' => false, 'dateFormat' => null, 'altFormat' => null,
+    'altInput' => true, 'mode' => 'single', 'disableWeekends' => false,
+    'minuteIncrement' => 5, 'disabled' => false, 'readonly' => false,
+    'name' => null, 'value' => '', 'timeValue' => '',
 ])
-
 @php
-    use Illuminate\Support\Str;
-
-    $inputId = $id ?: (string) Str::uuid();
-    $wireKey = 'flatpickr-'.$inputId;
+    $inputId = $id ?: 'date-'.\Illuminate\Support\Str::uuid();
+    $enableTime = $enableTime || $timeOnly || (bool) $timeModel;
+    $dateFormat = $dateFormat ?? ($timeOnly ? 'H:i' : ($enableTime ? 'Y-m-d H:i' : 'Y-m-d'));
+    $altFormat = $altFormat ?? ($timeOnly ? 'H:i' : ($enableTime ? 'd.m.Y · H:i' : 'd.m.Y'));
+    $picker = compact('enableTime', 'timeOnly', 'inline', 'dateFormat', 'altFormat', 'altInput', 'mode', 'disableWeekends', 'min', 'max', 'required', 'disabled', 'readonly', 'minuteIncrement');
 @endphp
-
-<div class="w-full lmz-flatpickr"
-    
-     wire:ignore
-     wire:key="{{ $wireKey }}" x-data="{ inline: @js($inline), lwModel: @js($model) }">
-    @if($label)
-        <x-ui.forms.label for="{{ $inputId }}" :value="$label" class="text-secondary font-semibold" />
-    @endif
-    @if($model)
-        <x-ui.forms.input-error :for="$model" />
-    @endif
-    <style >
-        .lmz-flatpickr .flatpickr-calendar.inline {
-            box-shadow: unset !important;
-            border: 0px solid #fff !important;
-        }
-        .lmz-flatpickr .flatpickr-calendar.inline *{
-            color:rgb(107, 114, 128);
-        }
-        .lmz-flatpickr .flatpickr-calendar.inline .flatpickr-day.selected{
-            color:#fff;
-            background-color:rgb(46, 91, 158);
-            border-color:rgb(46, 91, 158);
-        }
-    </style>
-    <div class="w-max mx-auto  pb-2" :class="inline ? ' ' : ''">
-        <input
-            id="{{ $inputId }}"
-            type="text"
-            placeholder="{{ $placeholder }}"
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 "
-            :class="inline ? 'hidden' : ''"
-            @if($required) required @endif
-            x-data="{ lwModel: @js($model) }"
-            x-init="
-                const opts = {
-                    dateFormat: @js($dateFormat),
-                    altInput: @js($altInput),
-                    altFormat: @js($altFormat),
-                    mode: @js($mode),
-                    allowInput: true,
-                    enableTime: @js($enableTime),
-                    time_24hr: true,
-                    inline: @js($inline),
-                    locale: 'de',
-                    minDate: @js($min),
-                    maxDate: @js($max),
-                    disable: @js($disableWeekends) ? [
-                        (date) => date.getDay() === 0 || date.getDay() === 6
-                    ] : [],
-                    onChange: (selectedDates, dateStr) => {
-                        if (lwModel) $wire.set(lwModel, dateStr)
-                    },
-                };
-    
-                if (lwModel) {
-                    const initial = $wire.get(lwModel);
-                    if (initial) opts.defaultDate = initial;
-                }
-    
-                const fp = flatpickr($el, opts);
-    
-                if (lwModel) {
-                    $watch(() => $wire.get(lwModel), (val) => {
-                        const current = fp.input.value;
-                        const alt = fp.altInput ? fp.altInput.value : null;
-                        if (!val) { fp.clear(); return; }
-                        if (val !== current && val !== alt) {
-                            fp.setDate(val, true);
-                        }
-                    });
-                }
-            "
-        />
+<div {{ $attributes->class(['w-full']) }} wire:key="date-field-{{ $inputId }}-{{ md5(($model ?? '').'|'.($timeModel ?? '')) }}">
+    <div class="lmz-date-picker" wire:ignore x-data="lmzDatePicker()"
+         data-date-picker="{{ json_encode($picker) }}" data-inline="{{ $inline ? 'true' : 'false' }}" data-disabled="{{ $disabled ? 'true' : 'false' }}">
+        <input type="hidden" data-date-value @if($model) data-date-model="{{ $model }}" @endif @if($name) name="{{ $name }}" @endif value="{{ $value }}">
+        @if($timeModel)<input type="hidden" data-time-value data-date-model="{{ $timeModel }}" value="{{ $timeValue }}">@endif
+        <div class="lmz-date-field" data-date-field>
+            @if($label)<label for="{{ $inputId }}">{{ $label }}@if($required)<span aria-hidden="true"> *</span>@endif</label>@endif
+            <input id="{{ $inputId }}" data-date-source type="text" class="lmz-date-display" placeholder="{{ $timeOnly && $placeholder === 'Datum wählen …' ? 'Uhrzeit wählen …' : $placeholder }}"
+                @required($required) @disabled($disabled) @readonly($readonly) @if(!$label) aria-label="{{ $timeOnly ? 'Uhrzeit' : 'Datum' }}" @endif>
+            <button type="button" data-date-trigger class="lmz-date-trigger" aria-label="{{ $timeOnly ? 'Uhrzeit wählen' : 'Kalender öffnen' }}" aria-expanded="{{ $inline ? 'true' : 'false' }}" @disabled($disabled || $readonly)>
+                @if($timeOnly)
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" stroke-linecap="round"/></svg>
+                @else
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4m10-4v4M3 10h18" stroke-linecap="round"/><path d="M7 14h2m2 0h2m2 0h2M7 17h2m2 0h2"/></svg>
+                @endif
+            </button>
+        </div>
+        @if($inline)<div data-date-inline></div>@endif
     </div>
+    @if($model)<x-ui.forms.input-error :for="$model" />@endif
+    @if($timeModel)<x-ui.forms.input-error :for="$timeModel" />@endif
 </div>
