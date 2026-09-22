@@ -2,23 +2,30 @@
 
 namespace App\Services\Coaching;
 
-use App\Models\{CoachingContract, CourseDay};
+use App\Models\{CoachingContract, CourseDay, Setting};
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class Access
 {
+    public static function enabled(): bool
+    {
+        // Shared DB is authoritative even when Base/Admin have separate or long-lived caches.
+        if (!Schema::hasTable('settings')) return false;
+        return filter_var(Setting::getValueUncached('coaching', 'enabled'), FILTER_VALIDATE_BOOLEAN);
+    }
+
     public static function available(): bool
     {
-        return (bool)config('coaching.enabled') && Schema::hasTable('coaching_contracts');
+        return self::enabled() && Schema::hasTable('coaching_contracts') && Schema::hasTable('coaching_notices');
     }
 
     public static function hasActiveStatus(array $status): bool
     {
-        if (empty($status['coaching_contracts']) || !config('coaching.enabled')) return false;
+        if (empty($status['coaching_contracts']) || !self::enabled()) return false;
         $today = now('Europe/Berlin')->toDateString();
         foreach ($status['coaching_contracts'] ?? [] as $row) {
-            if (($row['status'] ?? '') === 'active' && (empty($row['cancelled_on']) || $row['cancelled_on'] >= $today)
+            if (in_array(($row['status'] ?? ''), ['draft', 'active'], true) && (empty($row['cancelled_on']) || $row['cancelled_on'] >= $today)
                 && (empty($row['valid_until']) || $row['valid_until'] >= $today)) return true;
         }
         return false;

@@ -16,16 +16,16 @@
             @if($actor === 'participant')<x-buttons.button-basic mode="secondary" href="{{ route('reportbook', ['course' => $contract->course_id]) }}">Berichtsheft</x-buttons.button-basic>@endif
             <x-buttons.button-basic mode="secondary" href="{{ route('coaching.calendar', $contract->id) }}">Kalender herunterladen</x-buttons.button-basic></div>
         @elseif($contract->confirmed_plan_id)<p class="p-3 bg-blue-50 text-blue-800 rounded-lg" role="status">Alle Termine wurden beidseitig bestätigt. Die UVS-Rückmeldung und Bausteinfreigabe stehen noch aus.</p>@endif
-        @if(!$contract->activeOn())<p class="text-red-700">Dieser Vertrag ist nicht zur Terminabstimmung freigegeben.</p>@endif
+        @if(!$contract->planningAllowed())<p class="text-red-700">Dieser Vertrag ist nicht zur Terminabstimmung freigegeben.</p>@endif
 
             <div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="bg-gray-50"><tr><th class="p-2">Datum</th><th class="p-2">Uhrzeit</th><th class="p-2">Min.</th><th class="p-2">Inhalt</th><th class="p-2">Ort</th></tr></thead><tbody>@forelse($plan?->items ?? [] as $item)<tr class="border-t"><td class="p-2 whitespace-nowrap">{{ \Carbon\Carbon::parse($item['date'])->format('d.m.Y') }}</td><td class="p-2 whitespace-nowrap">{{ $item['start'] }} – {{ $item['end'] }}</td><td class="p-2">{{ $item['minutes'] }}</td><td class="p-2">{{ $item['topic'] }}</td><td class="p-2 break-all">{{ $item['location'] }}</td></tr>@empty<tr><td colspan="5" class="p-3">Noch kein Gesamtplan vorgeschlagen.</td></tr>@endforelse</tbody></table></div>
-            @if(!$contract->confirmed_plan_id && $contract->tutor_person_id && $contract->activeOn())
+            @if(!$contract->confirmed_plan_id && $contract->tutor_person_id && $contract->planningAllowed())
             <div class="flex flex-wrap gap-3"><x-buttons.button-basic mode="secondary" wire:click="edit">{{ $plan ? 'Gesamtplan ändern' : 'Gesamtplan erstellen' }}</x-buttons.button-basic>
             @if($plan && $plan->status === 'proposed' && $plan->revision === $revision && !$plan->{$actor.'_confirmed_at'})<x-buttons.button-basic wire:click="confirm" wire:confirm="Ich bestätige alle Termine dieses Gesamtplans verbindlich." wire:loading.attr="disabled">Alle Termine bestätigen</x-buttons.button-basic>@endif</div>
             @endif
     </section>
     <section class="bg-white border border-gray-200 rounded-lg p-4 space-y-4" aria-label="Terminabstimmung">
-        <div class="flex flex-wrap items-center justify-between gap-3"><h2 class="text-lg font-semibold text-gray-700">Nachrichten zur Terminabstimmung</h2>@if($contract->activeOn())<x-buttons.button-basic type="button" mode="secondary" wire:click="composeMessage">Nachricht schreiben</x-buttons.button-basic>@endif</div>
+        <div class="flex flex-wrap items-center justify-between gap-3"><h2 class="text-lg font-semibold text-gray-700">Nachrichten zur Terminabstimmung</h2>@if($contract->planningAllowed())<x-buttons.button-basic type="button" mode="secondary" wire:click="composeMessage">Nachricht schreiben</x-buttons.button-basic>@endif</div>
         @foreach($messages as $entry)<div wire:key="message-{{ $entry->id }}" class="border-b pb-3"><p class="text-xs text-gray-500">{{ $entry->author?->name }} · {{ $entry->created_at->format('d.m.Y H:i') }} · Plan {{ $entry->plan_revision }}</p><p class="whitespace-pre-wrap text-sm">{{ $entry->body }}</p></div>@endforeach
         @if($messages->isEmpty())<p class="text-sm text-gray-500">Noch keine Nachrichten zur Terminabstimmung.</p>@endif
     </section>

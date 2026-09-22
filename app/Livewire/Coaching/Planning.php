@@ -83,7 +83,7 @@ class Planning extends Component
     {
         $contract = $this->contract();
         app(PlanService::class)->actor($contract, auth()->user());
-        abort_if($contract->confirmed_plan_id || !$contract->activeOn() || $contract->cancelled_on, 403);
+        abort_if($contract->confirmed_plan_id || !$contract->planningAllowed() || $contract->cancelled_on, 403);
         if ($contract->revision !== $this->revision) {
             throw \Illuminate\Validation\ValidationException::withMessages(['plan' => 'Der Gesamtplan wurde inzwischen geändert. Bitte schließen und neu laden.']);
         }
@@ -172,7 +172,7 @@ class Planning extends Component
 
     public function composeMessage(): void
     {
-        abort_unless($this->contract()->activeOn(), 403);
+        abort_unless($this->contract()->planningAllowed(), 403);
         $this->resetValidation();
         $this->composing = true;
     }

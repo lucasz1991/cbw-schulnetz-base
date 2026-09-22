@@ -21,7 +21,7 @@ class CoachingWorkflowTest extends TestCase
         $app = require __DIR__.'/../../bootstrap/app.php';
         $app->afterBootstrapping(LoadConfiguration::class, function ($app) {
             $app['config']->set(['database.default' => 'sqlite', 'database.connections.sqlite.database' => ':memory:',
-                'cache.default' => 'array', 'queue.default' => 'sync', 'session.driver' => 'array', 'coaching.enabled' => true]);
+                'cache.default' => 'array', 'queue.default' => 'sync', 'session.driver' => 'array']);
         });
         $app->make(Kernel::class)->bootstrap();
         return $app;
@@ -32,6 +32,7 @@ class CoachingWorkflowTest extends TestCase
         parent::setUp();
         $this->assertSame(':memory:', config('database.connections.sqlite.database'));
         Queue::fake();
+        \Illuminate\Support\Facades\Notification::fake();
         \Carbon\Carbon::setTestNow('2026-09-17 08:00:00');
         Schema::create('users', function (Blueprint $t) { $t->id(); $t->string('name'); $t->string('email')->nullable(); $t->string('role')->default('guest'); $t->timestamps(); });
         Schema::create('persons', function (Blueprint $t) {
@@ -40,15 +41,229 @@ class CoachingWorkflowTest extends TestCase
             $t->timestamp('last_api_update')->nullable(); $t->timestamps(); $t->softDeletes();
         });
         Schema::create('messages', function (Blueprint $t) { $t->id(); $t->string('subject'); $t->text('message'); $t->integer('from_user'); $t->integer('to_user'); $t->integer('status'); $t->timestamps(); });
-        Schema::create('settings', function (Blueprint $t) { $t->id(); $t->string('type'); $t->string('key'); $t->text('value')->nullable(); });
+        Schema::create('settings', function (Blueprint $t) { $t->id(); $t->string('type'); $t->string('key'); $t->text('value')->nullable(); $t->timestamps(); });
+        \App\Models\Setting::setValue('coaching', 'enabled', true);
+        \App\Models\Setting::setValue('api', 'base_api_url', 'https://schulnetz.example.test');
         foreach (['2025_09_10_152938_create_courses_table.php', '2025_09_10_152939_create_course_days_table.php',
-            '2025_10_07_164445_create_course_participant_enrollments_table.php', '2026_09_17_080000_create_coaching_planning_tables.php', '2026_09_17_110000_add_uvs_tutor_to_coaching_contracts.php'] as $file) {
+            '2025_10_07_164445_create_course_participant_enrollments_table.php', '2026_09_17_080000_create_coaching_planning_tables.php', '2026_09_17_110000_add_uvs_tutor_to_coaching_contracts.php', '2026_09_22_100000_create_coaching_notices.php'] as $file) {
             (require database_path('migrations/'.$file))->up();
         }
         Schema::table('course_days', function (Blueprint $t) { $t->integer('note_status')->default(0); $t->json('settings')->nullable(); });
     }
 
     protected function tearDown(): void { \Carbon\Carbon::setTestNow(); parent::tearDown(); }
+
+    public function test_draft_plan_is_transferred_then_released_only_after_uvs_employee_activation(): void
+    {
+        [$participant, $tutor] = $this->people();
+        $sync = app(SyncService::class);
+        $sync->importContract($this->importRow(['status' => 'draft']));
+        $contract = CoachingContract::firstOrFail();
+        $this->assertTrue($contract->planningAllowed());
+        $service = app(PlanService::class);
+        $plan = $service->propose($contract->id, $tutor, 0, $this->items());
+        $service->confirm($contract->id, $tutor, 1);
+        $service->confirm($contract->id, $participant, 1);
+        $api = \Mockery::mock(ApiUvsService::class);
+        $api->shouldReceive('request')->once()->withArgs(fn ($method, $url, $payload) => $method === 'PUT' && $url === '/api/coaching/contracts/1/plan' && $payload['revision'] === 1)
+            ->andReturn(['ok' => true, 'data' => ['revision' => 1]]);
+        $this->app->instance(ApiUvsService::class, $api);
+        $this->assertSame(1, $sync->sendPending());
+        $this->assertDatabaseCount('courses', 0);
+        $this->assertSame(2, \App\Models\CoachingNotice::where('kind', 'plan_transferred')->count());
+        $this->assertSame(0, \App\Models\CoachingNotice::where('kind', 'released')->count());
+        $row = $this->importRow(['status' => 'active', 'version' => str_repeat('b',64), 'teilnehmer_id' => '1-final',
+            'plan_revision' => 1, 'plan_hash' => hash('sha256', json_encode(['1-200', $plan->fresh()->items], JSON_UNESCAPED_UNICODE))]);
+        $sync->importContract($row); $sync->importContract($row);
+        $this->assertDatabaseCount('courses', 1);
+        $this->assertTrue($contract->fresh()->startReady());
+        $this->assertSame(str_repeat('b',64), $plan->fresh()->contract_version);
+        $this->assertSame(2, \App\Models\CoachingNotice::where('kind', 'released')->count());
+        $this->assertStringContainsString('Erster Termin: 21.09.2026', implode(' ', \App\Models\CoachingNotice::where('kind', 'released')->first()->content['lines']));
+    }
+
+    public function test_failed_uvs_transfer_never_announces_success_or_releases_a_course(): void
+    {
+        [$participant, $tutor, $p, $t] = $this->people();
+        $contract = $this->contract($p, $t); $contract->update(['contract_status' => 'draft']);
+        $service = app(PlanService::class);
+        $service->propose($contract->id, $tutor, 0, $this->items());
+        $service->confirm($contract->id, $participant, 1); $service->confirm($contract->id, $tutor, 1);
+        $api = \Mockery::mock(ApiUvsService::class);
+        $api->shouldReceive('request')->once()->andReturn(['ok' => false, 'status' => 503]);
+        $this->app->instance(ApiUvsService::class, $api);
+        $this->assertSame(0, app(SyncService::class)->sendPending());
+        $this->assertSame(0, \App\Models\CoachingNotice::whereIn('kind', ['plan_transferred', 'released'])->count());
+        $this->assertDatabaseCount('courses', 0);
+    }
+
+    public function test_unregistered_recipients_get_invites_and_inbox_is_added_after_exact_identity_registration(): void
+    {
+        User::forceCreate(['id' => 1, 'name' => 'Schulnetz System', 'role' => 'admin']);
+        $row = $this->importRow(['status' => 'draft', 'contacts' => [
+            'participant' => ['person_id' => '1-100', 'email' => 'participant@example.test'],
+            'tutor' => ['person_id' => '1-200', 'email' => 'tutor@example.test'],
+        ]]);
+        $sync = app(SyncService::class); $notices = app(\App\Services\Coaching\NoticeService::class);
+        $sync->importContract($row); $notices->deliverPending();
+        \Illuminate\Support\Facades\Notification::assertSentOnDemand(\App\Notifications\CoachingNotification::class,
+            fn ($n, $channels, $recipient) => $n->registration && $n->url === 'https://schulnetz.example.test/register' && $recipient->routes['mail'] === 'participant@example.test');
+        \Illuminate\Support\Facades\Notification::assertCount(2);
+        $this->assertDatabaseCount('messages', 0);
+        $this->assertSame(2, \App\Models\CoachingNotice::whereNotNull('mail_sent_at')->whereNull('message_id')->count());
+        $user = User::create(['name' => 'Test Participant', 'email' => 'participant@example.test', 'role' => 'guest']);
+        $foreign = Person::withoutEvents(fn () => Person::create(['user_id' => $user->id, 'person_id' => '2-100', 'institut_id' => 2, 'role' => 'guest']));
+        $notices->linkRegisteredUser($user->fresh());
+        $this->assertNull(CoachingContract::first()->participant_person_id);
+        $person = Person::withoutEvents(fn () => Person::create(['user_id' => $user->id, 'person_id' => '1-100', 'institut_id' => 1, 'role' => 'guest']));
+        $notices->linkRegisteredUser($user->fresh()); $notices->deliverPending(); $notices->deliverPending();
+        $this->assertSame($person->id, CoachingContract::first()->participant_person_id);
+        $this->assertSame(1, \App\Models\Message::where('to_user', $user->id)->count());
+        \Illuminate\Support\Facades\Notification::assertCount(2); // Do not resend the already delivered email.
+    }
+
+    public function test_mail_retry_preserves_exactly_one_inbox_message(): void
+    {
+        [, $tutor] = $this->people(); $tutor->update(['email' => 'tutor@example.test']);
+        app(SyncService::class)->importContract($this->importRow());
+        \Illuminate\Support\Facades\Notification::swap(new class extends \Illuminate\Support\Testing\Fakes\NotificationFake {
+            public function send($notifiables, $notification) { throw new \RuntimeException('Transport down'); }
+        });
+        app(\App\Services\Coaching\NoticeService::class)->deliverPending();
+        $notice = \App\Models\CoachingNotice::where('recipient_role', 'tutor')->firstOrFail();
+        $this->assertNotNull($notice->message_id); $this->assertNull($notice->mail_sent_at);
+        $this->assertStringContainsString('E-Mail-Versand fehlgeschlagen', $notice->last_error);
+        \Illuminate\Support\Facades\Notification::fake();
+        $notice->update(['available_at' => now()]);
+        app(\App\Services\Coaching\NoticeService::class)->deliverPending();
+        app(\App\Services\Coaching\NoticeService::class)->deliverPending();
+        $this->assertSame(1, \App\Models\Message::where('to_user', $tutor->id)->count());
+        $this->assertNotNull($notice->fresh()->mail_sent_at);
+        \Illuminate\Support\Facades\Notification::assertCount(1);
+    }
+
+    public function test_shared_email_cannot_merge_unregistered_participant_and_tutor(): void
+    {
+        $row = $this->importRow(['contacts' => [
+            'participant' => ['person_id' => '1-100', 'email' => 'same@example.test'],
+            'tutor' => ['person_id' => '1-200', 'email' => 'same@example.test'],
+        ]]);
+        app(SyncService::class)->importContract($row);
+        app(\App\Services\Coaching\NoticeService::class)->deliverPending();
+        \Illuminate\Support\Facades\Notification::assertNothingSent();
+        $this->assertSame(2, \App\Models\CoachingNotice::where('last_error', 'like', '%unterschiedliche%')->count());
+    }
+
+    public function test_real_registration_retains_draft_planning_access_and_links_existing_notice(): void
+    {
+        Schema::table('users', function (Blueprint $t) { $t->string('password')->nullable(); $t->integer('status')->nullable(); $t->integer('current_team_id')->nullable(); });
+        $payload = (object)['person_id' => '1-100', 'institut_id' => 1, 'vorname' => 'Anna', 'nachname' => 'Test', 'email_priv' => 'anna@example.test'];
+        foreach (array_keys(Person::mapFromUvsPayload($payload, 'guest')) as $column) {
+            if (!Schema::hasColumn('persons', $column)) Schema::table('persons', fn (Blueprint $t) => $t->text($column)->nullable());
+        }
+        app(SyncService::class)->importContract($this->importRow(['status' => 'draft']));
+        $api = \Mockery::mock(ApiUvsService::class);
+        $api->shouldReceive('getParticipantbyMail')->with('anna@example.test')->once()->andReturn(['ok' => true, 'data' => ['person' => (array)$payload]]);
+        $api->shouldReceive('getPersonStatus')->with('1-100')->once()->andReturn(['data' => ['data' => ['coaching_contracts' => [['status' => 'draft']]]]]);
+        $this->app->instance(ApiUvsService::class, $api);
+        $registration = new class extends \App\Livewire\Auth\Register {
+            protected function generateResetToken($user) { return 'isolated-test-token'; }
+        };
+        $registration->email = 'anna@example.test';
+        $registration->register();
+        $user = User::where('email', 'anna@example.test')->firstOrFail();
+        $person = $user->persons()->firstOrFail();
+        $this->assertTrue($person->hasPortalIdentity());
+        $this->assertTrue($person->hasValidParticipantContract());
+        $this->assertSame($person->id, CoachingContract::first()->participant_person_id);
+        \Illuminate\Support\Facades\Notification::assertSentTo($user, \App\Notifications\SetPasswordNotification::class);
+        $login = new class extends \App\Livewire\Auth\Login {
+            public function checkWindow(User $user): void { $this->ensureParticipantLoginWindow($user); }
+        };
+        $login->checkWindow($user); // A draft coaching needs planning access before any ordinary course exists.
+        $this->assertDatabaseCount('courses', 0);
+        $tutorPayload = (object)['person_id' => '1-200', 'institut_id' => 1, 'vorname' => 'Tom', 'nachname' => 'Test', 'email_priv' => 'tom@example.test'];
+        $api->shouldReceive('getParticipantbyMail')->with('tom@example.test')->once()->andReturn(['ok' => true, 'data' => ['person' => (array)$tutorPayload]]);
+        $api->shouldReceive('getPersonStatus')->with('1-200')->once()->andReturn(['data' => ['data' => ['is_tutor' => true, 'mitarbeiter_vertrag_ky' => 'IS', 'mitarbeiter_id' => '1-tutor']]]);
+        $registration->email = 'tom@example.test'; $registration->register();
+        $tutor = User::where('email', 'tom@example.test')->firstOrFail();
+        $this->assertSame('tutor', $tutor->role);
+        $this->assertSame($tutor->persons()->first()->id, CoachingContract::first()->tutor_person_id);
+        \Illuminate\Support\Facades\Notification::assertSentTo($tutor, \App\Notifications\SetPasswordNotification::class);
+    }
+
+    public function test_changed_scope_cannot_release_a_previously_confirmed_draft(): void
+    {
+        [$participant, $tutor] = $this->people(); $sync = app(SyncService::class);
+        $sync->importContract($this->importRow(['status' => 'draft']));
+        $contract = CoachingContract::first(); $service = app(PlanService::class);
+        $plan = $service->propose($contract->id, $tutor, 0, $this->items());
+        $service->confirm($contract->id, $tutor, 1); $service->confirm($contract->id, $participant, 1);
+        $sync->importContract($this->importRow(['status' => 'active', 'version' => str_repeat('b',64),
+            'planning_fingerprint' => str_repeat('c',64), 'agreed_minutes' => 360, 'plan_revision' => 1,
+            'plan_hash' => hash('sha256', json_encode(['1-200', $plan->fresh()->items], JSON_UNESCAPED_UNICODE))]));
+        $this->assertDatabaseCount('courses', 0);
+        $this->assertFalse($contract->fresh()->startReady());
+        $this->assertSame(0, \App\Models\CoachingNotice::where('kind', 'released')->count());
+    }
+
+    public function test_system_events_cover_chat_changes_cancellation_and_resume_once(): void
+    {
+        [$participant, $tutor] = $this->people(); $sync = app(SyncService::class);
+        $sync->importContract($this->importRow()); $contract = CoachingContract::first();
+        $plans = app(PlanService::class);
+        $plans->propose($contract->id, $tutor, 0, $this->items());
+        $plans->message($contract->id, $participant, 'Passt Dienstag?');
+        $sync->importContract($this->importRow(['version' => str_repeat('b',64), 'agreed_minutes' => 90]));
+        $sync->importContract($this->importRow(['version' => str_repeat('c',64), 'status' => 'inactive']));
+        $sync->importContract($this->importRow(['version' => str_repeat('c',64), 'status' => 'inactive']));
+        $sync->importContract($this->importRow(['version' => str_repeat('d',64)]));
+        foreach (['plan_changed', 'stopped', 'resumed'] as $kind) $this->assertSame(2, \App\Models\CoachingNotice::where('kind', $kind)->count(), $kind);
+        $this->assertSame(1, \App\Models\CoachingNotice::where('kind', 'chat_message')->count());
+        $this->assertSame(1, \App\Models\CoachingNotice::where('kind', 'plan_proposed')->count());
+    }
+
+    public function test_coaching_mail_uses_existing_schulnetz_template_and_escapes_contract_text(): void
+    {
+        [, , $p, $t] = $this->people(); $contract = $this->contract($p, $t);
+        $contract->update(['title' => '<script>alert(1)</script>']);
+        $content = app(\App\Services\Coaching\NoticeService::class)->content($contract, 'planning_requested', 'participant');
+        $mail = (new \App\Notifications\CoachingNotification($content, 'https://schulnetz.example.test/register', true))->toMail(new \stdClass());
+        $this->assertSame('notifications::email', $mail->markdown);
+        $html = (string)app(\Illuminate\Mail\Markdown::class)->render($mail->markdown, $mail->data());
+        $this->assertStringContainsString('CBW', $html);
+        $this->assertStringContainsString('Im Schulnetz registrieren', $html);
+        $this->assertStringNotContainsString('<script>', $html);
+    }
+
+    public function test_shared_setting_changes_apply_to_open_planning_and_sync_without_cache_refresh(): void
+    {
+        [$participant, $tutor, $p, $t] = $this->people();
+        $contract = $this->contract($p, $t);
+        $this->actingAs($tutor);
+        $component = \Livewire\Livewire::withQueryParams(['contract' => $contract->id])
+            ->test(\App\Livewire\Coaching\Planning::class)->assertSet('contractId', $contract->id);
+        config(['coaching.enabled' => true]);
+        \Illuminate\Support\Facades\Cache::put('settings.coaching.enabled', true, 3600);
+        // Simulate an Admin write through the shared database, without invalidating Base cache.
+        DB::table('settings')->where('type', 'coaching')->where('key', 'enabled')->update(['value' => 'false']);
+        $this->assertFalse(\App\Services\Coaching\Access::available());
+        // The site's custom 404 layout needs CMS tables; assert the real HTTP denial directly.
+        try {
+            $component->instance()->edit();
+            $this->fail('Eine bereits geöffnete Planung darf nach Abschaltung nicht bearbeitet werden.');
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
+            $this->assertSame(404, $e->getStatusCode());
+        }
+        $this->artisan('coaching:sync')->expectsOutput('Einzelcoaching-Abgleich ist ausgeschaltet.')->assertSuccessful();
+        $this->assertSame(0, app(SyncService::class)->import());
+        $this->assertSame(0, app(SyncService::class)->sendPending());
+        $this->assertDatabaseCount('coaching_contracts', 1);
+        DB::table('settings')->where('type', 'coaching')->where('key', 'enabled')->update(['value' => 'true']);
+        $this->assertTrue(\App\Services\Coaching\Access::available());
+        \App\Models\Setting::where('type', 'coaching')->delete();
+        $this->assertFalse(\App\Services\Coaching\Access::available());
+    }
 
     private function people(): array
     {
@@ -79,7 +294,7 @@ class CoachingWorkflowTest extends TestCase
     private function importRow(array $overrides = []): array
     {
         return array_replace(['id' => 1, 'institut_id' => 1, 'person_id' => '1-100', 'beratung_id' => 'test-1',
-            'tutor_person_id' => '1-200', 'title' => 'Einzelcoaching <Test>', 'agreed_minutes' => 180,
+            'planning_fingerprint' => str_repeat('a',64), 'tutor_person_id' => '1-200', 'title' => 'Einzelcoaching <Test>', 'agreed_minutes' => 180,
             'unit_minutes' => 45, 'version' => str_repeat('a',64), 'status' => 'active'], $overrides);
     }
 
@@ -90,29 +305,32 @@ class CoachingWorkflowTest extends TestCase
         $contract = CoachingContract::firstOrFail();
         $this->assertSame($t->id, $contract->tutor_person_id);
         $this->assertSame('1-200', $contract->uvs_tutor_person_id);
-        $this->assertDatabaseCount('messages', 1);
-        $message = \App\Models\Message::firstOrFail();
+        app(\App\Services\Coaching\NoticeService::class)->deliverPending();
+        $this->assertDatabaseCount('messages', 2);
+        $message = \App\Models\Message::where('to_user', $tutor->id)->firstOrFail();
         $this->assertSame($tutor->id, (int)$message->to_user);
         $this->assertSame(1, (int)$message->from_user);
         $this->assertSame('1', (string)$message->status);
         $this->assertStringContainsString('/coaching?contract='.$contract->id, $message->message);
         $this->assertStringContainsString('&lt;Test&gt;', $message->message);
-        $this->assertNotNull($contract->tutor_notified_at);
-        $this->assertSame($tutor->id, $contract->tutor_notified_user_id);
+        $this->assertNotNull($contract->fresh()->tutor_notified_at);
+        $this->assertSame($tutor->id, $contract->fresh()->tutor_notified_user_id);
         $this->actingAs($tutor);
         \Livewire\Livewire::withQueryParams(['contract' => $contract->id])->test(\App\Livewire\Coaching\Planning::class)
             ->assertSet('contractId', $contract->id)->assertSee('Gesamtplan');
     }
 
-    public function test_draft_is_assigned_but_notification_waits_for_activation(): void
+    public function test_draft_is_assigned_and_notifies_both_before_activation(): void
     {
         $this->people(); $sync = app(SyncService::class);
         $sync->importContract($this->importRow(['status' => 'draft']));
-        $this->assertDatabaseCount('messages', 0);
+        app(\App\Services\Coaching\NoticeService::class)->deliverPending();
+        $this->assertDatabaseCount('messages', 2);
         $this->assertNotNull(CoachingContract::first()->tutor_person_id);
-        $this->assertNull(CoachingContract::first()->tutor_notified_at);
+        $this->assertNotNull(CoachingContract::first()->tutor_notified_at);
         $sync->importContract($this->importRow());
-        $this->assertDatabaseCount('messages', 1);
+        app(\App\Services\Coaching\NoticeService::class)->deliverPending();
+        $this->assertDatabaseCount('messages', 2);
     }
 
     public function test_missing_tutor_account_is_retried_without_losing_uvs_assignment(): void
@@ -120,11 +338,13 @@ class CoachingWorkflowTest extends TestCase
         [, $tutor, , $t] = $this->people(); $sync = app(SyncService::class);
         Person::withoutEvents(fn () => $t->update(['user_id' => null]));
         $sync->importContract($this->importRow());
-        $this->assertDatabaseCount('messages', 0);
+        app(\App\Services\Coaching\NoticeService::class)->deliverPending();
+        $this->assertDatabaseCount('messages', 1);
         $this->assertSame('1-200', CoachingContract::first()->uvs_tutor_person_id);
         Person::withoutEvents(fn () => $t->update(['user_id' => $tutor->id]));
         $sync->importContract($this->importRow()); $sync->importContract($this->importRow());
-        $this->assertDatabaseCount('messages', 1);
+        app(\App\Services\Coaching\NoticeService::class)->deliverPending();
+        $this->assertDatabaseCount('messages', 2);
     }
 
     public function test_unmapped_or_foreign_tutor_never_receives_a_message(): void
@@ -133,11 +353,13 @@ class CoachingWorkflowTest extends TestCase
         Person::withoutEvents(fn () => $t->update(['institut_id' => 2]));
         $sync->importContract($this->importRow());
         $this->assertNull(CoachingContract::first()->tutor_person_id);
-        $this->assertDatabaseCount('messages', 0);
+        app(\App\Services\Coaching\NoticeService::class)->deliverPending();
+        $this->assertDatabaseCount('messages', 1);
         Person::withoutEvents(fn () => $t->update(['institut_id' => 1]));
         $sync->importContract($this->importRow());
         $this->assertSame($t->id, CoachingContract::first()->tutor_person_id);
-        $this->assertDatabaseCount('messages', 1);
+        app(\App\Services\Coaching\NoticeService::class)->deliverPending();
+        $this->assertDatabaseCount('messages', 2);
     }
 
     public function test_tutor_change_revokes_old_consent_and_notifies_new_tutor_once(): void
@@ -153,7 +375,8 @@ class CoachingWorkflowTest extends TestCase
         $this->assertSame('superseded', $plan->fresh()->status);
         $this->assertSame(2, $contract->fresh()->revision);
         $this->assertSame($newTutor->id, $contract->fresh()->tutor_person_id);
-        $this->assertSame(1, \App\Models\Message::where('to_user', $newUser->id)->count());
+        app(\App\Services\Coaching\NoticeService::class)->deliverPending();
+        $this->assertSame(2, \App\Models\Message::where('to_user', $newUser->id)->count());
         $this->assertFalse(CoachingContract::forUser($tutor)->exists());
     }
 
@@ -161,10 +384,11 @@ class CoachingWorkflowTest extends TestCase
     {
         $this->people(); User::whereKey(1)->delete(); $sync = app(SyncService::class);
         $sync->importContract($this->importRow());
+        app(\App\Services\Coaching\NoticeService::class)->deliverPending();
         $this->assertDatabaseCount('messages', 0);
         $this->assertNull(CoachingContract::first()->tutor_notified_at);
         User::forceCreate(['id' => 1, 'name' => 'Schulnetz System', 'role' => 'admin']);
-        $sync->importContract($this->importRow()); $this->assertDatabaseCount('messages', 1);
+        $sync->importContract($this->importRow()); app(\App\Services\Coaching\NoticeService::class)->deliverPending(); $this->assertDatabaseCount('messages', 2);
     }
 
     public function test_inbox_link_cannot_open_another_persons_contract(): void
@@ -337,7 +561,7 @@ class CoachingWorkflowTest extends TestCase
         $person->statusdata = ['coaching_contracts' => [['status' => 'active', 'valid_until' => null, 'cancelled_on' => null]]];
         $this->assertTrue($person->hasPortalIdentity()); $this->assertTrue($person->hasValidParticipantContract());
         $this->assertSame('guest', $person->resolvePortalRoleCandidate());
-        config(['coaching.enabled' => false]);
+        \App\Models\Setting::setValue('coaching', 'enabled', false);
         $this->assertFalse(\App\Services\Coaching\Access::hasActiveStatus($person->statusdata));
     }
 
@@ -366,6 +590,7 @@ class CoachingWorkflowTest extends TestCase
         $this->assertSame(['10:30', '10:30', '09:45'], array_column($items, 'end'));
         $this->assertSame(3, count(array_unique(array_column($items, 'id'))));
         $this->assertDatabaseCount('coaching_plans', 0);
+        app(\App\Services\Coaching\NoticeService::class)->deliverPending();
         $this->assertDatabaseCount('messages', 0);
         $contract->agreed_minutes = 180; $contract->unit_minutes = 60;
         $items = app(\App\Services\Coaching\ScheduleGenerator::class)->generate($contract, $options);

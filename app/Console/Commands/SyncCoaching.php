@@ -5,7 +5,7 @@ namespace App\Console\Commands;
 use App\Services\Coaching\SyncService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Schema;
+use App\Services\Coaching\Access;
 
 class SyncCoaching extends Command
 {
@@ -14,12 +14,13 @@ class SyncCoaching extends Command
 
     public function handle(SyncService $sync): int
     {
-        if (!config('coaching.enabled') || !Schema::hasTable('coaching_contracts')) { $this->info('Einzelcoaching-Abgleich ist ausgeschaltet.'); return self::SUCCESS; }
+        if (!Access::available()) { $this->info('Einzelcoaching-Abgleich ist ausgeschaltet.'); return self::SUCCESS; }
         $lock = Cache::lock('coaching:sync', 600);
         if (!$lock->get()) { $this->info('Ein Abgleich läuft bereits.'); return self::SUCCESS; }
         try {
             $count = $sync->import();
             $sent = $sync->sendPending();
+            app(\App\Services\Coaching\NoticeService::class)->deliverPending();
             $this->info("{$count} Vertragsdatensätze abgeglichen; {$sent} Gesamtpläne übernommen.");
             return self::SUCCESS;
         } catch (\Throwable $e) {

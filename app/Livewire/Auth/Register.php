@@ -132,7 +132,7 @@ class Register extends Component
         $role = $isTutor ? 'tutor' : 'guest';
 
         // 6) Erstellen in Transaktion: User anlegen, Person(en) upserten + verknüpfen, Mail verschicken
-        DB::transaction(function () use ($persons, $person, $role) {
+        DB::transaction(function () use ($persons, $person, $role, $statusData) {
             $randomPassword = Str::random(12);
 
             $newUser = User::create([
@@ -155,6 +155,10 @@ class Register extends Component
                 $personModel = Person::firstWhere('person_id', $p->person_id);
 
                 $mapped = Person::mapFromUvsPayload($p, $role);
+                if ($p->person_id === $person->person_id && (!empty($statusData['coaching_contracts']) || $role === 'tutor')) {
+                    $mapped['statusdata'] = $statusData;
+                    $mapped['last_api_update'] = now();
+                }
 
                 if ($personModel) {
                     // Update vorhandener Datensatz
@@ -176,8 +180,11 @@ class Register extends Component
             }
 
 
-            // Passwort-Setzen-Mail versenden
-            $newUser->notify(new SetPasswordNotification($newUser, $this->generateResetToken($newUser)));
+            app(\App\Services\Coaching\NoticeService::class)->linkRegisteredUser($newUser);
+            // Dispatch the password mail only after the account transaction succeeded.
+            DB::afterCommit(function () use ($newUser) {
+                $newUser->notify(new SetPasswordNotification($newUser, $this->generateResetToken($newUser)));
+            });
         });
 
         // 7) Erfolgsmeldung

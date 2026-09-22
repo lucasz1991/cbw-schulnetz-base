@@ -11,6 +11,7 @@ class PlanService
 {
     public function actor(CoachingContract $contract, User $user): string
     {
+        abort_unless(Access::available(), 404);
         $ids = $user->persons()->pluck('persons.id')->all();
         $participant = in_array($contract->participant_person_id, $ids);
         $tutor = in_array($contract->tutor_person_id, $ids);
@@ -37,7 +38,7 @@ class PlanService
                 'participant_person_id' => $contract->participant_person_id,
                 'tutor_person_id' => $contract->tutor_person_id, 'created_by' => $user->id, 'items' => $items,
             ]);
-            $this->notifyOther($contract, $user, 'Ein neuer Gesamtplan liegt zur Abstimmung vor.');
+            $this->notifyOther($contract, $user, 'plan_proposed', (string)$plan->revision);
             return $plan;
         }, 3);
     }
@@ -59,7 +60,8 @@ class PlanService
                 $contract->valid_from?->toDateString(), $contract->valid_until?->toDateString());
             if ($items[0]['starts_at'] <= now('UTC')->format('Y-m-d H:i:s')) $this->fail('Der erste Termin liegt bereits in der Vergangenheit. Bitte den Gesamtplan neu abstimmen.');
             $this->checkConflicts($contract, $items);
-            $plan->{$actor.'_confirmed_at'} ??= now();
+            if ($plan->{$actor.'_confirmed_at'}) return;
+            $plan->{$actor.'_confirmed_at'} = now();
             if ($plan->participant_confirmed_at && $plan->tutor_confirmed_at) {
                 $plan->status = 'confirmed';
                 $plan->confirmed_at = now();
@@ -72,13 +74,14 @@ class PlanService
                 ]);
             }
             $plan->save();
-            $this->notifyOther($contract, $user, 'Der Gesamtplan wurde von der anderen Seite bestätigt.');
+            if ($plan->confirmed_at) app(NoticeService::class)->record($contract, 'plan_complete', (string)$plan->revision);
+            else $this->notifyOther($contract, $user, 'plan_confirmed', $plan->revision.'-'.$actor);
         }, 3);
     }
 
     private function editable(CoachingContract $contract, int $revision): void
     {
-        if (! $contract->activeOn() || ! $contract->tutor_person_id || ! $contract->participant_person_id) $this->fail('Ein aktiver Vertrag und beide Zuordnungen sind erforderlich.');
+        if (! $contract->planningAllowed() || ! $contract->tutor_person_id || ! $contract->participant_person_id) $this->fail('Ein freigegebener Planungsvorgang und beide Zuordnungen sind erforderlich.');
         if ($contract->cancelled_on) $this->fail('Für einen gekündigten Vertrag kann kein neuer Gesamtplan bestätigt werden.');
         if ($contract->revision !== $revision) $this->fail('Der Gesamtplan wurde inzwischen geändert. Bitte neu laden.');
         if ($contract->confirmed_plan_id) $this->fail('Der vollständig bestätigte Gesamtplan ist verbindlich und kann hier nicht mehr geändert werden.');
@@ -130,19 +133,17 @@ class PlanService
         validator(['body' => $body], ['body' => 'required|string|max:4000'])->validate();
         $contract = CoachingContract::findOrFail($id);
         $this->actor($contract, $user);
-        abort_unless($contract->activeOn(), 403);
+        abort_unless($contract->planningAllowed(), 403);
         DB::transaction(function () use ($contract, $user, $body) {
-            $contract->messages()->create(['user_id' => $user->id, 'plan_revision' => $contract->revision, 'body' => trim($body)]);
-            $this->notifyOther($contract, $user, 'Eine neue Nachricht zur Terminabstimmung liegt vor.');
+            $chat = $contract->messages()->create(['user_id' => $user->id, 'plan_revision' => $contract->revision, 'body' => trim($body)]);
+            $this->notifyOther($contract, $user, 'chat_message', (string)$chat->id);
         });
     }
 
-    private function notifyOther(CoachingContract $contract, User $user, string $text): void
+    private function notifyOther(CoachingContract $contract, User $user, string $kind, string $event): void
     {
-        foreach ([$contract->participant?->user_id, $contract->tutor?->user_id] as $recipient) {
-            if ($recipient && $recipient !== $user->id) Message::create(['from_user' => $user->id, 'to_user' => $recipient,
-                'subject' => 'Einzelcoaching: '.$contract->title, 'message' => $text.' Bitte „Einzelcoaching“ im Schulnetz öffnen.', 'status' => 0]);
-        }
+        $other = $this->actor($contract, $user) === 'tutor' ? 'participant' : 'tutor';
+        app(NoticeService::class)->record($contract, $kind, $event, [$other]);
     }
 
     private function fail(string $message): never { throw ValidationException::withMessages(['plan' => $message]); }
