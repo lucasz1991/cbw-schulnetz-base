@@ -56,7 +56,8 @@ class SendMissingReportBookReminderJob implements ShouldQueue
             }
 
             $reportBook = ReportBook::find($reportBookId);
-            if (! $reportBook) {
+            if (! $reportBook || (int) $reportBook->user_id !== $toUserId
+                || \App\Support\ParticipantReportBookAccess::isCoachingCourse((int) $reportBook->course_id)) {
                 $skipped++;
                 continue;
             }

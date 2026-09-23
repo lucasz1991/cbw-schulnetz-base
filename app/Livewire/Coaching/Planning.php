@@ -245,7 +245,7 @@ class Planning extends Component
         if ($this->editing) { $this->addError('plan', 'Bitte den bearbeiteten Gesamtplan zuerst speichern.'); return; }
         app(PlanService::class)->confirm($this->contract()->id, auth()->user(), $this->revision);
         $this->reload();
-        session()->flash('coaching_status', 'Bestätigung gespeichert. Nach beiden Bestätigungen und UVS-Abgleich wird der Baustein freigegeben.');
+        session()->flash('coaching_status', 'Bestätigung gespeichert. Nach beiden Bestätigungen wird der Gesamtplan an das UVS übermittelt. Die Bausteinfreigabe erfolgt nach der Vertragserstellung durch die Verwaltung.');
     }
 
     public function sendMessage(): void

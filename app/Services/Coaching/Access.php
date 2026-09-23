@@ -48,17 +48,42 @@ class Access
         return CoachingContract::where('participant_person_id', $id)->whereNotNull('course_id')->pluck('course_id')->all();
     }
 
-    public static function guardDayWrite(CourseDay $day): void
+    public static function guardTutorCourse(int $courseId): void
+    {
+        $course = \App\Models\Course::findOrFail($courseId);
+        if ($course->type !== 'coaching') return;
+        abort_unless(self::available() && auth()->user()?->persons()->whereKey($course->primary_tutor_person_id)->exists(), 403);
+    }
+
+    public static function guardAttendanceParticipant(CourseDay $day, int $participantId): void
+    {
+        if ($day->course?->type !== 'coaching') return;
+        abort_unless($day->course->participants()->whereKey($participantId)->exists(), 403);
+    }
+
+    public static function guardDayWrite(CourseDay $day, bool $markStarted = true): void
     {
         if (!$day->exists || $day->course?->type !== 'coaching') return;
+        if (!self::available()) throw ValidationException::withMessages(['coaching' => 'Einzelcoaching ist derzeit deaktiviert.']);
         $contract = CoachingContract::where('course_id', $day->course_id)->first();
         $plan = $contract?->confirmedPlan;
         if (!$contract || !$contract->course_id || !$plan?->confirmed_at || $contract->contract_status !== 'active'
+            || !$contract->participant_person_id || $plan->participant_person_id !== $contract->participant_person_id
+            || !$contract->tutor_person_id || $plan->tutor_person_id !== $contract->tutor_person_id
             || (!$contract->cancelled_on && $plan->contract_version !== $contract->contract_version)
             || ($contract->cancelled_on && $day->date->gt($contract->cancelled_on))) {
             throw ValidationException::withMessages(['coaching' => 'Der Einzelcoaching-Baustein ist noch nicht freigegeben oder der Vertrag wurde beendet.']);
         }
-        if ($day->isDirty(['date', 'start_time', 'end_time', 'day_sessions', 'std'])) throw ValidationException::withMessages(['coaching' => 'Die verbindlich vereinbarten Termine dürfen nicht über die Bausteindokumentation geändert werden.']);
-        if (!$contract->started_at && $day->date->lte(today('Europe/Berlin'))) $contract->update(['started_at' => now()]);
+        // Session notes and documented topics belong to the normal teaching workflow; the agreed timetable stays fixed.
+        $schedule = fn ($sessions) => array_map(function ($session) {
+            $fixed = array_diff_key($session, ['notes' => true, 'topic' => true]);
+            ksort($fixed);
+            return $fixed;
+        }, (array)$sessions);
+        if ($day->isDirty(['date', 'start_time', 'end_time', 'std'])
+            || ($day->isDirty('day_sessions') && $schedule($day->day_sessions) !== $schedule($day->getOriginal('day_sessions')))) {
+            throw ValidationException::withMessages(['coaching' => 'Die verbindlich vereinbarten Termine dürfen nicht über die Bausteindokumentation geändert werden.']);
+        }
+        if ($markStarted && !$contract->started_at && $day->date->lte(today('Europe/Berlin'))) $contract->update(['started_at' => now()]);
     }
 }

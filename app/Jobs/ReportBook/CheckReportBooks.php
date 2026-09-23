@@ -39,7 +39,8 @@ class CheckReportBooks implements ShouldQueue
         }
 
         foreach ($books as $book) {
-            if (! $this->isReadyForReview($book)) {
+            if (\App\Support\ParticipantReportBookAccess::isCoachingCourse((int) $book->course_id)
+                || ! $this->isReadyForReview($book)) {
                 continue;
             }
 

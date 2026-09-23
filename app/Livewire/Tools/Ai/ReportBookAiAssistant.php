@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Models\Setting;
 use App\Models\ReportBookEntry;
+use App\Support\ParticipantReportBookAccess;
 
 class ReportBookAiAssistant extends Component
 {
@@ -25,7 +26,7 @@ class ReportBookAiAssistant extends Component
     public $status;
     public $assistantName;
     public $apiUrl;
-    public $apiKey;
+    protected $apiKey;
     public $aiModel;
     public $modelTitle;
     public $refererUrl;
@@ -60,7 +61,9 @@ class ReportBookAiAssistant extends Component
             return;
         }
 
-        $this->entry = ReportBookEntry::findOrFail($id);
+        $entry = ReportBookEntry::findOrFail($id);
+        abort_unless($entry->reportBook && ParticipantReportBookAccess::canAccessBook(auth()->user(), $entry->reportBook), 403);
+        $this->entry = $entry;
 
         $this->currentText   = (string) ($this->entry->text ?? '');
         $this->optimizedText = '';
@@ -81,6 +84,9 @@ class ReportBookAiAssistant extends Component
      */
     public function generateSuggestion(): void
     {
+        $this->authorizeEntry();
+        // Reload trusted configuration; public component properties are client input.
+        $this->mount();
         $base = trim($this->optimizedText) !== ''
             ? $this->optimizedText
             : $this->currentText;
@@ -188,6 +194,7 @@ class ReportBookAiAssistant extends Component
      */
     public function saveToEntry(): void
     {
+        $this->authorizeEntry();
         if (!$this->entry) {
             return;
         }
@@ -205,6 +212,13 @@ class ReportBookAiAssistant extends Component
         $this->entry->save();
         $this->dispatch('updated');
         $this->showModal = false;
+    }
+
+    protected function authorizeEntry(): void
+    {
+        $entry = $this->entry ? ReportBookEntry::find($this->entry->id) : null;
+        abort_unless($entry?->reportBook && ParticipantReportBookAccess::canAccessBook(auth()->user(), $entry->reportBook), 403);
+        $this->entry = $entry;
     }
 
     public function render()

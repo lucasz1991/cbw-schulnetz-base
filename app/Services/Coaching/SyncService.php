@@ -53,7 +53,7 @@ class SyncService
             $sourceChanged = $contract && $contract->uvs_tutor_person_id !== $sourceTutor;
             $wasPlanning = $contract?->planningAllowed();
             $assignmentChanged = $contract && ($contract->uvs_tutor_person_id !== $sourceTutor || $contract->tutor_person_id !== $tutor?->id);
-            if ($assignmentChanged && $contract->confirmed_plan_id) throw new RuntimeException('Die UVS-Dozentenzuordnung widerspricht dem bestätigten Gesamtplan.');
+            // Always import revocations and assignment changes. A confirmed plan with changed identities is suspended below.
             if ($assignmentChanged && $contract->uvs_tutor_person_id !== $sourceTutor) {
                 app(NoticeService::class)->record($contract, 'assignment_removed', $row['version'], ['tutor']);
             }
@@ -87,19 +87,24 @@ class SyncService
                 }
                 $contract->update($values);
             }
-            if ($contract->course_id) $contract->course()->update(['is_active' => $contract->activeOn()]);
+            // A changed scope also suspends an already projected course until the agreed plan matches again.
+            if ($contract->course_id) {
+                $plan = $contract->confirmedPlan;
+                $contract->course()->update(['is_active' => $contract->startReady(),
+                    'primary_tutor_person_id' => $plan?->tutor_person_id === $contract->tutor_person_id ? $contract->tutor_person_id : null]);
+            }
             $notices = app(NoticeService::class);
             if ($contract->planningAllowed()) {
                 if (!$contract->confirmed_plan_id && ($isNew || $sourceChanged)) $notices->record($contract, 'planning_requested', $row['version']);
                 if (!empty($hadPlan)) $notices->record($contract, 'plan_changed', $row['version']);
-                if ($wasPlanning === false) $notices->record($contract, 'resumed', $row['version']);
+                if ($wasPlanning === false) $notices->record($contract, 'resumed', (string)Str::uuid());
                 $plan = $contract->fresh()->confirmedPlan;
-                if ($plan && $plan->contract_version !== $contract->contract_version) $notices->record($contract, 'contract_review', $row['version']);
-                if ($contract->activeOn() && $plan && $plan->contract_version === $contract->contract_version && $this->acknowledges($contract, $plan, $row)) {
+                if ($plan && !$contract->hasCurrentConfirmedPlan()) $notices->record($contract, 'contract_review', $row['version']);
+                if ($contract->activeOn() && $contract->hasCurrentConfirmedPlan() && $this->acknowledges($contract, $plan, $row)) {
                     app(CourseProjector::class)->project($contract, $plan);
                     $notices->record($contract, 'released', (string)$plan->revision);
                 }
-            } elseif ($wasPlanning) $notices->record($contract, 'stopped', $row['version']);
+            } elseif ($wasPlanning) $notices->record($contract, 'stopped', (string)Str::uuid());
             // Registration can finish after import; wake pending inbox delivery for newly linked accounts.
             \App\Models\CoachingNotice::where('coaching_contract_id', $contract->id)->whereNull('message_id')->whereNull('dismissed_at')->update(['available_at' => now()]);
             \App\Jobs\DeliverCoachingNotices::dispatch($contract->id)->afterCommit();
@@ -121,7 +126,7 @@ class SyncService
             // The command holds a cache lock. Idempotency also covers a process crash after the remote commit.
             $event = CoachingOutbox::findOrFail($id);
             $contract = $event->contract;
-            if (!$contract->planningAllowed() || $contract->contract_version !== $event->payload['contract_version']) {
+            if (!$contract->planningAllowed() || !$contract->hasCurrentConfirmedPlan() || $contract->contract_version !== $event->payload['contract_version']) {
                 $event->update(['last_error' => 'Vertrag geändert oder beendet; keine Freigabe.', 'available_at' => now()->addHour()]);
                 continue;
             }

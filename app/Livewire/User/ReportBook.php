@@ -14,7 +14,7 @@ use App\Models\Course;
 use App\Models\CourseDay;
 use App\Models\User;
 use App\Models\Person;
-use App\Support\CurrentParticipantCourseScope;
+use App\Support\ParticipantReportBookAccess;
 use App\Services\ReportBook\ReportWeekTimeline;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -77,6 +77,7 @@ public ?int $selectedCourseDayId = null; // aktueller Kurs-Tag
 
 public function mount(): void
 {
+    abort_unless(ParticipantReportBookAccess::canUse(Auth::user()), 403);
     // Kurse des Users laden
     $this->courses = $this->fetchUserCourses();
 
@@ -107,6 +108,11 @@ public function mount(): void
     $this->loadCurrentEntry();
     $this->loadRecent();
 }
+
+    public function hydrate(): void
+    {
+        abort_unless(ParticipantReportBookAccess::canUse(Auth::user()), 403);
+    }
 
     /* ======================= Kursliste & Tage ======================= */
 
@@ -152,9 +158,8 @@ public function mount(): void
                     ->on('rbe.course_day_id', '=', 'cd.id');
             })
             ->whereNull('courses.deleted_at')
-            ->where(function ($query) use ($person) {
-                CurrentParticipantCourseScope::applyForPerson($query, $person, 'cpe', 'courses');
-            })
+            ->whereIn('courses.id', ParticipantReportBookAccess::courseIds(Auth::user()))
+            ->whereIn('cpe.person_id', Auth::user()->persons()->pluck('persons.id'))
             ->when($visibilityStartDate, function ($query) use ($visibilityStartDate, $userId, $massnahmeId) {
                 $query->where(function ($visibility) use ($visibilityStartDate, $userId, $massnahmeId) {
                     // Sperre nur Kurse, die vor der Sichtbarkeitsgrenze liegen.
@@ -733,7 +738,7 @@ public function reloadForCurrentCourse(): void
         }
 
         $book = ReportBookModel::with('course')->find($fileableId);
-        if (!$book || $book->user_id !== Auth::id()) {
+        if (!$book || !ParticipantReportBookAccess::canAccessBook(Auth::user(), $book) || !$this->hasParticipantSignature($book)) {
             $this->pendingSignatureAction = null;
             return null;
         }
@@ -761,13 +766,10 @@ public function reloadForCurrentCourse(): void
             return null;
         }
 
-        if ($this->reportBookEntryId) {
-            $entry = ReportBookEntry::find($this->reportBookEntryId);
-        } else {
-            $entry = ReportBookEntry::where('report_book_id', $book->id)
-                ->where('course_day_id', $day->id)
-                ->first();
-        }
+        $entry = ReportBookEntry::where('report_book_id', $book->id)
+            ->where('course_day_id', $day->id)
+            ->when($this->reportBookEntryId, fn ($query) => $query->whereKey($this->reportBookEntryId))
+            ->first();
 
         if (!$entry) {
             $this->dispatch('toast', type: 'warning', message: 'Kein Eintrag zum Unterschreiben gefunden.');
@@ -824,45 +826,15 @@ public function reloadForCurrentCourse(): void
 
     protected function currentContractCourseIds(): array
     {
-        $person = $this->currentPerson();
-        if (!$person) {
-            return [];
-        }
-
-        return DB::table('courses')
-            ->join('course_participant_enrollments as cpe', function ($join) {
-                $join->on('courses.id', '=', 'cpe.course_id')
-                    ->whereNull('cpe.deleted_at')
-                    ->where('cpe.is_active', '=', 1);
-            })
-            ->whereNull('courses.deleted_at')
-            ->where(function ($query) use ($person) {
-                CurrentParticipantCourseScope::applyForPerson($query, $person, 'cpe', 'courses');
-            })
-            ->distinct()
-            ->pluck('courses.id')
-            ->map(fn ($id) => (int) $id)
-            ->all();
+        return ParticipantReportBookAccess::courseIds(Auth::user());
     }
 
     protected function canAccessCourse(int $courseId): bool
     {
-        if ($courseId <= 0) {
-            return false;
-        }
-
-        $listedCourseIds = collect($this->courses)
-            ->pluck('id')
-            ->map(fn ($id) => (int) $id)
-            ->all();
-
-        if (in_array($courseId, $listedCourseIds, true)) {
-            return true;
-        }
-
-        return in_array($courseId, $this->currentContractCourseIds(), true);
+        // Public Livewire arrays are presentation data, never authorization evidence.
+        return ParticipantReportBookAccess::canAccessCourse(Auth::user(), $courseId);
     }
-   
+
     public function loadCurrentEntry(): void
     {
         $this->reportBookEntryId = null;
@@ -871,10 +843,11 @@ public function reloadForCurrentCourse(): void
         $this->status = -1;
         $this->hasDraft = false;
 
-        if (!$this->selectedCourseId || !$this->selectedCourseDayId) {
+        if (!$this->selectedCourseId || !$this->selectedCourseDayId || !$this->canAccessCourse((int) $this->selectedCourseId)) {
+            $this->reportBookId = null;
             $this->initialHash = $this->curHash();
             $this->recomputeFlags();
-            $this->updateWeekContext();
+            if ($this->selectedCourseId && $this->canAccessCourse((int) $this->selectedCourseId)) $this->updateWeekContext();
             return;
         }
 
@@ -888,7 +861,7 @@ public function reloadForCurrentCourse(): void
         if (!$book) {
             $this->initialHash = $this->curHash();
             $this->recomputeFlags();
-            $this->updateWeekContext();
+            if ($this->selectedCourseId && $this->canAccessCourse((int) $this->selectedCourseId)) $this->updateWeekContext();
             return;
         }
 
@@ -1304,6 +1277,7 @@ public function exportReportAll(): ?StreamedResponse
 
     public function getStatusAttribute(): int
     {
+        if (!$this->canAccessCourse((int) $this->selectedCourseId)) return 0;
         $reportBook = ReportBookModel::where('user_id', Auth::id())
             ->where('course_id', $this->selectedCourseId)
             ->first();
@@ -1313,7 +1287,7 @@ public function exportReportAll(): ?StreamedResponse
 
     public function getReportBookProperty(): ?ReportBookModel
     {
-        if (! $this->selectedCourseId) {
+        if (! $this->selectedCourseId || !$this->canAccessCourse((int) $this->selectedCourseId)) {
             return null;
         }
 
@@ -1353,15 +1327,18 @@ public function exportReportAll(): ?StreamedResponse
 
     public function getAreAllReportBooksReviewedProperty(): bool
     {
-        $reportBook = ReportBookModel::where('user_id', Auth::id())
-            ->where('course_id', $this->selectedCourseId)
-            ->first();
+        if (!$this->canAccessCourse((int) $this->selectedCourseId)) return false;
+        $books = ReportBookModel::where('user_id', Auth::id())
+            ->whereIn('course_id', $this->currentContractCourseIds())
+            ->with(['entries', 'days'])
+            ->get();
 
-        return $reportBook ? $reportBook->areAllReportBooksReviewed : false;
+        return $books->isNotEmpty() && $books->every(fn ($book) => $book->isFullyReviewed());
     }
 
     public function getIsReportBookReviewedProperty(): bool
     {
+        if (!$this->canAccessCourse((int) $this->selectedCourseId)) return false;
         $reportBook = ReportBookModel::where('user_id', Auth::id())
             ->where('course_id', $this->selectedCourseId)
             ->first();
@@ -1371,6 +1348,7 @@ public function exportReportAll(): ?StreamedResponse
 
     public function render()
     {
+        abort_unless(ParticipantReportBookAccess::canUse(Auth::user()), 403);
         return view('livewire.user.report-book')->layout("layouts.app");
     }
 }

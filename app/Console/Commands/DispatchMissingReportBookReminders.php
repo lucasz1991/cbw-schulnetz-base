@@ -56,6 +56,7 @@ class DispatchMissingReportBookReminders extends Command
                 $join->on('rbe.report_book_id', '=', 'rb.id')
                     ->on('rbe.course_day_id', '=', 'cd.id');
             })
+            ->where(fn ($query) => \App\Support\ParticipantReportBookAccess::excludeCoaching($query, 'c'))
             ->whereDate('c.planned_end_date', '>=', $windowStart)
             ->whereDate('c.planned_end_date', '<=', $windowEnd)
             ->groupBy('rb.id', 'rb.user_id', 'rb.course_id', 'c.title', 'c.planned_end_date')

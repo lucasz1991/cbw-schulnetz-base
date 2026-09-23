@@ -106,7 +106,21 @@ public function openSignatureForm(array $payload): void
             return null;
         }
 
-        return ($this->fileableType)::find($this->fileableId);
+        $fileable = ($this->fileableType)::find($this->fileableId);
+        if ($fileable instanceof \App\Models\CourseDay && $fileable->course?->type === 'coaching') {
+            \App\Services\Coaching\Access::guardTutorCourse($fileable->course_id);
+            \App\Services\Coaching\Access::guardDayWrite($fileable, false);
+            abort_unless(in_array($this->fileType, ['sign_courseday_doku_tutor', 'courseday_doku_tutor'], true), 403);
+            if (trim((string)$fileable->notes) === '') {
+                throw \Illuminate\Validation\ValidationException::withMessages(['signatureDataUrl' => 'Bitte erst die Dokumentation speichern.']);
+            }
+        }
+        if ($fileable instanceof \App\Models\ReportBook) {
+            abort_unless(\App\Support\ParticipantReportBookAccess::canAccessBook(Auth::user(), $fileable)
+                && in_array($this->fileType, ['sign_reportbook_participant', 'reportbook_participant'], true), 403);
+        }
+
+        return $fileable;
     } 
 
     public function getDefaultConfirmTextProperty(): string

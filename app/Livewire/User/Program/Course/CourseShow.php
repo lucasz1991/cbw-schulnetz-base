@@ -261,7 +261,7 @@ class CourseShow extends Component
         return [
             'id' => $d->id,
             'date' => $d->date ? Carbon::parse($d->date)->locale('de')->isoFormat('DD.MM.YYYY') : '—',
-            'units' => $d->units ?? null,
+            'units' => $d->std,
             'topic' => $d->topic ?? null,
             'notes' => $d->notes ?? null,
         ];

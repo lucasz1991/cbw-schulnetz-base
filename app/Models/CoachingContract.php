@@ -47,20 +47,25 @@ class CoachingContract extends Model
             && (! $this->valid_until || $date <= $this->valid_until->toDateString());
     }
 
-    public function startReady(): bool
+    public function hasCurrentConfirmedPlan(): bool
     {
         $plan = $this->confirmedPlan;
-        if (! $this->course_id || ! $this->activeOn() || ! $plan || ! $plan->confirmed_at || $plan->contract_version !== $this->contract_version) {
-            return false;
-        }
-        return $plan->revision === $this->revision;
+        return $plan && $plan->status === 'confirmed' && $plan->confirmed_at
+            && $plan->contract_version === $this->contract_version && $plan->revision === $this->revision
+            && $this->participant_person_id && $plan->participant_person_id === $this->participant_person_id
+            && $this->tutor_person_id && $plan->tutor_person_id === $this->tutor_person_id;
+    }
+
+    public function startReady(): bool
+    {
+        return $this->course_id && $this->activeOn() && $this->hasCurrentConfirmedPlan();
     }
 
     public function getPlanningLabelAttribute(): string
     {
         if (! $this->planningAllowed()) return 'Vertrag beendet';
         if (! $this->tutor_person_id) return $this->uvs_tutor_person_id ? 'UVS-Dozent noch nicht verknüpft' : 'Dozent im UVS auswählen';
-        if ($this->confirmedPlan && $this->confirmedPlan->contract_version !== $this->contract_version) return 'Vertrag geändert – Prüfung durch Verwaltung erforderlich';
+        if ($this->confirmedPlan && !$this->hasCurrentConfirmedPlan()) return 'Vertrag geändert – Prüfung durch Verwaltung erforderlich';
         if ($this->confirmed_plan_id && !$this->course_id) return $this->contract_status === 'draft' ? 'Gesamtplan bestätigt – Vertragsfreigabe im UVS ausstehend' : 'UVS-Rückmeldung ausstehend';
         if ($this->startReady()) return $this->started_at ? 'Baustein läuft' : 'Alle Termine bestätigt';
         return 'Gesamtplan abstimmen';

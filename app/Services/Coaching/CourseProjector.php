@@ -9,7 +9,7 @@ class CourseProjector
     /** Called under the contract lock, only after UVS acknowledged this exact confirmed version. */
     public function project(CoachingContract $contract, CoachingPlan $plan): Course
     {
-        if (!$plan->confirmed_at || $plan->status !== 'confirmed' || $plan->coaching_contract_id !== $contract->id
+        if (!$contract->activeOn() || !$contract->hasCurrentConfirmedPlan() || !$plan->confirmed_at || $plan->status !== 'confirmed' || $plan->coaching_contract_id !== $contract->id
             || $contract->confirmed_plan_id !== $plan->id || $plan->contract_version !== $contract->contract_version) {
             throw new \LogicException('Nur ein vollständig bestätigter, unveränderter Gesamtplan kann einen Baustein erzeugen.');
         }

@@ -9,6 +9,8 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\On;
+use Livewire\Attributes\Locked;
+use App\Services\Coaching\Access;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\WithoutUrlPagination;
@@ -19,7 +21,7 @@ class ParticipantsTable extends Component
     use WithPagination, WithoutUrlPagination;
 
     // Basis
-    public int $courseId;
+    #[Locked] public int $courseId;
     public Course $course;
 
     // Suche & Sortierung
@@ -29,7 +31,7 @@ class ParticipantsTable extends Component
     public int $perPage = 10;
 
     // Tagesauswahl
-    public ?int $selectedDayId = null;
+    #[Locked] public ?int $selectedDayId = null;
     public ?CourseDay $selectedDay = null;
 
     /**
@@ -56,6 +58,7 @@ class ParticipantsTable extends Component
     public function mount(int $courseId, ?int $selectedDayId = null): void
     {
         $this->courseId = $courseId;
+        Access::guardTutorCourse($courseId);
         $this->course   = Course::findOrFail($courseId);
 
         if ($selectedDayId) {
@@ -79,6 +82,8 @@ class ParticipantsTable extends Component
 
         $this->updatePrevNextFlags();
     }
+
+    public function hydrate(): void { Access::guardTutorCourse($this->courseId); }
 
     /**
      * Pull-only Load (UVS ist Master).
@@ -232,6 +237,7 @@ class ParticipantsTable extends Component
 
     public function selectDay(int $courseDayId): void
     {
+        Access::guardTutorCourse($this->courseId);
         $day = CourseDay::where('course_id', $this->courseId)->findOrFail($courseDayId);
 
         $this->selectedDay   = $day;
@@ -301,6 +307,7 @@ class ParticipantsTable extends Component
 
     public function getParticipantsProperty()
     {
+        Access::guardTutorCourse($this->courseId);
         $allowedSorts = ['vorname', 'nachname', 'email', 'created_at'];
 
         return $this->course->participants()
@@ -334,9 +341,7 @@ class ParticipantsTable extends Component
 
     protected function dayOrFail(): CourseDay
     {
-        if ($this->selectedDay && $this->selectedDayId && (int) $this->selectedDay->id === (int) $this->selectedDayId) {
-            return $this->selectedDay;
-        }
+        Access::guardTutorCourse($this->courseId);
 
         $day = $this->selectedDayId
             ? CourseDay::where('course_id', $this->courseId)->find($this->selectedDayId)
@@ -729,6 +734,7 @@ class ParticipantsTable extends Component
  */
 public function getRowsProperty(): Collection
 {
+    Access::guardTutorCourse($this->courseId);
     $day = $this->selectedDay;
     if (! $day) return collect();
 
@@ -874,6 +880,12 @@ function getStatsProperty(): array
         $startHms = Carbon::parse($startTime, $tz)->format('H:i:s');
         $start    = Carbon::parse("$date $startHms", $tz);
 
+        // Coaching stores teaching units in std; its agreed finish already includes the actual unit duration and breaks.
+        if ($this->selectedDay?->type === 'coaching' && $this->selectedDay->end_time) {
+            $endHms = $this->selectedDay->end_time->format('H:i:s');
+            return [$start, Carbon::parse("$date $endHms", $tz)];
+        }
+
         $hoursDecimal = (float) $stdRaw;
         $minutes      = (int) round($hoursDecimal * 60);
 
@@ -904,6 +916,7 @@ function getStatsProperty(): array
 
     public function render()
     {
+        Access::guardTutorCourse($this->courseId);
         $this->updatePrevNextFlags();
         [$plannedStart, $plannedEnd] = $this->plannedStartEndStrings();
     

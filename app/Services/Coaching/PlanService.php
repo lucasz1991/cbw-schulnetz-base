@@ -118,7 +118,8 @@ class PlanService
                     $q->whereIn('tutor_person_id', $persons)->orWhereIn('participant_person_id', $persons);
                     if ($item['format'] === 'presence') $q->orWhereHas('contract', fn ($q) => $q->where('institut_id', $contract->institut_id));
                 })
-                ->whereHas('contract', fn ($q) => $q->where('contract_status', 'active'))->lockForUpdate()->get();
+                // The jointly confirmed draft already reserves these appointments while UVS prepares the final contract.
+                ->whereHas('contract', fn ($q) => $q->whereIn('contract_status', ['draft', 'active']))->lockForUpdate()->get();
             foreach ($plans as $plan) foreach ($plan->items as $other) {
                 if ($plan->contract->cancelled_on && $other['date'] > $plan->contract->cancelled_on->toDateString()) continue;
                 $sharedPerson = in_array($plan->tutor_person_id, $persons) || in_array($plan->participant_person_id, $persons);

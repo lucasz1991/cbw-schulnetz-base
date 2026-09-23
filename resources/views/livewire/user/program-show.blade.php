@@ -88,7 +88,11 @@
   @endif
   wire:loading.class="cursor-wait opacity-50 animate-pulse"
 >
-    <x-ui.coaching-modules />
+    @if($coachingOnly)
+        @include('livewire.user.coaching-dashboard', ['dashboard' => $coachingDashboard])
+    @else
+        <x-ui.coaching-modules />
+    @endif
     <div
       x-cloak
       x-show="courseNavigationVisible"
@@ -159,7 +163,9 @@
     </div>
 
     {{-- Loader wenn Programm noch nicht geladen --}}
-    @if($apiProgramLoading)
+    @if($coachingOnly)
+      {{-- The coaching dashboard above replaces the ordinary programme statistics. --}}
+    @elseif($apiProgramLoading)
         <div role="status" class="h-32 w-full relative animate-pulse" wire:ignore>
             <div class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-white/70 transition-opacity">
                 <div class="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-2 shadow">
@@ -482,7 +488,7 @@
                     </x-buttons.button-basic>
                   </div>
                 </div>
-                @if(Auth::user()?->person?->isEducation())
+                @if(\App\Support\ParticipantReportBookAccess::showNavigation(Auth::user()))
                   <div class="swiper-slide">
                     <div class="grid h-full grid-cols-1 place-content-stretch">
                       <h3 class="text-gray-800 font-semibold mb-1">Berichtsheft</h3>

@@ -26,7 +26,7 @@ class CourseDaysPanel extends Component
     public ?int $selectedDayId = null;
     public ?CourseDay $selectedDay = null;
 
-    public ?int $selectedDaySessionId = null;
+    public int|string|null $selectedDaySessionId = null;
     public ?string $selectedDaySessionTopic = null; // z.B. "8:00"
     public ?string $selectedDaySessionNotes = '';
     public bool $selectPreviousDayPossible = false;

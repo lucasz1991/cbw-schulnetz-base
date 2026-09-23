@@ -61,7 +61,7 @@ class NoticeService
             'plan_transferred' => 'Der vollständig bestätigte Terminplan wurde erfolgreich an das UVS übermittelt. Ein Mitarbeiter kann jetzt den finalen Vertrag erstellen und freigeben. Über die Freigabe werden Sie gesondert informiert.',
             'released' => $role === 'tutor'
                 ? 'Die CBW-Verwaltung hat den Vertrag freigegeben. Ihr Einzelcoaching-Baustein und alle bestätigten Termine stehen im Schulnetz bereit. Bitte führen Sie Anwesenheit, Unterrichtsdokumentation und die weiteren Bausteinaufgaben wie gewohnt im Schulnetz.'
-                : 'Die CBW-Verwaltung hat Ihren Vertrag freigegeben. Ihr Einzelcoaching-Baustein mit allen bestätigten Terminen und Unterlagen steht im Schulnetz bereit. Dort führen Sie auch Ihr Berichtsheft.',
+                : 'Die CBW-Verwaltung hat Ihren Vertrag freigegeben. Ihr Einzelcoaching-Baustein mit allen bestätigten Terminen und Unterlagen steht im Schulnetz bereit.',
             'contract_review' => 'Der Vertrag wurde nach der gemeinsamen Planbestätigung geändert. Die bisherige Freigabe ist nicht mehr gültig. Bitte klären Sie den Vorgang mit der CBW-Verwaltung und warten Sie mit der Durchführung.',
             'plan_changed' => 'Der Vertragsumfang oder die Dozentenzuordnung wurde im UVS geändert. Ein bisheriger unbestätigter Plan ist nicht mehr gültig. Bitte stimmen Sie einen neuen vollständigen Terminplan ab.',
             'assignment_removed' => 'Die Dozentenzuordnung wurde im UVS geändert. Sie sind diesem Einzelcoaching nicht mehr als Dozent zugeordnet. Bitte führen Sie keine weiteren Planungsschritte für diesen Vorgang durch.',
@@ -99,6 +99,17 @@ class NoticeService
             $notice = CoachingNotice::lockForUpdate()->findOrFail($id);
             if ($notice->dismissed_at || ($notice->mail_sent_at && $notice->message_id) || $notice->available_at?->isFuture()) return;
             $contract = $notice->contract;
+            // A queue retry may happen after another lifecycle transition. Never announce an outdated action or release.
+            $obsolete = match ($notice->kind) {
+                'planning_requested', 'plan_changed' => (bool)$contract->confirmed_plan_id,
+                'plan_complete', 'plan_transferred' => !$contract->hasCurrentConfirmedPlan() || $contract->startReady(),
+                'released' => !$contract->startReady(),
+                'contract_review' => !$contract->confirmedPlan || $contract->hasCurrentConfirmedPlan(),
+                'stopped' => $contract->planningAllowed(),
+                'assignment_removed' => $notice->uvs_person_id === $contract->uvs_tutor_person_id,
+                default => false,
+            };
+            if ($obsolete) { $notice->update(['dismissed_at' => now()]); return; }
             if (in_array($notice->kind, ['plan_proposed', 'plan_confirmed'], true)
                 && ((int)($notice->content['plan_revision'] ?? 0) !== $contract->revision || $contract->confirmed_plan_id)) {
                 $notice->update(['dismissed_at' => now()]); return;

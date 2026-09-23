@@ -76,15 +76,14 @@
           }
           // Panel-Scroll (Inhalt) nach oben
           if ($refs.panelScroll) { $refs.panelScroll.scrollTo({ top: 0, behavior: 'auto' }); }
-          @if($teleportTo) $refs.panel.querySelector('input:not([type=hidden]), select, textarea')?.focus({ preventScroll: true }); @endif
+          @if($teleportTo) $refs.panel?.querySelector('input:not([type=hidden]), select, textarea')?.focus({ preventScroll: true }); @endif
         });
       }
     });
 
-    // Bei Resize Breite nachziehen, solange offen
-    window.addEventListener('resize', () => { if (open) setPanelWidth() }, { passive:true });
   "
   x-cloak
+  @resize.window="if (open) setPanelWidth()"
   @keydown.escape.window="open=false"
   @close.window.stop="open=false"
 >

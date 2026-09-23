@@ -21,7 +21,9 @@ class CoachingCalendarController extends Controller
                 'DTSTART:'.Carbon::parse($item['starts_at'], 'UTC')->format('Ymd\THis\Z'),
                 'DTEND:'.Carbon::parse($item['ends_at'], 'UTC')->format('Ymd\THis\Z'),
                 'SUMMARY:'.$escape($case->title.' – '.$item['topic']), 'LOCATION:'.$escape($item['location']),
-                'STATUS:'.($case->contract_status !== 'active' || ($case->cancelled_on && $item['date'] > $case->cancelled_on->toDateString()) ? 'CANCELLED' : 'CONFIRMED'), 'BEGIN:VALARM', 'TRIGGER:-PT15M', 'ACTION:DISPLAY',
+                'STATUS:'.($case->contract_status !== 'active' || !$case->hasCurrentConfirmedPlan()
+                    || ($case->cancelled_on && $item['date'] > $case->cancelled_on->toDateString())
+                    || ($case->valid_until && $item['date'] > $case->valid_until->toDateString()) ? 'CANCELLED' : 'CONFIRMED'), 'BEGIN:VALARM', 'TRIGGER:-PT15M', 'ACTION:DISPLAY',
                 'DESCRIPTION:Einzelcoaching beginnt in 15 Minuten', 'END:VALARM', 'END:VEVENT');
         }
         $lines[] = 'END:VCALENDAR';

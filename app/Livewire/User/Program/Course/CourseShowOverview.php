@@ -102,7 +102,7 @@ class CourseShowOverview extends Component
 
         $this->stats = [
             'tage' => $course->days->count(),
-            'einheiten' => (int) $course->days->sum('units'),
+            'einheiten' => (float) $course->days->sum('std'),
             'start' => $this->course['start'] ?? null,
             'end' => $this->course['end'] ?? null,
         ];

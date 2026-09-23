@@ -7,13 +7,15 @@ use App\Models\Course;
 use App\Models\CourseDay;
 use Illuminate\Support\Carbon;
 use Livewire\Attributes\On;
+use Livewire\Attributes\Locked;
+use App\Services\Coaching\Access;
 
 class CourseDocumentationPanel extends Component
 {
-    public int $courseId;
+    #[Locked] public int $courseId;
     public Course $course;
 
-    public ?int $selectedDayId = null;
+    #[Locked] public ?int $selectedDayId = null;
     public ?CourseDay $selectedDay = null;
 
     public string $dayNotes = '';
@@ -29,6 +31,7 @@ class CourseDocumentationPanel extends Component
     public function mount(int $courseId): void
     {
         $this->courseId = $courseId;
+        Access::guardTutorCourse($courseId);
         $this->course   = Course::findOrFail($courseId);
         $this->month    = now()->format('Y-m');
 
@@ -42,6 +45,8 @@ class CourseDocumentationPanel extends Component
     $this->dayNotes      = (string) ($this->selectedDay?->notes ?? '');
     $this->isDirty       = false;
     }
+
+    public function hydrate(): void { Access::guardTutorCourse($this->courseId); }
 
     #[On('calendarEventClick')]
     public function handleCalendarEventClick(...$args): void
@@ -60,6 +65,7 @@ class CourseDocumentationPanel extends Component
 
 public function selectDay(int $courseDayId): void
 {
+    Access::guardTutorCourse($this->courseId);
     $day = CourseDay::where('course_id', $this->courseId)->findOrFail($courseDayId);
     $this->selectedDay   = $day;
     $this->selectedDayId = $day->id;
@@ -100,6 +106,7 @@ public function selectDay(int $courseDayId): void
      */
 public function saveNotes(): void
 {
+    Access::guardTutorCourse($this->courseId);
     if (!$this->selectedDayId) {
         return;
     }
@@ -114,7 +121,6 @@ public function saveNotes(): void
 
     $day->notes = $newNotes;
 
-    // … deine note_status- / Signatur-Logik wie besprochen …
     if ($notesChanged) {
         if (trim($newNotes) === '') {
             // Notizen geleert -> Status auf 0
@@ -122,14 +128,15 @@ public function saveNotes(): void
         } else {
             // Notizen geändert -> Status auf 1
             $day->note_status = CourseDay::NOTE_STATUS_DRAFT;
+        }
 
-            // Signatur löschen, wenn vorhanden
-            $signatures = $day->files()
-                ->where('type', 'sign_courseday_doku_tutor')
-                ->get();
-            foreach ($signatures as $signature) {
-                $signature->delete();
-            }
+        // Jede inhaltliche Änderung, auch Leeren, macht die alte Signatur ungültig.
+        Access::guardDayWrite($day, false);
+        $signatures = $day->files()
+            ->where('type', 'sign_courseday_doku_tutor')
+            ->get();
+        foreach ($signatures as $signature) {
+            $signature->delete();
         }
     }
 
@@ -152,6 +159,7 @@ public function saveNotes(): void
      */
     public function finalizeDay(): void
     {
+        Access::guardTutorCourse($this->courseId);
         if (!$this->selectedDay) {
             return;
         }
@@ -159,6 +167,10 @@ public function saveNotes(): void
         if (trim($this->dayNotes) === '') {
             $this->dispatch('toast', type: 'error', message: 'Bitte erst Notizen eintragen.');
             return;
+        }
+
+        if ($this->course->type === 'coaching') {
+            $this->saveNotes();
         }
 
         // Signaturformular für CourseDay öffnen (SignatureForm bleibt unverändert)
@@ -176,11 +188,22 @@ public function saveNotes(): void
      * -> Status auf 2 setzen
      */
     #[On('signatureCompleted')]
-    public function handleSignatureCompleted(): void
+    public function handleSignatureCompleted(array $payload = []): void
     {
+        Access::guardTutorCourse($this->courseId);
         // Wenn kein Tag ausgewählt ist, nichts tun
         if (!$this->selectedDay) {
             return;
+        }
+
+        $this->selectedDay = CourseDay::where('course_id', $this->courseId)->findOrFail($this->selectedDayId);
+        if ($this->selectedDay->type === 'coaching') {
+            if (trim((string)$this->selectedDay->notes) === ''
+                || ($payload['fileableType'] ?? null) !== CourseDay::class
+                || (int)($payload['fileableId'] ?? 0) !== $this->selectedDayId
+                || !$this->selectedDay->tutorSignatures()->whereKey($payload['fileId'] ?? 0)->where('user_id', auth()->id())->exists()) {
+                return;
+            }
         }
 
         // Status auf „fertig & unterschrieben“ setzen
@@ -213,6 +236,7 @@ public function saveNotes(): void
 
     public function getAllDaysProperty()
     {
+        Access::guardTutorCourse($this->courseId);
         [$from, $to] = $this->range();
         return CourseDay::where('course_id', $this->courseId)
             ->whereBetween('date', [$from, $to])
@@ -236,6 +260,7 @@ public function saveNotes(): void
 
     public function render()
     {
+        Access::guardTutorCourse($this->courseId);
         $this->selectPreviousDayPossible = $this->selectedDay
             ? $this->course->dates()->where('date', '<', $this->selectedDay->date)->exists()
             : false;

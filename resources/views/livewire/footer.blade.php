@@ -10,7 +10,11 @@
                         <x-application-logo />
                     </a>
                     <p class="text-white/90 text-sm mt-5 leading-6 max-w-xs">
-                        Dein zentraler Zugang für Kurse, Berichtshefte, Anträge und Kommunikation.
+                        @if(auth()->check() && !\App\Support\ParticipantReportBookAccess::canUse(auth()->user()))
+                            Dein zentraler Zugang für Kurse, Termine, Anträge und Kommunikation.
+                        @else
+                            Dein zentraler Zugang für Kurse, Berichtshefte, Anträge und Kommunikation.
+                        @endif
                     </p>
                 </div>
                 @auth
@@ -79,7 +83,7 @@
                                         Nachrichten
                                     </a>
                                 </li>
-                            @if(Auth::user()?->person?->isEducation())
+                            @if(\App\Support\ParticipantReportBookAccess::showNavigation(Auth::user()))
                                 <li>
                                     <a href="/user/reportbook" wire:navigate
                                        class="group inline-flex items-center gap-2 text-white/90 hover:text-white text-sm transition">

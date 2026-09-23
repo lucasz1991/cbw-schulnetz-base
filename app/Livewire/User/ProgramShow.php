@@ -51,6 +51,7 @@ class ProgramShow extends Component
     public $bausteinTooltips;
 
     public bool $apiProgramLoading = false;
+    public bool $coachingOnly = false;
     protected int $apiCooldownSeconds = 300; // 5 Minuten Cooldown für API-Updates
 
 
@@ -63,6 +64,12 @@ class ProgramShow extends Component
         $this->userData?->loadMissing(['persons', 'person']);
 
         $programPerson = $this->resolveProgramPerson();
+        $this->coachingOnly = (empty($programPerson?->programdata) || data_get($programPerson->programdata, 'vtz') === 'E')
+            && \App\Services\Coaching\Access::available()
+            && \App\Models\CoachingContract::whereIn('participant_person_id', $this->userData->persons->pluck('id'))->exists();
+        if ($this->coachingOnly) {
+            return;
+        }
 
         if ($programPerson && (! $programPerson->last_api_update || $programPerson->last_api_update->lt(now()->subHours(1)))) {
             $programPerson->apiupdate();
@@ -79,6 +86,7 @@ class ProgramShow extends Component
 
     public function pollProgram(): void
     {
+        if ($this->coachingOnly) return;
         $person = $this->resolveProgramPerson();
         if (!$person) return;
 
@@ -112,7 +120,8 @@ class ProgramShow extends Component
             return null;
         }
 
-        return $persons->first(fn (Person $person) => !empty($person->programdata)) ?? $persons->first();
+        return $persons->first(fn (Person $person) => !empty($person->programdata) && data_get($person->programdata, 'vtz') !== 'E')
+            ?? $persons->first(fn (Person $person) => !empty($person->programdata)) ?? $persons->first();
     }
 
 
@@ -572,6 +581,8 @@ private function calcCurrentProgress(?array $modul): int
     {
         // Optional: explizit an das Blade übergeben (oder direkt über Public Props nutzen)
         return view('livewire.user.program-show', [
+            'coachingDashboard' => $this->coachingOnly
+                ? app(\App\Support\CoachingParticipantDashboard::class)->build(Auth::user()) : null,
             'user'                => $this->userData,
             'data'                => $this->raw,
             'teilnehmerDaten'     => $this->teilnehmerDaten,
