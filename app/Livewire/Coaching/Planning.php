@@ -27,7 +27,7 @@ class Planning extends Component
 
     public function mount(): void
     {
-        abort_unless(Access::available(), 404);
+        abort_unless(Access::canUsePlanning(auth()->user()), 404);
         if (request()->has('contract')) {
             $data = request()->validate(['contract' => 'required|integer|min:1']);
             $this->select((int)$data['contract']); // select/reload checks ownership, also for inbox deep links.
@@ -257,7 +257,7 @@ class Planning extends Component
 
     public function render()
     {
-        abort_unless(Access::available(), 404);
+        abort_unless(Access::canUsePlanning(auth()->user()), 404);
         $contract = $this->contractId ? $this->contract() : null;
         return view('livewire.coaching.planning', [
             'contracts' => CoachingContract::forUser(auth()->user())->with(['participant', 'tutor'])->orderByDesc('id')->get(),

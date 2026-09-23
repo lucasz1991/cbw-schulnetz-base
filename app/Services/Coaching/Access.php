@@ -20,6 +20,12 @@ class Access
         return self::enabled() && Schema::hasTable('coaching_contracts') && Schema::hasTable('coaching_notices');
     }
 
+    public static function canUsePlanning(?\App\Models\User $user): bool
+    {
+        // The rollout switch alone never makes an ordinary participant a coaching participant.
+        return $user && self::available() && CoachingContract::forUser($user)->exists();
+    }
+
     public static function hasActiveStatus(array $status): bool
     {
         if (empty($status['coaching_contracts']) || !self::enabled()) return false;

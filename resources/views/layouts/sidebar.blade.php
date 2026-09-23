@@ -15,7 +15,7 @@
                     </a>
                 </li>
 
-                @if(\App\Services\Coaching\Access::available())
+                @if(\App\Services\Coaching\Access::canUsePlanning(auth()->user()))
                 <li><a href="{{ route('coaching.planning') }}" class="block py-2.5 px-6 text-sm font-medium text-gray-600 hover:text-blue-500">Einzelcoaching</a></li>
                 @endif
                 <li class="px-5 py-3 text-xs font-medium text-gray-500 cursor-default leading-[18px] group-data-[sidebar-size=sm]:hidden block" data-key="t-menu">Management</li>

@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Livewire\User\Program\Course\CourseShowOverview;
 use App\Livewire\User\ProgramShow;
+use App\Livewire\Coaching\Planning;
+use App\Services\Coaching\Access;
 use App\Models\{CoachingContract, Course, CourseDay, CourseParticipantEnrollment, Person, Setting, User};
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Database\Schema\Blueprint;
@@ -36,7 +38,9 @@ class CoachingParticipantUiTest extends TestCase
         foreach (['2025_09_10_152938_create_courses_table.php', '2025_09_10_152939_create_course_days_table.php',
             '2025_10_07_164445_create_course_participant_enrollments_table.php', '2026_09_17_080000_create_coaching_planning_tables.php',
             '2026_09_17_110000_add_uvs_tutor_to_coaching_contracts.php', '2026_09_22_100000_create_coaching_notices.php',
-            '2025_10_05_104501_create_course_ratings_table.php', '2025_10_23_180357_create_course_material_acknowledgements_table.php'] as $file) {
+            '2025_10_05_104501_create_course_ratings_table.php', '2025_10_23_180357_create_course_material_acknowledgements_table.php',
+            '2025_08_16_205311_create_file_pools_table.php', '2025_08_16_205324_create_files_table.php',
+            '2026_01_15_081041_create_onboarding_videos_table.php'] as $file) {
             (require database_path('migrations/'.$file))->up();
         }
         Schema::table('course_days', function (Blueprint $t) { $t->integer('note_status')->default(0); $t->json('settings')->nullable(); });
@@ -55,6 +59,101 @@ class CoachingParticipantUiTest extends TestCase
         return CoachingContract::create(['uuid'=>(string) Str::uuid(), 'uvs_contract_id'=>$id, 'institut_id'=>1,
             'uvs_person_id'=>$person->person_id, 'participant_person_id'=>$person->id, 'beratung_id'=>'ui-'.$id,
             'title'=>'Coaching '.$id, 'agreed_minutes'=>180, 'unit_minutes'=>45, 'contract_version'=>str_repeat('a',64)]);
+    }
+
+    private function navigation(): string
+    {
+        return view('livewire.user-navigation-menu', ['currentUrl' => url('/user/messages')])->render();
+    }
+
+    private function assertPlanningNotFound(callable $action): void
+    {
+        $this->withoutExceptionHandling();
+        try {
+            $action();
+            $this->fail('Planning was accessible without an assignment.');
+        } catch (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException $e) {
+            $this->assertSame(404, $e->getStatusCode());
+        }
+    }
+
+    public function test_ordinary_participant_keeps_navigation_without_coaching_and_cannot_open_planning(): void
+    {
+        $other = $this->participant();
+        $this->contract($other, 1);
+        $ordinary = $this->participant();
+        $ordinary->update(['programdata' => ['vtz' => 'V', 'tn_baust' => array_fill(0, 20, [])]]);
+        auth()->user()->unsetRelation('person');
+
+        $this->assertFalse(Access::canUsePlanning(auth()->user()));
+        $html = $this->navigation();
+        foreach (['Konto', 'Berichtsheft', 'Anträge', 'Videos'] as $label) $this->assertStringContainsString($label, $html);
+        $this->assertStringNotContainsString(route('coaching.planning'), $html);
+        $this->assertStringNotContainsString('Einzelcoaching', Blade::render('<x-ui.coaching-modules />'));
+        $this->assertPlanningNotFound(fn () => Livewire::test(Planning::class));
+    }
+
+    public function test_explicit_draft_without_course_or_plan_already_grants_coaching_navigation(): void
+    {
+        $person = $this->participant();
+        $contract = $this->contract($person, 1);
+        $contract->update(['contract_status' => 'draft']);
+
+        $this->assertTrue(Access::canUsePlanning(auth()->user()));
+        $this->assertStringContainsString(route('coaching.planning'), $this->navigation());
+        Livewire::test(Planning::class)->assertOk()->assertSee($contract->title);
+    }
+
+    public function test_legacy_labels_and_cached_status_alone_do_not_grant_new_planning_access(): void
+    {
+        $person = $this->participant();
+        $person->update(['programdata' => ['vtz' => 'E'],
+            'statusdata' => ['coaching_contracts' => [['status' => 'active']]]]);
+
+        $this->assertFalse(Access::canUsePlanning(auth()->user()));
+        $this->assertStringNotContainsString(route('coaching.planning'), $this->navigation());
+        $this->assertPlanningNotFound(fn () => Livewire::test(Planning::class));
+    }
+
+    public function test_disabled_feature_and_removed_assignment_revoke_navigation_and_livewire_access(): void
+    {
+        $person = $this->participant();
+        $contract = $this->contract($person, 1);
+        $page = Livewire::test(Planning::class)->assertOk();
+        $contract->update(['participant_person_id' => null]);
+        $this->assertFalse(Access::canUsePlanning(auth()->user()));
+        $this->assertStringNotContainsString(route('coaching.planning'), $this->navigation());
+        $this->assertPlanningNotFound(fn () => $page->instance()->render());
+
+        $contract->update(['participant_person_id' => $person->id]);
+        Setting::setValue('coaching', 'enabled', false);
+        $this->assertFalse(Access::canUsePlanning(auth()->user()));
+        $this->assertStringNotContainsString(route('coaching.planning'), $this->navigation());
+        $this->assertPlanningNotFound(fn () => Livewire::test(Planning::class));
+    }
+
+    public function test_tutor_navigation_requires_an_explicit_assignment_too(): void
+    {
+        $participant = $this->participant();
+        $contract = $this->contract($participant, 1);
+        $tutor = $this->participant();
+        auth()->user()->update(['role' => 'tutor']);
+        $this->assertStringNotContainsString(route('coaching.planning'), $this->navigation());
+        $this->assertStringNotContainsString(route('coaching.planning'), view('layouts.sidebar')->render());
+        $contract->update(['tutor_person_id' => $tutor->id]);
+        $this->assertStringContainsString(route('coaching.planning'), $this->navigation());
+        $this->assertStringContainsString(route('coaching.planning'), view('layouts.sidebar')->render());
+        Livewire::test(Planning::class)->assertOk();
+    }
+
+    public function test_deleted_person_and_anonymous_user_have_no_coaching_navigation_access(): void
+    {
+        $person = $this->participant();
+        $this->contract($person, 1);
+        auth()->user()->load('persons');
+        Person::withoutEvents(fn () => $person->delete());
+        $this->assertFalse(Access::canUsePlanning(auth()->user()));
+        $this->assertFalse(Access::canUsePlanning(null));
     }
 
     public function test_participant_overview_shows_actual_units_including_fractional_units(): void

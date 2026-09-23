@@ -395,14 +395,9 @@ class CoachingWorkflowTest extends TestCase
     {
         $this->people(); app(SyncService::class)->importContract($this->importRow());
         $this->actingAs(User::create(['name' => 'Fremd', 'role' => 'guest']));
-        try {
-            \Livewire\Livewire::withQueryParams(['contract' => CoachingContract::first()->id])->test(\App\Livewire\Coaching\Planning::class);
-            $this->fail('Foreign contract was exposed by the inbox link.');
-        } catch (\Illuminate\View\ViewException $e) {
-            $cause = $e;
-            while ($cause->getPrevious()) $cause = $cause->getPrevious();
-            $this->assertInstanceOf(\Illuminate\Database\Eloquent\ModelNotFoundException::class, $cause);
-        }
+        $this->withoutExceptionHandling();
+        $this->expectException(\Symfony\Component\HttpKernel\Exception\NotFoundHttpException::class);
+        \Livewire\Livewire::withQueryParams(['contract' => CoachingContract::first()->id])->test(\App\Livewire\Coaching\Planning::class);
     }
 
     public function test_whole_plan_requires_both_consents_and_remote_ack_before_standard_course_exists(): void
@@ -748,7 +743,8 @@ class CoachingWorkflowTest extends TestCase
         $this->assertNotNull($contract->fresh()->latestPlan->participant_confirmed_at);
         $outsider = User::create(['name' => 'Fremd', 'role' => 'guest']);
         $this->actingAs($outsider);
-        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        $this->withoutExceptionHandling();
+        $this->expectException(\Symfony\Component\HttpKernel\Exception\NotFoundHttpException::class);
         \Livewire\Livewire::test(\App\Livewire\Coaching\Planning::class)->call('select', $contract->id);
     }
 }

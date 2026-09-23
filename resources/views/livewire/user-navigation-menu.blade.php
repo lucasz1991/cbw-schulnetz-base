@@ -61,7 +61,7 @@
                              </a>
                          </div>
                          <div class="flex items-center space-x-4 max-md:order-3 md:order-2  flex-none" @click="$dispatch('navhide')">
-                        @if(\App\Services\Coaching\Access::available())
+                        @if(\App\Services\Coaching\Access::canUsePlanning(auth()->user()))
                             <a href="{{ route('coaching.planning') }}" wire:navigate class="text-sm text-gray-700 hover:text-blue-600">Einzelcoaching</a>
                         @endif
                         {{-- Inbox Buttons --}}
@@ -253,4 +253,3 @@
     <div :style="'height: ' + navHeight + 'px'" class="min-h-12 md:min-h-[4rem] duration-300 ease-in-out transition-all" > </div>
     <div id="megamenu"   class="transition-all duration-200 ease-in-out "></div>
 </div>
- 
