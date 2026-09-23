@@ -53,8 +53,8 @@ class NoticeService
         $lines = ["Ihr Einzelcoaching: {$title} (Vorgang {$contract->uvs_contract_id})."];
         $lines[] = match ($kind) {
             'planning_requested' => $role === 'tutor'
-                ? "Sie wurden im UVS als Dozent ausgewählt. Bitte stimmen Sie mit dem Teilnehmer alle Termine für den vollständigen Umfang von {$units} UE im Schulnetz ab."
-                : "Bitte stimmen Sie mit Ihrem im UVS zugeordneten Dozenten alle Termine für den vollständigen Umfang von {$units} UE im Schulnetz ab.",
+                ? "Sie wurden im UVS als Dozent ausgewählt. Bitte erstellen Sie zuerst einen Gesamtplan mit allen Terminen für den vollständigen Umfang von {$units} UE im Schulnetz. Anschließend wird der Teilnehmer benachrichtigt und kann Ihren Vorschlag prüfen, bestätigen oder Änderungen vorschlagen."
+                : "Ihr Dozent erstellt zuerst den Gesamtplan für den vollständigen Umfang von {$units} UE im Schulnetz. Sobald ein Vorschlag vorliegt, werden Sie benachrichtigt und können alle Termine prüfen, bestätigen oder Änderungen vorschlagen.",
             'plan_proposed' => 'Ein neuer Gesamtplan liegt zur Abstimmung vor. Bitte prüfen Sie alle Termine und bestätigen Sie den vollständigen Plan oder klären Sie Änderungswünsche im Chat.',
             'plan_confirmed' => 'Der Gesamtplan wurde von der anderen Seite bestätigt. Bitte prüfen Sie im Schulnetz, ob Ihre eigene Bestätigung noch aussteht.',
             'plan_complete' => 'Sie und Ihr Gegenüber haben den vollständigen Terminplan bestätigt. Der Plan wird nun an die CBW-Verwaltung im UVS übermittelt. Die Freigabe zur Durchführung steht noch aus.',
@@ -63,7 +63,9 @@ class NoticeService
                 ? 'Die CBW-Verwaltung hat den Vertrag freigegeben. Ihr Einzelcoaching-Baustein und alle bestätigten Termine stehen im Schulnetz bereit. Bitte führen Sie Anwesenheit, Unterrichtsdokumentation und die weiteren Bausteinaufgaben wie gewohnt im Schulnetz.'
                 : 'Die CBW-Verwaltung hat Ihren Vertrag freigegeben. Ihr Einzelcoaching-Baustein mit allen bestätigten Terminen und Unterlagen steht im Schulnetz bereit.',
             'contract_review' => 'Der Vertrag wurde nach der gemeinsamen Planbestätigung geändert. Die bisherige Freigabe ist nicht mehr gültig. Bitte klären Sie den Vorgang mit der CBW-Verwaltung und warten Sie mit der Durchführung.',
-            'plan_changed' => 'Der Vertragsumfang oder die Dozentenzuordnung wurde im UVS geändert. Ein bisheriger unbestätigter Plan ist nicht mehr gültig. Bitte stimmen Sie einen neuen vollständigen Terminplan ab.',
+            'plan_changed' => 'Der Vertragsumfang oder die Dozentenzuordnung wurde im UVS geändert. Ein bisheriger unbestätigter Plan ist nicht mehr gültig. '.($role === 'tutor'
+                ? 'Bitte erstellen Sie zuerst einen neuen Gesamtplan mit allen Terminen. Anschließend kann der Teilnehmer darauf reagieren.'
+                : 'Ihr Dozent erstellt zuerst einen neuen Gesamtplan. Sobald ein Vorschlag vorliegt, werden Sie benachrichtigt und können darauf reagieren.'),
             'assignment_removed' => 'Die Dozentenzuordnung wurde im UVS geändert. Sie sind diesem Einzelcoaching nicht mehr als Dozent zugeordnet. Bitte führen Sie keine weiteren Planungsschritte für diesen Vorgang durch.',
             'stopped' => 'Die CBW-Verwaltung hat den Vorgang deaktiviert, storniert oder eine Kündigung gemeldet. Bitte prüfen Sie den aktuellen Stand mit der Verwaltung. Weitere Terminabstimmungen sind gesperrt.',
             'resumed' => 'Die CBW-Verwaltung hat den Vorgang wieder freigegeben. Bitte prüfen Sie im Schulnetz den aktuellen Termin- und Vertragsstand.',

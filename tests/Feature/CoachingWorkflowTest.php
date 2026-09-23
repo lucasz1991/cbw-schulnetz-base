@@ -400,6 +400,105 @@ class CoachingWorkflowTest extends TestCase
         \Livewire\Livewire::withQueryParams(['contract' => CoachingContract::first()->id])->test(\App\Livewire\Coaching\Planning::class);
     }
 
+    public function test_participant_waits_for_first_tutor_plan_in_ui_and_cannot_start_by_direct_request(): void
+    {
+        [$participant, , $p, $t] = $this->people();
+        $contract = $this->contract($p, $t);
+        $this->actingAs($participant);
+        $page = \Livewire\Livewire::test(\App\Livewire\Coaching\Planning::class)->call('select', $contract->id);
+        $page->assertSee('Ihr Dozent erstellt zuerst den Gesamtplan')
+            ->assertDontSeeHtml('wire:click="edit"')->assertDontSeeHtml('wire:click="confirm"')
+            ->call('edit')->assertHasErrors('plan')->assertSet('editing', false);
+        // Public Livewire state must not bypass the service rule.
+        $page->set('editing', true)->call('generateSchedule')->assertHasErrors('plan');
+        try {
+            app(PlanService::class)->propose($contract->id, $participant, 0, $this->items());
+            $this->fail('Participant created the first plan.');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('plan', $e->errors());
+        }
+        $this->assertSame(0, $contract->fresh()->revision);
+        $this->assertDatabaseCount('coaching_plans', 0);
+        $this->assertDatabaseCount('coaching_notices', 0);
+        $this->assertSame(0, CoachingOutbox::count());
+    }
+
+    public function test_tutor_starts_then_participant_can_counterpropose_and_both_can_confirm(): void
+    {
+        [$participant, $tutor, $p, $t] = $this->people();
+        $contract = $this->contract($p, $t);
+        $this->actingAs($tutor);
+        \Livewire\Livewire::test(\App\Livewire\Coaching\Planning::class)->call('select', $contract->id)
+            ->assertSee('Gesamtplan erstellen')->call('edit')->assertHasNoErrors()->assertSet('editing', true);
+        $plans = app(PlanService::class);
+        $first = $plans->propose($contract->id, $tutor, 0, $this->items());
+        $this->actingAs($participant);
+        \Livewire\Livewire::test(\App\Livewire\Coaching\Planning::class)->call('select', $contract->id)
+            ->assertDontSee('Ihr Dozent erstellt zuerst den Gesamtplan')
+            ->assertSee('Gesamtplan ändern')->assertSee('Alle Termine bestätigen')
+            ->call('edit')->assertHasNoErrors()->assertSet('editing', true);
+        $counter = $plans->propose($contract->id, $participant, 1, $this->items());
+        $this->assertSame('superseded', $first->fresh()->status);
+        $plans->confirm($contract->id, $participant, $counter->revision);
+        $this->assertNull($counter->fresh()->confirmed_at);
+        $plans->confirm($contract->id, $tutor, $counter->revision);
+        $this->assertNotNull($counter->fresh()->confirmed_at);
+        $this->assertSame(1, CoachingOutbox::count());
+    }
+
+    public function test_new_contract_scope_or_tutor_requires_a_new_first_tutor_proposal(): void
+    {
+        [$participant, $tutor, $p, $t] = $this->people();
+        $contract = $this->contract($p, $t);
+        $plans = app(PlanService::class);
+        $first = $plans->propose($contract->id, $tutor, 0, $this->items());
+        $first->update(['status' => 'superseded']);
+        $contract->update(['contract_version' => str_repeat('b', 64)]);
+        try {
+            $plans->propose($contract->id, $participant, 1, $this->items());
+            $this->fail('Old contract scope unlocked participant planning.');
+        } catch (ValidationException $e) { $this->assertArrayHasKey('plan', $e->errors()); }
+        $next = $plans->propose($contract->id, $tutor, 1, $this->items());
+        $replacementUser = User::create(['name' => 'Replacement tutor', 'role' => 'tutor']);
+        $replacement = Person::withoutEvents(fn () => Person::create(['user_id' => $replacementUser->id,
+            'person_id' => '1-300', 'institut_id' => 1, 'role' => 'tutor']));
+        $contract->update(['tutor_person_id' => $replacement->id, 'uvs_tutor_person_id' => $replacement->person_id]);
+        try {
+            $plans->propose($contract->id, $participant, $next->revision, $this->items());
+            $this->fail('Previous tutor unlocked participant planning.');
+        } catch (ValidationException $e) { $this->assertArrayHasKey('plan', $e->errors()); }
+        $this->assertSame(2, $contract->fresh()->revision);
+        $this->assertDatabaseCount('coaching_plans', 2);
+    }
+
+    public function test_preexisting_participant_first_plan_does_not_bypass_tutor_start(): void
+    {
+        [$participant, $tutor, $p, $t] = $this->people();
+        $contract = $this->contract($p, $t);
+        $contract->update(['revision' => 1]);
+        $old = $contract->plans()->create(['revision' => 1, 'contract_version' => $contract->contract_version,
+            'participant_person_id' => $p->id, 'tutor_person_id' => $t->id, 'created_by' => $participant->id,
+            'items' => app(PlanValidator::class)->validate($this->items(), $contract->agreed_minutes)]);
+        try {
+            app(PlanService::class)->confirm($contract->id, $participant, 1);
+            $this->fail('Participant confirmed a plan before the tutor had proposed one.');
+        } catch (ValidationException $e) { $this->assertArrayHasKey('plan', $e->errors()); }
+        $this->assertNull($old->fresh()->participant_confirmed_at);
+        $new = app(PlanService::class)->propose($contract->id, $tutor, 1, $this->items());
+        app(PlanService::class)->confirm($contract->id, $participant, $new->revision);
+        $this->assertNotNull($new->fresh()->participant_confirmed_at);
+    }
+
+    public function test_planning_invitations_explain_tutor_first_to_both_recipients(): void
+    {
+        $this->people();
+        app(SyncService::class)->importContract($this->importRow(['status' => 'draft']));
+        $notices = \App\Models\CoachingNotice::where('kind', 'planning_requested')->get()->keyBy('recipient_role');
+        $this->assertStringContainsString('erstellen Sie zuerst einen Gesamtplan', implode(' ', $notices['tutor']->content['lines']));
+        $this->assertStringContainsString('Ihr Dozent erstellt zuerst', implode(' ', $notices['participant']->content['lines']));
+        $this->assertStringContainsString('Sobald ein Vorschlag vorliegt', implode(' ', $notices['participant']->content['lines']));
+    }
+
     public function test_whole_plan_requires_both_consents_and_remote_ack_before_standard_course_exists(): void
     {
         [$participant, $tutor, $p, $t] = $this->people();
@@ -530,7 +629,8 @@ class CoachingWorkflowTest extends TestCase
         $this->actingAs($participant);
         view()->share('errors', new \Illuminate\Support\ViewErrorBag());
         $html = view('livewire.coaching.planning', ['contracts' => collect([$contract->fresh()]), 'contract' => $contract->fresh(),
-            'plan' => $plan->fresh(), 'revision' => 1, 'editing' => false, 'messages' => collect(), 'actor' => 'participant'])->render();
+            'plan' => $plan->fresh(), 'revision' => 1, 'editing' => false, 'messages' => collect(), 'actor' => 'participant',
+            'tutorStarted' => true, 'waitingForTutor' => false])->render();
         $this->assertStringContainsString('Alle Termine bestätigen', $html);
         $this->assertStringContainsString('&lt;script&gt;', $html);
         $this->assertStringNotContainsString('<script>alert', $html);

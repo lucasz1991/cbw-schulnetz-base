@@ -82,11 +82,13 @@ class Planning extends Component
     private function editableContract(): CoachingContract
     {
         $contract = $this->contract();
-        app(PlanService::class)->actor($contract, auth()->user());
+        $service = app(PlanService::class);
+        $actor = $service->actor($contract, auth()->user());
         abort_if($contract->confirmed_plan_id || !$contract->planningAllowed() || $contract->cancelled_on, 403);
         if ($contract->revision !== $this->revision) {
             throw \Illuminate\Validation\ValidationException::withMessages(['plan' => 'Der Gesamtplan wurde inzwischen geändert. Bitte schließen und neu laden.']);
         }
+        $service->guardPlanningStart($contract, $actor);
         return $contract;
     }
 
@@ -259,11 +261,14 @@ class Planning extends Component
     {
         abort_unless(Access::canUsePlanning(auth()->user()), 404);
         $contract = $this->contractId ? $this->contract() : null;
+        $actor = $contract ? app(PlanService::class)->actor($contract, auth()->user()) : null;
+        $tutorStarted = $contract && ($contract->confirmed_plan_id || app(PlanService::class)->hasTutorProposal($contract));
         return view('livewire.coaching.planning', [
             'contracts' => CoachingContract::forUser(auth()->user())->with(['participant', 'tutor'])->orderByDesc('id')->get(),
             'contract' => $contract, 'plan' => $contract?->latestPlan,
             'messages' => $contract?->messages()->with('author')->latest()->limit(50)->get()->reverse() ?? collect(),
-            'actor' => $contract ? app(PlanService::class)->actor($contract, auth()->user()) : null,
+            'actor' => $actor, 'tutorStarted' => $tutorStarted,
+            'waitingForTutor' => $actor === 'participant' && !$tutorStarted,
         ])->layout(auth()->user()->role === 'tutor' ? 'layouts.app-tutor' : 'layouts.app');
     }
 }

@@ -24,8 +24,9 @@ class PlanService
     {
         return DB::transaction(function () use ($id, $user, $expectedRevision, $items) {
             $contract = CoachingContract::lockForUpdate()->findOrFail($id);
-            $this->actor($contract, $user);
+            $actor = $this->actor($contract, $user);
             $this->editable($contract, $expectedRevision);
+            $this->guardPlanningStart($contract, $actor);
             $items = app(PlanValidator::class)->validate($items, $contract->agreed_minutes,
                 $contract->valid_from?->toDateString(), $contract->valid_until?->toDateString());
             if ($items[0]['starts_at'] <= now('UTC')->format('Y-m-d H:i:s')) {
@@ -49,6 +50,7 @@ class PlanService
             $contract = CoachingContract::lockForUpdate()->findOrFail($id);
             $actor = $this->actor($contract, $user);
             $this->editable($contract, $revision);
+            $this->guardPlanningStart($contract, $actor);
             $plan = $contract->plans()->where('revision', $revision)->lockForUpdate()->firstOrFail();
             if ($plan->contract_version !== $contract->contract_version || $plan->status !== 'proposed') {
                 $this->fail('Der Plan ist nicht mehr aktuell. Bitte neu laden.');
@@ -77,6 +79,25 @@ class PlanService
             if ($plan->confirmed_at) app(NoticeService::class)->record($contract, 'plan_complete', (string)$plan->revision);
             else $this->notifyOther($contract, $user, 'plan_confirmed', $plan->revision.'-'.$actor);
         }, 3);
+    }
+
+    public function hasTutorProposal(CoachingContract $contract): bool
+    {
+        $tutorUserId = $contract->tutor?->user_id;
+        if (!$tutorUserId || !$contract->participant_person_id) return false;
+
+        // A participant may counterpropose after the tutor has started this contract scope.
+        return $contract->plans()->where('contract_version', $contract->contract_version)
+            ->where('tutor_person_id', $contract->tutor_person_id)
+            ->where('participant_person_id', $contract->participant_person_id)
+            ->where('created_by', $tutorUserId)->exists();
+    }
+
+    public function guardPlanningStart(CoachingContract $contract, string $actor): void
+    {
+        if ($actor === 'participant' && !$this->hasTutorProposal($contract)) {
+            $this->fail('Ihr Dozent erstellt zuerst den Gesamtplan. Sobald ein Vorschlag vorliegt, können Sie alle Termine prüfen, bestätigen oder Änderungen vorschlagen.');
+        }
     }
 
     private function editable(CoachingContract $contract, int $revision): void

@@ -26,14 +26,15 @@
         <div class="p-5 md:p-6 space-y-5">
         <div class="grid grid-cols-2 gap-2 sm:gap-3 sm:grid-cols-3" aria-label="Stand des Gesamtplans">
             <div class="col-span-2 sm:col-span-1 rounded-lg bg-gray-50 p-3"><p class="text-xs text-gray-500">Vereinbarter Umfang</p><p class="mt-1 font-semibold text-gray-800">{{ $contract->agreed_minutes }} Minuten</p></div>
-            <div class="rounded-lg {{ $plan?->tutor_confirmed_at ? 'bg-primary-50' : 'bg-amber-50' }} p-3"><p class="text-xs text-gray-500">Dozent</p><p class="mt-1 font-semibold {{ $plan?->tutor_confirmed_at ? 'text-primary-700' : 'text-amber-700' }}">{{ $plan?->tutor_confirmed_at ? 'Bestätigt' : 'Bestätigung offen' }}</p></div>
-            <div class="rounded-lg {{ $plan?->participant_confirmed_at ? 'bg-primary-50' : 'bg-amber-50' }} p-3"><p class="text-xs text-gray-500">Teilnehmer</p><p class="mt-1 font-semibold {{ $plan?->participant_confirmed_at ? 'text-primary-700' : 'text-amber-700' }}">{{ $plan?->participant_confirmed_at ? 'Bestätigt' : 'Bestätigung offen' }}</p></div>
+            <div class="rounded-lg {{ $plan?->tutor_confirmed_at ? 'bg-primary-50' : 'bg-amber-50' }} p-3"><p class="text-xs text-gray-500">Dozent</p><p class="mt-1 font-semibold {{ $plan?->tutor_confirmed_at ? 'text-primary-700' : 'text-amber-700' }}">{{ !$tutorStarted ? 'Erstellt den Gesamtplan' : ($plan?->tutor_confirmed_at ? 'Bestätigt' : 'Bestätigung offen') }}</p></div>
+            <div class="rounded-lg {{ $plan?->participant_confirmed_at ? 'bg-primary-50' : 'bg-amber-50' }} p-3"><p class="text-xs text-gray-500">Teilnehmer</p><p class="mt-1 font-semibold {{ $plan?->participant_confirmed_at ? 'text-primary-700' : 'text-amber-700' }}">{{ !$tutorStarted ? 'Wartet auf Vorschlag' : ($plan?->participant_confirmed_at ? 'Bestätigt' : 'Bestätigung offen') }}</p></div>
         </div>
         @if($contract->course_id)
             <div class="flex flex-wrap gap-3"><x-buttons.button-basic href="{{ $actor === 'tutor' ? route('tutor.courses.show', ['courseId' => $contract->course_id]) : route('user.program.course.show', ['klassenId' => $contract->course->klassen_id]) }}">Baustein öffnen</x-buttons.button-basic>
             <x-buttons.button-basic mode="secondary" href="{{ route('coaching.calendar', $contract->id) }}">Kalender herunterladen</x-buttons.button-basic></div>
         @elseif($contract->confirmed_plan_id)<p class="p-3 bg-blue-50 text-blue-800 rounded-lg" role="status">Alle Termine wurden beidseitig bestätigt. Die UVS-Rückmeldung und Bausteinfreigabe stehen noch aus.</p>@endif
         @if(!$contract->planningAllowed())<p class="text-red-700">Dieser Vertrag ist nicht zur Terminabstimmung freigegeben.</p>@endif
+        @if($waitingForTutor && $contract->planningAllowed())<p class="p-3 bg-blue-50 text-blue-800 rounded-lg" role="status">Ihr Dozent erstellt zuerst den Gesamtplan. Sobald ein Vorschlag vorliegt, werden Sie benachrichtigt und können alle Termine prüfen, bestätigen oder Änderungen vorschlagen.</p>@endif
 
             <div class="space-y-2"><div class="flex items-center justify-between gap-2"><h3 class="font-semibold text-gray-800">Alle Termine</h3><span class="text-xs text-gray-500">{{ count($plan?->items ?? []) }} vorgeschlagen</span></div>
                 @forelse($plan?->items ?? [] as $item)
@@ -42,10 +43,10 @@
                         <div class="min-w-0 flex-1"><p class="text-sm font-semibold text-gray-800">{{ $item['start'] }} – {{ $item['end'] }} Uhr</p><p class="text-xs text-gray-500">{{ $item['minutes'] }} Min. · {{ $item['location'] ?: 'Ort noch offen' }}</p><p class="mt-1 text-sm text-gray-600 break-words">{{ $item['topic'] ?: 'Inhalt noch offen' }}</p></div>
                     </div>
                 @empty
-                    <p class="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-5 text-sm text-gray-500">Noch kein Gesamtplan vorgeschlagen. Erstellen Sie einen Plan oder stimmen Sie sich über Nachrichten ab.</p>
+                    <p class="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-5 text-sm text-gray-500">{{ $actor === 'tutor' ? 'Erstellen Sie zuerst einen Gesamtplan mit allen Terminen. Anschließend kann Ihr Teilnehmer darauf reagieren.' : 'Die Termine erscheinen hier, sobald Ihr Dozent den Gesamtplan vorgeschlagen hat.' }}</p>
                 @endforelse
             </div>
-            @if(!$contract->confirmed_plan_id && $contract->tutor_person_id && $contract->planningAllowed())
+            @if(!$waitingForTutor && !$contract->confirmed_plan_id && $contract->tutor_person_id && $contract->planningAllowed())
             <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 border-t border-gray-100 pt-4"><x-buttons.button-basic class="w-full sm:w-auto min-h-10" mode="secondary" wire:click="edit">{{ $plan ? 'Gesamtplan ändern' : 'Gesamtplan erstellen' }}</x-buttons.button-basic>
             @if($plan && $plan->status === 'proposed' && $plan->revision === $revision && !$plan->{$actor.'_confirmed_at'})<x-buttons.button-basic class="w-full sm:w-auto min-h-10" mode="primary" wire:click="confirm" wire:confirm="Ich bestätige alle Termine dieses Gesamtplans verbindlich." wire:loading.attr="disabled">Alle Termine bestätigen</x-buttons.button-basic>@endif</div>
             @endif
