@@ -51,6 +51,7 @@ class PlanService
             $actor = $this->actor($contract, $user);
             $this->editable($contract, $revision);
             $this->guardPlanningStart($contract, $actor);
+            if (!$this->hasTutorProposal($contract)) $this->fail('Der Dozent muss zuerst einen Gesamtplan vorschlagen, bevor Termine bestätigt werden können.');
             $plan = $contract->plans()->where('revision', $revision)->lockForUpdate()->firstOrFail();
             if ($plan->contract_version !== $contract->contract_version || $plan->status !== 'proposed') {
                 $this->fail('Der Plan ist nicht mehr aktuell. Bitte neu laden.');

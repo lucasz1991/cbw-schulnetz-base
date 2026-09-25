@@ -47,8 +47,8 @@
                 @endforelse
             </div>
             @if(!$waitingForTutor && !$contract->confirmed_plan_id && $contract->tutor_person_id && $contract->planningAllowed())
-            <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 border-t border-gray-100 pt-4"><x-buttons.button-basic class="w-full sm:w-auto min-h-10" mode="secondary" wire:click="edit">{{ $plan ? 'Gesamtplan ändern' : 'Gesamtplan erstellen' }}</x-buttons.button-basic>
-            @if($plan && $plan->status === 'proposed' && $plan->revision === $revision && !$plan->{$actor.'_confirmed_at'})<x-buttons.button-basic class="w-full sm:w-auto min-h-10" mode="primary" wire:click="confirm" wire:confirm="Ich bestätige alle Termine dieses Gesamtplans verbindlich." wire:loading.attr="disabled">Alle Termine bestätigen</x-buttons.button-basic>@endif</div>
+            <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 border-t border-gray-100 pt-4"><x-buttons.button-basic class="w-full sm:w-auto min-h-10" mode="secondary" wire:click="edit">{{ $plan && $tutorStarted ? 'Gesamtplan ändern' : 'Gesamtplan erstellen' }}</x-buttons.button-basic>
+            @if($tutorStarted && $plan && $plan->status === 'proposed' && $plan->revision === $revision && !$plan->{$actor.'_confirmed_at'})<x-buttons.button-basic class="w-full sm:w-auto min-h-10" mode="primary" wire:click="confirm" wire:confirm="Ich bestätige alle Termine dieses Gesamtplans verbindlich." wire:loading.attr="disabled">Alle Termine bestätigen</x-buttons.button-basic>@endif</div>
             @endif
         </div>
     </section>

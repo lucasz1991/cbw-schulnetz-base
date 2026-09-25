@@ -484,6 +484,11 @@ class CoachingWorkflowTest extends TestCase
             $this->fail('Participant confirmed a plan before the tutor had proposed one.');
         } catch (ValidationException $e) { $this->assertArrayHasKey('plan', $e->errors()); }
         $this->assertNull($old->fresh()->participant_confirmed_at);
+        try {
+            app(PlanService::class)->confirm($contract->id, $tutor, 1);
+            $this->fail('Tutor must publish the initial proposal before either side can confirm.');
+        } catch (ValidationException $e) { $this->assertArrayHasKey('plan', $e->errors()); }
+        $this->assertNull($old->fresh()->tutor_confirmed_at);
         $new = app(PlanService::class)->propose($contract->id, $tutor, 1, $this->items());
         app(PlanService::class)->confirm($contract->id, $participant, $new->revision);
         $this->assertNotNull($new->fresh()->participant_confirmed_at);
