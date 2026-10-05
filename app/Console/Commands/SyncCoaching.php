@@ -18,7 +18,7 @@ class SyncCoaching extends Command
         $lock = Cache::lock('coaching:sync', 600);
         if (!$lock->get()) { $this->info('Ein Abgleich läuft bereits.'); return self::SUCCESS; }
         try {
-            $count = $sync->import();
+            $count = $sync->import(true);
             $sent = $sync->sendPending();
             app(\App\Services\Coaching\NoticeService::class)->deliverPending();
             $this->info("{$count} Vertragsdatensätze abgeglichen; {$sent} Gesamtpläne übernommen.");

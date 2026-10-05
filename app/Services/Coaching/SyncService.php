@@ -2,30 +2,89 @@
 
 namespace App\Services\Coaching;
 
-use App\Models\{CoachingContract, CoachingOutbox, Message, Person, Setting, User};
+use App\Models\CoachingContract;
+use App\Models\CoachingOutbox;
+use App\Models\Person;
 use App\Services\ApiUvs\ApiUvsService;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use RuntimeException;
 
 class SyncService
 {
-    public function import(): int
+    public function import(bool $syncLockHeld = false): int
     {
-        if (!Access::available()) return 0;
+        if (! Access::available()) {
+            return 0;
+        }
+        // The command already holds this lock. Other callers acquire it here;
+        // source cleanup and imports therefore cannot overtake each other.
+        $lock = $syncLockHeld ? null : Cache::lock('coaching:sync', 600);
+        if ($lock && ! $lock->get()) {
+            throw new RuntimeException('Ein Coaching-Abgleich läuft bereits.');
+        }
+        try {
+            $this->cleanupRequests();
+            $after = 0;
+            $count = 0;
+            do {
+                $response = app(ApiUvsService::class)->request('GET', '/api/coaching/contracts', [], ['after_id' => $after]);
+                if (! ($response['ok'] ?? false)) {
+                    throw new RuntimeException('UVS-Abgleich fehlgeschlagen (HTTP '.($response['status'] ?? 0).').');
+                }
+                $body = $response['data'] ?? [];
+                if (! is_array($body['data'] ?? null)) {
+                    throw new RuntimeException('Ungültige UVS-Antwort.');
+                }
+                foreach ($body['data'] as $row) {
+                    $this->importContract($row);
+                    $count++;
+                }
+                $next = $body['next_after_id'] ?? null;
+                if ($next !== null && (int) $next <= $after) {
+                    throw new RuntimeException('Ungültige UVS-Seitennummer.');
+                }
+                $after = (int) $next;
+            } while ($next !== null);
+
+            return $count;
+        } finally {
+            $lock?->release();
+        }
+    }
+
+    private function cleanupRequests(): void
+    {
         $after = 0;
-        $count = 0;
         do {
-            $response = app(ApiUvsService::class)->request('GET', '/api/coaching/contracts', [], ['after_id' => $after]);
-            if (!($response['ok'] ?? false)) throw new RuntimeException('UVS-Abgleich fehlgeschlagen (HTTP '.($response['status'] ?? 0).').');
-            $body = $response['data'] ?? [];
-            if (!is_array($body['data'] ?? null)) throw new RuntimeException('Ungültige UVS-Antwort.');
-            foreach ($body['data'] as $row) { $this->importContract($row); $count++; }
-            $next = $body['next_after_id'] ?? null;
-            if ($next !== null && (int)$next <= $after) throw new RuntimeException('Ungültige UVS-Seitennummer.');
-            $after = (int)$next;
+            $response = app(ApiUvsService::class)->request('GET', '/api/coaching/cleanup-requests', [], ['after_id' => $after]);
+            if (! ($response['ok'] ?? false) && in_array((int) ($response['status'] ?? 0), [404, 405], true)) {
+                // An older UVS API has no cleanup feed. Ordinary synchronization
+                // remains compatible; no deletion is applied or acknowledged.
+                return;
+            }
+            if (! ($response['ok'] ?? false) || ! is_array($response['data']['data'] ?? null)) {
+                throw new RuntimeException('UVS-Testbereinigungen konnten nicht gelesen werden.');
+            }
+            foreach ($response['data']['data'] as $request) {
+                validator($request, ['id' => 'required|integer|min:1', 'request_id' => 'required|string|max:100',
+                    'payload_hash' => 'required|string|size:64', 'payload' => 'required|array'])->validate();
+                $result = app(TestCleanupService::class)->apply($request['payload']);
+                $ack = app(ApiUvsService::class)->request('POST', '/api/coaching/cleanup-requests/'.$request['id'].'/ack', [
+                    'request_id' => $request['request_id'], 'payload_hash' => $request['payload_hash'],
+                    'result' => ['counts' => $result['counts'], 'warnings' => $result['warnings']],
+                ]);
+                if (! ($ack['ok'] ?? false)) {
+                    throw new RuntimeException('Die UVS-Testbereinigung wurde lokal verarbeitet, aber nicht bestätigt. Sie wird erneut geprüft.');
+                }
+            }
+            $next = $response['data']['next_after_id'] ?? null;
+            if ($next !== null && (! is_numeric($next) || (int) $next <= $after)) {
+                throw new RuntimeException('Ungültige UVS-Seitennummer für Testbereinigungen.');
+            }
+            $after = (int) $next;
         } while ($next !== null);
-        return $count;
     }
 
     public function importContract(array $row): void
