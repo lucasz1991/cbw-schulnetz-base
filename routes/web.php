@@ -50,6 +50,17 @@ use App\Livewire\User\Program\Course\CourseShow as GuestCourseShow;
 
 
 // Allgemeine Routes für Gäste
+Route::get('/course-ratings/{mail}/download', function (\App\Models\Mail $mail) {
+    abort_unless(! empty($mail->content['course_ratings_export']), 404);
+    $file = $mail->files()->where('disk', 'private')->where('type', 'zip')->first();
+    abort_unless($file && str_starts_with($file->path, 'course-ratings/') && Storage::disk('private')->exists($file->path), 404);
+
+    return Storage::disk('private')->download($file->path, $file->name, [
+        'Content-Type' => 'application/zip', 'Cache-Control' => 'private, no-store',
+    ]);
+})->whereNumber('mail')->middleware('signed')
+    ->withoutMiddleware(\App\Http\Middleware\LogActivity::class)->name('course-ratings.download');
+
 Route::middleware('guest')->group(function () {
 
     Route::get('/forgot-password', RequestPasswordResetLink::class)->name('password.request');

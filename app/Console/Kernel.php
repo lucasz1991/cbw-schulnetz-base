@@ -13,6 +13,8 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
+        $schedule->command('course-ratings:dispatch-mail')->weeklyOn(1, '06:00')->timezone('Europe/Berlin')->withoutOverlapping();
+
         $schedule->command('coaching:notify')->everyFiveMinutes()->withoutOverlapping()->when(fn () => \App\Services\Coaching\Access::available());
         $schedule->command('coaching:sync')->everyTenMinutes()->withoutOverlapping()->when(fn () => \App\Services\Coaching\Access::available());
 
