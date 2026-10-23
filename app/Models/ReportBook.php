@@ -100,18 +100,12 @@ class ReportBook extends Model
 
     public function participantSignatureFile(): ?File
     {
-        return $this->files()
-            ->where('type', 'sign_reportbook_participant')
-            ->latest('id')
-            ->first();
+        return \App\Services\ReportBook\ReportBookSignatureEvidence::currentFile($this, 'participant');
     }
 
     public function trainerSignatureFile(): ?File
     {
-        return $this->files()
-            ->where('type', 'sign_reportbook_trainer')
-            ->latest('id')
-            ->first();
+        return \App\Services\ReportBook\ReportBookSignatureEvidence::currentFile($this, 'trainer');
     }
 
     /**
@@ -202,6 +196,9 @@ class ReportBook extends Model
 
     public function signature(string $type)
     {
+        if (in_array($type, ['sign_reportbook_participant', 'sign_reportbook_trainer'], true)) {
+            return \App\Services\ReportBook\ReportBookSignatureEvidence::currentFile($this, substr($type, strlen('sign_reportbook_')));
+        }
         return $this->files()
             ->where('type', $type)
             ->latest()

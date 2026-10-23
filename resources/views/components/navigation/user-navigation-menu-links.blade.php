@@ -7,8 +7,8 @@
             {{ __('Konto') }}
         </x-nav-link>
         @if(\App\Support\ParticipantReportBookAccess::showNavigation(Auth::user()))
-            <x-nav-link href="{{ route('reportbook') }}" wire:navigate  :active="request()->is('user/reportbook')">
-                <i class="fad fa-book-open max-md:min-w-6 mr-2 max-md:mr-2 {{ request()->is('user/reportbook') ? 'text-primary-500' : '' }}" aria-hidden="true"></i>
+            <x-nav-link href="{{ \App\Support\ParticipantReportBookAccess::entryUrl(Auth::user()) }}" wire:navigate  :active="request()->is('user/reportbook*')">
+                <i class="fad fa-book-open max-md:min-w-6 mr-2 max-md:mr-2 {{ request()->is('user/reportbook*') ? 'text-primary-500' : '' }}" aria-hidden="true"></i>
                 {{ __('Berichtsheft') }} 
             </x-nav-link>
         @endif

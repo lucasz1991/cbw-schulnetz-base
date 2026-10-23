@@ -257,6 +257,15 @@ class AdminStorageController extends Controller
         $rawPath = ltrim($validated['path'], '/');
         $path = preg_replace('#[^A-Za-z0-9/_\-.]#', '', $rawPath);
 
+        // Versioned report-book stamps are permanent evidence, not ordinary media.
+        $normalizedPath = (new \League\Flysystem\WhitespacePathNormalizer())->normalizePath($path);
+        if (str_starts_with($normalizedPath, 'reportbook-stamps/')) {
+            return response()->json(['success' => false, 'error' => 'Protokollierte Stempelversionen können nicht gelöscht werden.'], 403);
+        }
+        if (\App\Services\ReportBook\ReportBookSignatureEvidence::pathIsPreserved($normalizedPath)) {
+            return response()->json(['success' => false, 'error' => 'Unterschriften freigegebener Berichtshefte bleiben als Nachweis erhalten.'], 409);
+        }
+
         // Disk bestimmen oder beide prüfen
         $disks = isset($validated['visibility'])
             ? [ $validated['visibility'] === 'public' ? 'public' : 'private' ]

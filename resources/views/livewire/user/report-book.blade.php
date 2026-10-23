@@ -8,6 +8,11 @@
 @endphp
 
 <div class="w-full relative  bg-[#eeeeeebd] pb-20  min-h-[70vh] pt-6"  wire:loading.class="cursor-wait opacity-50 animate-pulse"  wire:target="date,selectCourse,selectCourseDay,selectPrevCourse,selectNextCourse,selectPrevDay,selectNextDay,selectedCourseId,submit,save,importTutorDocToDraft" >
+  @if(\App\Support\ParticipantReportBookAccess::hasArchive(Auth::user()))
+    <div class="container mx-auto px-3 md:px-5 mb-4">
+      <a href="{{ route('reportbook.archive') }}" wire:navigate class="text-sm text-primary-700 underline underline-offset-4">Freigegebene Einträge im Archiv ansehen</a>
+    </div>
+  @endif
   @if($this->isSubmitted() || $this->isReviewed() || $this->isRejected())
     <div class="container mx-auto px-3 md:px-5">
       @if($this->isSubmitted())
@@ -354,6 +359,13 @@
     </aside>
     {{-- rechte, große Spalte: Editor & Aktionen --}}
     <div class="lg:col-span-2 h-max ">
+      @if($this->isSystemApproved)
+        <div class="rounded-lg border border-gray-300 bg-white p-4">
+          <p class="text-sm text-gray-600">Dieser freigegebene Eintrag bleibt unverändert erhalten.</p>
+          <div class="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-gray-700">{{ html_entity_decode(strip_tags(preg_replace('/<\s*(br\s*\/?|\/p|\/div)\s*>/i', "\n", $text)), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>
+          <a href="{{ route('reportbook.archive') }}" wire:navigate class="mt-3 inline-block text-sm text-primary-700 underline underline-offset-4">Freigegebenen Eintrag im Archiv herunterladen</a>
+        </div>
+      @else
       <div class=" border bg-gray-50 border-gray-300 rounded-lg  overflow-hidden">
         <div class="flex items-center justify-between px-3 py-2 border-b border-gray-300">
           <div class="flex flex-wrap items-center gap-2 text-gray-500">
@@ -602,6 +614,7 @@
           </div>
         </div>
       </div>
+      @endif
     </div>
   </div>
   <livewire:tools.ai.report-book-ai-assistant />

@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Jobs\ReportBook\CheckReportBooks;
 use App\Models\ReportBook;
+use App\Services\ReportBooks\LocationPolicy;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 
@@ -80,6 +81,11 @@ class DispatchCompleteReportBooks extends Command
 
     private function shouldDispatch(ReportBook $book): bool
     {
+        if (! LocationPolicy::canWriteBook($book)
+            || \App\Support\ParticipantReportBookAccess::isCoachingCourse((int) $book->course_id)) {
+            return false;
+        }
+
         if ($book->entries->isEmpty()) {
             return false;
         }

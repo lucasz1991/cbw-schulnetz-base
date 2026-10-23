@@ -85,7 +85,7 @@
                                 </li>
                             @if(\App\Support\ParticipantReportBookAccess::showNavigation(Auth::user()))
                                 <li>
-                                    <a href="/user/reportbook" wire:navigate
+                                    <a href="{{ \App\Support\ParticipantReportBookAccess::entryUrl(Auth::user()) }}" wire:navigate
                                        class="group inline-flex items-center gap-2 text-white/90 hover:text-white text-sm transition">
                                         <span class="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-white/10 group-hover:bg-white/15 transition">
                                             <i class="fal fa-book-reader text-white"></i>

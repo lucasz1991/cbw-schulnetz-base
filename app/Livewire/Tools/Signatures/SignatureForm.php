@@ -34,6 +34,7 @@ class SignatureForm extends Component
     public $upload;
 
     public ?string $errorMsg = null;
+    protected ?string $createdSignaturePath = null;
 
     public function mount(
         ?string $fileableType = null,
@@ -93,8 +94,18 @@ public function openSignatureForm(array $payload): void
 
     $this->reset(['signatureDataUrl', 'upload', 'errorMsg']);
 
+    if ($this->fileableType === \App\Models\ReportBook::class) {
+        $this->resolveFileable();
+    }
     $this->open = true;
 }
+
+    public function hydrate(): void
+    {
+        if ($this->open && $this->fileableType === \App\Models\ReportBook::class) {
+            $this->resolveFileable();
+        }
+    }
 
     protected function resolveFileable(): ?Model
     {
@@ -155,6 +166,33 @@ public function openSignatureForm(array $payload): void
 
     public function save(): void
     {
+        $this->createdSignaturePath = null;
+        if ($this->fileableType !== \App\Models\ReportBook::class) {
+            $this->persistSignature();
+            return;
+        }
+        $book = $this->resolveFileable();
+        if (! $book) {
+            $this->errorMsg = 'Zugehöriger Datensatz wurde nicht gefunden.';
+            return;
+        }
+        try {
+            // File IO cannot be rolled back/retried by the database. Use one attempt
+            // and remove only this attempt's uniquely named new file on failure.
+            \App\Support\ParticipantReportBookAccess::withWriteLock(Auth::user(), $book,
+                fn () => $this->persistSignature(), 1);
+        } catch (\Throwable $e) {
+            if ($this->createdSignaturePath) {
+                Storage::disk('private')->delete($this->createdSignaturePath);
+            }
+            throw $e;
+        } finally {
+            $this->createdSignaturePath = null;
+        }
+    }
+
+    private function persistSignature(): void
+    {
         $user = Auth::user();
         if (!$user) {
             $this->errorMsg = 'Nicht eingeloggt.';
@@ -193,8 +231,13 @@ public function openSignatureForm(array $payload): void
             $mimeType = $this->upload->getMimeType() ?: 'image/png';
             $size     = $this->upload->getSize() ?: 0;
 
-            $filename = 'sig_upload_' . $user->id . '_' . time() . '.' . $ext;
+            $filename = 'sig_upload_' . $user->id . '_' . Str::uuid() . '.' . $ext;
+            $this->createdSignaturePath = $dir . '/' . $filename;
             $path = $this->upload->storeAs($dir, $filename, $disk);
+            if (! $path) {
+                throw new \RuntimeException('Die Unterschrift konnte nicht gespeichert werden.');
+            }
+            $this->createdSignaturePath = $path;
         }
         /* ---------------------------------------------------------
          | 2) Canvas-Daten
@@ -211,10 +254,13 @@ public function openSignatureForm(array $payload): void
 
             $mimeType = 'image/png';
             $size = strlen($png);
-            $filename = 'sig_draw_' . $user->id . '_' . time() . '.png';
+            $filename = 'sig_draw_' . $user->id . '_' . Str::uuid() . '.png';
             $path = $dir . '/' . $filename;
 
-            Storage::disk($disk)->put($path, $png);
+            $this->createdSignaturePath = $path;
+            if (! Storage::disk($disk)->put($path, $png)) {
+                throw new \RuntimeException('Die Unterschrift konnte nicht gespeichert werden.');
+            }
         }
         else {
             $this->errorMsg = 'Bitte unterschreiben oder ein Bild hochladen.';

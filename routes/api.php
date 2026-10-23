@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\PagebuilderProjectController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Artisan;
 use App\Http\Controllers\Api\AdminStorageController;
+use App\Http\Controllers\Api\ReportBookStampController;
 
 /*
 |--------------------------------------------------------------------------
@@ -20,6 +21,8 @@ use App\Http\Controllers\Api\AdminStorageController;
 
 
 Route::post('/admin/upload', [AdminStorageController::class, 'store']);
+Route::post('/admin/reportbook-stamps', [ReportBookStampController::class, 'storeStamp']);
+Route::post('/admin/reportbook-stamps/verify', [ReportBookStampController::class, 'verifyStamp']);
 Route::delete('/admin/delete', [AdminStorageController::class, 'destroy']);
 
 Route::post('/admin/resolve-file-url', [AdminStorageController::class, 'resolveFileUrl']);

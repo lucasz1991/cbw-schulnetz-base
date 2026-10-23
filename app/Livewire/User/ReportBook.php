@@ -16,6 +16,9 @@ use App\Models\User;
 use App\Models\Person;
 use App\Support\ParticipantReportBookAccess;
 use App\Services\ReportBook\ReportWeekTimeline;
+use App\Services\ReportBook\ReportBookPdfContext;
+use App\Services\ReportBook\ReportBookSignatureEvidence;
+use App\Services\ReportBooks\LocationPolicy;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Livewire\Attributes\Url;
@@ -78,6 +81,10 @@ public ?int $selectedCourseDayId = null; // aktueller Kurs-Tag
 public function mount(): void
 {
     abort_unless(ParticipantReportBookAccess::canUse(Auth::user()), 403);
+    if (!ParticipantReportBookAccess::canUseEditor(Auth::user())) {
+        $this->redirectRoute('reportbook.archive', navigate: true);
+        return;
+    }
     // Kurse des Users laden
     $this->courses = $this->fetchUserCourses();
 
@@ -112,6 +119,22 @@ public function mount(): void
     public function hydrate(): void
     {
         abort_unless(ParticipantReportBookAccess::canUse(Auth::user()), 403);
+        if (!ParticipantReportBookAccess::canUseEditor(Auth::user())) {
+            $this->pendingSignatureAction = null;
+            $this->courses = $this->courseDays = [];
+            $this->recent = [];
+            $this->text = '';
+            $this->reportBookId = $this->reportBookEntryId = null;
+            $this->selectedCourseId = $this->selectedCourseDayId = null;
+            $this->redirectRoute('reportbook.archive', navigate: true);
+        } elseif ($this->selectedCourseId && ! $this->canAccessCourse((int) $this->selectedCourseId)) {
+            $this->pendingSignatureAction = null;
+            $this->reportBookId = $this->reportBookEntryId = null;
+            $this->text = '';
+            $this->recent = $this->courseDays = [];
+            $this->selectedCourseId = $this->selectedCourseDayId = null;
+            $this->reloadForCurrentCourse();
+        }
     }
 
     /* ======================= Kursliste & Tage ======================= */
@@ -428,6 +451,11 @@ public function reloadForCurrentCourse(): void
 
     public function save(): void
     {
+        $this->writeSelectedBook(fn () => $this->saveLocked());
+    }
+
+    private function saveLocked(): void
+    {
         if (!$this->selectedCourseId || !$this->canAccessCourse((int) $this->selectedCourseId)) {
             $this->dispatch('toast', type: 'warning', message: 'Kurs ist fuer den aktuellen Vertrag nicht freigegeben.');
             return;
@@ -454,41 +482,24 @@ public function reloadForCurrentCourse(): void
             return;
         }
 
-        $entry = ReportBookEntry::firstOrNew([
+        $entry = ReportBookEntry::query()->lockForUpdate()->firstOrNew([
             'report_book_id' => $this->reportBookId,
             'course_day_id'  => $day->id,
         ]);
 
+        if (! $this->canChangeEntry($entry)) return;
+
         // Wenn der Eintrag wieder zum Entwurf wird → bestehende Teilnehmer-Signatur löschen
-        $book = ReportBookModel::with('files')->find($this->reportBookId);
-
-        if ($book) {
-            if (method_exists($book, 'participantSignatureFile') ) {
-                $sig = $book->participantSignatureFile();
-            } else {
-                $sig = $book->files()
-                    ->where('type', 'sign_reportbook_participant')
-                    ->latest()
-                    ->first();
-            }
-
-            if ($sig) {
-                $sig->delete();
-            }
-
-            if (method_exists($book, 'trainerSignatureFile') ) {
-                $sigtrainer = $book->trainerSignatureFile();
-            } else {
-                $sigtrainer = $book->files()
-                    ->where('type', 'sign_reportbook_trainer')
-                    ->latest()
-                    ->first();
-            }
-
-            if ($sigtrainer) {
-                $sigtrainer->delete();
+        $book = ReportBookModel::find($this->reportBookId);
+        if ($book && ! ReportBookSignatureEvidence::preserveAndInvalidate($book)) {
+            $signatures = $book->files()->whereIn('type', ['sign_reportbook_participant', 'sign_reportbook_trainer'])
+                ->orderByDesc('id')->lockForUpdate()->get()->unique('type');
+            foreach ($signatures as $signature) {
+                $this->invalidateSignature($signature);
             }
         }
+
+        if (! $this->canChangeEntry($entry)) return;
 
 
         // Entwurf speichern
@@ -510,6 +521,11 @@ public function reloadForCurrentCourse(): void
     }
 
     public function submit(): void
+    {
+        $this->writeSelectedBook(fn () => $this->submitLocked());
+    }
+
+    private function submitLocked(): void
     {
         if (!$this->selectedCourseId || !$this->canAccessCourse((int) $this->selectedCourseId)) {
             $this->dispatch('toast', type: 'warning', message: 'Kurs ist fuer den aktuellen Vertrag nicht freigegeben.');
@@ -539,12 +555,18 @@ public function reloadForCurrentCourse(): void
             return;
         }
 
-        $entry = ReportBookEntry::firstOrNew([
+        $entry = ReportBookEntry::query()->lockForUpdate()->firstOrNew([
             'report_book_id' => $this->reportBookId,
             'course_day_id'  => $day->id,
         ]);
 
+        if (! $this->canChangeEntry($entry)) return;
+
         // Speichern vor Statuswechsel / vor Signatur
+        if (! $entry->exists || (string) $entry->text !== $this->text) {
+            ReportBookSignatureEvidence::preserveAndInvalidate($entry->reportBook);
+        }
+        if (! $this->canChangeEntry($entry)) return;
         $entry->fill([
             'entry_date'   => $day->date,
             'text'         => $this->text,
@@ -573,9 +595,14 @@ public function reloadForCurrentCourse(): void
 
     protected function ensureReportBookId(): void
     {
-        if ($this->reportBookId) return;
         if (!$this->selectedCourseId) return;
         if (!$this->canAccessCourse((int) $this->selectedCourseId)) return;
+        if ($this->reportBookId) {
+            $existing = ReportBookModel::find($this->reportBookId);
+            if ($existing && ParticipantReportBookAccess::canAccessBook(Auth::user(), $existing)) return;
+            $this->reportBookId = null;
+            return;
+        }
 
         $book = ReportBookModel::firstOrCreate(
             [
@@ -588,7 +615,7 @@ public function reloadForCurrentCourse(): void
             ]
         );
 
-        $this->reportBookId = $book->id;
+        $this->reportBookId = ParticipantReportBookAccess::canAccessBook(Auth::user(), $book) ? $book->id : null;
     }
 
     protected function reportBookContextName(ReportBookModel $book): string
@@ -607,17 +634,7 @@ public function reloadForCurrentCourse(): void
 
     protected function hasParticipantSignature(ReportBookModel $book): bool
     {
-        if ($book->relationLoaded('files')) {
-            return $book->files->contains(fn ($file) => $file->type === 'sign_reportbook_participant');
-        }
-
-        if (method_exists($book, 'participantSignatureFile')) {
-            return (bool) $book->participantSignatureFile();
-        }
-
-        return $book->files()
-            ->where('type', 'sign_reportbook_participant')
-            ->exists();
+        return (bool) ReportBookSignatureEvidence::currentFile($book, 'participant');
     }
 
     protected function openParticipantSignatureForm(
@@ -625,6 +642,7 @@ public function reloadForCurrentCourse(): void
         string $label,
         string $confirmText,
     ): void {
+        abort_unless(ParticipantReportBookAccess::canAccessBook(Auth::user(), $book), 403);
         $contextName = $this->reportBookContextName($book);
 
         $this->dispatch('openSignatureForm', [
@@ -697,8 +715,7 @@ public function reloadForCurrentCourse(): void
         $finishedDays = ReportBookEntry::query()
             ->where('report_book_id', $this->reportBookId)
             ->where('status', '>=', 1)
-            ->distinct('course_day_id')
-            ->count('course_day_id');
+            ->lockForUpdate()->get(['course_day_id'])->unique('course_day_id')->count();
 
         // Dieser Tag wäre mit diesem Submit der letzte
         if ($finishedDays + 1 !== $totalDays) {
@@ -724,6 +741,25 @@ public function reloadForCurrentCourse(): void
 
     #[On('signatureCompleted')]
     public function handleSignatureCompleted(array $payload): ?StreamedResponse
+    {
+        if (data_get($payload, 'fileableType') !== ReportBookModel::class) return null;
+        $book = ReportBookModel::find((int) data_get($payload, 'fileableId'));
+        if (! $book || ! ParticipantReportBookAccess::canAccessBook(Auth::user(), $book)) {
+            $this->pendingSignatureAction = null;
+            return null;
+        }
+
+        if (in_array($this->pendingSignatureAction, [self::SIGNATURE_ACTION_EXPORT_ENTRY,
+            self::SIGNATURE_ACTION_EXPORT_MODULE, self::SIGNATURE_ACTION_EXPORT_ALL], true)) {
+            // Downloads perform their own access check and never hold write locks during rendering.
+            return $this->handleSignatureCompletedLocked($payload);
+        }
+
+        return ParticipantReportBookAccess::withWriteLock(Auth::user(), $book,
+            fn () => $this->handleSignatureCompletedLocked($payload));
+    }
+
+    private function handleSignatureCompletedLocked(array $payload): ?StreamedResponse
     {
         $fileableType = data_get($payload, 'fileableType');
         $fileType     = data_get($payload, 'fileType');
@@ -769,9 +805,9 @@ public function reloadForCurrentCourse(): void
         $entry = ReportBookEntry::where('report_book_id', $book->id)
             ->where('course_day_id', $day->id)
             ->when($this->reportBookEntryId, fn ($query) => $query->whereKey($this->reportBookEntryId))
-            ->first();
+            ->lockForUpdate()->first();
 
-        if (!$entry) {
+        if (!$entry || ! $this->canChangeEntry($entry)) {
             $this->dispatch('toast', type: 'warning', message: 'Kein Eintrag zum Unterschreiben gefunden.');
             return null;
         }
@@ -832,7 +868,55 @@ public function reloadForCurrentCourse(): void
     protected function canAccessCourse(int $courseId): bool
     {
         // Public Livewire arrays are presentation data, never authorization evidence.
-        return ParticipantReportBookAccess::canAccessCourse(Auth::user(), $courseId);
+        return ParticipantReportBookAccess::canAccessCourse(Auth::user(), $courseId)
+            && LocationPolicy::forCourse(Auth::user(), $courseId, $this->massnahmeId)['mode'] === 'normal';
+    }
+
+    protected function canChangeEntry(ReportBookEntry $entry): bool
+    {
+        if (! ParticipantReportBookAccess::canWriteEntry(Auth::user(), $entry)) {
+            $this->dispatch('toast', type: 'warning', message: 'Dieser Eintrag kann nur im Archiv angesehen und heruntergeladen werden.');
+            return false;
+        }
+
+        return true;
+    }
+
+    private function writeSelectedBook(callable $action): void
+    {
+        if (! $this->selectedCourseId || ! $this->canAccessCourse((int) $this->selectedCourseId)) {
+            $this->dispatch('toast', type: 'warning', message: 'Kurs ist fuer den aktuellen Vertrag nicht freigegeben.');
+            return;
+        }
+        $context = new ReportBookModel(['user_id' => Auth::id(), 'course_id' => $this->selectedCourseId,
+            'massnahme_id' => $this->massnahmeId]);
+        ParticipantReportBookAccess::withWriteLock(Auth::user(), $context, function ($book) use ($action) {
+            $this->reportBookId = $book->exists ? $book->id : null;
+            $action();
+        });
+    }
+
+    private function invalidateSignature(\App\Models\File $file): void
+    {
+        $path = $file->path;
+        $file->deleteQuietly();
+        if (! $path) return;
+        // Physical deletion must not outlive a rolled-back draft update.
+        DB::afterCommit(function () use ($path) {
+            try {
+                \Illuminate\Support\Facades\Storage::disk('private')->delete($path);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Signaturdatei konnte nach erfolgreicher Änderung nicht entfernt werden.', ['path' => $path]);
+            }
+        });
+    }
+
+    public function getIsSystemApprovedProperty(): bool
+    {
+        if (! $this->reportBookEntryId) return false;
+        $entry = ReportBookEntry::find($this->reportBookEntryId);
+        return $entry && (int) $entry->reportBook?->user_id === (int) Auth::id()
+            && ParticipantReportBookAccess::isPreservedApproval($entry);
     }
 
     public function loadCurrentEntry(): void
@@ -1015,6 +1099,11 @@ public function reloadForCurrentCourse(): void
 
     public function importTutorDocToDraft(): void
     {
+        $this->writeSelectedBook(fn () => $this->importTutorDocToDraftLocked());
+    }
+
+    private function importTutorDocToDraftLocked(): void
+    {
         if (!$this->selectedCourseId || !$this->canAccessCourse((int) $this->selectedCourseId)) {
             $this->dispatch('toast', type: 'warning', message: 'Kurs ist fuer den aktuellen Vertrag nicht freigegeben.');
             return;
@@ -1060,11 +1149,15 @@ public function reloadForCurrentCourse(): void
             return;
         }
 
-        $entry = ReportBookEntry::firstOrNew([
+        $entry = ReportBookEntry::query()->lockForUpdate()->firstOrNew([
             'report_book_id' => $this->reportBookId,
             'course_day_id'  => $day->id,
         ]);
 
+        if (! $this->canChangeEntry($entry)) return;
+
+        ReportBookSignatureEvidence::preserveAndInvalidate($entry->reportBook);
+        if (! $this->canChangeEntry($entry)) return;
         $entry->fill([
             'entry_date'   => $day->date,
             'text'         => $this->text,
@@ -1109,7 +1202,7 @@ public function exportReportEntry(): ?StreamedResponse
         ->when($this->massnahmeId, fn ($q) => $q->where('massnahme_id', $this->massnahmeId))
         ->first();
 
-    if (!$book) {
+    if (!$book || ! ParticipantReportBookAccess::canAccessBook(Auth::user(), $book)) {
         $this->dispatch('toast', type: 'warning', message: 'Kein Berichtsheft vorhanden.');
         return null;
     }
@@ -1123,16 +1216,17 @@ public function exportReportEntry(): ?StreamedResponse
         return null;
     }
 
+    $book->setRelation('entries', new \Illuminate\Database\Eloquent\Collection([$entry]));
+    app(ReportBookPdfContext::class)->prepare($book);
+
     if (!$this->ensureParticipantSignatureForDownload($book, self::SIGNATURE_ACTION_EXPORT_ENTRY)) {
         return null;
     }
 
     $entry->entry_date = \Carbon\Carbon::parse($entry->entry_date);
 
-    $participantSignatureFile = $book->files->firstWhere('type', 'sign_reportbook_participant')
-        ?? $book->signature('sign_reportbook_participant');
-    $trainerSignatureFile = $book->files->firstWhere('type', 'sign_reportbook_trainer')
-        ?? $book->signature('sign_reportbook_trainer');
+    $participantSignatureFile = ReportBookSignatureEvidence::currentFile($book, 'participant');
+    $trainerSignatureFile = ReportBookSignatureEvidence::currentFile($book, 'trainer');
 
     $participantSignatureUrl = $participantSignatureFile ? $participantSignatureFile->getEphemeralPublicUrl(10) : null;
     $trainerSignatureUrl     = $trainerSignatureFile ? $trainerSignatureFile->getEphemeralPublicUrl(10) : null;
@@ -1175,10 +1269,12 @@ public function exportReportModule(): ?StreamedResponse
         ->when($this->massnahmeId, fn ($q) => $q->where('massnahme_id', $this->massnahmeId))
         ->first();
 
-    if (!$book || $book->entries->isEmpty()) {
+    if (!$book || ! ParticipantReportBookAccess::canAccessBook(Auth::user(), $book) || $book->entries->isEmpty()) {
         $this->dispatch('toast', type: 'warning', message: 'Keine Eintraege vorhanden.');
         return null;
     }
+
+    app(ReportBookPdfContext::class)->prepare($book);
 
     if (!$this->ensureParticipantSignatureForDownload($book, self::SIGNATURE_ACTION_EXPORT_MODULE)) {
         return null;
@@ -1188,10 +1284,8 @@ public function exportReportModule(): ?StreamedResponse
         $e->entry_date = \Carbon\Carbon::parse($e->entry_date);
     }
 
-    $participantSignatureFile = $book->files->firstWhere('type', 'sign_reportbook_participant')
-        ?? $book->signature('sign_reportbook_participant');
-    $trainerSignatureFile = $book->files->firstWhere('type', 'sign_reportbook_trainer')
-        ?? $book->signature('sign_reportbook_trainer');
+    $participantSignatureFile = ReportBookSignatureEvidence::currentFile($book, 'participant');
+    $trainerSignatureFile = ReportBookSignatureEvidence::currentFile($book, 'trainer');
 
     $participantSignatureUrl = $participantSignatureFile ? $participantSignatureFile->getEphemeralPublicUrl(10) : null;
     $trainerSignatureUrl     = $trainerSignatureFile ? $trainerSignatureFile->getEphemeralPublicUrl(10) : null;
@@ -1234,7 +1328,7 @@ public function exportReportAll(): ?StreamedResponse
         ->whereIn('course_id', $courseIds)
         ->when($this->massnahmeId, fn ($q) => $q->where('massnahme_id', $this->massnahmeId))
         ->whereHas('entries')
-        ->get();
+        ->get()->filter(fn ($book) => ParticipantReportBookAccess::canAccessBook(Auth::user(), $book));
 
     if ($books->isEmpty()) {
         $this->dispatch('toast', type: 'warning', message: 'Keine Einträge vorhanden.');
@@ -1247,14 +1341,13 @@ public function exportReportAll(): ?StreamedResponse
     }
 
     foreach ($books as $book) {
+        app(ReportBookPdfContext::class)->prepare($book);
         foreach ($book->entries as $e) {
             $e->entry_date = \Carbon\Carbon::parse($e->entry_date);
         }
 
-        $pFile = $book->files->firstWhere('type', 'sign_reportbook_participant')
-            ?? $book->signature('sign_reportbook_participant');
-        $tFile = $book->files->firstWhere('type', 'sign_reportbook_trainer')
-            ?? $book->signature('sign_reportbook_trainer');
+        $pFile = ReportBookSignatureEvidence::currentFile($book, 'participant');
+        $tFile = ReportBookSignatureEvidence::currentFile($book, 'trainer');
         $book->participantSignatureFile = $pFile;
         $book->trainerSignatureFile     = $tFile;
         $book->participantSignatureUrl = $pFile ? $pFile->getEphemeralPublicUrl(10) : null;

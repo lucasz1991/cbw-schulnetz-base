@@ -88,6 +88,9 @@
   @endif
   wire:loading.class="cursor-wait opacity-50 animate-pulse"
 >
+    @if(\App\Support\ParticipantReportBookAccess::showLocationNotice(Auth::user()))
+        <p class="mb-4 rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600">{{ \App\Services\ReportBooks\LocationPolicy::NOTICE }}</p>
+    @endif
     @if($coachingOnly)
         @include('livewire.user.coaching-dashboard', ['dashboard' => $coachingDashboard])
     @else
@@ -493,9 +496,9 @@
                     <div class="grid h-full grid-cols-1 place-content-stretch">
                       <h3 class="text-gray-800 font-semibold mb-1">Berichtsheft</h3>
                       <p class="text-xs text-gray-600 mb-2">
-                        Übersicht über deine Berichtsheft.
+                        {{ \App\Support\ParticipantReportBookAccess::canUseEditor(Auth::user()) ? 'Übersicht über deine Berichtshefte.' : 'Freigegebene Einträge ansehen und herunterladen.' }}
                       </p>
-                      <x-buttons.button-basic :size="'sm'" :mode="'secondary'"  href="/user/reportbook" 
+                      <x-buttons.button-basic :size="'sm'" :mode="'secondary'"  :href="\App\Support\ParticipantReportBookAccess::entryUrl(Auth::user())"
                         class="w-full">
                         Berichtsheft anzeigen
                       </x-buttons.button-basic>

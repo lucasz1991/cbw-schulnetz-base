@@ -62,7 +62,7 @@ class ReportBookAiAssistant extends Component
         }
 
         $entry = ReportBookEntry::findOrFail($id);
-        abort_unless($entry->reportBook && ParticipantReportBookAccess::canAccessBook(auth()->user(), $entry->reportBook), 403);
+        abort_unless(ParticipantReportBookAccess::canWriteEntry(auth()->user(), $entry), 403);
         $this->entry = $entry;
 
         $this->currentText   = (string) ($this->entry->text ?? '');
@@ -77,6 +77,13 @@ class ReportBookAiAssistant extends Component
     public function close(): void
     {
         $this->showModal = false;
+    }
+
+    public function hydrate(): void
+    {
+        if ($this->showModal && $this->entry) {
+            $this->authorizeEntry();
+        }
     }
 
     /**
@@ -179,6 +186,7 @@ class ReportBookAiAssistant extends Component
      */
     public function useSuggestionAsBase(): void
     {
+        $this->authorizeEntry();
         if (!trim($this->optimizedText)) {
             return;
         }
@@ -207,17 +215,26 @@ class ReportBookAiAssistant extends Component
             return;
         } 
 
-        $this->entry->text = $textToSave;
-        $this->entry->status = 0;
-        $this->entry->save();
+        ParticipantReportBookAccess::withWriteLock(auth()->user(), $this->entry->reportBook, function () use ($textToSave) {
+            $this->authorizeEntry();
+            if ((string) $this->entry->text !== $textToSave) {
+                \App\Services\ReportBook\ReportBookSignatureEvidence::preserveAndInvalidate($this->entry->reportBook);
+            }
+            $this->authorizeEntry();
+            $this->entry->text = $textToSave;
+            $this->entry->status = 0;
+            $this->entry->save();
+        });
         $this->dispatch('updated');
         $this->showModal = false;
     }
 
     protected function authorizeEntry(): void
     {
-        $entry = $this->entry ? ReportBookEntry::find($this->entry->id) : null;
-        abort_unless($entry?->reportBook && ParticipantReportBookAccess::canAccessBook(auth()->user(), $entry->reportBook), 403);
+        $entry = $this->entry ? ReportBookEntry::query()
+            ->when(\Illuminate\Support\Facades\DB::transactionLevel() > 0, fn ($query) => $query->lockForUpdate())
+            ->find($this->entry->id) : null;
+        abort_unless($entry && ParticipantReportBookAccess::canWriteEntry(auth()->user(), $entry), 403);
         $this->entry = $entry;
     }
 

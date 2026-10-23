@@ -6,13 +6,14 @@ use App\Models\Message;
 use App\Models\ReportBook;
 use App\Models\Setting;
 use App\Models\User;
+use App\Services\ReportBooks\LocationPolicy;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class SendMissingReportBookReminderJob implements ShouldQueue
 {
@@ -24,7 +25,7 @@ class SendMissingReportBookReminderJob implements ShouldQueue
     public array $reminders;
 
     /**
-     * @param array<int, array<string, mixed>> $reminders
+     * @param  array<int, array<string, mixed>>  $reminders
      */
     public function __construct(array $reminders)
     {
@@ -37,84 +38,86 @@ class SendMissingReportBookReminderJob implements ShouldQueue
             return;
         }
 
-        $created = 0;
-        $skipped = 0;
-
         foreach ($this->reminders as $item) {
-            $toUserId = (int) ($item['to_user'] ?? 0);
-            $reportBookId = (int) ($item['report_book_id'] ?? 0);
+            DB::transaction(function () use ($item): void {
+                $toUserId = (int) ($item['to_user'] ?? 0);
+                $reportBookId = (int) ($item['report_book_id'] ?? 0);
 
-            if ($toUserId <= 0 || $reportBookId <= 0) {
-                $skipped++;
-                continue;
-            }
+                if ($toUserId <= 0 || $reportBookId <= 0) {
+                    return;
+                }
 
-            $user = User::query()->find($toUserId);
-            if (! $user || (int) $user->status === 0) {
-                $skipped++;
-                continue;
-            }
+                $user = User::query()->find($toUserId);
+                if (! $user || (int) $user->status === 0) {
+                    return;
+                }
 
-            $reportBook = ReportBook::find($reportBookId);
-            if (! $reportBook || (int) $reportBook->user_id !== $toUserId
-                || \App\Support\ParticipantReportBookAccess::isCoachingCourse((int) $reportBook->course_id)) {
-                $skipped++;
-                continue;
-            }
+                $reportBook = ReportBook::find($reportBookId);
+                if (! $reportBook) {
+                    return;
+                }
+                $location = LocationPolicy::lockForBook($reportBook);
+                if (($location['mode'] ?? null) !== 'normal') {
+                    return;
+                }
+                $reportBook = ReportBook::query()->whereKey($reportBookId)->lockForUpdate()->first();
+                if (! $reportBook || (int) $reportBook->user_id !== $toUserId
+                    || ! LocationPolicy::canWriteBook($reportBook)
+                    || \App\Support\ParticipantReportBookAccess::isCoachingCourse((int) $reportBook->course_id)) {
+                    return;
+                }
 
-            // Doppelschutz: wenn bereits per settings markiert, nicht erneut senden
-            if ($reportBook->getSetting('missing_reportbook_reminder_sent_at')) {
-                $skipped++;
-                continue;
-            }
+                // Doppelschutz: wenn bereits per settings markiert, nicht erneut senden
+                if ($reportBook->getSetting('missing_reportbook_reminder_sent_at')) {
+                    return;
+                }
 
-            $courseTitle = trim((string) ($item['course_title'] ?? ''));
-            $courseTitle = $courseTitle !== '' ? $courseTitle : 'Baustein';
+                $courseTitle = trim((string) ($item['course_title'] ?? ''));
+                $courseTitle = $courseTitle !== '' ? $courseTitle : 'Baustein';
 
-            $courseEndDate = (string) ($item['course_end_date'] ?? '');
-            $formattedCourseEndDate = $courseEndDate !== ''
-                ? Carbon::parse($courseEndDate)->format('d.m.Y')
-                : 'unbekannt';
+                $courseEndDate = (string) ($item['course_end_date'] ?? '');
+                $formattedCourseEndDate = $courseEndDate !== ''
+                    ? Carbon::parse($courseEndDate)->format('d.m.Y')
+                    : 'unbekannt';
 
-            $openDays = max(0, (int) ($item['open_days'] ?? 0));
-            $totalDays = max(0, (int) ($item['total_days'] ?? 0));
-            $courseId = (int) ($item['course_id'] ?? 0);
+                $openDays = max(0, (int) ($item['open_days'] ?? 0));
+                $totalDays = max(0, (int) ($item['total_days'] ?? 0));
+                $courseId = (int) ($item['course_id'] ?? 0);
 
-            $subject = "Erinnerung Berichtsheft: {$courseTitle}";
+                $subject = "Erinnerung Berichtsheft: {$courseTitle}";
 
-            $alreadySent = Message::query()
-                ->where('to_user', $toUserId)
-                ->where('subject', $subject)
-                ->exists();
+                $alreadySent = Message::query()
+                    ->where('to_user', $toUserId)
+                    ->where('subject', $subject)
+                    ->exists();
 
-            if ($alreadySent) {
-                $skipped++;
-                continue;
-            }
+                if ($alreadySent) {
+                    return;
+                }
 
-            $baseUrl = rtrim((string) (Setting::getValue('api', 'base_api_url') ?: config('app.url')), '/');
-            $reportBookUrl = $courseId > 0
-                ? "{$baseUrl}/user/reportbook?course={$courseId}"
-                : "{$baseUrl}/user/reportbook";
+                $baseUrl = rtrim((string) (Setting::getValue('api', 'base_api_url') ?: config('app.url')), '/');
+                $reportBookUrl = $courseId > 0
+                    ? "{$baseUrl}/user/reportbook?course={$courseId}"
+                    : "{$baseUrl}/user/reportbook";
 
-            $messageBody = "Der Baustein \"{$courseTitle}\" endete am {$formattedCourseEndDate}.<br>"
-                . "Dein Berichtsheft hat noch fehlende oder nicht eingereichte Tage ({$openDays} von {$totalDays}).<br><br>"
-                . "<a href='{$reportBookUrl}' target='_blank'>Berichtsheft ansehen</a>";
+                $messageBody = "Der Baustein \"{$courseTitle}\" endete am {$formattedCourseEndDate}.<br>"
+                    ."Dein Berichtsheft hat noch fehlende oder nicht eingereichte Tage ({$openDays} von {$totalDays}).<br><br>"
+                    ."<a href='{$reportBookUrl}' target='_blank'>Berichtsheft ansehen</a>";
 
-            $message = Message::create([
-                'subject' => $subject,
-                'message' => $messageBody,
-                'from_user' => 1,
-                'to_user' => $toUserId,
-                'status' => '1',
-            ]);
+                $message = Message::create([
+                    'subject' => $subject,
+                    'message' => $messageBody,
+                    'from_user' => 1,
+                    'to_user' => $toUserId,
+                    'status' => '1',
+                ]);
 
-            // Versand im ReportBook markieren (einmalige Erinnerung)
-            $reportBook->setSetting('missing_reportbook_reminder_sent_at', now()->toIso8601String());
-            $reportBook->setSetting('missing_reportbook_reminder_message_id', $message->id);
-            $reportBook->save();
+                // Versand im ReportBook markieren (einmalige Erinnerung)
+                $reportBook->setSetting('missing_reportbook_reminder_sent_at', now()->toIso8601String());
+                $reportBook->setSetting('missing_reportbook_reminder_message_id', $message->id);
+                $reportBook->save();
 
-            $created++;
+            }, 3);
         }
     }
 }

@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Jobs\ReportBook\SendMissingReportBookReminderJob;
 use App\Models\ReportBook;
 use App\Models\Setting;
+use App\Services\ReportBooks\LocationPolicy;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -87,11 +88,14 @@ class DispatchMissingReportBookReminders extends Command
         if (!empty($reportBookIds)) {
             $booksById = ReportBook::query()
                 ->whereIn('id', $reportBookIds)
-                ->get(['id', 'settings'])
+                ->get()
                 ->keyBy('id');
 
             $rows = $rows->reject(function ($row) use ($booksById) {
                 $reportBook = $booksById->get((int) $row->report_book_id);
+                if (! $reportBook || ! LocationPolicy::canWriteBook($reportBook)) {
+                    return true;
+                }
                 $sentAt = data_get($reportBook?->settings, 'missing_reportbook_reminder_sent_at');
                 return !empty($sentAt);
             })->values();

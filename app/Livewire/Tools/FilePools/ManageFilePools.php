@@ -212,6 +212,8 @@ class ManageFilePools extends Component
     public function deleteFile(int $fileId)
     {
         $file = File::findOrFail($fileId);
+        abort_if(\App\Services\ReportBook\ReportBookSignatureEvidence::fileIsPreserved($file), 409,
+            'Diese Unterschrift bleibt als Freigabenachweis erhalten.');
         Storage::disk('private')->delete($file->path);
         $file->delete();
     }

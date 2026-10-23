@@ -94,6 +94,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
     Route::middleware(['role:guest'])->prefix('user')->group(function () {
         Route::get('/dashboard', Dashboard::class)->name('dashboard');
         Route::get('/reportbook', ReportBook::class)->name('reportbook');
+        Route::get('/reportbook/archive', \App\Livewire\User\ReportBookArchive::class)->name('reportbook.archive');
         Route::get('/user-requests', UserRequests::class)->name('requests');
         Route::get('/messages', MessageBox::class)->name('messages');
         // Route::get('/contact', Contact::class)->name('contact');

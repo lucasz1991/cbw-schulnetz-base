@@ -144,6 +144,7 @@
 
     $resolveImg = function (?string $src) {
         if (!$src) return null;
+        if (str_starts_with($src, 'data:image/png;base64,') || str_starts_with($src, 'data:image/jpeg;base64,')) return $src;
 
         if (is_string($src) && (str_starts_with($src, '/') || preg_match('/^[A-Z]:\\\\/i', $src))) {
             return is_file($src) ? $src : null;
@@ -257,6 +258,11 @@
     $tDate = !empty($trainerSignatureFile?->created_at)
         ? Carbon::parse($trainerSignatureFile->created_at)->format('d.m.Y')
         : '';
+    if ($evidence = $entry->signature_evidence) {
+        $pImg = $evidence['participant']['image']; $pDate = $evidence['participant']['date'];
+        $tImg = $evidence['trainer']['image']; $tDate = $evidence['trainer']['date'];
+    }
+    $trainerRelease = $entry->system_release;
 @endphp
 
 <div class="page">
@@ -309,6 +315,7 @@
             <td class="sign-col" style="padding-right:10px;">
                 <div class="sign-title">Ausbilder/in</div>
                 <table class="sign-box">
+                    @if($tImg || $tDate !== '' || empty($trainerRelease))
                     <tr>
                         <td class="lbl">Datum</td>
                         <td class="val">{{ $tDate }}</td>
@@ -321,6 +328,8 @@
                             @endif
                         </td>
                     </tr>
+                    @endif
+                    @include('pdf.partials.report-book-system-release', ['release' => $trainerRelease])
                 </table>
             </td>
 
@@ -354,7 +363,9 @@
         $e->entry_date = $e->entry_date instanceof Carbon ? $e->entry_date : Carbon::parse($e->entry_date);
         return $e;
     })->groupBy(function ($e) {
-        return $e->entry_date->isoWeekYear() . '-KW' . $e->entry_date->isoWeek();
+        return $e->entry_date->isoWeekYear() . '-KW' . $e->entry_date->isoWeek()
+            . ':' . ($e->system_release['group_key'] ?? 'manual')
+            . ':' . ($e->signature_evidence['group_key'] ?? 'current');
     });
 
     $start = $umschulungStartFromProgramm($user);
@@ -380,6 +391,11 @@
     $tDate = !empty($trainerSignatureFile?->created_at)
         ? Carbon::parse($trainerSignatureFile->created_at)->format('d.m.Y')
         : '';
+    if ($evidence = $weekEntries->first()->signature_evidence) {
+        $pImg = $evidence['participant']['image']; $pDate = $evidence['participant']['date'];
+        $tImg = $evidence['trainer']['image']; $tDate = $evidence['trainer']['date'];
+    }
+    $trainerRelease = $weekEntries->first()->system_release;
 @endphp
 
 <div class="page">
@@ -435,6 +451,7 @@
             <td class="sign-col" style="padding-right:10px;">
                 <div class="sign-title">Ausbilder/in</div>
                 <table class="sign-box">
+                    @if($tImg || $tDate !== '' || empty($trainerRelease))
                     <tr>
                         <td class="lbl">Datum</td>
                         <td class="val">{{ $tDate }}</td>
@@ -447,6 +464,8 @@
                             @endif
                         </td>
                     </tr>
+                    @endif
+                    @include('pdf.partials.report-book-system-release', ['release' => $trainerRelease])
                 </table>
             </td>
 
@@ -486,7 +505,9 @@
     });
 
     $groups = $entriesAll->groupBy(function ($e) {
-        return $e->entry_date->isoWeekYear() . '-KW' . $e->entry_date->isoWeek();
+        return $e->entry_date->isoWeekYear() . '-KW' . $e->entry_date->isoWeek()
+            . ':' . ($e->system_release['group_key'] ?? 'manual')
+            . ':' . ($e->signature_evidence['group_key'] ?? 'current');
     });
 
     $start = $umschulungStartFromProgramm($user);
@@ -501,10 +522,17 @@
     $tDate = !empty($book->trainerSignatureFile?->created_at)
         ? Carbon::parse($book->trainerSignatureFile->created_at)->format('d.m.Y')
         : '';
+    $currentSignatures = [$pImg, $pDate, $tImg, $tDate];
 @endphp
 
 @foreach($groups as $groupKey => $weekEntries)
 @php
+    [$pImg, $pDate, $tImg, $tDate] = $currentSignatures;
+    if ($evidence = $weekEntries->first()->signature_evidence) {
+        $pImg = $evidence['participant']['image']; $pDate = $evidence['participant']['date'];
+        $tImg = $evidence['trainer']['image']; $tDate = $evidence['trainer']['date'];
+    }
+    $trainerRelease = $weekEntries->first()->system_release;
     $firstDay = $weekEntries->first()->entry_date;
     $kw = $kwLabel($firstDay);
 
@@ -540,6 +568,9 @@
             </td>
         </tr>
     </table>
+    @if($approvedExcerpt ?? false)
+        <p style="font-size: 9pt; margin: 5px 0 10px;">Freigegebener Ausschnitt · Dieser Export enthält ausschließlich freigegebene Einträge.</p>
+    @endif
 
     <table class="sheet">
         <thead>
@@ -567,6 +598,7 @@
             <td class="sign-col" style="padding-right:10px;">
                 <div class="sign-title">Ausbilder/in</div>
                 <table class="sign-box">
+                    @if($tImg || $tDate !== '' || empty($trainerRelease))
                     <tr>
                         <td class="lbl">Datum</td>
                         <td class="val">{{ $tDate }}</td>
@@ -579,6 +611,8 @@
                             @endif
                         </td>
                     </tr>
+                    @endif
+                    @include('pdf.partials.report-book-system-release', ['release' => $trainerRelease])
                 </table>
             </td>
 

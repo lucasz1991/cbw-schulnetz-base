@@ -38,6 +38,8 @@ class File extends Model
     protected static function booted(): void
     {
         static::deleting(function (File $file) {
+            abort_if(\App\Services\ReportBook\ReportBookSignatureEvidence::fileIsPreserved($file), 409,
+                'Diese Unterschrift gehört zu einem freigegebenen Berichtshefteintrag und bleibt als Nachweis erhalten.');
             $disk = 'private';
 
             if ($file->path && Storage::disk($disk)->exists($file->path)) {

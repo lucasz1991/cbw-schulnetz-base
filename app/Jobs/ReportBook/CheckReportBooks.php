@@ -4,6 +4,7 @@ namespace App\Jobs\ReportBook;
 
 use App\Models\ReportBook;
 use App\Models\AdminTask;
+use App\Services\ReportBooks\LocationPolicy;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -40,11 +41,17 @@ class CheckReportBooks implements ShouldQueue
 
         foreach ($books as $book) {
             if (\App\Support\ParticipantReportBookAccess::isCoachingCourse((int) $book->course_id)
+                || ! LocationPolicy::canWriteBook($book)
                 || ! $this->isReadyForReview($book)) {
                 continue;
             }
 
             DB::transaction(function () use ($book): void {
+                // Use the same policy -> book -> task order as the location approval runner.
+                $location = LocationPolicy::lockForBook($book);
+                if (($location['mode'] ?? null) !== 'normal') {
+                    return;
+                }
                 // Der gemeinsame Parent-Lock serialisiert auch den Fall, dass noch
                 // keine Task-Zeile existiert und zwei Queue-Jobs parallel starten.
                 $currentBook = ReportBook::query()
@@ -52,7 +59,7 @@ class CheckReportBooks implements ShouldQueue
                     ->lockForUpdate()
                     ->first();
 
-                if (! $currentBook) {
+                if (! $currentBook || ! LocationPolicy::canWriteBook($currentBook)) {
                     return;
                 }
 
@@ -93,9 +100,9 @@ class CheckReportBooks implements ShouldQueue
 
                 // Ein gleichzeitig abgeschlossener Review kann die Entry-Status
                 // geändert haben, während dieser Job auf die Task-Zeile wartete.
-                $currentBook->load('entries');
+                $currentBook->setRelation('entries', $currentBook->entries()->orderBy('id')->lockForUpdate()->get());
 
-                if (! $this->isReadyForReview($currentBook)) {
+                if (! LocationPolicy::canWriteBook($currentBook) || ! $this->isReadyForReview($currentBook)) {
                     return;
                 }
 
