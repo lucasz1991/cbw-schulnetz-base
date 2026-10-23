@@ -6,6 +6,7 @@ use App\Models\ReportBook;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
@@ -32,8 +33,7 @@ class LocationPolicy
 
     public static function forInstitute(int $instituteId, ?CarbonInterface $at = null): array
     {
-        $defaults = ['institut_id' => $instituteId, 'required' => true, 'stamp_enabled' => false,
-            'revision_id' => null, 'stamp_path' => null, 'stamp_sha256' => null, 'stamp_mime' => null, 'effective_at' => null];
+        $defaults = self::instituteDefaults($instituteId);
         if (! self::schemaReady()) {
             return $defaults;
         }
@@ -60,6 +60,67 @@ class LocationPolicy
         return self::resolve((int) $book->user_id, (int) $book->course_id, $book->massnahme_id, false, $at, $currentRead);
     }
 
+    /**
+     * Read-only batch for persisted books, keyed by book ID. Nothing is cached beyond this call.
+     * Transactional callers retain the individual resolver's existing locking/read semantics.
+     *
+     * @param iterable<ReportBook> $books
+     * @return array<int, array>
+     */
+    public static function forBooks(iterable $books, ?CarbonInterface $at = null): array
+    {
+        $booksById = [];
+        foreach ($books as $book) {
+            $booksById[(int) $book->getKey()] = $book;
+        }
+        if ($booksById === []) {
+            return [];
+        }
+        if (DB::transactionLevel() > 0) {
+            return array_map(fn ($book) => self::forBook($book, $at), $booksById);
+        }
+        // Additive deployment: inspect the schema once for the complete batch.
+        if (! self::schemaReady()) {
+            return array_fill_keys(array_keys($booksById), self::normalContext());
+        }
+
+        $userIds = array_unique(array_map(fn ($book) => (int) $book->user_id, $booksById));
+        $courseIds = array_unique(array_map(fn ($book) => (int) $book->course_id, $booksById));
+        // Historical/deleted enrollments deliberately participate, just as in forBook().
+        $peopleByCourse = DB::table('persons as p')->join('course_participant_enrollments as e', 'e.person_id', '=', 'p.id')
+            ->whereIn('p.user_id', $userIds)->whereIn('e.course_id', $courseIds)
+            ->select(['p.id', 'p.user_id', 'e.course_id', 'p.institut_id', 'p.programdata', 'p.statusdata', 'e.source_snapshot'])
+            ->get()->groupBy(fn ($person) => (int) $person->user_id.':'.(int) $person->course_id);
+
+        $peopleContexts = [];
+        $rules = [];
+        foreach ($booksById as $id => $book) {
+            $key = (int) $book->user_id.':'.(int) $book->course_id;
+            $peopleContexts[$id] = self::personContext($peopleByCourse->get($key, new Collection()), $book->massnahme_id);
+            foreach ($peopleContexts[$id]['institute_ids'] as $instituteId) {
+                $rules[$instituteId] = self::instituteDefaults($instituteId);
+            }
+        }
+        if ($rules !== []) {
+            $policies = DB::table('report_book_institute_policies')->whereIn('institut_id', array_keys($rules))
+                ->pluck('institut_id', 'id');
+            if ($policies->isNotEmpty()) {
+                $revisions = self::revisions($policies->keys()->all())
+                    ->where('r.effective_at', '<=', self::instant($at)->format('Y-m-d H:i:s'))
+                    ->orderByDesc('r.effective_at')->orderByDesc('r.id')->get();
+                $resolved = [];
+                foreach ($revisions as $revision) {
+                    $instituteId = (int) $policies->get($revision->policy_id);
+                    if (! isset($resolved[$instituteId])) {
+                        $rules[$instituteId] = self::revisionData($revision) + ['institut_id' => $instituteId];
+                        $resolved[$instituteId] = true;
+                    }
+                }
+            }
+        }
+        return array_map(fn ($people) => self::contextFromPeople($people, $rules), $peopleContexts);
+    }
+
     public static function forCourse(User $user, int $courseId, ?string $massnahmeId = null): array
     {
         return self::resolve((int) $user->id, $courseId, $massnahmeId, true);
@@ -83,11 +144,9 @@ class LocationPolicy
 
     private static function resolve(int $userId, int $courseId, ?string $massnahmeId, bool $activeOnly, ?CarbonInterface $at = null, bool $currentRead = false): array
     {
-        $normal = ['mode' => 'normal', 'required' => true, 'ambiguous' => false, 'institute_id' => null,
-            'institute_ids' => [], 'person_ids' => [], 'revision_id' => null, 'stamp_enabled' => false];
         // Additive deployment: before Base migration there is no configured restriction.
         if (! self::schemaReady()) {
-            return $normal;
+            return self::normalContext();
         }
         $query = DB::table('persons as p')->join('course_participant_enrollments as e', 'e.person_id', '=', 'p.id')
             ->where('p.user_id', $userId)->where('e.course_id', $courseId)
@@ -98,8 +157,19 @@ class LocationPolicy
         if ($currentRead && DB::transactionLevel() > 0) {
             $query->lockForUpdate();
         }
+        $people = self::personContext($query->get(), $massnahmeId);
+        $rules = [];
+        foreach ($people['institute_ids'] as $instituteId) {
+            $rules[$instituteId] = self::forInstitute($instituteId, $at);
+        }
+        return self::contextFromPeople($people, $rules);
+    }
+
+    /** Pure derivation shared by individual and batched reads, including malformed measure data. */
+    private static function personContext(Collection $people, ?string $massnahmeId): array
+    {
         $invalidContext = false;
-        $people = $query->get()->filter(function ($person) use ($massnahmeId, &$invalidContext) {
+        $people = $people->filter(function ($person) use ($massnahmeId, &$invalidContext) {
             if ($massnahmeId === null || $massnahmeId === '') {
                 return true;
             }
@@ -115,19 +185,41 @@ class LocationPolicy
             return $known === [] || in_array((string) $massnahmeId, $known, true);
         });
         $ids = $people->pluck('institut_id')->map(fn ($id) => (int) $id)->filter(fn ($id) => $id > 0)->unique()->sort()->values()->all();
-        $unknown = $invalidContext || $people->isEmpty() || $people->contains(fn ($p) => (int) $p->institut_id < 1);
-        $rules = array_map(fn ($id) => self::forInstitute($id, $at), $ids);
+        return [
+            'institute_ids' => $ids,
+            'person_ids' => $people->pluck('id')->map(fn ($id) => (int) $id)->unique()->sort()->values()->all(),
+            'unknown' => $invalidContext || $people->isEmpty() || $people->contains(fn ($p) => (int) $p->institut_id < 1),
+        ];
+    }
+
+    private static function contextFromPeople(array $people, array $rulesByInstitute): array
+    {
+        $ids = $people['institute_ids'];
+        $unknown = $people['unknown'];
+        $rules = array_map(fn ($id) => $rulesByInstitute[$id], $ids);
         $requirements = array_unique(array_column($rules, 'required'), SORT_REGULAR);
         $conflict = $unknown || count($requirements) > 1;
         $required = ! $conflict && ($rules[0]['required'] ?? true);
-        return array_replace($normal, [
+        return array_replace(self::normalContext(), [
             'mode' => $conflict ? 'conflict' : ($required ? 'normal' : 'archive'),
             'required' => $required, 'ambiguous' => $unknown || count($ids) !== 1,
             'institute_id' => count($ids) === 1 && ! $unknown ? $ids[0] : null,
-            'institute_ids' => $ids, 'person_ids' => $people->pluck('id')->map(fn ($id) => (int) $id)->unique()->sort()->values()->all(),
+            'institute_ids' => $ids, 'person_ids' => $people['person_ids'],
             'revision_id' => count($ids) === 1 ? ($rules[0]['revision_id'] ?? null) : null,
             'stamp_enabled' => count($ids) === 1 && ! $unknown && ($rules[0]['stamp_enabled'] ?? false),
         ]);
+    }
+
+    private static function normalContext(): array
+    {
+        return ['mode' => 'normal', 'required' => true, 'ambiguous' => false, 'institute_id' => null,
+            'institute_ids' => [], 'person_ids' => [], 'revision_id' => null, 'stamp_enabled' => false];
+    }
+
+    private static function instituteDefaults(int $instituteId): array
+    {
+        return ['institut_id' => $instituteId, 'required' => true, 'stamp_enabled' => false,
+            'revision_id' => null, 'stamp_path' => null, 'stamp_sha256' => null, 'stamp_mime' => null, 'effective_at' => null];
     }
 
     private static function collectMeasures(array $data, array &$ids): void
@@ -317,10 +409,15 @@ class LocationPolicy
         ]);
     }
 
-    private static function revisions(int $policyId)
+    private static function revisions(int|array $policyIds)
     {
-        $query = DB::table('report_book_policy_revisions as r')->select('r.*')->where('r.policy_id', $policyId)
-            ->whereNotExists(function ($q) {
+        $query = DB::table('report_book_policy_revisions as r')->select('r.*');
+        if (is_array($policyIds)) {
+            $query->whereIn('r.policy_id', $policyIds);
+        } else {
+            $query->where('r.policy_id', $policyIds);
+        }
+        $query->whereNotExists(function ($q) {
                 $q->selectRaw('1')->from('report_book_policy_audit as a')
                     ->whereColumn('a.revision_id', 'r.id')->where('a.event', 'revision_cancelled');
                 // InnoDB does not propagate an outer locking read into this subquery.
