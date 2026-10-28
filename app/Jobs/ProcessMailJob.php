@@ -10,6 +10,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 
@@ -19,92 +20,132 @@ class ProcessMailJob implements ShouldQueue
 
     public $mail;
 
-    /**
-     * Create a new job instance.
-     */
     public function __construct(Mail $mail)
     {
         $this->mail = $mail;
     }
 
-    /**
-     * Execute the job.
-     */
     public function handle(): void
     {
-        $recipients = is_array($this->mail->recipients) ? $this->mail->recipients : [];
-        $files = $this->mail->files ?? [];
+        $storedRecipients = $this->mail->fresh()?->recipients;
+        $recipientCount = is_array($storedRecipients) ? count($storedRecipients) : 0;
 
-        $typeValue = $this->mail->type;
-        $type = is_bool($typeValue)
-            ? ($typeValue ? 'both' : 'message')
-            : strtolower((string) $typeValue);
+        for ($index = 0; $index < $recipientCount; $index++) {
+            // Erfolge pro Empfaenger festschreiben, damit ein spaeterer Abbruch sie nicht wiederholt.
+            $this->mail->getConnection()->transaction(function () use ($index): void {
+                $mail = $this->mail->newQuery()->whereKey($this->mail->getKey())->lockForUpdate()->first();
+                $recipients = $mail && is_array($mail->recipients) ? $mail->recipients : [];
+                if (! isset($recipients[$index]) || ! is_array($recipients[$index])) {
+                    return;
+                }
 
-        $sendMessageTo = in_array($type, ['message', 'both'], true);
-        $sendMailTo = in_array($type, ['mail', 'both'], true);
+                $type = is_bool($mail->type) ? ($mail->type ? 'both' : 'message') : strtolower((string) $mail->type);
+                $sendMessage = in_array($type, ['message', 'both'], true);
+                $sendMail = in_array($type, ['mail', 'both'], true);
 
-        foreach ($recipients as &$recipient) {
-            try {
-                $userId = (int) ($recipient['user_id'] ?? 0);
-                $email = trim((string) ($recipient['email'] ?? ''));
-                $recipient['status'] = false;
+                if (empty($recipients[$index]['status'])) {
+                    $userIds = collect($recipients)->pluck('user_id')->filter()->unique()->all();
+                    $users = $userIds ? User::query()->whereKey($userIds)->get()->keyBy('id') : collect();
+                    [$doneUsers, $doneEmails] = $this->completedChannels($recipients, $users);
+                    $recipient = $recipients[$index];
+                    $userId = (int) ($recipient['user_id'] ?? 0);
+                    $user = $users->get($userId);
+                    $email = $this->recipientEmail($recipient, $user);
 
-                if ($userId > 0) {
-                    $user = User::find($userId);
-
-                    if (! $user) {
-                        Log::warning("Benutzer mit ID {$userId} nicht gefunden.", [
-                            'mail_id' => $this->mail->id,
+                    if (($userId > 0 && ! $user) || (! $user && ! $sendMail)) {
+                        Log::warning('Mail-Empfaenger konnte nicht verarbeitet werden.', [
+                            'mail_id' => $mail->id, 'recipient_index' => $index,
                         ]);
-                        continue;
+                    } else {
+                        $messageDone = ! $sendMessage || ! empty($recipient['message_status']) || isset($doneUsers[$userId]);
+                        if ($sendMessage && $user && ! $messageDone) {
+                            try {
+                                $mail->getConnection()->transaction(fn () => $user->receiveMessage(
+                                    $mail->content['subject'] ?? 'Nachricht',
+                                    $mail->content['body'] ?? '',
+                                    $mail->from_user_id ?? 1,
+                                    $mail->files
+                                ));
+                                $messageDone = true;
+                            } catch (\Throwable $error) {
+                                if ($error instanceof \PDOException) {
+                                    throw $error;
+                                }
+                                $this->logChannelFailure($mail, $index, 'message', $error);
+                            }
+                        }
+
+                        $mailDone = ! $sendMail || ! empty($recipient['mail_status']) || isset($doneEmails[$email]);
+                        if ($sendMail && ! $mailDone && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                            try {
+                                // Dieser Job laeuft bereits in der Queue; keine zweite, wiederholbare Versandqueue.
+                                if ($user) {
+                                    $user->notifyNow(new MailNotification($mail));
+                                } else {
+                                    Notification::route('mail', $email)->notifyNow(new MailNotification($mail));
+                                }
+                                $mailDone = true;
+                            } catch (\Throwable $error) {
+                                if ($error instanceof \PDOException) {
+                                    throw $error;
+                                }
+                                $this->logChannelFailure($mail, $index, 'mail', $error);
+                            }
+                        }
+
+                        $recipient['message_status'] = $sendMessage && $user && $messageDone;
+                        $recipient['mail_status'] = $sendMail && $mailDone;
+                        if ($recipient['mail_status']) {
+                            $recipient['mail_address'] ??= $email;
+                        }
+                        $recipient['status'] = ($sendMessage || $sendMail)
+                            && (! $sendMessage || ! $user || $messageDone) && $mailDone;
+                        $recipients[$index] = $recipient;
                     }
-
-                    $didProcess = false;
-
-                    if ($sendMessageTo) {
-                        $user->receiveMessage(
-                            $this->mail->content['subject'] ?? 'Nachricht',
-                            $this->mail->content['body'] ?? '',
-                            $this->mail->from_user_id ?? 1,
-                            $files
-                        );
-                        $didProcess = true;
-                    }
-
-                    if ($sendMailTo) {
-                        $user->notify(new MailNotification($this->mail));
-                        $didProcess = true;
-                    }
-
-                    $recipient['status'] = $didProcess;
-                    continue;
                 }
 
-                if ($sendMailTo && filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                    Notification::route('mail', $email)->notify(new MailNotification($this->mail));
-                    $recipient['status'] = true;
-                    continue;
-                }
+                $mail->update([
+                    'recipients' => $recipients,
+                    'status' => $recipients !== [] && collect($recipients)->every(fn ($recipient) => ! empty($recipient['status'])),
+                ]);
+            });
+        }
+    }
 
-                Log::warning('Empfänger konnte für den gewählten Mail-Typ nicht verarbeitet werden.', [
-                    'recipient' => $recipient,
-                    'mail_id' => $this->mail->id,
-                    'type' => $this->mail->type,
-                ]);
-            } catch (\Throwable $e) {
-                Log::error('Fehler beim Senden der Mail.', [
-                    'mail_id' => $this->mail->id,
-                    'recipient' => $recipient,
-                    'error' => $e->getMessage(),
-                ]);
-                $recipient['status'] = false;
+    /** @return array{array<int, true>, array<string, true>} */
+    private function completedChannels(array $recipients, Collection $users): array
+    {
+        $doneUsers = [];
+        $doneEmails = [];
+        foreach ($recipients as $recipient) {
+            if (! is_array($recipient)) {
+                continue;
+            }
+            $userId = (int) ($recipient['user_id'] ?? 0);
+            if ($userId > 0 && (! empty($recipient['status']) || ! empty($recipient['message_status']))) {
+                $doneUsers[$userId] = true;
+            }
+            if (! empty($recipient['status']) || ! empty($recipient['mail_status'])) {
+                $email = $recipient['mail_address'] ?? $this->recipientEmail($recipient, $users->get($userId));
+                $email = strtolower(trim((string) $email));
+                if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    $doneEmails[$email] = true;
+                }
             }
         }
-        unset($recipient);
 
-        $this->mail->update([
-            'recipients' => $recipients,
-            'status' => ! empty($recipients) && collect($recipients)->every(fn ($recipient) => (bool) ($recipient['status'] ?? false)),
+        return [$doneUsers, $doneEmails];
+    }
+
+    private function recipientEmail(array $recipient, ?User $user): string
+    {
+        return strtolower(trim((string) ($user ? $user->email : ($recipient['email'] ?? ''))));
+    }
+
+    private function logChannelFailure(Mail $mail, int $index, string $channel, \Throwable $error): void
+    {
+        Log::error('Fehler beim Verarbeiten eines Mail-Kanals.', [
+            'mail_id' => $mail->id, 'recipient_index' => $index, 'channel' => $channel, 'error_class' => $error::class,
         ]);
     }
 }

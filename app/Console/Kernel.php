@@ -22,13 +22,13 @@ class Kernel extends ConsoleKernel
             ->dailyAt('02:00');
 
         $schedule->command('reportbooks:dispatch-missing-reminders')
-            ->weeklyOn(1, '10:30');
+            ->weeklyOn(1, '10:30')->withoutOverlapping();
 
         $schedule->command('reportbooks:process-location-approvals')
             ->everyMinute()->withoutOverlapping();
 
         $schedule->command('courses:dispatch-lecturer-reminders')
-            ->dailyAt('09:30');
+            ->dailyAt('09:30')->withoutOverlapping();
     }
 
     /**

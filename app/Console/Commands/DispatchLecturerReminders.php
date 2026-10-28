@@ -8,6 +8,7 @@ use App\Models\Mail;
 use App\Models\Setting;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class DispatchLecturerReminders extends Command
 {
@@ -242,9 +243,36 @@ class DispatchLecturerReminders extends Command
         ?int $maxCount,
         bool $once
     ): int {
+        return DB::transaction(function () use ($course, $type, $subject, $lines, $today, $dryRun, $everyDays, $maxCount, $once) {
+            // Serialize selection and state changes even when two command runs selected
+            // the same course before either of them recorded its reminder.
+            $course = Course::query()->whereKey($course->id)->lockForUpdate()->first();
+            if (! $course) {
+                return 0;
+            }
+
+            return $this->createReminder($course, $type, $subject, $lines, $today, $dryRun, $everyDays, $maxCount, $once);
+        });
+    }
+
+    /**
+     * @param array<int, string> $lines
+     */
+    private function createReminder(
+        Course $course,
+        string $type,
+        string $subject,
+        array $lines,
+        Carbon $today,
+        bool $dryRun,
+        ?int $everyDays,
+        ?int $maxCount,
+        bool $once
+    ): int {
         $state = $this->getReminderState($course, $type);
         $count = (int) ($state['count'] ?? 0);
         $lastSentAt = ! empty($state['last_sent_at']) ? Carbon::parse($state['last_sent_at']) : null;
+        $lastSentDay = $lastSentAt?->copy()->timezone('Europe/Berlin')->startOfDay();
 
         if ($once && ! empty($state['sent_once_at'])) {
             return 0;
@@ -254,7 +282,11 @@ class DispatchLecturerReminders extends Command
             return 0;
         }
 
-        if ($everyDays !== null && $lastSentAt && $today->diffInDays($lastSentAt) < $everyDays) {
+        if ($lastSentDay && $lastSentDay->gte($today)) {
+            return 0;
+        }
+
+        if ($everyDays !== null && $lastSentDay && $today->diffInDays($lastSentDay) < $everyDays) {
             return 0;
         }
 
