@@ -71,9 +71,20 @@ class Register extends Component
 
         // Duplikate aus der API nach person_id rausfiltern (falls der Endpoint mal doppelt liefert)
         $persons = collect($persons)
+            ->filter(fn (object $p) => trim((string) ($p->person_id ?? '')) !== '')
             ->unique('person_id')
             ->values()
             ->all();
+
+        if (empty($persons)) {
+            throw ValidationException::withMessages([
+                'email' => 'Die Person konnte nicht eindeutig zugeordnet werden. Bitte kontaktiere den Support.',
+            ]);
+        }
+
+        if ($this->refreshAlreadyRegisteredPersons($persons)) {
+            $this->rejectExistingPersonAccount();
+        }
 
         // "Hauptperson" für Status/Rollenermittlung = erste gefundene Person
         $person = $persons[0];
@@ -132,7 +143,12 @@ class Register extends Component
         $role = $isTutor ? 'tutor' : 'guest';
 
         // 6) Erstellen in Transaktion: User anlegen, Person(en) upserten + verknüpfen, Mail verschicken
-        DB::transaction(function () use ($persons, $person, $role, $statusData) {
+        $created = DB::transaction(function () use ($persons, $person, $role, $statusData) {
+            // Recheck under the transaction's person locks before creating a login.
+            if ($this->refreshAlreadyRegisteredPersons($persons)) {
+                return false;
+            }
+
             $randomPassword = Str::random(12);
 
             $newUser = User::create([
@@ -152,7 +168,7 @@ class Register extends Component
                 // 1. und einzige Priorität: person_id
                 //    → wenn es diese person_id schon gibt, IMMER diesen Datensatz updaten
                 //    → keine E-Mail-Vergleiche hier, weil die Mail in UVS „unsauber“ sein kann
-                $personModel = Person::firstWhere('person_id', $p->person_id);
+                $personModel = Person::withTrashed()->where('person_id', $p->person_id)->lockForUpdate()->first();
 
                 $mapped = Person::mapFromUvsPayload($p, $role);
                 if ($p->person_id === $person->person_id && (!empty($statusData['coaching_contracts']) || $role === 'tutor')) {
@@ -185,7 +201,12 @@ class Register extends Component
             DB::afterCommit(function () use ($newUser) {
                 $newUser->notify(new SetPasswordNotification($newUser, $this->generateResetToken($newUser)));
             });
+            return true;
         });
+
+        if (! $created) {
+            $this->rejectExistingPersonAccount();
+        }
 
         // 7) Erfolgsmeldung
         $this->dispatch('showAlert', [
@@ -200,6 +221,54 @@ class Register extends Component
     }
 
     // === Hilfsfunktionen ===
+
+    protected function refreshAlreadyRegisteredPersons(array $persons): bool
+    {
+        return DB::transaction(function () use ($persons) {
+            $payloads = collect($persons)->keyBy('person_id');
+            $existing = Person::withTrashed()
+                ->whereIn('person_id', $payloads->keys())
+                ->orderBy('person_id')
+                ->lockForUpdate()
+                ->get();
+            $userIds = $existing->pluck('user_id')->filter()->unique()->values();
+
+            if ($userIds->isEmpty()) {
+                if ($existing->contains(fn (Person $p) => $p->trashed())) {
+                    throw ValidationException::withMessages([
+                        'email' => 'Diese Person ist bereits archiviert. Bitte kontaktiere den Support zur Klärung.',
+                    ]);
+                }
+                return false;
+            }
+
+            // Never guess which account owns an ambiguous or broken identity.
+            if ($userIds->count() !== 1 || ! User::whereKey($userIds->first())->exists()) {
+                throw ValidationException::withMessages([
+                    'email' => 'Die Person ist bereits einem Konto zugeordnet. Bitte kontaktiere den Support zur Klärung.',
+                ]);
+            }
+
+            foreach ($existing as $personModel) {
+                $payload = $payloads->get($personModel->person_id);
+                foreach (['email_priv', 'email_cbw'] as $field) {
+                    if (isset($payload->{$field}) && is_string($payload->{$field})) {
+                        $personModel->{$field} = $payload->{$field};
+                    }
+                }
+                $personModel->saveQuietly();
+            }
+
+            return true;
+        });
+    }
+
+    protected function rejectExistingPersonAccount(): never
+    {
+        throw ValidationException::withMessages([
+            'email' => 'Für diese Person besteht bereits ein Schulnetz-Konto. Bitte verwende deine bisherige Schulnetz-Anmeldeadresse oder kontaktiere den Support. Eine Änderung der UVS-E-Mail-Adresse ändert deine Anmeldung nicht.',
+        ]);
+    }
 
     protected function generateResetToken($user)
     {

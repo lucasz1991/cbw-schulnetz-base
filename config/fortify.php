@@ -144,7 +144,8 @@ return [
     */
 
     'features' => [
-        Features::registration(),
+        // Registration is handled by the UVS-bound Livewire route in web.php.
+        // Fortify's generic POST /register bypasses the person identity check.
         Features::resetPasswords(),
         Features::emailVerification(),
         Features::updateProfileInformation(),

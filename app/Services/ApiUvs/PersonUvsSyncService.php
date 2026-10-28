@@ -147,6 +147,14 @@ class PersonUvsSyncService
                 );
                 if (($apiResponse['ok'] ?? false) === true) {
                     $data = $apiResponse['data'] ?? null;
+                    $contact = is_array($data['person'] ?? null) ? $data['person'] : [];
+                    if (($contact['person_id'] ?? null) === $person->person_id) {
+                        foreach (['email_priv', 'email_cbw'] as $field) {
+                            if (isset($contact[$field]) && is_string($contact[$field])) {
+                                $person->{$field} = $contact[$field];
+                            }
+                        }
+                    }
                     $qualiData = ! empty($data['quali_data']) ? $data['quali_data'] : null;
                 } else {
                     $qualiData = null;

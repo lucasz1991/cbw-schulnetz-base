@@ -81,15 +81,34 @@ class Login extends Component
                 $personRequest = app(ApiUvsService::class)->getParticipantbyMail($this->email);
                 if ($personRequest['ok']) {
                     $data = $personRequest['data'] ? $personRequest['data'] : null;
-                    $person = ! empty($data['person']) ? (object) $data['person'] : null;
+                    $persons = collect($data['persons'] ?? []);
+                    if (! empty($data['person'])) {
+                        $persons->prepend($data['person']);
+                    }
+                    $persons = $persons->filter(fn ($p) => is_array($p) && ! empty($p['person_id']));
+                    $person = $persons->isNotEmpty() ? (object) $persons->first() : null;
                 } else {
                     $person = null;
                 }
 
                 if ($person) {
-                    $existingUser = User::where('email', $person->email_priv)
-                        ->whereNull('current_team_id')
-                        ->first();
+                    $linkedToDifferentLogin = Person::withTrashed()
+                        ->whereIn('person_id', $persons->pluck('person_id'))
+                        ->whereNotNull('user_id')
+                        ->when($user, fn ($query) => $query->where('user_id', '!=', $user->id))
+                        ->exists();
+
+                    if ($linkedToDifferentLogin) {
+                        throw ValidationException::withMessages([
+                            'email' => 'Bitte verwende deine bisherige Schulnetz-Anmeldeadresse und dein Passwort. Eine Änderung der UVS-E-Mail-Adresse ändert deine Anmeldung nicht. Bei Problemen kontaktiere den Support.',
+                        ]);
+                    }
+
+                    $existingUser = $user && $user->current_team_id === null
+                        ? $user
+                        : User::where('email', $person->email_priv ?? $this->email)
+                            ->whereNull('current_team_id')
+                            ->first();
 
                     if ($existingUser) {
                         if ($existingUser->email_verified_at) {
@@ -110,7 +129,9 @@ class Login extends Component
                         );
                     } else {
                         throw ValidationException::withMessages([
-                            'email' => 'Die eingegebene E-Mail-Adresse hat noch kein Konto ist aber in der Personendatenbank von CBW vorhanden. Bitte registriere dich zuerst.',
+                            'email' => $user
+                                ? 'Die eingegebene E-Mail-Adresse oder das Passwort ist falsch.'
+                                : 'Die eingegebene E-Mail-Adresse hat noch kein Konto ist aber in der Personendatenbank von CBW vorhanden. Bitte registriere dich zuerst.',
                         ]);
                     }
                 } else {
