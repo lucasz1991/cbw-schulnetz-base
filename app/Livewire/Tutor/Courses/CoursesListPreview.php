@@ -40,7 +40,6 @@ class CoursesListPreview extends Component
                       ->orWhereBetween('planned_end_date', [$weekStart, $weekEnd]);
                 })
                 ->orderBy('planned_start_date', 'desc')
-                ->limit(1)
                 ->get();
 
             // 2) Zuletzt abgeschlossener Kurs

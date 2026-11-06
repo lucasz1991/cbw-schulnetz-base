@@ -14,7 +14,7 @@ class CourseDaysPanel extends Component
 {
     use WithPagination, WithoutUrlPagination;
 
-    public int $courseId;
+    #[\Livewire\Attributes\Locked] public int $courseId;
     public Course $course;
     public string $courseTitle = 'Kurstermin';
 
@@ -23,7 +23,7 @@ class CourseDaysPanel extends Component
     public int $perPage = 15;
 
     // Auswahl
-    public ?int $selectedDayId = null;
+    #[\Livewire\Attributes\Locked] public ?int $selectedDayId = null;
     public ?CourseDay $selectedDay = null;
 
     public int|string|null $selectedDaySessionId = null;
@@ -35,6 +35,7 @@ class CourseDaysPanel extends Component
     public function mount(int $courseId): void
     {
         $this->courseId = $courseId;
+        \App\Services\Courses\CourseLecturerEvidence::guardView(Course::findOrFail($courseId));
         $this->course = Course::findOrFail($courseId);
         $this->courseTitle = (string) (Course::whereKey($courseId)->value('title') ?? 'Kurstermin');
         $this->month = now()->format('Y-m');
@@ -60,6 +61,8 @@ class CourseDaysPanel extends Component
         $this->selectedDaySessionNotes = (string) ($this->selectedDay?->getSessionNotes($this->selectedDaySessionId ?? '') ?? '');
         $this->selectedDaySessionTopic = (string) ($this->selectedDay?->getSessionTopic($this->selectedDaySessionId ?? '') ?? '');
     }
+
+    public function hydrate(): void { \App\Services\Courses\CourseLecturerEvidence::guardView(Course::findOrFail($this->courseId)); }
 
     /** Nimmt Skalar ODER { id: ... } entgegen (vom Kalender) */
     #[On('calendarEventClick')]
@@ -98,6 +101,7 @@ class CourseDaysPanel extends Component
 
     public function selectDay(int $courseDayId): void
     {
+        \App\Services\Courses\CourseLecturerEvidence::guardView(Course::findOrFail($this->courseId));
         $day = CourseDay::query()
             ->where('course_id', $this->courseId)
             ->findOrFail($courseDayId);
@@ -194,6 +198,7 @@ class CourseDaysPanel extends Component
 
     public function render()
     {
+        \App\Services\Courses\CourseLecturerEvidence::guardView(Course::findOrFail($this->courseId));
         $this->selectPreviousDayPossible = $this->course->dates()->where('date', '<', $this->selectedDay->date)->exists();
         $this->selectNextDayPossible     = $this->course->dates()->where('date', '>', $this->selectedDay->date)->exists();
 

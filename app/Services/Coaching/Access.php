@@ -57,7 +57,10 @@ class Access
     public static function guardTutorCourse(int $courseId): void
     {
         $course = \App\Models\Course::findOrFail($courseId);
-        if ($course->type !== 'coaching') return;
+        if ($course->type !== 'coaching') {
+            \App\Services\Courses\CourseLecturerEvidence::guardView($course);
+            return;
+        }
         abort_unless(self::available() && auth()->user()?->persons()->whereKey($course->primary_tutor_person_id)->exists(), 403);
     }
 
@@ -69,7 +72,11 @@ class Access
 
     public static function guardDayWrite(CourseDay $day, bool $markStarted = true): void
     {
-        if (!$day->exists || $day->course?->type !== 'coaching') return;
+        if (!$day->exists) return;
+        if ($day->course?->type !== 'coaching') {
+            \App\Services\Courses\CourseLecturerEvidence::guardDay($day);
+            return;
+        }
         if (!self::available()) throw ValidationException::withMessages(['coaching' => 'Einzelcoaching ist derzeit deaktiviert.']);
         $contract = CoachingContract::where('course_id', $day->course_id)->first();
         $plan = $contract?->confirmedPlan;

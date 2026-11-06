@@ -41,7 +41,7 @@ class LoadCourseResultsFromUvsJob implements ShouldQueue, ShouldBeUnique
             return;
         }
 
-        $ok = $service->handle($course);
+        $ok = \App\Services\Courses\CourseLecturerAccess::runAsSystem(fn () => $service->handle($course));
 
         if (! $ok) {
             Log::warning('LoadCourseResultsFromUvsJob: Hard load from UVS returned false.', [

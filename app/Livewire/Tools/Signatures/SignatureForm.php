@@ -118,12 +118,22 @@ public function openSignatureForm(array $payload): void
         }
 
         $fileable = ($this->fileableType)::find($this->fileableId);
-        if ($fileable instanceof \App\Models\CourseDay && $fileable->course?->type === 'coaching') {
+        if ($fileable instanceof \App\Models\Course && \App\Services\Courses\CourseLecturerAccess::hasPlan($fileable)) {
+            abort_unless(Auth::user() && in_array($this->fileType,['sign_course_doku_participant','course_doku_participant'],true)
+                && $fileable->participants()->whereIn('persons.id',Auth::user()->persons()->pluck('persons.id'))->exists(),403);
+        }
+        if ($fileable instanceof \App\Models\CourseDay && ($fileable->course?->type === 'coaching'
+            || \App\Services\Courses\CourseLecturerAccess::hasPlan($fileable->course))) {
             \App\Services\Coaching\Access::guardTutorCourse($fileable->course_id);
             \App\Services\Coaching\Access::guardDayWrite($fileable, false);
             abort_unless(in_array($this->fileType, ['sign_courseday_doku_tutor', 'courseday_doku_tutor'], true), 403);
             if (trim((string)$fileable->notes) === '') {
                 throw \Illuminate\Validation\ValidationException::withMessages(['signatureDataUrl' => 'Bitte erst die Dokumentation speichern.']);
+            }
+            if (\App\Services\Courses\CourseLecturerAccess::hasPlan($fileable->course)) {
+                abort_unless((int)$fileable->notes_author_user_id===(int)Auth::id() && (int)$fileable->notes_revision>0,403);
+                abort_if((int)$fileable->note_status===\App\Models\CourseDay::NOTE_STATUS_COMPLETED
+                    || $fileable->tutorSignatures()->exists(),409,'Diese Dokumentation ist bereits unterschrieben.');
             }
         }
         if ($fileable instanceof \App\Models\ReportBook) {
@@ -167,6 +177,23 @@ public function openSignatureForm(array $payload): void
     public function save(): void
     {
         $this->createdSignaturePath = null;
+        if ($this->fileableType === \App\Models\CourseDay::class) {
+            $day=\App\Models\CourseDay::findOrFail($this->fileableId);
+            if (\App\Services\Courses\CourseLecturerAccess::hasPlan($day->course)) {
+                try {
+                    \Illuminate\Support\Facades\DB::transaction(function(){
+                        $courseId=\App\Models\CourseDay::whereKey($this->fileableId)->value('course_id');
+                        \App\Models\Course::whereKey($courseId)->lockForUpdate()->firstOrFail();
+                        \App\Models\CourseDay::whereKey($this->fileableId)->lockForUpdate()->firstOrFail();
+                        $this->persistSignature();
+                    },1);
+                } catch (\Throwable $e) {
+                    if($this->createdSignaturePath) Storage::disk('private')->delete($this->createdSignaturePath);
+                    throw $e;
+                }
+                return;
+            }
+        }
         if ($this->fileableType !== \App\Models\ReportBook::class) {
             $this->persistSignature();
             return;
@@ -279,7 +306,14 @@ public function openSignatureForm(array $payload): void
         /* ---------------------------------------------------------
          | File-Modell speichern
          --------------------------------------------------------- */
-        $file = $fileable->files()->create([
+        $evidence=[];
+        if ($fileable instanceof \App\Models\CourseDay && \App\Services\Courses\CourseLecturerAccess::hasPlan($fileable->course)) {
+            $assignment=\App\Services\Courses\CourseLecturerAccess::currentAssignment($fileable->course,$fileable->date);
+            $evidence=['lecturer_person_id'=>$assignment['person_id']??null,'lecturer_assignment_id'=>$assignment['assignment_id']??null,
+                'lecturer_contract_id'=>$assignment['contract_id']??null,'lecturer_plan_revision'=>$fileable->course->lecturer_plan_revision,
+                'document_revision'=>(int)$fileable->notes_revision];
+        }
+        $file = $fileable->files()->create(array_merge([
             'user_id'   => $user->id,
             'name'      => $this->label,
             'path'      => $path,
@@ -288,7 +322,7 @@ public function openSignatureForm(array $payload): void
             'mime_type' => $mimeType,
             'size'      => $size,
             'checksum'  => hash('sha256', $path . '|' . $size),
-        ]);
+        ],$evidence));
 
         $this->reset(['signatureDataUrl', 'upload', 'errorMsg', 'open']);
 

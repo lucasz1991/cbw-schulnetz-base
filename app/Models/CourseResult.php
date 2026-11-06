@@ -7,6 +7,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class CourseResult extends Model
 {
+    protected static function booted(): void
+    {
+        $guard=static function(CourseResult $result){
+            if($course=$result->course()->first()) \App\Services\Courses\CourseLecturerEvidence::guardResults($course);
+        };
+        static::saving($guard);
+        static::deleting($guard);
+    }
     use HasFactory;
 
     // Sync-States als Konstanten
@@ -20,6 +28,8 @@ class CourseResult extends Model
         'result',
         'status',
         'updated_by',
+        'lecturer_assignment_id',
+        'lecturer_plan_revision',
 
         'remote_uid',
         'sync_state',

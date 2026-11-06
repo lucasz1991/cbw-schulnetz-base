@@ -119,6 +119,15 @@ public function saveNotes(): void
 
     $notesChanged = trim($oldNotes) !== trim($newNotes);
 
+    if ($notesChanged && \App\Services\Courses\CourseLecturerAccess::hasPlan($day->course)) {
+        \App\Services\Courses\CourseLecturerEvidence::guardDay($day);
+        abort_if((int)$day->note_status===CourseDay::NOTE_STATUS_COMPLETED || $day->tutorSignatures()->exists(),409,
+            'Unterschriebene Dokumentationen bleiben unverändert.');
+        abort_if($day->notes_author_user_id && (int)$day->notes_author_user_id!==(int)auth()->id(),403);
+        abort_if(!$day->notes_author_user_id && trim($oldNotes)!=='',409,
+            'Die vorhandene Dokumentation benötigt eine bestätigte Autorenzuordnung.');
+    }
+
     $day->notes = $newNotes;
 
     if ($notesChanged) {
@@ -169,7 +178,7 @@ public function saveNotes(): void
             return;
         }
 
-        if ($this->course->type === 'coaching') {
+        if ($this->course->type === 'coaching' || \App\Services\Courses\CourseLecturerAccess::hasPlan($this->course)) {
             $this->saveNotes();
         }
 
@@ -197,12 +206,17 @@ public function saveNotes(): void
         }
 
         $this->selectedDay = CourseDay::where('course_id', $this->courseId)->findOrFail($this->selectedDayId);
-        if ($this->selectedDay->type === 'coaching') {
+        if ($this->selectedDay->type === 'coaching' || \App\Services\Courses\CourseLecturerAccess::hasPlan($this->course)) {
             if (trim((string)$this->selectedDay->notes) === ''
                 || ($payload['fileableType'] ?? null) !== CourseDay::class
                 || (int)($payload['fileableId'] ?? 0) !== $this->selectedDayId
                 || !$this->selectedDay->tutorSignatures()->whereKey($payload['fileId'] ?? 0)->where('user_id', auth()->id())->exists()) {
                 return;
+            }
+            if (\App\Services\Courses\CourseLecturerAccess::hasPlan($this->course)) {
+                \App\Services\Courses\CourseLecturerEvidence::guardDay($this->selectedDay);
+                abort_unless($this->selectedDay->tutorSignatures()->whereKey($payload['fileId'] ?? 0)
+                    ->where('document_revision',(int)$this->selectedDay->notes_revision)->exists(),403);
             }
         }
 

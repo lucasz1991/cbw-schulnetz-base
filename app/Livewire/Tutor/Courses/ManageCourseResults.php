@@ -6,6 +6,8 @@ use App\Models\Course;
 use App\Models\CourseResult;
 use App\Services\ApiUvs\ApiUvsService;
 use App\Services\ApiUvs\CourseApiServices\CourseResultsSyncService;
+use App\Services\Courses\CourseLecturerAccess;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 use Livewire\Component;
@@ -41,10 +43,11 @@ class ManageCourseResults extends Component
     public function mount(Course $course): void
     {
         $this->course = $course;
+        abort_unless(CourseLecturerAccess::canView(auth()->user(), $course), 403);
         $this->isExternalExam = (bool) $this->course->getSetting('isExternalExam', false);
 
         // Beim Öffnen, wenn interne Prüfung: UVS ist Master → hart laden
-        if (! $this->isExternalExam) {
+        if (! $this->isExternalExam && ! CourseLecturerAccess::hasPlan($course)) {
             $this->performLoadFromRemote(silent: true);
         }
 
@@ -72,6 +75,7 @@ class ManageCourseResults extends Component
      */
     public function saveOne(string $personId, bool $silent = false): void
     {
+        $this->authorizeWrite($personId);
         $this->validate([
             "results.$personId" => ['nullable', 'numeric', 'min:0', 'max:100'],
             "statuses.$personId" => ['nullable', 'string', 'max:100'],
@@ -115,19 +119,26 @@ class ManageCourseResults extends Component
         }
 
         // Lokale Speicherung + als "DIRTY" markieren
-        CourseResult::updateOrCreate(
-            [
-                'course_id' => $this->course->id,
-                'person_id' => $personId,
-            ],
-            [
-                'result' => $value,
-                'status' => $status,
-                'updated_by' => auth()->id(),
-                'sync_state' => CourseResult::SYNC_STATE_DIRTY,
-                'remote_upd_date' => null,
-            ]
-        );
+        DB::transaction(function () use ($personId, $value, $status) {
+            $this->course = Course::query()->lockForUpdate()->findOrFail($this->course->id);
+            $this->authorizeWrite($personId);
+            $assignment = CourseLecturerAccess::hasPlan($this->course) ? CourseLecturerAccess::pinClosingAssignment($this->course) : null;
+            CourseResult::updateOrCreate(
+                [
+                    'course_id' => $this->course->id,
+                    'person_id' => $personId,
+                ],
+                [
+                    'result' => $value,
+                    'status' => $status,
+                    'updated_by' => auth()->id(),
+                    'sync_state' => CourseResult::SYNC_STATE_DIRTY,
+                    'remote_upd_date' => null,
+                    ...($assignment ? ['lecturer_assignment_id' => $assignment['assignment_id'],
+                        'lecturer_plan_revision' => (int) $this->course->lecturer_plan_revision] : []),
+                ]
+            );
+        });
 
         $syncOk = false;
         $syncFailMessage = "Lokal gespeichert, aber UVS-Sync fuer Person #$personId fehlgeschlagen.";
@@ -173,6 +184,7 @@ class ManageCourseResults extends Component
 
     public function setStatus(string $personId, ?string $status): void
     {
+        $this->authorizeWrite($personId);
         $syncService = $this->courseResultsSyncService();
         $normalizedStatus = $syncService->normalizeLocalStatus(
             $status,
@@ -202,6 +214,7 @@ class ManageCourseResults extends Component
 
     public function clearResult(string $personId): void
     {
+        $this->authorizeWrite($personId);
         if (! $this->course->termin_id || ! $this->course->klassen_id) {
             $this->dispatch(
                 'notify',
@@ -227,6 +240,7 @@ class ManageCourseResults extends Component
         }
 
         $payload = [
+            ...$this->courseResultsSyncService()->lecturerPayload($this->course),
             'termin_id' => (string) $this->course->termin_id,
             'klassen_id' => (string) $this->course->klassen_id,
             'teilnehmer_ids' => [(string) $person->teilnehmer_id],
@@ -327,6 +341,7 @@ class ManageCourseResults extends Component
      */
     public function syncResults(): void
     {
+        $this->authorizeWrite();
         try {
             $ok = $this->courseResultsSyncService()->syncToRemote($this->course);
 
@@ -367,6 +382,7 @@ class ManageCourseResults extends Component
      */
     public function reloadFromUvs(): void
     {
+        $this->authorizeWrite();
         if ($this->isExternalExam) {
             // Bei externen Prüfungen kein automatischer Load
             return;
@@ -388,6 +404,7 @@ class ManageCourseResults extends Component
      */
     public function deleteLocalResults(): void
     {
+        $this->authorizeWrite();
         $deleted = CourseResult::query()
             ->where('course_id', $this->course->id)
             ->delete();
@@ -407,6 +424,7 @@ class ManageCourseResults extends Component
      */
     public function deleteRemoteAndLocalResults(): void
     {
+        $this->authorizeWrite();
         if (! $this->course->termin_id || ! $this->course->klassen_id) {
             $this->dispatch(
                 'notify',
@@ -445,6 +463,7 @@ class ManageCourseResults extends Component
         }
 
         $payload = [
+            ...$this->courseResultsSyncService()->lecturerPayload($this->course),
             'termin_id' => (string) $this->course->termin_id,
             'klassen_id' => (string) $this->course->klassen_id,
             'teilnehmer_ids' => collect($changes)->pluck('teilnehmer_id')->unique()->values()->all(),
@@ -500,6 +519,8 @@ class ManageCourseResults extends Component
 
     public function sort(string $col): void
     {
+        $this->course = $this->course->fresh();
+        abort_unless(CourseLecturerAccess::canView(auth()->user(), $this->course), 403);
         if ($this->sortBy === $col) {
             $this->sortDir = $this->sortDir === 'asc' ? 'desc' : 'asc';
         } else {
@@ -513,6 +534,7 @@ class ManageCourseResults extends Component
 
     public function updatedIsExternalExam($value): void
     {
+        $this->authorizeWrite();
         $this->course->setSetting('isExternalExam', (bool) $value);
         $this->course->save();
 
@@ -676,6 +698,19 @@ class ManageCourseResults extends Component
     private function courseResultsSyncService(): CourseResultsSyncService
     {
         return app(CourseResultsSyncService::class);
+    }
+
+    private function authorizeWrite(?string $personId = null): void
+    {
+        $this->course = Course::query()->findOrFail($this->course->id);
+        abort_unless(CourseLecturerAccess::canView(auth()->user(), $this->course), 403);
+        if (CourseLecturerAccess::hasPlan($this->course)) {
+            abort_unless(CourseLecturerAccess::canManageResults(auth()->user(), $this->course), 403,
+                'Ergebnisse können erst nach Kursabschluss vom zuständigen Abschlussdozenten bearbeitet werden.');
+        }
+        if ($personId !== null) {
+            abort_unless($this->course->participants()->where('persons.id', $personId)->exists(), 403);
+        }
     }
 
     public function placeholder(): string

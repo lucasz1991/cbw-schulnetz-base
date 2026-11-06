@@ -100,7 +100,7 @@ class ParticipantsTable extends Component
             /** @var CourseDayAttendanceSyncService $service */
             $service = app(CourseDayAttendanceSyncService::class);
 
-            $service->loadFromRemote($day);
+            if (!\App\Services\Courses\CourseLecturerAccess::hasPlan($day->course)) $service->loadFromRemote($day);
 
             $day->refresh();
             $this->selectedDay   = $day;

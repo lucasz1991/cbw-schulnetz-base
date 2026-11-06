@@ -29,10 +29,7 @@ class CourseShow extends Component
     {
         $this->course = Course::with(['tutor', 'dates'])->findOrFail($courseId);
 
-        $isTutorOfCourse = auth()->user()
-            ->persons()
-            ->whereKey($this->course->tutor()->pluck('id'))
-            ->exists();
+        $isTutorOfCourse = \App\Services\Courses\CourseLecturerAccess::canView(auth()->user(), $this->course);
 
         if (! $isTutorOfCourse) {
             abort(403);
@@ -51,7 +48,8 @@ class CourseShow extends Component
 
     public function handleCalendarEventClick($id)
     {
-        $this->selectedDate = CourseDay::findOrFail($id);
+        abort_unless(\App\Services\Courses\CourseLecturerAccess::canView(auth()->user(), $this->course->fresh()), 403);
+        $this->selectedDate = $this->course->days()->findOrFail($id);
     }
 
     public function sort(string $key): void

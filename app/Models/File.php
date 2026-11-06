@@ -17,6 +17,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class File extends Model
 {
     protected $fillable = [
+        'lecturer_person_id','lecturer_contract_id','lecturer_assignment_id','lecturer_plan_revision',
+        'document_revision','supersedes_file_id',
         'filepool_id',
         'user_id',
         'name',
@@ -38,6 +40,7 @@ class File extends Model
     protected static function booted(): void
     {
         static::deleting(function (File $file) {
+            \App\Services\Courses\CourseLecturerEvidence::guardFileDelete($file);
             abort_if(\App\Services\ReportBook\ReportBookSignatureEvidence::fileIsPreserved($file), 409,
                 'Diese Unterschrift gehört zu einem freigegebenen Berichtshefteintrag und bleibt als Nachweis erhalten.');
             $disk = 'private';
@@ -413,6 +416,7 @@ class File extends Model
 
     public function getEphemeralPublicUrl(int $minutes = 10): string
     {
+        \App\Services\Courses\CourseLecturerEvidence::guardFileRead($this);
         $disk      = $this->disk ?: 'private';
         $path      = (string) $this->path;
 
@@ -561,6 +565,7 @@ class File extends Model
 
     public function download(string $disk = 'private', bool $denyExpired = true): StreamedResponse
     {
+        \App\Services\Courses\CourseLecturerEvidence::guardFileRead($this);
         if ($denyExpired && $this->isExpired()) {
             abort(403, 'Diese Datei ist abgelaufen und kann nicht mehr heruntergeladen werden.');
         }

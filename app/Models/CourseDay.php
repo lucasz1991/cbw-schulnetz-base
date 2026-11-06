@@ -66,8 +66,36 @@ class CourseDay extends Model
 
     public const AUTO_SYNC_THRESHOLD_MINUTES = 15;
 
+    public function save(array $options = [])
+    {
+        if (!$this->exists || \App\Services\Courses\CourseLecturerAccess::isSystemSync()) {
+            return parent::save($options);
+        }
+
+        // Share the projector's parent lock, including the first activation of
+        // a plan. Internal UVS imports explicitly use runAsSystem().
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($options) {
+            $courseId=$this->getRawOriginal('course_id') ?? $this->course_id;
+            $course=Course::withoutEvents(fn()=>Course::withTrashed()->whereKey($courseId)->lockForUpdate()->first());
+            if ($course && \App\Services\Courses\CourseLecturerAccess::hasPlan($course)) {
+                abort_if($course->trashed() || (int)$this->course_id !== (int)$courseId,403);
+                $stored=static::withoutEvents(fn()=>static::query()->whereKey($this->id)->lockForUpdate()->firstOrFail());
+                $fields=array_keys($this->getDirty());
+                if($this->isDirty(['notes','note_status','day_sessions','topic'])) {
+                    $fields=array_unique(array_merge($fields,['notes','note_status','notes_author_user_id','notes_revision']));
+                }
+                foreach($fields as$field) {
+                    abort_if($this->getRawOriginal($field)!==$stored->getRawOriginal($field),409,
+                        'Der Unterrichtstag wurde zwischenzeitlich geändert. Bitte neu laden.');
+                }
+            }
+            return parent::save($options);
+        },1);
+    }
+
     protected static function booted(): void
     {
+        static::saving(fn (CourseDay $day) => \App\Services\Courses\CourseLecturerEvidence::savingDay($day));
         static::saving(function (CourseDay $day) {
             if ($day->isDirty(['topic', 'notes', 'note_status', 'attendance_data', 'documentation_addendum',
                 'documentation_addendum_status', 'documentation_addendum_saved_by_user_id', 'documentation_addendum_saved_at',

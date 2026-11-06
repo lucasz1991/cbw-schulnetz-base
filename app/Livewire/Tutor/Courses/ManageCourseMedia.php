@@ -57,6 +57,7 @@ class ManageCourseMedia extends Component
     public function mount(Course $course): void
     {
         $this->course = $course;
+        \App\Services\Courses\CourseLecturerEvidence::guardView($course);
     }
 
     /** Aktuelle Roter-Faden-Datei (Single) */
@@ -125,6 +126,7 @@ class ManageCourseMedia extends Component
     /** Upload / Ersetzen des Roten Fadens */
     public function uploadRoterFaden(): void
     {
+        \App\Services\Courses\CourseLecturerEvidence::guardMaterials($this->course);
         $this->validate();
 
         if (!$this->roterFadenUpload) {
@@ -157,22 +159,24 @@ class ManageCourseMedia extends Component
 
         // Reset + Close
         $this->reset(['roterFadenUpload', 'roterFadenExpires', 'openRoterFadenForm']);
-        $this->roterFadenFile = $file;
+        unset($this->roterFadenFile);
         $this->dispatch('toast', type:'success', message:'Roter Faden aktualisiert.');
     }
 
     /** Entfernt den bestehenden Roten Faden */
     public function removeRoterFaden(): void
     {
+        \App\Services\Courses\CourseLecturerEvidence::guardMaterials($this->course);
         if (!$this->roterFadenFile) return;
         $this->deleteFileRecord($this->roterFadenFile);
-        $this->roterFadenFile = null;
+        unset($this->roterFadenFile);
         $this->dispatch('toast', type:'success', message:'Roter Faden entfernt.');
     }
 
     /** Hilfsfunktion: Physisch + DB löschen */
     protected function deleteFileRecord(File $file): void
     {
+        \App\Services\Courses\CourseLecturerEvidence::guardFileDelete($file);
         try {
             // Primär auf dem gespeicherten Disk löschen (hier: private)
             Storage::disk('private')->delete($file->path);
@@ -242,6 +246,7 @@ class ManageCourseMedia extends Component
 
     public function render()
     {
+        \App\Services\Courses\CourseLecturerEvidence::guardView($this->course);
         return view('livewire.tutor.courses.manage-course-media', [
             'roterFaden' => $this->roterFadenFile,
             'roterFadenTemplate' => $this->roterFadenTemplate,

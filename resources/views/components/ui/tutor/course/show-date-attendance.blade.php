@@ -12,6 +12,10 @@
   'plannedEnd',
 ])
 
+@php
+    $canEditAttendance = !$selectedDay || !\App\Services\Courses\CourseLecturerAccess::hasPlan($selectedDay->course)
+        || \App\Services\Courses\CourseLecturerAccess::canWriteDay(auth()->user(),$selectedDay->course,$selectedDay);
+@endphp
 @once
     <style>
         .attendance-time-input,
@@ -218,6 +222,7 @@
         </div>
     @endif
     <div class="border rounded bg-white">
+        <fieldset @disabled(!$canEditAttendance)>
         <table class="min-w-full text-sm table-fixed">
             <thead class="bg-gray-50">
                 <tr>
@@ -641,6 +646,7 @@
                 @endforelse
             </tbody>
         </table>
+        </fieldset>
     </div>
     @unless($selectedDay)
         <div class="rounded border border-amber-300 bg-amber-50 text-amber-800 p-3 text-sm">

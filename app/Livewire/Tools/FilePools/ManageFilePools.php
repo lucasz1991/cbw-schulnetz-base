@@ -18,11 +18,11 @@ class ManageFilePools extends Component
     use WithPagination;
     use WithFileUploads;
     
-    public string $modelType;
-    public int $modelId;
+    #[\Livewire\Attributes\Locked] public string $modelType;
+    #[\Livewire\Attributes\Locked] public int $modelId;
 
-    public ?int $filePoolId = null;
-    public ?FilePool $filePool = null;
+    #[\Livewire\Attributes\Locked] public ?int $filePoolId = null;
+    #[\Livewire\Attributes\Locked] public ?FilePool $filePool = null;
 
     public array $fileUploads = [];
     public array $selectedFiles = [];
@@ -37,6 +37,25 @@ class ManageFilePools extends Component
 
     public bool $readOnly = true;
 
+    protected function guardPool(bool $write=false): void
+    {
+        $model=$this->modelType::findOrFail($this->modelId);
+        if($model instanceof \App\Models\Course && \App\Services\Courses\CourseLecturerAccess::hasPlan($model)) {
+            if($write) \App\Services\Courses\CourseLecturerEvidence::guardMaterials($model);
+            else {
+                $participant=auth()->user() && $model->participants()->whereIn('persons.id',auth()->user()->persons()->pluck('persons.id'))->exists();
+                abort_unless($participant || \App\Services\Courses\CourseLecturerAccess::canView(auth()->user(),$model),403);
+            }
+        }
+        if($write) abort_if($this->readOnly,403);
+    }
+
+    protected function poolFile(int $id): File
+    {
+        $this->guardPool();
+        return $this->filePool?->files()->findOrFail($id) ?? abort(404);
+    }
+
 
 
     public function mount(string $modelType, int $modelId, bool $readOnly): void
@@ -44,21 +63,27 @@ class ManageFilePools extends Component
         $this->modelType = $modelType;
         $this->modelId = $modelId;
         $model = $modelType::find($modelId);
-        $this->filePool = $model->filePool()->firstOrCreate([
+        $this->readOnly = $readOnly;
+        $this->guardPool();
+        $temporal=$model instanceof \App\Models\Course && \App\Services\Courses\CourseLecturerAccess::hasPlan($model);
+        if($temporal && !\App\Services\Courses\CourseLecturerAccess::canManageCourse(auth()->user(),$model)) $this->readOnly=true;
+        $this->filePool = $model->filePool()->first();
+        if(!$this->filePool && !$this->readOnly) $this->filePool = $model->filePool()->firstOrCreate([
             'title' => 'Standart Ordner',
             'type' => $modelType,
             'description' => '',
         ]);
-        $this->filePoolId = $this->filePool->id;
-        $this->fileUploads = [$this->filePool->id => []];
+        $this->filePoolId = $this->filePool?->id;
+        $this->fileUploads = $this->filePool ? [$this->filePool->id => []] : [];
 
         $this->openFileForm = false;
         $this->openEditFileForm = false;
-        $this->readOnly = $readOnly;
     }
 
     public function uploadFile(int $filePoolId)
     {
+        $this->guardPool(true);
+        abort_unless($this->filePool && $filePoolId===$this->filePoolId,403);
         $this->validate([
             "fileUploads.$filePoolId"     => ['required','array','min:1'],
             "fileUploads.$filePoolId.*"   => ['file','max:302400'], // 300 MB je Datei
@@ -91,14 +116,15 @@ class ManageFilePools extends Component
 
     public function downloadFile(int $fileId): StreamedResponse
     {
-        $file = File::findOrFail($fileId);
+        $file = $this->poolFile($fileId);
         return $file->download(); // 👈 zentral im Model
     }
 
 
     public function editFile($id)
     {
-        $this->file = File::findOrFail($id);
+        $this->guardPool(true);
+        $this->file = $this->poolFile((int)$id);
         $this->selectedFileName = $this->file->name;
         $this->selectedFileExpiresDate = $this->file->expires_at ?? '';
         $this->openEditFileForm = true;
@@ -106,6 +132,8 @@ class ManageFilePools extends Component
 
     public function safeFile()
     {
+        $this->guardPool(true);
+        if($this->file) $this->file=$this->poolFile((int)$this->file->id);
         $this->validate([
             'selectedFileName' => 'required|string|max:255',
             'selectedFileExpiresDate' => 'nullable|date|after_or_equal:today',
@@ -183,6 +211,7 @@ class ManageFilePools extends Component
      */
     public function downloadFiles()
     {
+        $this->guardPool();
         $files = $this->filePool
             ? $this->filePool->files()->get()
             : collect();
@@ -197,6 +226,7 @@ class ManageFilePools extends Component
      */
     public function downloadAll()
     {
+        $this->guardPool();
         if (!$this->filePool) {
             abort(404, 'FilePool nicht gefunden.');
         }
@@ -211,7 +241,8 @@ class ManageFilePools extends Component
 
     public function deleteFile(int $fileId)
     {
-        $file = File::findOrFail($fileId);
+        $this->guardPool(true);
+        $file = $this->poolFile($fileId);
         abort_if(\App\Services\ReportBook\ReportBookSignatureEvidence::fileIsPreserved($file), 409,
             'Diese Unterschrift bleibt als Freigabenachweis erhalten.');
         Storage::disk('private')->delete($file->path);

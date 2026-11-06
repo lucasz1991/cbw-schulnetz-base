@@ -76,6 +76,7 @@ class DispatchLecturerReminders extends Command
             ->chunkById(100, function ($courses) use ($today, $dryRun, &$sent) {
                 foreach ($courses as $course) {
                     $missingDays = $course->days
+                        ->filter(fn ($day) => $this->belongsToCurrentAssignment($course,$day))
                         ->filter(fn ($day) => $day->date && Carbon::parse($day->date)->lt($today))
                         ->filter(fn ($day) => (int) $day->note_status !== CourseDay::NOTE_STATUS_COMPLETED)
                         ->count();
@@ -167,6 +168,7 @@ class DispatchLecturerReminders extends Command
             ->chunkById(100, function ($courses) use ($today, $dryRun, &$sent) {
                 foreach ($courses as $course) {
                     $hasMissingAttendance = $course->days
+                        ->filter(fn ($day) => $this->belongsToCurrentAssignment($course,$day))
                         ->filter(fn ($day) => $day->date && Carbon::parse($day->date)->lte($today))
                         ->contains(fn ($day) => ! $day->isAttendanceCompletelyRecorded());
 
@@ -269,7 +271,20 @@ class DispatchLecturerReminders extends Command
         ?int $maxCount,
         bool $once
     ): int {
-        $state = $this->getReminderState($course, $type);
+        $stateType=$type;
+        if (\App\Services\Courses\CourseLecturerAccess::hasPlan($course)) {
+            if (!\App\Services\Courses\CourseLecturerAccess::healthy($course)) return 0;
+            $assignment=$type===self::KEY_RESULTS_MISSING
+                ? \App\Services\Courses\CourseLecturerAccess::closingAssignment($course)
+                : \App\Services\Courses\CourseLecturerAccess::currentAssignment($course);
+            if(!$assignment || $assignment['starts_on']>$today->toDateString()) return 0;
+            if($type===self::KEY_DOC_MISSING && !$course->days()->whereBetween('date',[$assignment['starts_on'],$assignment['ends_on']])
+                ->whereDate('date','<',$today)->where('note_status','!=',CourseDay::NOTE_STATUS_COMPLETED)->exists()) return 0;
+            if($type===self::KEY_ATTENDANCE_MISSING && !$course->days()->whereBetween('date',[$assignment['starts_on'],$assignment['ends_on']])
+                ->whereDate('date','<=',$today)->get()->contains(fn($day)=>!$day->isAttendanceCompletelyRecorded())) return 0;
+            $stateType.='_'.$assignment['assignment_id'];
+        }
+        $state = $this->getReminderState($course, $stateType);
         $count = (int) ($state['count'] ?? 0);
         $lastSentAt = ! empty($state['last_sent_at']) ? Carbon::parse($state['last_sent_at']) : null;
         $lastSentDay = $lastSentAt?->copy()->timezone('Europe/Berlin')->startOfDay();
@@ -290,7 +305,7 @@ class DispatchLecturerReminders extends Command
             return 0;
         }
 
-        $recipient = $this->resolveRecipient($course);
+        $recipient = $this->resolveRecipient($course,$type);
         if (empty($recipient['emails']) && empty($recipient['user_id'])) {
             return 0;
         }
@@ -341,7 +356,7 @@ class DispatchLecturerReminders extends Command
         if ($once) {
             $state['sent_once_at'] = now()->toIso8601String();
         }
-        $course->setSetting("reminder_state_{$type}", $state);
+        $course->setSetting("reminder_state_{$stateType}", $state);
         $course->save();
 
         return 1;
@@ -350,9 +365,13 @@ class DispatchLecturerReminders extends Command
     /**
      * @return array{user_id:int|null,emails:array<int,string>}
      */
-    private function resolveRecipient(Course $course): array
+    private function resolveRecipient(Course $course, ?string $type=null): array
     {
         $person = $course->tutor;
+        if($type===self::KEY_RESULTS_MISSING && \App\Services\Courses\CourseLecturerAccess::hasPlan($course)) {
+            $assignment=\App\Services\Courses\CourseLecturerAccess::closingAssignment($course);
+            $person=\App\Models\Person::find($assignment['person_id'] ?? 0);
+        }
         if (! $person) {
             return ['user_id' => null, 'emails' => []];
         }
@@ -368,6 +387,15 @@ class DispatchLecturerReminders extends Command
             'user_id' => $person->user_id ? (int) $person->user_id : null,
             'emails' => $emails,
         ];
+    }
+
+    private function belongsToCurrentAssignment(Course $course, CourseDay $day): bool
+    {
+        if(!\App\Services\Courses\CourseLecturerAccess::hasPlan($course)) return true;
+        if(!\App\Services\Courses\CourseLecturerAccess::healthy($course)) return false;
+        $assignment=\App\Services\Courses\CourseLecturerAccess::currentAssignment($course);
+        return $assignment && $day->date && $day->date->toDateString()>=$assignment['starts_on']
+            && $day->date->toDateString()<=$assignment['ends_on'];
     }
 
     /**

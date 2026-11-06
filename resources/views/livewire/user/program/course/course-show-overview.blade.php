@@ -138,9 +138,10 @@
       <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-md">
         <div class="flex items-center justify-between gap-3">
           <div class="min-w-0">
-            <p class="text-xs uppercase tracking-wide text-slate-500">Dozent/-in</p>
+            <p class="text-xs uppercase tracking-wide text-slate-500">{{ ($lecturerDisplay['multiple'] ?? false) ? 'Hauptdozent' : 'Dozent/-in' }}</p>
             <div class="mt-2 text-sm text-slate-900">
               <x-user.public-info :person="$tutor" />
+              <x-courses.lecturer-history :display="$lecturerDisplay" :show-current="false" />
             </div>
           </div>
           <span class="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-sky-100 text-sky-700">

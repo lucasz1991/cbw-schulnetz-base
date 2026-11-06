@@ -46,7 +46,8 @@ class AdminStorageController extends Controller
             }
 
             // Nutze die vorhandene Funktion aus dem Model
-            $url = $file->getEphemeralPublicUrl($minutes);
+            // This branch is entered only after the existing server-to-server API key check.
+            $url = \App\Services\Courses\CourseLecturerAccess::runAsSystem(fn()=>$file->getEphemeralPublicUrl($minutes));
 
             if (!$url) {
                 return response()->json([
@@ -259,6 +260,7 @@ class AdminStorageController extends Controller
 
         // Versioned report-book stamps are permanent evidence, not ordinary media.
         $normalizedPath = (new \League\Flysystem\WhitespacePathNormalizer())->normalizePath($path);
+        $path = $normalizedPath;
         if (str_starts_with($normalizedPath, 'reportbook-stamps/')) {
             return response()->json(['success' => false, 'error' => 'Protokollierte Stempelversionen können nicht gelöscht werden.'], 403);
         }
@@ -272,6 +274,10 @@ class AdminStorageController extends Controller
             : ['private','public'];
 
         foreach ($disks as $disk) {
+            // Protect the original evidence even when Admin uses the existing path-based delete endpoint.
+            foreach(File::query()->where('path',$path)->where(function($q){$q->where('type','invoice')->orWhere('type','like','sign_%');})->get() as $file) {
+                \App\Services\Courses\CourseLecturerEvidence::guardFileDelete($file);
+            }
             if (Storage::disk($disk)->exists($path)) {
                 Storage::disk($disk)->delete($path);
                 return response()->json(['success' => true, 'message' => 'Datei gelöscht.', 'disk' => $disk, 'path' => $path]);

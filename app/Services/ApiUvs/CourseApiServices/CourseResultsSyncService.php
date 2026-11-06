@@ -5,10 +5,13 @@ namespace App\Services\ApiUvs\CourseApiServices;
 use App\Models\Course;
 use App\Models\CourseResult;
 use App\Models\Person;
+use App\Models\User;
 use App\Services\ApiUvs\ApiUvsService;
+use App\Services\Courses\CourseLecturerAccess;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class CourseResultsSyncService
 {
@@ -35,6 +38,18 @@ class CourseResultsSyncService
      */
     public function syncToRemote(Course $course, ?Collection $results = null): bool
     {
+        return DB::transaction(function () use ($course, $results) {
+            $fresh = Course::query()->lockForUpdate()->findOrFail($course->id);
+            if (CourseLecturerAccess::hasPlan($fresh)) {
+                abort_unless(CourseLecturerAccess::healthy($fresh) && CourseLecturerAccess::isCompleted($fresh),403);
+                if (auth()->user()) abort_unless(CourseLecturerAccess::canManageResults(auth()->user(),$fresh),403);
+            }
+            return $this->syncNow($fresh,$results);
+        });
+    }
+
+    private function syncNow(Course $course, ?Collection $results = null): bool
+    {
         if ($course->type === 'coaching') return true;
         if (! $course->termin_id || ! $course->klassen_id) {
             Log::warning('CourseResultsSyncService.syncToRemote: fehlende termin_id/klassen_id.', [
@@ -48,6 +63,7 @@ class CourseResultsSyncService
 
         // 1) Lokale Ergebnisse, die überhaupt gesynct werden sollen
         [$changes, $syncCandidates] = $this->mapResultsToUvsChanges($course, $results);
+        if (CourseLecturerAccess::hasPlan($course) && !auth()->user() && !CourseLecturerAccess::isSystemSync() && !$changes) return false;
 
         // 2) Relevante Teilnehmer-IDs für Pull
         $teilnehmerIds = $results instanceof Collection
@@ -60,6 +76,7 @@ class CourseResultsSyncService
         }
 
         $payload = [
+            ...$this->lecturerPayload($course),
             'termin_id' => (string) $course->termin_id,
             'klassen_id' => (string) $course->klassen_id,
             'teilnehmer_ids' => $teilnehmerIds,
@@ -88,11 +105,11 @@ class CourseResultsSyncService
 
             // Nur wirklich erfolgreich geschriebene Datensaetze lokal als synced markieren.
             if (! empty($changes)) {
-                $this->markResultsSynced($syncCandidates, $successfulTeilnehmerIds);
+                CourseLecturerAccess::runAsSystem(fn () => $this->markResultsSynced($syncCandidates, $successfulTeilnehmerIds));
             }
 
             // Remote → lokal zurückschreiben (UVS gewinnt nur, wenn "neuer" und nicht dirty)
-            $this->applySyncResponse($course, $response);
+            CourseLecturerAccess::runAsSystem(fn () => $this->applySyncResponse($course, $response));
 
             $allApplied = $this->areAllRequestedChangesApplied($changes, $successfulTeilnehmerIds);
 
@@ -143,6 +160,10 @@ class CourseResultsSyncService
      */
     public function loadFromRemote(Course $course): bool
     {
+        $course = Course::query()->findOrFail($course->id);
+        if (CourseLecturerAccess::hasPlan($course) && !CourseLecturerAccess::isSystemSync()) {
+            abort_unless(CourseLecturerAccess::canManageResults(auth()->user(),$course),403);
+        }
         if ($course->type === 'coaching') return true;
         if (! $course->termin_id || ! $course->klassen_id) {
             Log::warning('CourseResultsSyncService.loadFromRemote: fehlende termin_id/klassen_id.', [
@@ -176,7 +197,7 @@ class CourseResultsSyncService
 
         if (! empty($response['ok'])) {
             // Remote → lokal: UVS überschreibt ALLE lokalen CourseResults dieses Kurses
-            $this->applyLoadResponse($course, $response);
+            CourseLecturerAccess::runAsSystem(fn () => $this->applyLoadResponse($course, $response));
 
             Log::info('CourseResultsSyncService.loadFromRemote: Load OK.', [
                 'course_id' => $course->id,
@@ -253,6 +274,16 @@ class CourseResultsSyncService
 
         foreach ($results as $result) {
             /** @var CourseResult $result */
+            if (CourseLecturerAccess::hasPlan($course)) {
+                $result = CourseResult::query()->findOrFail($result->id);
+                $target = CourseLecturerAccess::closingAssignment($course);
+                $actor = $result->updated_by ? User::find($result->updated_by) : null;
+                abort_unless($target && $actor && CourseLecturerAccess::canManageResults($actor,$course)
+                    && $result->lecturer_assignment_id === $target['assignment_id']
+                    && (int)$result->lecturer_plan_revision === (int)$course->lecturer_plan_revision,403,
+                    'Die wartende Ergebnisänderung gehört nicht mehr zur bestätigten Zuständigkeit.');
+                abort_unless($course->participants()->where('persons.id',$result->person_id)->exists(),403);
+            }
             $person = $persons->get($result->person_id);
 
             if (! $person || ! $person->teilnehmer_id) {
@@ -305,6 +336,18 @@ class CourseResultsSyncService
         }
 
         return [$changes, $syncCandidates];
+    }
+
+    /** Temporal target is always resolved on the server, never from browser data. */
+    public function lecturerPayload(Course $course): array
+    {
+        if (!CourseLecturerAccess::hasPlan($course)) return [];
+        abort_unless(CourseLecturerAccess::healthy($course) && CourseLecturerAccess::isCompleted($course),403);
+        $target=CourseLecturerAccess::pinClosingAssignment($course);
+        abort_unless($target && !empty($target['mitarbeiter_id']),403);
+        return ['lecturer_assignment_id'=>$target['assignment_id'],
+            'lecturer_plan_revision'=>(int)$course->lecturer_plan_revision,
+            'mitarbeiter_id'=>(string)$target['mitarbeiter_id']];
     }
 
     protected function mapLocalStatusToRemoteStatus(?string $status): int

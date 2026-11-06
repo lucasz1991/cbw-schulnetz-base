@@ -5,7 +5,9 @@ namespace App\Services\ApiUvs\CourseApiServices;
 use App\Models\Course;
 use App\Models\CourseRating;
 use App\Services\ApiUvs\ApiUvsService;
+use App\Services\Courses\CourseLecturerAccess;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class CourseRatingsSyncService
@@ -31,10 +33,25 @@ class CourseRatingsSyncService
      */
     public function syncToRemote(Course $course): bool
     {
+        return DB::transaction(function () use ($course) {
+            $course = Course::query()->lockForUpdate()->findOrFail($course->id);
+            if (CourseLecturerAccess::hasPlan($course)) {
+                if (! CourseLecturerAccess::healthy($course) || ! CourseLecturerAccess::isCompleted($course)) {
+                    return false;
+                }
+                CourseLecturerAccess::pinClosingAssignment($course);
+            }
+
+            return $this->syncNow($course);
+        });
+    }
+
+    private function syncNow(Course $course): bool
+    {
         if (! $course->termin_id || ! $course->klassen_id) {
             Log::warning('CourseRatingsSyncService.syncToRemote: fehlende termin_id/klassen_id.', [
-                'course_id'  => $course->id,
-                'termin_id'  => $course->termin_id,
+                'course_id' => $course->id,
+                'termin_id' => $course->termin_id,
                 'klassen_id' => $course->klassen_id,
             ]);
 
@@ -44,8 +61,8 @@ class CourseRatingsSyncService
         $mitarbeiterId = $this->resolveMitarbeiterId($course);
         if (! $mitarbeiterId) {
             Log::warning('CourseRatingsSyncService.syncToRemote: mitarbeiter_id nicht ermittelbar.', [
-                'course_id'  => $course->id,
-                'termin_id'  => $course->termin_id,
+                'course_id' => $course->id,
+                'termin_id' => $course->termin_id,
                 'klassen_id' => $course->klassen_id,
             ]);
 
@@ -62,18 +79,22 @@ class CourseRatingsSyncService
         }
 
         $payload = [
-            'termin_id'      => (string) $course->termin_id,
-            'klassen_id'     => (string) $course->klassen_id,
+            ...(CourseLecturerAccess::hasPlan($course) ? [
+                'lecturer_assignment_id' => CourseLecturerAccess::closingAssignment($course)['assignment_id'],
+                'lecturer_plan_revision' => (int) $course->lecturer_plan_revision,
+            ] : []),
+            'termin_id' => (string) $course->termin_id,
+            'klassen_id' => (string) $course->klassen_id,
             'mitarbeiter_id' => (string) $mitarbeiterId,
-            'ratings'        => $ratingsPayload,
+            'ratings' => $ratingsPayload,
         ];
 
         $response = $this->api->request('POST', self::ENDPOINT_SYNC, $payload, []);
 
-        if (! empty($response['ok'])) {
+        if (! empty($response['ok']) && data_get($response, 'data.ok') !== false) {
             Log::info('CourseRatingsSyncService.syncToRemote: Sync OK.', [
-                'course_id'      => $course->id,
-                'ratings_count'  => count($ratingsPayload),
+                'course_id' => $course->id,
+                'ratings_count' => count($ratingsPayload),
                 'mitarbeiter_id' => $mitarbeiterId,
             ]);
 
@@ -81,9 +102,9 @@ class CourseRatingsSyncService
         }
 
         Log::error('CourseRatingsSyncService.syncToRemote: UVS-Response nicht ok.', [
-            'course_id'      => $course->id,
+            'course_id' => $course->id,
             'mitarbeiter_id' => $mitarbeiterId,
-            'response'       => $response,
+            'response' => $response,
         ]);
 
         return false;
@@ -105,6 +126,17 @@ class CourseRatingsSyncService
             return [];
         }
 
+        if (CourseLecturerAccess::hasPlan($course)) {
+            $target = CourseLecturerAccess::closingAssignment($course);
+            foreach ($rows as $rating) {
+                abort_unless($target && $rating->lecturer_assignment_id === $target['assignment_id']
+                    && (int) $rating->lecturer_person_id === (int) $target['person_id']
+                    && (string) $rating->lecturer_contract_id === (string) $target['contract_id']
+                    && (string) $rating->lecturer_staff_id === (string) $target['mitarbeiter_id'], 409,
+                    'Die Bewertung ist einem anderen oder ungeklärten Dozenteneinsatz zugeordnet.');
+            }
+        }
+
         $deduped = $this->dedupeRatingsByParticipant($rows);
         $payload = [];
 
@@ -116,8 +148,8 @@ class CourseRatingsSyncService
                 }
 
                 $payload[] = [
-                    'bew_id'        => $field,
-                    'bew_note'      => $value,
+                    'bew_id' => $field,
+                    'bew_note' => $value,
                     'teilnehmer_id' => $this->resolveTeilnehmerIdForRating($rating),
                 ];
             }
@@ -134,10 +166,10 @@ class CourseRatingsSyncService
         return $rows
             ->groupBy(function (CourseRating $rating) {
                 if (! is_null($rating->participant_id)) {
-                    return 'p:' . (string) $rating->participant_id;
+                    return 'p:'.(string) $rating->participant_id;
                 }
 
-                return 'u:' . (string) $rating->user_id;
+                return 'u:'.(string) $rating->user_id;
             })
             ->map(fn (Collection $group) => $group->first())
             ->values();
@@ -177,11 +209,15 @@ class CourseRatingsSyncService
 
     protected function resolveMitarbeiterId(Course $course): ?string
     {
+        if (CourseLecturerAccess::hasPlan($course)) {
+            return CourseLecturerAccess::closingAssignment($course)['mitarbeiter_id'] ?? null;
+        }
         $tutorProgramData = $course->tutor?->programdata;
         $fromTutorProgram = data_get($tutorProgramData, 'tutor.mitarbeiter_id');
         if (is_scalar($fromTutorProgram) && trim((string) $fromTutorProgram) !== '') {
             return trim((string) $fromTutorProgram);
         }
+
         return null;
     }
 }

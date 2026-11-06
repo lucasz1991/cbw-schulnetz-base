@@ -3,6 +3,11 @@
     use App\Models\CourseDay;
 
     $isToday = $selectedDay?->date ? Carbon::parse($selectedDay->date)->isToday() : false;
+    $temporal = $selectedDay && \App\Services\Courses\CourseLecturerAccess::hasPlan($selectedDay->course);
+    $canEditDocument = !$temporal || (\App\Services\Courses\CourseLecturerAccess::canWriteDay(auth()->user(),$selectedDay->course,$selectedDay)
+      && (int)$selectedDay->note_status !== CourseDay::NOTE_STATUS_COMPLETED && !$selectedDay->tutorSignatures()->exists()
+      && (!$selectedDay->notes_author_user_id || (int)$selectedDay->notes_author_user_id===(int)auth()->id())
+      && ($selectedDay->notes_author_user_id || trim((string)$selectedDay->notes)===''));
 @endphp
 
 <div class="transition-opacity duration-300" wire:key="doc-panel-{{ $selectedDayId }}">
@@ -72,7 +77,7 @@
 
       <div class="flex items-center gap-3">
         {{-- Aktionen: Speichern / Fertigstellen --}}
-        @if($selectedDayId && $isDirty)
+        @if($canEditDocument && $selectedDayId && $isDirty)
             {{-- Speichern-Button nur wenn dirty --}}
             <x-buttons.button-basic
                 type="button"
@@ -89,7 +94,7 @@
             </x-buttons.button-basic>
         @endif
 
-        @if($selectedDayId && $canFinalize && !$isDirty)
+        @if($canEditDocument && $selectedDayId && $canFinalize && !$isDirty)
             {{-- Fertigstellen-Button nur, wenn gespeichert & nicht dirty --}}
             <x-buttons.button-basic
                 type="button"
@@ -123,9 +128,13 @@
     </div>
   </div>
   <div class="mt-6 border border-gray-300 shadow rounded-lg overflow-hidden">
+    @if($canEditDocument)
     <x-ui.editor.toast
       wire:key="tui-editor-{{ $selectedDayId }}" 
       wireModel="dayNotes"
     />
+    @else
+      <div class="p-4 whitespace-pre-wrap text-sm text-gray-700">{{ html_entity_decode(strip_tags(preg_replace('/<\/(p|div)>|<br\s*\/?\s*>/i',"\n",(string)$selectedDay?->notes)), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>
+    @endif
   </div>
 </div>

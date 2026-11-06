@@ -10,7 +10,7 @@ use Illuminate\Support\Carbon;
 
 class ManageAttendance extends Component
 {
-    public ?int $selectedDayId = null;
+    #[\Livewire\Attributes\Locked] public ?int $selectedDayId = null;
     public ?CourseDay $selectedDay = null;
 
     public bool $showManageAttendanceModal = false;
@@ -29,7 +29,9 @@ class ManageAttendance extends Component
 
     public function getDayProperty(): ?CourseDay
     {
-        return $this->selectedDayId ? CourseDay::find($this->selectedDayId) : null;
+        $day=$this->selectedDayId ? CourseDay::find($this->selectedDayId) : null;
+        if($day) \App\Services\Courses\CourseLecturerEvidence::guardView($day->course);
+        return $day;
     }
 
     /** Vereinheitlichte Row für UI (tagesweit, inkl. in/out). */

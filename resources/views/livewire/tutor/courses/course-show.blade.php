@@ -2,7 +2,7 @@
     use Carbon\Carbon;
 
     $start = $course->planned_start_date ? Carbon::parse($course->planned_start_date) : null;
-    $end   = $course->planned_end_date   ? Carbon::parse($course->planned_end_date)   : null;
+    $end   = \App\Services\Courses\CourseLecturerAccess::completionTime($course);
 
     $now = now();
     $isRunning = $start && $end ? $now->between($start, $end) : false;
@@ -156,6 +156,7 @@
             </div>
         </div>
 
+        <x-courses.lecturer-history :course="$course" :show-own-role="true" />
         {{-- Accordion bleibt unverändert --}}
         <x-ui.accordion.tabs
             :tabs="[

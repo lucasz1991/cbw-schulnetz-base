@@ -25,6 +25,8 @@ class CourseRating extends Model
         'il_1','il_2','il_3',
         'do_1','do_2','do_3',
         'message',
+        'lecturer_assignment_id', 'lecturer_plan_revision', 'lecturer_person_id',
+        'lecturer_contract_id', 'lecturer_staff_id',
     ];
 
     /**

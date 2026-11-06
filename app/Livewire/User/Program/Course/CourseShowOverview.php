@@ -19,6 +19,7 @@ class CourseShowOverview extends Component
     public array $stats = [];
 
     public ?Person $tutor = null;
+    public array $lecturerDisplay = [];
     public int $participantsCount = 0;
 
     public ?float $participantScore = null;
@@ -88,10 +89,22 @@ class CourseShowOverview extends Component
         ];
 
         $this->tutor = $course->tutor;
+        $this->lecturerDisplay = \App\Services\Courses\CourseLecturerAccess::display($course);
+        // Public Livewire arrays are sent to participants: keep UVS audit/contract
+        // metadata out of the snapshot, even though the template does not print it.
+        foreach (['assignments', 'previous', 'planned'] as $group) {
+            $this->lecturerDisplay[$group] = array_map(fn ($row) => \Illuminate\Support\Arr::only($row,
+                ['assignment_id', 'person_id', 'name', 'starts_on', 'ends_on']), $this->lecturerDisplay[$group]);
+        }
+        if ($this->lecturerDisplay['current']) {
+            $this->lecturerDisplay['current'] = \Illuminate\Support\Arr::only($this->lecturerDisplay['current'],
+                ['assignment_id', 'person_id', 'name', 'starts_on', 'ends_on']);
+        }
         $this->participantsCount = (int) ($course->participantsCount ?? 0);
 
         $this->isFutureCourse = $start ? $nowBerlin->lt($start) : false;
-        $this->isCompletedCourse = $end ? $nowBerlin->gt($end) : false;
+        $this->isCompletedCourse = \App\Services\Courses\CourseLecturerAccess::isCompleted($course);
+        $this->course['status'] = $this->isCompletedCourse ? 'Abgeschlossen' : ($this->isFutureCourse ? 'Geplant' : 'Laufend');
         $this->hasCourseMaterials = ! empty($course->materials);
         $this->hasCurrentCourseMaterialsAck = $course->isMaterialsAcknowledgedBy($person->id);
 

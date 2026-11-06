@@ -2,6 +2,15 @@
     class="space-y-4 pt-6"
     x-on:accordion-tab-changed.window="if ($event.detail?.tab === 'invoice') { $wire.reloadOnTabActivated() }"
 >
+    @if(\App\Services\Courses\CourseLecturerAccess::hasPlan($course) && count($this->ownInvoiceAssignments)>1)
+        <label class="block text-sm">Eigener Einsatz für diese Rechnung
+            <select wire:model.live="invoiceAssignmentId" class="mt-1 rounded border-gray-300">
+                @foreach($this->ownInvoiceAssignments as $assignment)
+                    <option value="{{ $assignment['assignment_id'] }}">{{ $assignment['starts_on'] }} - {{ $assignment['ends_on'] }} · Vertrag {{ $assignment['contract_id'] ?? 'Bestand' }}</option>
+                @endforeach
+            </select>
+        </label>
+    @endif
     @if(!$invoice && !$canUploadInvoice)
       <x-alert type="warning">
         <div class="space-y-4">
@@ -80,6 +89,7 @@
             Öffnen
             </x-buttons.btn-group.btn-group-item>
 
+            @if(!\App\Services\Courses\CourseLecturerAccess::hasPlan($course))
             <x-buttons.btn-group.btn-group-item
                 wire:click="removeInvoice"
                 :disabled="!$invoice"
@@ -93,6 +103,7 @@
             </svg>
             Entfernen
             </x-buttons.btn-group.btn-group-item>
+            @endif
 
             <x-buttons.btn-group.btn-group-item
                 wire:click="openInvoiceDialog"

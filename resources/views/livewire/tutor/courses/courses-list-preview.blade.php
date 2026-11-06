@@ -18,7 +18,7 @@
         @forelse ($courses as $course)
             @php
                 $start = $course->planned_start_date ? \Illuminate\Support\Carbon::parse($course->planned_start_date)->timezone('Europe/Berlin') : null;
-                $end   = $course->planned_end_date   ? \Illuminate\Support\Carbon::parse($course->planned_end_date)->timezone('Europe/Berlin')   : null;
+                $end   = \App\Services\Courses\CourseLecturerAccess::completionTime($course);
 
                 $now = \Illuminate\Support\Carbon::now('Europe/Berlin');
                 $weekStart = $now->copy()->startOfWeek(\Illuminate\Support\Carbon::MONDAY)->startOfDay();

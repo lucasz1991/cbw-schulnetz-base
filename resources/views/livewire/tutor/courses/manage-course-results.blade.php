@@ -21,6 +21,13 @@
         }
     }"
 >
+    @php
+        $canEdit = !\App\Services\Courses\CourseLecturerAccess::hasPlan($course) || \App\Services\Courses\CourseLecturerAccess::canManageResults(auth()->user(),$course);
+    @endphp
+    @if(!$canEdit)
+        <p class="text-sm text-gray-600" role="status">Ergebnisse sind lesbar. Bearbeitung ist nach Kursabschluss dem zuständigen Abschlussdozenten vorbehalten.</p>
+    @endif
+    <fieldset @disabled(!$canEdit) class="space-y-4 min-w-0">
     <div class="w-max">
       <x-ui.forms.toggle-button
           model="isExternalExam"
@@ -219,4 +226,5 @@
           </table>
         </div>
     @endif
+    </fieldset>
 </div>

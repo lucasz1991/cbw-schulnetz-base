@@ -9,7 +9,7 @@
         @endif
     </div>
     <div>
-      @if( $filePool->files->count() > 0)
+      @if( ($filePool?->files?->count() ?? 0) > 0)
       <x-dropdown class="" :width="'min'">
         <x-slot name="trigger">
             <button type="button" class="inline-flex items-center px-2 py-2 bg-gray-200 text-gray-600 rounded hover:bg-gray-300">
@@ -26,7 +26,7 @@
     </div>
   </div>
   <div class="my-8 mx-2 flex flex-wrap">
-    @forelse($filePool->files as $file)
+    @forelse(($filePool?->files ?? collect()) as $file)
       <div class="w-32  mb-4 mr-4">
         <x-ui.filepool.file-card :file="$file" />
       </div>
@@ -34,6 +34,7 @@
       <div class="text-sm text-gray-500">Keine Dateien vorhanden.</div>
     @endforelse
   </div>
+  @if($filePool && !$readOnly)
   {{-- FileForm Modal --}}
   <x-dialog-modal wire:model="openFileForm">
     <x-slot name="title">Datei-Upload</x-slot>
@@ -54,6 +55,7 @@
         </div>
     </x-slot>
   </x-dialog-modal>
+  @endif
   {{-- EditFileForm Modal --}}
   <x-dialog-modal wire:model="openEditFileForm">
     <x-slot name="title">Datei bearbeiten </x-slot>

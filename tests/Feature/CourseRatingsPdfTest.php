@@ -75,6 +75,7 @@ class CourseRatingsPdfTest extends TestCase
             $table->text('message')->nullable();
             $table->timestamps();
         });
+        (require database_path('migrations/2026_11_06_120000_add_lecturer_plan_to_courses.php'))->up();
 
         DB::table('users')->insert([
             ['id' => 1, 'name' => 'Synthetic anonymous participant'],
@@ -168,6 +169,43 @@ class CourseRatingsPdfTest extends TestCase
             $this->assertSame('Synthetic PDF save failure', $exception->getMessage());
             $this->assertNotNull($path);
             $this->assertFileDoesNotExist($path);
+        }
+    }
+
+    public function test_temporal_pdf_names_the_persisted_closing_teacher_and_marks_conflicting_targets(): void
+    {
+        DB::table('persons')->insert(['id' => 4, 'vorname' => 'Späterer', 'nachname' => 'Kalenderdozent']);
+        $course = Course::firstOrFail();
+        $plan = ['status' => 'ready', 'closing_assignment_id' => 'A', 'completion_at' => '2026-10-01T16:00:00+02:00', 'assignments' => [
+            ['assignment_id' => 'A', 'person_id' => 3, 'contract_id' => 'CON-A', 'mitarbeiter_id' => 'MA-A', 'starts_on' => '2026-09-01', 'ends_on' => '2026-10-01'],
+            ['assignment_id' => 'B', 'person_id' => 4, 'contract_id' => 'CON-B', 'mitarbeiter_id' => 'MA-B', 'starts_on' => '2026-10-02', 'ends_on' => '2026-10-02'],
+        ]];
+        $course->forceFill(['lecturer_plan' => $plan, 'lecturer_closing_assignment_id' => 'A'])->saveQuietly();
+        $this->addRating(['do_1' => 2, 'lecturer_assignment_id' => 'A', 'lecturer_person_id' => 3, 'lecturer_contract_id' => 'CON-A', 'lecturer_staff_id' => 'MA-A']);
+        $expected = 'Test Dozent';
+        $pdf = Mockery::mock(\Barryvdh\DomPDF\PDF::class);
+        $pdf->shouldReceive('setPaper')->andReturnSelf();
+        $pdf->shouldReceive('save')->andReturnUsing(function ($path) use ($pdf) { file_put_contents($path, '%PDF-1.4 fixture'); return $pdf; });
+        Pdf::shouldReceive('loadView')->times(3)->andReturnUsing(function ($view, $data) use ($pdf, &$expected) {
+            $this->assertSame('pdf.courses.course-ratings', $view);
+            $this->assertSame($expected, $data['meta']['tutor_name']);
+
+            return $pdf;
+        });
+        foreach (['ready', 'conflict', 'wrong-rating-target'] as $state) {
+            if ($state === 'conflict') {
+                $plan['status'] = 'conflict';
+                $course->forceFill(['lecturer_plan' => $plan])->saveQuietly();
+                $expected = 'Zuordnung ungeklärt';
+            }
+            if ($state === 'wrong-rating-target') {
+                $plan['status'] = 'ready';
+                $course->forceFill(['lecturer_plan' => $plan])->saveQuietly();
+                DB::table('course_ratings')->update(['lecturer_assignment_id' => 'B']);
+            }
+            $path = app(CourseRatingsPdfExporter::class)->generate($course);
+            $this->assertFileExists($path);
+            @unlink($path);
         }
     }
 

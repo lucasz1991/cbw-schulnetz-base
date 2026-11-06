@@ -49,6 +49,13 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
 
     public function handle(): void
     {
+        Cache::lock('course-update-execution:'.sha1($this->klassenId), 180)->block(15, function () {
+            \App\Services\Courses\CourseLecturerAccess::runAsSystem(fn () => $this->syncCourse());
+        });
+    }
+
+    private function syncCourse(): void
+    {
         /** @var ApiUvsService $api */
         $api = app(ApiUvsService::class);
 
@@ -167,8 +174,8 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
         $tutorPersonId = null;
         $primaryTutor  = $teachersData[0] ?? null;
 
-        if ($primaryTutor) {
-            $tp = $primaryTutor;
+        foreach ($teachersData as $tp) {
+            if (!is_array($tp) || empty($tp['person_id'])) continue;
             $log['messages'][] = "PrimaryTutor vorhanden (person_id={$tp['person_id']}).";
 
             // Robust: UVS-Rohwerte niemals direkt via Carbon::parse() parsen
@@ -230,8 +237,9 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
                 }
             }
 
-            $tutorPersonId = $tutorPerson->id;
-        } else {
+            if (($primaryTutor['person_id'] ?? null) === $tp['person_id']) $tutorPersonId = $tutorPerson->id;
+        }
+        if (!$primaryTutor) {
             $log['messages'][] = 'Kein primaryTutor im teachersData gefunden.';
         }
 
@@ -273,11 +281,14 @@ class CreateOrUpdateCourse implements ShouldQueue, ShouldBeUniqueUntilProcessing
             'source_last_upd'         => now(),
             'sync_status'             => 1, // 1 = erfolgreich synchronisiert (UVS-Daten aktuell)
             'is_active'               => true,
-            'primary_tutor_person_id' => $tutorPersonId,
+            'primary_tutor_person_id' => \App\Services\Courses\CourseLecturerAccess::hasPlan($course)
+                ? $course->getRawOriginal('primary_tutor_person_id') : $tutorPersonId,
             'last_synced_at'          => now(),
         ]);
 
         $course->save();
+
+        \App\Services\Courses\LecturerPlanProjector::apply($course, $payload['lecturer_plan'] ?? null);
 
         $log['course_id']  = $course->id;
         $log['messages'][] = "Kurs upserted (id={$course->id}).";

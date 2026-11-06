@@ -42,6 +42,7 @@ class CourseDayAttendanceSyncService
      */
     public function syncToRemote(CourseDay $day, ?array $onlyLocalPersonIds = null): bool
     {
+        if(auth()->user()) \App\Services\Courses\CourseLecturerEvidence::guardDay($day);
         if ($day->course?->type === 'coaching') return true;
         if (! $this->isSyncable($day)) {
             Log::warning('CourseDayAttendanceSyncService.syncToRemote: day nicht syncbar.', [
@@ -52,6 +53,24 @@ class CourseDayAttendanceSyncService
         }
 
         [$changes, $localKeysForPush] = $this->mapAttendanceToUvsChangesDirtyOnly($day, $onlyLocalPersonIds);
+        $course=$day->course()->firstOrFail();
+        $claims=[];
+        if (\App\Services\Courses\CourseLecturerAccess::hasPlan($course)) {
+            $assignment=\App\Services\Courses\CourseLecturerAccess::currentAssignment($course,$day->date);
+            foreach ($localKeysForPush as $id) {
+                $row=data_get($day->attendance_data,"participants.$id",[]);
+                $actor=\App\Models\User::find($row['updated_by'] ?? 0);
+                if (!$assignment || ($row['lecturer_assignment_id'] ?? null)!==$assignment['assignment_id']
+                    || (int)($row['lecturer_plan_revision'] ?? -1)!==(int)$course->lecturer_plan_revision
+                    || !\App\Services\Courses\CourseLecturerAccess::canWriteDay($actor,$course,$day)) {
+                    Log::warning('Attendance push blocked: lecturer responsibility changed.', ['day_id'=>$day->id]);
+                    return false;
+                }
+            }
+            $claims=['klassen_id'=>$course->klassen_id,'mitarbeiter_id'=>$assignment['mitarbeiter_id'] ?? null,
+                'lecturer_assignment_id'=>$assignment['assignment_id'] ?? null,
+                'lecturer_plan_revision'=>(int)$course->lecturer_plan_revision];
+        }
 
         $teilnehmerIds = $this->collectTeilnehmerIds($day, $onlyLocalPersonIds);
 
@@ -66,7 +85,7 @@ class CourseDayAttendanceSyncService
             'changes'        => $changes,
         ];
 
-        $response = $this->api->request('POST', self::ENDPOINT_SYNC, $payload, []);
+        $response = $this->api->request('POST', self::ENDPOINT_SYNC, array_merge($payload,$claims), []);
 
         if (! empty($response['ok'])) {
             $this->markRowsSyncedAfterPush($day, $localKeysForPush);
@@ -90,6 +109,8 @@ class CourseDayAttendanceSyncService
      */
     public function loadFromRemote(CourseDay $day, ?array $onlyLocalPersonIds = null): bool
     {
+        if(auth()->user() && !\App\Services\Courses\CourseLecturerAccess::isSystemSync())
+            \App\Services\Courses\CourseLecturerEvidence::guardDay($day);
         if ($day->course?->type === 'coaching') return true;
         if (! $this->isSyncable($day)) {
             Log::warning('CourseDayAttendanceSyncService.loadFromRemote: day nicht loadbar.', [
@@ -274,7 +295,7 @@ class CourseDayAttendanceSyncService
         $day->attendance_data           = $attendance;
         $day->attendance_updated_at     = $now;
         $day->attendance_last_synced_at = $now;
-        $day->save();
+        \App\Services\Courses\CourseLecturerAccess::runAsSystem(fn()=>$day->save());
 
     }
 
@@ -307,7 +328,7 @@ protected function resetAttendanceData(CourseDay $day): void
     $day->attendance_data           = $attendance;
     $day->attendance_updated_at     = $now;
     $day->attendance_last_synced_at = $now;
-    $day->save();
+    \App\Services\Courses\CourseLecturerAccess::runAsSystem(fn()=>$day->save());
 }
 
 
@@ -414,6 +435,8 @@ protected function resetAttendanceData(CourseDay $day): void
 
         foreach ($participants as $localPersonId => $row) {
             $localPersonId = (int) $localPersonId;
+            if (\App\Services\Courses\CourseLecturerAccess::hasPlan($day->course)
+                && (!is_array($row) || !in_array($row['state'] ?? null,[self::STATE_DIRTY,self::STATE_DRAFT],true))) continue;
 
             if ($only !== null && ! in_array($localPersonId, $only, true)) {
                 continue;
@@ -541,7 +564,7 @@ protected function resetAttendanceData(CourseDay $day): void
         $day->attendance_data           = $attendance;
         $day->attendance_updated_at     = Carbon::now();
         $day->attendance_last_synced_at = Carbon::now();
-        $day->save();
+        \App\Services\Courses\CourseLecturerAccess::runAsSystem(fn()=>$day->save());
     }
 
     /* -------------------------------------------------------------------------
@@ -707,7 +730,7 @@ $attendance['participants'] = $participants;
         $day->attendance_data           = $attendance;
         $day->attendance_updated_at     = $now;
         $day->attendance_last_synced_at = $now;
-        $day->save();
+        \App\Services\Courses\CourseLecturerAccess::runAsSystem(fn()=>$day->save());
     }
 
     /* -------------------------------------------------------------------------

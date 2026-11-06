@@ -117,13 +117,13 @@ class PlanService
         foreach ($items as $item) {
             $days = CourseDay::with('course')->whereDate('date', $item['date'])->whereHas('course', function ($q) use ($persons, $item, $contract) {
                 $q->where('is_active', true)->where(function ($q) use ($persons, $item, $contract) {
-                    $q->whereIn('primary_tutor_person_id', $persons)
+                    $q->where(fn($tutor)=>\App\Services\Courses\CourseLecturerAccess::constrainVisibleCourses($tutor,$persons))
                         ->orWhereHas('enrollments', fn ($q) => $q->whereIn('person_id', $persons)->where('is_active', true));
                     if ($item['format'] === 'presence') $q->orWhere('institut_id', $contract->institut_id);
                 });
             })->get();
             foreach ($days as $day) {
-                $sharedPerson = in_array($day->course->primary_tutor_person_id, $persons)
+                $sharedPerson = in_array(\App\Services\Courses\CourseLecturerAccess::currentPersonId($day->course,$day->date), $persons)
                     || $day->course->enrollments()->whereIn('person_id', $persons)->where('is_active', true)->exists();
                 $sessions = $day->day_sessions ?: [['start' => $day->start_time?->format('H:i'), 'end' => $day->end_time?->format('H:i')]];
                 foreach ($sessions as $session) {

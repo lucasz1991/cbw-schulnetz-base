@@ -78,3 +78,10 @@ Append-only communication log. Source and runtime evidence override stale entrie
 
 - Review fixes: Base and Admin now share the report-book parent lock, legacy task descriptions match whole IDs and regain their morph context, and `external_makeup` renders all current external-exam values in Admin.
 - Final focused result: Base 30 tests/120 assertions; Admin 11 tests/48 assertions; combined 41/168. Independent re-review found no remaining concrete issue in these fixes.
+
+## 2026-11-06 | Base-Core-Agent -> Root | handoff
+
+- Datierter Dozentenplan, dynamische Anzeige/Kurslisten, Teilnehmer-Abschlussbewertung, Ergebnis-UI/-Sync und additive Migration lokal umgesetzt; bestehende Queue-/Cooldown-Verträge beibehalten.
+- Frische Evidence-Guards und CourseDay-Parent-/Daylocks mit Konflikterkennung ergänzt. Prüfungen: 97 Tests/563 Assertions Core+Evidence+Coaching, zusätzlich 5 Storage-HTTP-Tests/53 Assertions; keine echte Datenbank/API/Mail/Deployment.
+- Fünf report_books-Fixturefehler unabhängig im unveränderten HEAD-Archiv reproduziert, inklusive identischer Git-Blobs und Originalstack.
+- Detail: E:/projekte/CBW/.lmzdev/artifacts/reports/dozentenwechsel-20261106-base-core-handoff.md. Root führt Gesamtintegration/Bestandsmigrationen aus.

@@ -40,9 +40,9 @@ class CourseRatingsPdfExporter
             ?? ($days->last()?->date ?? null);
 
         $fromLabel = $from ? \Carbon\Carbon::parse($from)->format('d.m.Y') : '—';
-        $toLabel   = $to   ? \Carbon\Carbon::parse($to)->format('d.m.Y')   : '—';
+        $toLabel = $to ? \Carbon\Carbon::parse($to)->format('d.m.Y') : '—';
 
-        $terminLabel = trim(($course->termin_id ?: '') . ' - ' . $fromLabel . ' bis ' . $toLabel);
+        $terminLabel = trim(($course->termin_id ?: '').' - '.$fromLabel.' bis '.$toLabel);
 
         // Kleine Helper für Durchschnittswerte
         $avgField = function (string $field) use ($ratings): ?float {
@@ -75,94 +75,108 @@ class CourseRatingsPdfExporter
         $sections = [
             'kb' => [
                 'label' => 'Kundenbetreuung',
-                'avg'   => $avgCategory(['kb_1', 'kb_2', 'kb_3']),
+                'avg' => $avgCategory(['kb_1', 'kb_2', 'kb_3']),
                 'questions' => [
                     [
                         'label' => 'Wie kompetent sind die Mitarbeiter/-innen der Kundenbetreuung?',
-                        'avg'   => $avgField('kb_1'),
+                        'avg' => $avgField('kb_1'),
                     ],
                     [
                         'label' => 'Werden Ihre Probleme ernst genommen und zeitnah erledigt?',
-                        'avg'   => $avgField('kb_2'),
+                        'avg' => $avgField('kb_2'),
                     ],
                     [
                         'label' => 'Sind die Mitarbeiter/-innen freundlich und höflich?',
-                        'avg'   => $avgField('kb_3'),
+                        'avg' => $avgField('kb_3'),
                     ],
                 ],
             ],
             'sa' => [
                 'label' => 'Systemadministration',
-                'avg'   => $avgCategory(['sa_1', 'sa_2', 'sa_3']),
+                'avg' => $avgCategory(['sa_1', 'sa_2', 'sa_3']),
                 'questions' => [
                     [
                         'label' => 'Wie kompetent sind die Mitarbeiter/-innen der Systemadministration?',
-                        'avg'   => $avgField('sa_1'),
+                        'avg' => $avgField('sa_1'),
                     ],
                     [
                         'label' => 'Werden Ihre Probleme ernst genommen und zeitnah erledigt?',
-                        'avg'   => $avgField('sa_2'),
+                        'avg' => $avgField('sa_2'),
                     ],
                     [
                         'label' => 'Sind die Mitarbeiter/-innen freundlich und höflich?',
-                        'avg'   => $avgField('sa_3'),
+                        'avg' => $avgField('sa_3'),
                     ],
                 ],
             ],
             'il' => [
                 'label' => 'Institutsleitung',
-                'avg'   => $avgCategory(['il_1', 'il_2', 'il_3']),
+                'avg' => $avgCategory(['il_1', 'il_2', 'il_3']),
                 'questions' => [
                     [
                         'label' => 'Wie beurteilen Sie die Organisation im Institut?',
-                        'avg'   => $avgField('il_1'),
+                        'avg' => $avgField('il_1'),
                     ],
                     [
                         'label' => 'Werden Ihre Probleme ernst genommen und zeitnah erledigt?',
-                        'avg'   => $avgField('il_2'),
+                        'avg' => $avgField('il_2'),
                     ],
                     [
                         'label' => 'Sind die Mitarbeiter/-innen freundlich und höflich?',
-                        'avg'   => $avgField('il_3'),
+                        'avg' => $avgField('il_3'),
                     ],
                 ],
             ],
             'do' => [
                 'label' => 'Dozent/-in',
-                'avg'   => $avgCategory(['do_1', 'do_2', 'do_3']),
+                'avg' => $avgCategory(['do_1', 'do_2', 'do_3']),
                 'questions' => [
                     [
                         'label' => 'War der Dozent / die Dozentin Ihnen gegenüber freundlich und höflich?',
-                        'avg'   => $avgField('do_1'),
+                        'avg' => $avgField('do_1'),
                     ],
                     [
                         'label' => 'Wie beurteilen Sie die Fachkompetenz der/s Dozenten/-in?',
-                        'avg'   => $avgField('do_2'),
+                        'avg' => $avgField('do_2'),
                     ],
                     [
                         'label' => 'Wie beurteilen Sie ihre/seine methodischen und didaktischen Fähigkeiten?',
-                        'avg'   => $avgField('do_3'),
+                        'avg' => $avgField('do_3'),
                     ],
                 ],
             ],
         ];
 
+        // Keep the lecturer named on a rating bound to its accepted closing
+        // target, including when the last calendar assignment is different.
+        $tutor = $course->tutor;
+        $hasPlan = \App\Services\Courses\CourseLecturerAccess::hasPlan($course);
+        if ($hasPlan) {
+            $target = \App\Services\Courses\CourseLecturerAccess::healthy($course)
+                ? \App\Services\Courses\CourseLecturerAccess::closingAssignment($course) : null;
+            $matches = $target && $ratings->every(fn ($rating) => $rating->lecturer_assignment_id === $target['assignment_id']
+                && (int) $rating->lecturer_person_id === (int) $target['person_id']
+                && (string) $rating->lecturer_contract_id === (string) ($target['contract_id'] ?? null)
+                && (string) $rating->lecturer_staff_id === (string) ($target['mitarbeiter_id'] ?? null));
+            $tutor = $matches ? \App\Models\Person::find($target['person_id']) : null;
+        }
+        $tutorName = $tutor?->full_name ?? trim(($tutor?->vorname ?? '').' '.($tutor?->nachname ?? ''));
+
         // Meta-Infos für Kopfbereich
         $meta = [
-            'class_label'   => $course->courseClassName,
+            'class_label' => $course->courseClassName,
             'module_label' => $course->courseShortName,
-            'tutor_name'    => optional($course->tutor)->full_name
-                ?? trim(($course->tutor->vorname ?? '').' '.($course->tutor->nachname ?? '')),
-            'termin_label'  => $terminLabel,
+            'tutor_name' => $tutorName ?: ($hasPlan ? 'Zuordnung ungeklärt' : ''),
+            'termin_label' => $terminLabel,
             'ratings_count' => $ratings->count(),
         ];
 
         // View rendern
         $pdf = Pdf::loadView('pdf.courses.course-ratings', [
-            'course'   => $course,
-            'meta'     => $meta,
+            'course' => $course,
+            'meta' => $meta,
             'sections' => $sections,
-            'ratings'  => $ratings,
+            'ratings' => $ratings,
         ])->setPaper('a4', 'portrait');
 
         $tmpPath = tempnam(sys_get_temp_dir(), 'rating_');

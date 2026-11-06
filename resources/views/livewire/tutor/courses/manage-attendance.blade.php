@@ -1,3 +1,7 @@
+@php
+    $canEditLegacyAttendance = !$day || !\App\Services\Courses\CourseLecturerAccess::hasPlan($day->course)
+        || \App\Services\Courses\CourseLecturerAccess::canWriteDay(auth()->user(),$day->course,$day);
+@endphp
 <div class="space-y-4 transition-opacity duration-300" wire:loading.class="opacity-30">
     {{-- kompakte Kopf-Stats (außerhalb des Modals) --}}
     <div class="flex rounded-md border border-gray-300 overflow-hidden w-max">
@@ -101,6 +105,8 @@
         </x-slot>
 
         <x-slot name="content">
+            <fieldset @disabled(!$canEditLegacyAttendance)>
+
             {{-- Bulk-Aktionen + Stats --}}
             <div class="flex flex-wrap justify-between items-center gap-2 mb-6 mt-8">
                 @if($day)
@@ -125,7 +131,8 @@
                 <x-dropdown>
                     <x-slot name="trigger">
                         <button class="px-2 py-1 rounded border text-xs">Weitere Aktionen</button>
-                    </x-slot>
+                                </fieldset>
+</x-slot>
                     <x-slot name="content">
                         <x-dropdown-link wire:click="bulk('all_present')">Alle anwesend</x-dropdown-link>
                         <x-dropdown-link wire:click="bulk('all_excused')">Alle entschuldigt</x-dropdown-link>

@@ -72,6 +72,8 @@ class Course extends Model
 
         // Komfort: primärer Tutor (Person, nicht User)
         'primary_tutor_person_id',
+        'lecturer_plan', 'lecturer_plan_revision', 'lecturer_plan_synced_at',
+        'lecturer_closing_assignment_id', 'lecturer_closed_at',
     ];
 
     protected $casts = [
@@ -81,6 +83,9 @@ class Course extends Model
         'is_active'             => 'boolean',
         'settings'              => 'array',
         'source_snapshot'       => 'array',
+        'lecturer_plan'         => 'array',
+        'lecturer_plan_synced_at' => 'datetime',
+        'lecturer_closed_at'    => 'datetime',
         'educational_materials' => 'array',
     ];
 
@@ -420,7 +425,7 @@ class Course extends Model
     public function getStatusLabelAttribute(): string
     {
         $s = $this->planned_start_date ? Carbon::parse($this->planned_start_date) : null;
-        $e = $this->planned_end_date   ? Carbon::parse($this->planned_end_date)   : null;
+        $e = \App\Services\Courses\CourseLecturerAccess::completionTime($this);
         $now = Carbon::now('Europe/Berlin');
         if ($s && $now->lt($s)) return 'Geplant';
         if ($s && $e && $now->between($s, $e)) return 'Laufend';
@@ -574,6 +579,15 @@ class Course extends Model
     public function tutor()
     {
         return $this->belongsTo(Person::class, 'primary_tutor_person_id');
+    }
+
+    public function getTutorAttribute($value = null)
+    {
+        if (\App\Services\Courses\CourseLecturerAccess::hasPlan($this)) {
+            $id = \App\Services\Courses\CourseLecturerAccess::currentPersonId($this);
+            return $id ? Person::find($id) : null;
+        }
+        return $this->getRelationValue('tutor');
     }
 
     // Unterrichtstage (CourseDay)

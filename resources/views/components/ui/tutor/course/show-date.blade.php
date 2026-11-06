@@ -73,6 +73,10 @@
         <p class="text-sm text-gray-500">Keine Sessions für diesen Tag vorhanden.</p>
     @endif
 
+    @if($selectedDay && \App\Services\Courses\CourseLecturerAccess::hasPlan($selectedDay->course) && !\App\Services\Courses\CourseLecturerAccess::canWriteDay(auth()->user(),$selectedDay->course,$selectedDay))
+        <p class="mt-8 whitespace-pre-wrap text-lg text-gray-700">{{ $selectedDay->getSessionTopic($selectedDaySessionId) }}</p>
+        <div class="mt-6 whitespace-pre-wrap text-sm text-gray-600">{{ html_entity_decode(strip_tags(preg_replace('/<\/(p|div)>|<br\s*\/?\s*>/i',"\n",(string)$selectedDay->getSessionNotes($selectedDaySessionId))), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>
+    @else
     <div class="mt-8"
         x-data="{
             editTopic: false,
@@ -252,4 +256,5 @@
 
 
 
+    @endif
 </div>

@@ -9,6 +9,9 @@ use Illuminate\Validation\ValidationException;
 use App\Models\Course;
 use App\Models\CourseDay;
 use Livewire\Attributes\On;
+use App\Services\Courses\CourseLecturerAccess;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class CourseRatingFormModal extends Component
 {
@@ -203,7 +206,7 @@ class CourseRatingFormModal extends Component
 
         $this->klasse   = $payload['klasse']   ?? '';
         $this->baustein = $payload['baustein'] ?? '';
-        $this->dozent   = $payload['dozent']   ?? '';
+        $this->dozent   = $this->ratingTutorName();
 
         $this->prefillIfExisting();
         $this->showModal = true;
@@ -232,7 +235,7 @@ class CourseRatingFormModal extends Component
 
         $this->klasse   = $payload['klasse']   ?? '';
         $this->baustein = $payload['baustein'] ?? '';
-        $this->dozent   = $payload['dozent']   ?? '';
+        $this->dozent   = $this->ratingTutorName();
 
         $this->prefillIfExisting();
         $this->showModal = true;
@@ -242,7 +245,12 @@ class CourseRatingFormModal extends Component
     {
         if (!$id) return null;
         // fallback: klassen_id
-        return Course::where('klassen_id', $id)->first();
+        $course = Course::where('klassen_id', $id)->first();
+        if (!$course) return null;
+        $ids = Auth::user()?->persons()->pluck('id')->all() ?? [];
+        abort_unless($course->participants()->whereIn('persons.id',$ids)->exists(),403);
+        abort_unless(CourseLecturerAccess::isCompleted($course) && CourseLecturerAccess::healthy($course),403);
+        return $course;
     }
 
     public function updatedShowModal($open): void
@@ -265,7 +273,7 @@ class CourseRatingFormModal extends Component
         $participantId = Auth::id();
 
         $existing = CourseRating::where('course_id', $this->course?->id)
-            ->where('participant_id', $participantId)
+            ->where('user_id', $participantId)
             ->first();
 
         $this->alreadyRated = (bool) $existing;
@@ -290,7 +298,7 @@ class CourseRatingFormModal extends Component
 
         $participant = Auth::user();
 
-        CourseRating::create([
+        $this->persistRating([
             'user_id'        => Auth::id(),
             'course_id'      => $this->course->id,
             'is_anonymous'   => $this->is_anonymous,
@@ -358,7 +366,7 @@ class CourseRatingFormModal extends Component
 
         $participant = Auth::user();
 
-        CourseRating::create([
+        $this->persistRating([
             'user_id'        => Auth::id(),
             'course_id'      => $this->course->id,
             'is_anonymous'   => $this->is_anonymous,
@@ -388,6 +396,34 @@ class CourseRatingFormModal extends Component
         return view('livewire.user.program.course.course-rating-form-modal', [
             'blocks' => $this->blocks,
         ]);
+    }
+
+    protected function persistRating(array $values): void
+    {
+        $course=$this->resolveCourse($this->courseId);
+        abort_unless($course,404);
+        DB::transaction(function()use($course,$values){
+            $fresh=Course::query()->lockForUpdate()->findOrFail($course->id);
+            abort_unless(CourseLecturerAccess::isCompleted($fresh)&&CourseLecturerAccess::healthy($fresh),403);
+            if(CourseRating::where('course_id',$fresh->id)->where('user_id',Auth::id())->exists())return;
+            $target=CourseLecturerAccess::pinClosingAssignment($fresh);
+            $values['course_id']=$fresh->id;$values['user_id']=Auth::id();$values['participant_id']=Auth::id();
+            if($target){
+                $values['lecturer_assignment_id']=$target['assignment_id'];
+                $values['lecturer_plan_revision']=$fresh->lecturer_plan_revision;
+                $values['lecturer_person_id']=$target['person_id'];
+                $values['lecturer_contract_id']=$target['contract_id'];
+                $values['lecturer_staff_id']=$target['mitarbeiter_id'];
+            }
+            CourseRating::create($values);
+        });
+    }
+
+    private function ratingTutorName(): string
+    {
+        $target=CourseLecturerAccess::closingAssignment($this->course);
+        $person=$target ? \App\Models\Person::find($target['person_id']) : $this->course->tutor;
+        return trim(($person?->vorname ?? '').' '.($person?->nachname ?? ''));
     }
 }
 

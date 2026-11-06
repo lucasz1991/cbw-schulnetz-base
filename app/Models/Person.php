@@ -349,7 +349,7 @@ class Person extends Model
             ? static::where('user_id', $this->user_id)->pluck('id')
             : collect([$this->id]);
 
-        return Course::whereIn('primary_tutor_person_id', $personIds);
+        return \App\Services\Courses\CourseLecturerAccess::constrainVisibleCourses(Course::query(), $personIds);
     }
 
     protected function syncLinkedUserPortalRole(): void
