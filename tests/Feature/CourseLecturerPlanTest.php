@@ -157,8 +157,8 @@ class CourseLecturerPlanTest extends TestCase
     {
         return ['version' => 1, 'status' => 'ready', 'revision' => $revision, 'completion_at' => '2026-11-06T16:00:00+01:00', 'closing_assignment_id' => 'B',
             'assignments' => [
-                ['assignment_id' => 'A', 'person_id' => 'UVS-A', 'mitarbeiter_id' => 'MA-A', 'contract_id' => 'CON-A', 'starts_on' => '2026-10-19', 'ends_on' => '2026-11-04'],
-                ['assignment_id' => 'B', 'person_id' => 'UVS-B', 'mitarbeiter_id' => 'MA-B', 'contract_id' => 'CON-B', 'starts_on' => '2026-11-05', 'ends_on' => '2026-11-08'],
+                ['assignment_id' => 'A', 'person_id' => 'UVS-A', 'mitarbeiter_id' => 'MA-A', 'contract_id' => '101', 'legacy_assignment_uid' => '101', 'starts_on' => '2026-10-19', 'ends_on' => '2026-11-04'],
+                ['assignment_id' => 'B', 'person_id' => 'UVS-B', 'mitarbeiter_id' => 'MA-B', 'contract_id' => '202', 'legacy_assignment_uid' => '202', 'starts_on' => '2026-11-05', 'ends_on' => '2026-11-08'],
             ]];
     }
 
@@ -197,7 +197,7 @@ class CourseLecturerPlanTest extends TestCase
         $this->assertSame('Alte Lehrkraft', $display['previous'][0]['name']);
     }
 
-    public function test_same_person_with_two_contracts_has_no_extra_lecturer_ui(): void
+    public function test_same_person_with_two_existing_agreements_has_no_extra_lecturer_ui(): void
     {
         $course = $this->course(false);
         $source = $this->source();
@@ -207,6 +207,39 @@ class CourseLecturerPlanTest extends TestCase
         $html = view('components.courses.lecturer-history', ['course' => $course])->render();
         $this->assertStringNotContainsString('Hauptdozent:', $html);
         $this->assertStringNotContainsString('früherer Hauptdozent', $html);
+    }
+
+    public function test_projection_requires_one_unambiguous_existing_course_agreement_per_assignment(): void
+    {
+        foreach (['missing', 'different', 'separate-contract-reference'] as $invalid) {
+            $course = $this->course();
+            $source = $this->source(2);
+            if ($invalid === 'missing') {
+                unset($source['assignments'][1]['legacy_assignment_uid']);
+            }
+            if ($invalid === 'different') {
+                $source['assignments'][1]['legacy_assignment_uid'] = '999';
+            }
+            if ($invalid === 'separate-contract-reference') {
+                $source['assignments'][1]['contract_id'] = 'LV-NEW';
+            }
+            LecturerPlanProjector::apply($course, $source);
+            $this->assertFalse(Access::healthy($course));
+            $this->assertSame('202', Access::assignments($course)[1]['contract_id']);
+            $this->assertSame('202', Access::assignments($course)[1]['legacy_assignment_uid']);
+        }
+    }
+
+    public function test_returning_teacher_can_reuse_the_same_existing_agreement(): void
+    {
+        $course = $this->course(false);
+        $source = $this->source();
+        $source['assignments'][1]['ends_on'] = '2026-11-06';
+        $source['assignments'][] = [...$source['assignments'][0], 'assignment_id' => 'C', 'starts_on' => '2026-11-07', 'ends_on' => '2026-11-08'];
+        LecturerPlanProjector::apply($course, $source);
+        $this->assertTrue(Access::healthy($course));
+        $this->assertSame(['101', '202', '101'], array_column(Access::assignments($course), 'contract_id'));
+        $this->assertSame(['101', '202', '101'], array_column(Access::assignments($course), 'legacy_assignment_uid'));
     }
 
     public function test_projection_ignores_older_and_legacy_payloads_and_rejects_same_revision_changes(): void
@@ -219,10 +252,11 @@ class CourseLecturerPlanTest extends TestCase
         $this->assertSame(2, (int) $course->fresh()->lecturer_plan_revision);
         LecturerPlanProjector::apply($course, $two);
         $this->assertTrue(Access::healthy($course));
-        $two['assignments'][1]['contract_id'] = 'OTHER';
+        $two['assignments'][1]['contract_id'] = '999';
+        $two['assignments'][1]['legacy_assignment_uid'] = '999';
         LecturerPlanProjector::apply($course, $two);
         $this->assertFalse(Access::healthy($course));
-        $this->assertSame('CON-B', Access::assignments($course)[1]['contract_id']);
+        $this->assertSame('202', Access::assignments($course)[1]['contract_id']);
         $this->assertFalse(Access::canManageCourse(User::find(1), $course));
         $this->assertFalse(Access::canInvoice(User::find(1), $course));
         LecturerPlanProjector::apply($course, $two);
@@ -371,10 +405,11 @@ class CourseLecturerPlanTest extends TestCase
         $this->assertSame('B', Access::pinClosingAssignment($course)['assignment_id']);
         $this->assertSame('B', $course->fresh()->lecturer_closing_assignment_id);
         $change = $this->source(2);
-        $change['assignments'][1]['contract_id'] = 'OTHER';
+        $change['assignments'][1]['contract_id'] = '999';
+        $change['assignments'][1]['legacy_assignment_uid'] = '999';
         LecturerPlanProjector::apply($course, $change);
         $this->assertFalse(Access::healthy($course));
-        $this->assertSame('CON-B', Access::assignments($course)[1]['contract_id']);
+        $this->assertSame('202', Access::assignments($course)[1]['contract_id']);
         LecturerPlanProjector::apply($course, $this->source(3));
         $this->assertTrue(Access::healthy($course));
     }
@@ -425,7 +460,7 @@ class CourseLecturerPlanTest extends TestCase
         $rating = CourseRating::sole();
         $this->assertSame('B', $rating->lecturer_assignment_id);
         $this->assertSame(22, (int) $rating->lecturer_person_id);
-        $this->assertSame('CON-B', $rating->lecturer_contract_id);
+        $this->assertSame('202', $rating->lecturer_contract_id);
         $this->assertSame('MA-B', $rating->lecturer_staff_id);
         $this->assertSame('B', $course->fresh()->lecturer_closing_assignment_id);
     }
@@ -510,7 +545,7 @@ class CourseLecturerPlanTest extends TestCase
         $course = $this->course();
         $this->travelTo(Carbon::parse('2026-11-06 17:00', 'Europe/Berlin'));
         DB::table('course_ratings')->insert(['course_id' => $course->id, 'user_id' => 3, 'participant_id' => 3, 'do_1' => 2,
-            'lecturer_assignment_id' => 'B', 'lecturer_person_id' => 22, 'lecturer_contract_id' => 'CON-B', 'lecturer_staff_id' => 'MA-B', 'lecturer_plan_revision' => 1]);
+            'lecturer_assignment_id' => 'B', 'lecturer_person_id' => 22, 'lecturer_contract_id' => '202', 'lecturer_staff_id' => 'MA-B', 'lecturer_plan_revision' => 1]);
         $api = \Mockery::mock(ApiUvsService::class);
         $api->shouldReceive('request')->once()->with('POST', '/api/course/ratings/syncdata', \Mockery::on(fn ($p) => $p['lecturer_assignment_id'] === 'B' && $p['lecturer_plan_revision'] === 1 && $p['mitarbeiter_id'] === 'MA-B'), [])->andReturn(['ok' => true]);
         $service = new CourseRatingsSyncService($api);

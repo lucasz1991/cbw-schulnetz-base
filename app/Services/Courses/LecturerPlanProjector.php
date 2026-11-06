@@ -51,10 +51,18 @@ class LecturerPlanProjector
                     if (! $person) {
                         throw new RuntimeException('Eine Dozentenperson wurde noch nicht übernommen.');
                     }
+                    // Compatibility field names: both identify the existing
+                    // ma_u_kla course/fee agreement, never a separate contract.
+                    $contractId = $row['contract_id'] ?? null;
+                    $legacyId = $row['legacy_assignment_uid'] ?? null;
+                    if ((! is_string($contractId) && ! is_int($contractId)) || (! is_string($legacyId) && ! is_int($legacyId))
+                        || ! preg_match('/^[1-9]\d{0,19}$/D', (string) $contractId) || (string) $contractId !== (string) $legacyId) {
+                        throw new RuntimeException('Der Einsatz benötigt eine eindeutige bestehende Kursvereinbarung.');
+                    }
                     $seen[$id] = true;
                     $normalized[] = ['assignment_id' => $id, 'person_id' => (int) $person->id, 'source_person_id' => (string) $person->person_id,
-                        'mitarbeiter_id' => (string) ($row['mitarbeiter_id'] ?? ''), 'contract_id' => isset($row['contract_id']) ? (string) $row['contract_id'] : null,
-                        'legacy_assignment_uid' => $row['legacy_assignment_uid'] ?? null, 'starts_on' => $start, 'ends_on' => $end,
+                        'mitarbeiter_id' => (string) ($row['mitarbeiter_id'] ?? ''), 'contract_id' => (string) $contractId,
+                        'legacy_assignment_uid' => (string) $legacyId, 'starts_on' => $start, 'ends_on' => $end,
                         'reason' => $row['reason'] ?? null, 'changed_by' => $row['changed_by'] ?? null, 'changed_at' => $row['changed_at'] ?? null];
                     $next = Carbon::parse($end)->addDay()->toDateString();
                 }

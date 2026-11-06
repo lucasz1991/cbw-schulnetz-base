@@ -6,7 +6,7 @@
         <label class="block text-sm">Eigener Einsatz für diese Rechnung
             <select wire:model.live="invoiceAssignmentId" class="mt-1 rounded border-gray-300">
                 @foreach($this->ownInvoiceAssignments as $assignment)
-                    <option value="{{ $assignment['assignment_id'] }}">{{ $assignment['starts_on'] }} - {{ $assignment['ends_on'] }} · Vertrag {{ $assignment['contract_id'] ?? 'Bestand' }}</option>
+                    <option value="{{ $assignment['assignment_id'] }}">{{ $assignment['starts_on'] }} - {{ $assignment['ends_on'] }} · Vereinbarung {{ $assignment['contract_id'] ?? 'Bestand' }}</option>
                 @endforeach
             </select>
         </label>

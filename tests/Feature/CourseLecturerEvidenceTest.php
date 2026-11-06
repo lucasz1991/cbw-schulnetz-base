@@ -145,8 +145,8 @@ class CourseLecturerEvidenceTest extends TestCase
             'type' => 'regular', 'klassen_id' => '26T01-1-BMFK', 'primary_tutor_person_id' => 101,
             'lecturer_plan_revision' => 7, 'lecturer_plan' => [
                 'status' => 'ready', 'person_ids' => [101, 102], 'assignments' => [
-                    ['assignment_id' => 'first', 'person_id' => 101, 'starts_on' => '2026-10-19', 'ends_on' => '2026-10-31'],
-                    ['assignment_id' => 'second', 'person_id' => 102, 'starts_on' => '2026-11-01', 'ends_on' => '2026-11-06'],
+                    ['assignment_id' => 'first', 'person_id' => 101, 'contract_id' => '501', 'legacy_assignment_uid' => '501', 'starts_on' => '2026-10-19', 'ends_on' => '2026-10-31'],
+                    ['assignment_id' => 'second', 'person_id' => 102, 'contract_id' => '502', 'legacy_assignment_uid' => '502', 'starts_on' => '2026-11-01', 'ends_on' => '2026-11-06'],
                 ],
             ],
         ]));
@@ -309,7 +309,7 @@ class CourseLecturerEvidenceTest extends TestCase
         $course = $this->course();
         $plan = $course->lecturer_plan;
         $plan['assignments'][1]['ends_on'] = '2026-11-03';
-        $plan['assignments'][] = ['assignment_id' => 'return', 'person_id' => 101, 'contract_id' => 'LV-A2', 'starts_on' => '2026-11-04', 'ends_on' => '2026-11-06'];
+        $plan['assignments'][] = ['assignment_id' => 'return', 'person_id' => 101, 'contract_id' => '501', 'legacy_assignment_uid' => '501', 'starts_on' => '2026-11-04', 'ends_on' => '2026-11-06'];
         $course->forceFill(['lecturer_plan' => $plan])->save();
         $this->travelTo(Carbon::parse('2026-11-05 10:00:00', 'Europe/Berlin'));
         foreach (['2026-10-21', '2026-11-02', '2026-11-05'] as $date) {
@@ -324,6 +324,7 @@ class CourseLecturerEvidenceTest extends TestCase
             ->call('uploadInvoice')->assertHasNoErrors();
         $first = File::query()->sole();
         $this->assertSame('first', $first->lecturer_assignment_id);
+        $this->assertSame('501', $first->lecturer_contract_id);
         $this->assertSame(11, (int) $first->user_id);
         Storage::disk('private')->assertExists($first->path);
         $component->set('invoiceUpload', UploadedFile::fake()->createWithContent('first-v2.pdf', "%PDF-1.4\nSynthetic replacement\n%%EOF"))
@@ -337,6 +338,7 @@ class CourseLecturerEvidenceTest extends TestCase
             ->call('uploadInvoice')->assertHasNoErrors();
         $return = File::query()->latest('id')->first();
         $this->assertSame('return', $return->lecturer_assignment_id);
+        $this->assertSame('501', $return->lecturer_contract_id);
         $this->assertNull($return->supersedes_file_id);
         $this->signIn(12);
         Livewire::test(ManageCourseInvoice::class, ['course' => $course])

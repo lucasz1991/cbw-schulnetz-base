@@ -177,11 +177,11 @@ class CourseRatingsPdfTest extends TestCase
         DB::table('persons')->insert(['id' => 4, 'vorname' => 'Späterer', 'nachname' => 'Kalenderdozent']);
         $course = Course::firstOrFail();
         $plan = ['status' => 'ready', 'closing_assignment_id' => 'A', 'completion_at' => '2026-10-01T16:00:00+02:00', 'assignments' => [
-            ['assignment_id' => 'A', 'person_id' => 3, 'contract_id' => 'CON-A', 'mitarbeiter_id' => 'MA-A', 'starts_on' => '2026-09-01', 'ends_on' => '2026-10-01'],
-            ['assignment_id' => 'B', 'person_id' => 4, 'contract_id' => 'CON-B', 'mitarbeiter_id' => 'MA-B', 'starts_on' => '2026-10-02', 'ends_on' => '2026-10-02'],
+            ['assignment_id' => 'A', 'person_id' => 3, 'contract_id' => '101', 'mitarbeiter_id' => 'MA-A', 'starts_on' => '2026-09-01', 'ends_on' => '2026-10-01'],
+            ['assignment_id' => 'B', 'person_id' => 4, 'contract_id' => '202', 'mitarbeiter_id' => 'MA-B', 'starts_on' => '2026-10-02', 'ends_on' => '2026-10-02'],
         ]];
         $course->forceFill(['lecturer_plan' => $plan, 'lecturer_closing_assignment_id' => 'A'])->saveQuietly();
-        $this->addRating(['do_1' => 2, 'lecturer_assignment_id' => 'A', 'lecturer_person_id' => 3, 'lecturer_contract_id' => 'CON-A', 'lecturer_staff_id' => 'MA-A']);
+        $this->addRating(['do_1' => 2, 'lecturer_assignment_id' => 'A', 'lecturer_person_id' => 3, 'lecturer_contract_id' => '101', 'lecturer_staff_id' => 'MA-A']);
         $expected = 'Test Dozent';
         $pdf = Mockery::mock(\Barryvdh\DomPDF\PDF::class);
         $pdf->shouldReceive('setPaper')->andReturnSelf();

@@ -54,9 +54,9 @@ class CourseLecturerReminderTest extends TestCase
     {
         return ['version'=>1,'revision'=>$revision,'status'=>'ready','completion_at'=>'2026-11-06T16:00:00+01:00','closing_assignment_id'=>'B',
             'assignments'=>[
-                ['assignment_id'=>'A','person_id'=>'UVS-A','mitarbeiter_id'=>'MA-A','contract_id'=>'C-A','starts_on'=>'2026-10-19','ends_on'=>'2026-11-04'],
-                ['assignment_id'=>'B','person_id'=>'UVS-B','mitarbeiter_id'=>'MA-B','contract_id'=>'C-B','starts_on'=>'2026-11-05','ends_on'=>'2026-11-06'],
-                ['assignment_id'=>'C','person_id'=>'UVS-A','mitarbeiter_id'=>'MA-A','contract_id'=>'C-A','starts_on'=>'2026-11-07','ends_on'=>'2026-11-08'],
+                ['assignment_id'=>'A','person_id'=>'UVS-A','mitarbeiter_id'=>'MA-A','contract_id'=>'101','legacy_assignment_uid'=>'101','starts_on'=>'2026-10-19','ends_on'=>'2026-11-04'],
+                ['assignment_id'=>'B','person_id'=>'UVS-B','mitarbeiter_id'=>'MA-B','contract_id'=>'202','legacy_assignment_uid'=>'202','starts_on'=>'2026-11-05','ends_on'=>'2026-11-06'],
+                ['assignment_id'=>'C','person_id'=>'UVS-A','mitarbeiter_id'=>'MA-A','contract_id'=>'101','legacy_assignment_uid'=>'101','starts_on'=>'2026-11-07','ends_on'=>'2026-11-08'],
             ]];
     }
 

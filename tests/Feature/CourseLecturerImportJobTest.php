@@ -60,7 +60,7 @@ class CourseLecturerImportJobTest extends TestCase
         $assignments=[];
         foreach([[1,'a','2026-10-19','2026-11-04'],[2,'b','2026-11-05','2026-11-06'],[3,'c','2026-11-07','2026-11-08']]as[$person,$id,$start,$end]){
             $assignments[]=['assignment_id'=>str_repeat($id,32),'person_id'=>'1-000000'.$person,'mitarbeiter_id'=>'MA-'.chr(64+$person),'contract_id'=>(string)$person,
-                'legacy_assignment_uid'=>$id==='a'?'10':null,'starts_on'=>$start,'ends_on'=>$end,'name'=>$teachers[$person-1]['vorname'].' '.$teachers[$person-1]['nachname'],
+                'legacy_assignment_uid'=>(string)$person,'starts_on'=>$start,'ends_on'=>$end,'name'=>$teachers[$person-1]['vorname'].' '.$teachers[$person-1]['nachname'],
                 'reason'=>'Organisatorische Übergabe','changed_by'=>7,'changed_at'=>'2026-11-01T10:00:00+00:00'];
         }
         $plan=['version'=>1,'revision'=>$revision,'status'=>'ready','assignments'=>$assignments,'contracts'=>[],

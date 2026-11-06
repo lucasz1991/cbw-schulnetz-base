@@ -62,8 +62,8 @@ class CourseLecturerAttendanceSyncTest extends TestCase
             'planned_start_date'=>'2026-10-19','planned_end_date'=>'2026-11-08','primary_tutor_person_id'=>11]));
         LecturerPlanProjector::apply($course,['version'=>1,'revision'=>2,'status'=>'ready','completion_at'=>'2026-11-06T16:00:00+01:00','closing_assignment_id'=>'B',
             'assignments'=>[
-                ['assignment_id'=>'A','person_id'=>'UVS-A','mitarbeiter_id'=>'MA-A','contract_id'=>'C-A','starts_on'=>'2026-10-19','ends_on'=>'2026-11-04'],
-                ['assignment_id'=>'B','person_id'=>'UVS-B','mitarbeiter_id'=>'MA-B','contract_id'=>'C-B','starts_on'=>'2026-11-05','ends_on'=>'2026-11-08'],
+                ['assignment_id'=>'A','person_id'=>'UVS-A','mitarbeiter_id'=>'MA-A','contract_id'=>'101','legacy_assignment_uid'=>'101','starts_on'=>'2026-10-19','ends_on'=>'2026-11-04'],
+                ['assignment_id'=>'B','person_id'=>'UVS-B','mitarbeiter_id'=>'MA-B','contract_id'=>'202','legacy_assignment_uid'=>'202','starts_on'=>'2026-11-05','ends_on'=>'2026-11-08'],
             ]]);
         foreach ([33,44] as $id) { DB::table('course_participant_enrollments')->insert(['course_id'=>$course->id,'person_id'=>$id]); }
         return CourseDay::withoutEvents(fn()=>CourseDay::create(['course_id'=>$course->id,'date'=>$date,'start_time'=>'08:00','end_time'=>'16:00','std'=>8,

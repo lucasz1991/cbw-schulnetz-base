@@ -85,3 +85,9 @@ Append-only communication log. Source and runtime evidence override stale entrie
 - Frische Evidence-Guards und CourseDay-Parent-/Daylocks mit Konflikterkennung ergänzt. Prüfungen: 97 Tests/563 Assertions Core+Evidence+Coaching, zusätzlich 5 Storage-HTTP-Tests/53 Assertions; keine echte Datenbank/API/Mail/Deployment.
 - Fünf report_books-Fixturefehler unabhängig im unveränderten HEAD-Archiv reproduziert, inklusive identischer Git-Blobs und Originalstack.
 - Detail: E:/projekte/CBW/.lmzdev/artifacts/reports/dozentenwechsel-20261106-base-core-handoff.md. Root führt Gesamtintegration/Bestandsmigrationen aus.
+
+## 2026-11-06 | Base/Core-Agent -> Root | bestehende Vereinbarungen
+
+- Folgekorrektur: kein separater UVS-Vertrags-/Bewertungsstamm; API contract_id und legacy_assignment_uid bezeichnen identisch vorhandene ma_u_kla.uid. Projector validiert Gleichheit; UI/Export verwenden Vereinbarung und vorhandene API-Referenz. Keine zusätzliche Migration.
+- Gezielt grün: Base 61 Tests/407 Assertions, Admin 17 Tests/67 Assertions; nur SQLite/Fakes, keine Bestandsdaten-, LIVE- oder Paketaktion.
+- Bericht: E:/projekte/CBW/.lmzdev/artifacts/reports/dozentenwechsel-20261106-existing-agreements-base-admin.md.
